@@ -1,6 +1,6 @@
 from ortools.linear_solver import pywraplp
 
-from solver.googleortools.abstract_ortools_solver import AbstractORToolsSolver
+from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
 
 
 class MIPSolver(AbstractORToolsSolver):

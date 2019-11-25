@@ -1,8 +1,8 @@
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 
-from solver.asp.asp_problem_description import ASPProblemDescription
-from solver.asp.asp_solution_description import ASPSolutionDescription
+from rsp.asp.asp_problem_description import ASPProblemDescription
+from rsp.asp.asp_solution_description import ASPSolutionDescription
 from utils.data_types import ExperimentResults
 from utils.experiment_render_utils import init_renderer_for_env, render_env, cleanup_renderer_for_env
 from utils.experiment_solver import AbstractSolver
@@ -62,6 +62,7 @@ class ASPExperimentSolver(AbstractSolver):
                                                  agents_path_dict=agents_paths_dict)
 
         renderer = init_renderer_for_env(static_rail_env, rendering)
+
         def render(test_id: int, solver_name, i_step: int):
             render_env(renderer, test_id, solver_name, i_step)
 
@@ -103,8 +104,8 @@ class ASPExperimentSolver(AbstractSolver):
             trainruns_dict=schedule_solution.get_trainruns_dict()
         )
 
-
         renderer = init_renderer_for_env(malfunction_rail_env, rendering)
+
         def render(test_id: int, solver_name, i_step: int):
             render_env(renderer, test_id, solver_name, i_step)
 
@@ -136,8 +137,10 @@ class ASPExperimentSolver(AbstractSolver):
         )
 
         renderer = init_renderer_for_env(malfunction_rail_env, rendering)
+
         def render(test_id: int, solver_name, i_step: int):
             render_env(renderer, test_id, solver_name, i_step)
+
         delta_reschedule_result = solve_problem(
             env=malfunction_rail_env,
             problem=delta_reschedule_problem,

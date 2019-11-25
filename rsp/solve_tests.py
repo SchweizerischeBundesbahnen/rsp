@@ -1,6 +1,6 @@
 """Run scheduling problem with 1000 generated scenarios."""
 # ----------------------------- Helper -----------------------------------------------------
-from solver.solve_utils import test_helper
+from rsp.solve_utils import test_helper
 
 
 # main function

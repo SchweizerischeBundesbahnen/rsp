@@ -3,9 +3,9 @@ from typing import Dict, Optional, List
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Waypoint, Trainrun, TrainrunWaypoint
 
-from solver.abstract_solution_description import AbstractSolutionDescription
-from solver.googleortools.abstract_ortools_solver import AbstractORToolsSolver
-from solver.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
+from rsp.abstract_solution_description import AbstractSolutionDescription
+from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
+from rsp.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
 
 
 class ORToolsSolutionDescription(AbstractSolutionDescription):

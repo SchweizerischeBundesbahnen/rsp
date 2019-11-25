@@ -2,7 +2,7 @@
 import os
 
 # ----------------------------- Helper -----------------------------------------------------------
-from solver.solve_utils import list_files, load_flatland_environment_from_file, test_helper, HEADER
+from rsp.solve_utils import list_files, load_flatland_environment_from_file, test_helper, HEADER
 
 
 def main():

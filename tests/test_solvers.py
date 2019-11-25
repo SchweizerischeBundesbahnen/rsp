@@ -13,10 +13,10 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail, make_simple_rail_with_alternatives
 
-from solver.abstract_problem_description import AbstractProblemDescription
-from solver.asp.asp_problem_description import ASPProblemDescription
-from solver.googleortools.cp_sat_solver import CPSATSolver
-from solver.googleortools.ortools_problem_description import ORToolsProblemDescription
+from rsp.abstract_problem_description import AbstractProblemDescription
+from rsp.asp.asp_problem_description import ASPProblemDescription
+from rsp.googleortools.cp_sat_solver import CPSATSolver
+from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
 
 
 def generate_ortools_cpsat_problem_description(env: RailEnv,
@@ -361,7 +361,6 @@ def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(problem_desc
         "expected {}, found {}".format(expected_action_plan, actual_action_plan.action_plan)
 
     ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
-    
 
 
 # ----- HELPER ------------------------------------------------

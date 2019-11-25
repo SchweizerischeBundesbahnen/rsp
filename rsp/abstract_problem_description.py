@@ -7,7 +7,7 @@ from flatland.core.grid.grid_utils import Vec2dOperations as Vec2d
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from solver.abstract_solution_description import AbstractSolutionDescription
+from rsp.abstract_solution_description import AbstractSolutionDescription
 
 
 class AbstractProblemDescription:
@@ -181,7 +181,6 @@ class AbstractProblemDescription:
             # we assume activate_agents=False, therefore add 1!
             agent_minimum_running_time = int(agent_min_number_of_steps // agent.speed_data['speed'] + 1)
             for path_index, agent_path in enumerate(agent_paths):
-
                 source_waypoint = self.convert_position_and_entry_direction_to_waypoint(*agent_path[0].position,
                                                                                         agent_path[0].direction)
                 dummy_target_waypoint = self.convert_agent_target_to_dumm_target_waypoint(agent)
@@ -192,80 +191,89 @@ class AbstractProblemDescription:
                                       [dummy_target_waypoint],
                                       agent_minimum_running_time)
 
-                for waypoint_index, waypoint in enumerate(agent_path[:-1]):
-
-                    current_position = waypoint.position
-                    current_direction = waypoint.direction
-
-                    entry_waypoint = self.convert_position_and_entry_direction_to_waypoint(*current_position,
-                                                                                           current_direction)
-
-                    # add time window [0,max_agents_steps_allowed] for entry event
-                    agent_entry = (agent_id, entry_waypoint)
-                    if agent_entry not in already_added:
-                        self._implement_agent_earliest(*agent_entry, 0)
-                        self._implement_agent_latest(*agent_entry, max_agents_steps_allowed)
-
-                    minimum_running_time = np.ceil(1.0 / agent.speed_data['speed'])
-
-                    # FLATland agents stay one tick in the first cell when they are place before they move
-                    if waypoint_index == 0:
-                        minimum_running_time += 1
-
-                    self._max_speed = max(self._max_speed, minimum_running_time)
-                    next_action_element: Waypoint = agent_path[waypoint_index + 1]
-                    next_position = next_action_element.position
-                    next_direction = next_action_element.direction
-                    next_waypoint = self.convert_position_and_entry_direction_to_waypoint(*next_position,
-                                                                                          next_direction)
-
-                    # add time window [0,max_agents_steps_allowed] for exit event
-                    agent_exit = (agent_id, next_waypoint)
-                    if agent_exit not in already_added:
-                        already_added.add(agent_exit)
-                        self._implement_agent_earliest(*agent_exit, 0)
-                        self._implement_agent_latest(*agent_exit, max_agents_steps_allowed)
-
-                    # add minimum running time etc for this section
-                    agent_section = (agent_id, entry_waypoint, next_waypoint)
-                    if agent_section not in already_added:
-                        already_added.add(agent_section)
-                        # we use the path_index to penalize taking this route section
-                        # N.B. the penalty is the index of the first occurrence of this route section
-                        #      in the given k paths.
-                        self._implement_route_section(*agent_section, current_position, minimum_running_time,
-                                                      path_index)
-
-                    if Vec2d.is_equal(agent.target, next_position):
-                        agent_target = (agent_id, next_waypoint, dummy_target_waypoint)
-                        if agent_target not in already_added:
-                            # stay in the last cell for one tick to allow for synchronization
-                            self._implement_route_section(*agent_target, next_position, 1)
+                self._add_agent_waypoints(agent, agent_id, agent_path, already_added, dummy_target_waypoint,
+                                          max_agents_steps_allowed, path_index)
 
         # Mutual exclusion (required only for ortools, would not be required for ASP,
         # since the grounding phase thus this for us)
         if not skip_mutual_exclusion:
-            for agent_id, agent in enumerate(self.env.agents):
-                for agent_path in self.agents_path_dict[agent_id]:
-                    for waypoint_index, waypoint in enumerate(agent_path):
-                        position = waypoint.position
-                        entry_waypoint = self.convert_position_and_entry_direction_to_waypoint(*waypoint.position,
-                                                                                               waypoint.direction)
-                        if Vec2d.is_equal(position, agent_path[-1].position):
-                            exit_waypoint = self.convert_agent_target_to_dumm_target_waypoint(agent)
-                        else:
-                            next_action_element: Waypoint = agent_path[waypoint_index + 1]
-                            next_position = next_action_element.position
-                            next_direction = next_action_element.direction
-
-                            exit_waypoint = self.convert_position_and_entry_direction_to_waypoint(*next_position,
-                                                                                                  next_direction)
-
-                        self._add_implement_resource_mutual_exclusion_over_opposite_agents(agent_id, entry_waypoint,
-                                                                                           exit_waypoint,
-                                                                                           position)
+            self._add_mutual_exclusion_ortools()
 
         self._create_objective_function_minimize(dummy_target_vertices)
+
+    def _add_agent_waypoints(self, agent, agent_id, agent_path, already_added, dummy_target_waypoint,
+                             max_agents_steps_allowed,
+                             path_index):
+        for waypoint_index, waypoint in enumerate(agent_path[:-1]):
+
+            current_position = waypoint.position
+            current_direction = waypoint.direction
+
+            entry_waypoint = self.convert_position_and_entry_direction_to_waypoint(*current_position,
+                                                                                   current_direction)
+
+            # add time window [0,max_agents_steps_allowed] for entry event
+            agent_entry = (agent_id, entry_waypoint)
+            if agent_entry not in already_added:
+                self._implement_agent_earliest(*agent_entry, 0)
+                self._implement_agent_latest(*agent_entry, max_agents_steps_allowed)
+
+            minimum_running_time = np.ceil(1.0 / agent.speed_data['speed'])
+
+            # FLATland agents stay one tick in the first cell when they are place before they move
+            if waypoint_index == 0:
+                minimum_running_time += 1
+
+            self._max_speed = max(self._max_speed, minimum_running_time)
+            next_action_element: Waypoint = agent_path[waypoint_index + 1]
+            next_position = next_action_element.position
+            next_direction = next_action_element.direction
+            next_waypoint = self.convert_position_and_entry_direction_to_waypoint(*next_position,
+                                                                                  next_direction)
+
+            # add time window [0,max_agents_steps_allowed] for exit event
+            agent_exit = (agent_id, next_waypoint)
+            if agent_exit not in already_added:
+                already_added.add(agent_exit)
+                self._implement_agent_earliest(*agent_exit, 0)
+                self._implement_agent_latest(*agent_exit, max_agents_steps_allowed)
+
+            # add minimum running time etc for this section
+            agent_section = (agent_id, entry_waypoint, next_waypoint)
+            if agent_section not in already_added:
+                already_added.add(agent_section)
+                # we use the path_index to penalize taking this route section
+                # N.B. the penalty is the index of the first occurrence of this route section
+                #      in the given k paths.
+                self._implement_route_section(*agent_section, current_position, minimum_running_time,
+                                              path_index)
+
+            if Vec2d.is_equal(agent.target, next_position):
+                agent_target = (agent_id, next_waypoint, dummy_target_waypoint)
+                if agent_target not in already_added:
+                    # stay in the last cell for one tick to allow for synchronization
+                    self._implement_route_section(*agent_target, next_position, 1)
+
+    def _add_mutual_exclusion_ortools(self):
+        for agent_id, agent in enumerate(self.env.agents):
+            for agent_path in self.agents_path_dict[agent_id]:
+                for waypoint_index, waypoint in enumerate(agent_path):
+                    position = waypoint.position
+                    entry_waypoint = self.convert_position_and_entry_direction_to_waypoint(*waypoint.position,
+                                                                                           waypoint.direction)
+                    if Vec2d.is_equal(position, agent_path[-1].position):
+                        exit_waypoint = self.convert_agent_target_to_dumm_target_waypoint(agent)
+                    else:
+                        next_action_element: Waypoint = agent_path[waypoint_index + 1]
+                        next_position = next_action_element.position
+                        next_direction = next_action_element.direction
+
+                        exit_waypoint = self.convert_position_and_entry_direction_to_waypoint(*next_position,
+                                                                                              next_direction)
+
+                    self._add_implement_resource_mutual_exclusion_over_opposite_agents(agent_id, entry_waypoint,
+                                                                                       exit_waypoint,
+                                                                                       position)
 
     def _add_implement_resource_mutual_exclusion_over_opposite_agents(self, agent_id, entry_waypoint, exit_waypoint,
                                                                       position):

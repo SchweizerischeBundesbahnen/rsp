@@ -5,6 +5,7 @@ from flatland.action_plan.action_plan_player import ControllerFromTrainrunsRepla
 from flatland.envs.rail_env import RailEnv
 from flatland.utils.rendertools import RenderTool, AgentRenderVariant
 
+
 # --------------------------------------------------------------------------------------
 # Helpers
 # --------------------------------------------------------------------------------------
@@ -23,7 +24,6 @@ def make_render_call_back_for_replay(env: RailEnv,
             renderer.render_env(show=True, show_observations=False, show_predictions=False)
 
     return render
-
 
 
 def init_renderer_for_env(env: RailEnv, rendering: bool = False):

@@ -1,8 +1,8 @@
 """
 Run tests for different experiment methods
 """
-from solver.utils.data_types import ExperimentParameters
-from solver.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.experiments import create_env_pair_for_experiment
 
 
 def test_created_env_tuple():
