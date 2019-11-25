@@ -350,3 +350,11 @@ def load_experiment_results_to_file(file_name: str) -> DataFrame:
     """
     experiment_results = pd.read_json(file_name)
     return experiment_results
+
+
+    renderer = RenderTool(env, gl="PILSVG",
+                          agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
+                          show_debug=True,
+                          clear_debug_text=True,
+                          screen_height=1000,
+                          screen_width=1000)

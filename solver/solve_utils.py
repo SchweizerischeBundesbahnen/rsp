@@ -1,6 +1,7 @@
 """Utils used both in solve_envs.py and solve_tests.py."""
 
 import os
+from typing import Optional
 
 import numpy as np
 # ----------------------------- Flatland -----------------------------------------------------------
@@ -15,6 +16,7 @@ from numpy.random.mtrand import RandomState
 from solver.asp.asp_problem_description import ASPProblemDescription
 from solver.googleortools.cp_sat_solver import CPSATSolver
 from solver.googleortools.ortools_problem_description import ORToolsProblemDescription
+from utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env, render_env
 from utils.experiment_utils import solve_problem, current_milli_time
 from utils.general_utils import verification
 
@@ -237,11 +239,15 @@ def test_helper(output_file_name, rendering, tests, debug=False):
             # --------------------------------------------------------------------------------------
             # Solve
             # --------------------------------------------------------------------------------------
+            renderer = init_renderer_for_env(env, rendering)
+            def render(test_id: int, solver_name, i_step: int):
+                render_env(renderer, test_id, solver_name, i_step)
 
             total_reward, solve_time, build_problem_time, solution = solve_problem(
                 problem=problem, loop_index=loop_index, env=env,
                 agents_paths_dict=agents_paths_dict,
-                rendering=rendering, debug=debug)
+                rendering_call_back=render, debug=debug)
+            cleanup_renderer_for_env(renderer)
 
             longest_shortest_paths_over_all_agents = np.max(
                 [len(agents_paths[0]) for agents_paths in agents_paths_dict.values()])

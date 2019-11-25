@@ -5,7 +5,7 @@ from solver.solve_utils import test_helper
 
 # main function
 def main():
-    rendering = False
+    rendering = True
     nbr_of_tests = 1000
 
     output_file_name = "solve_tests.csv"

@@ -8,14 +8,13 @@ from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_generators import rail_from_grid_transition_map
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import random_schedule_generator
-from flatland.utils.rendertools import RenderTool, AgentRenderVariant
 from flatland.utils.simple_rail import make_simple_rail
 
-from solver.googleortools.ortools_solution_description import ORToolsSolutionDescription
-from solver.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
 from solver.abstract_problem_description import AbstractProblemDescription
 from solver.googleortools.cp_sat_solver import CPSATSolver
 from solver.googleortools.ortools_problem_description import ORToolsProblemDescription
+from solver.googleortools.ortools_solution_description import ORToolsSolutionDescription
+from solver.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
 
 
 def test_simple_rail_CPSAT(rendering=False):
@@ -36,14 +35,7 @@ def test_simple_rail_CPSAT(rendering=False):
                                 1) for i, agent in enumerate(env.agents)
     }
     print(agents_paths_dict)
-    if rendering:
-        renderer = RenderTool(env, gl="PILSVG",
-                              agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                              show_debug=True,
-                              clear_debug_text=True,
-                              screen_height=1000,
-                              screen_width=1000)
-        renderer.render_env(show=True, show_observations=False, show_predictions=False)
+
     start_solver = time.time()
 
     problem = ORToolsProblemDescription(env=env,

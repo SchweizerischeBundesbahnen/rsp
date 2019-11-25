@@ -8,7 +8,6 @@ from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_generators import rail_from_grid_transition_map
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import random_schedule_generator
-from flatland.utils.rendertools import RenderTool, AgentRenderVariant
 from flatland.utils.simple_rail import make_simple_rail
 from importlib_resources import path
 
@@ -56,7 +55,7 @@ def test_mutual_exclusion():
     assert first_actual.issuperset(expected_dl), "expected {} to be subset of {}".format(expected_dl, first_actual)
 
 
-def test_simple_rail_asp_one_agent(rendering=False):
+def test_simple_rail_asp_one_agent():
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -78,14 +77,7 @@ def test_simple_rail_asp_one_agent(rendering=False):
                                 agent.target,
                                 1) for i, agent in enumerate(env.agents)
     }
-    if rendering:
-        renderer = RenderTool(env, gl="PILSVG",
-                              agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                              show_debug=True,
-                              clear_debug_text=True,
-                              screen_height=1000,
-                              screen_width=1000)
-        renderer.render_env(show=True, show_observations=False, show_predictions=False)
+
     start_solver = time.time()
     problem = ASPProblemDescription(env=env, agents_path_dict=agents_paths_dict)
 
