@@ -1,5 +1,6 @@
 import time
 
+import pytest
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.observations import TreeObsForRailEnv
 from flatland.envs.predictions import ShortestPathPredictorForRailEnv
@@ -170,6 +171,7 @@ def test_minimize_sum_of_running_times_scheduling():
     assert expected.issubset(actual), "actual {}, expected {}".format(actual, expected)
 
 
+@pytest.mark.skip(reason="Currently disable, does not work under Linux, see https://issues.sbb.ch/browse/SIM-149")
 def test_minimize_delay_rescheduling():
     """Case Study how to model minimizing delay with respect to given schedule and a malfunction delay."""
     encodings = []
