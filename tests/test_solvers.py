@@ -56,7 +56,30 @@ def test_simple_rail_asp_two_agents_without_loop():
         ActionPlanElement(scheduled_at=19, action=RailEnvActions.STOP_MOVING),
     ]]
 
-    _simple_rail_two_agents_without_loop(ASPProblemDescription, expected_action_plan)
+    other_expected_action_plan = [[
+        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
+        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=13, action=RailEnvActions.STOP_MOVING),
+    ], [ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=1, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=2, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=3, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_RIGHT),
+        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING),
+        ]]
+
+    _simple_rail_two_agents_without_loop(ASPProblemDescription, [expected_action_plan, other_expected_action_plan])
 
 
 def test_simple_rail_ortools_two_agents_without_loop():
@@ -91,7 +114,7 @@ def test_simple_rail_ortools_two_agents_without_loop():
             ActionPlanElement(scheduled_at=18, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=19, action=RailEnvActions.STOP_MOVING),
         ]]
-    _simple_rail_two_agents_without_loop(generate_ortools_cpsat_problem_description, expected_action_plan)
+    _simple_rail_two_agents_without_loop(generate_ortools_cpsat_problem_description, [expected_action_plan])
 
 
 def test_simple_rail_asp_two_agents_with_loop():
@@ -123,7 +146,33 @@ def test_simple_rail_asp_two_agents_with_loop():
             ActionPlanElement(scheduled_at=20, action=RailEnvActions.STOP_MOVING),
 
         ]]
-    _simple_rail_wo_agents_with_loop(ASPProblemDescription, expected_action_plan)
+    other_expected_action_plan = [[
+        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
+        ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=13, action=RailEnvActions.STOP_MOVING),
+
+    ], [ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=1, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=2, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=3, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_RIGHT),
+        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING),
+
+        ]]
+
+    _simple_rail_wo_agents_with_loop(ASPProblemDescription, [expected_action_plan, other_expected_action_plan])
 
 
 def test_simple_rail_ortools_two_agents_with_loop():
@@ -161,7 +210,31 @@ def test_simple_rail_ortools_two_agents_with_loop():
         ActionPlanElement(scheduled_at=20, action=RailEnvActions.STOP_MOVING),
 
     ]]
-    _simple_rail_wo_agents_with_loop(generate_ortools_cpsat_problem_description, expected_action_plan)
+    other_expected_action_plan = [[
+        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
+        ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=13, action=RailEnvActions.STOP_MOVING),
+    ], [ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=1, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=2, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=3, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_RIGHT),
+        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING),
+        ]]
+    _simple_rail_wo_agents_with_loop(generate_ortools_cpsat_problem_description,
+                                     [expected_action_plan, other_expected_action_plan])
 
 
 def test_simple_rail_asp_two_agents_with_loop_multi_speed(rendering=True):
@@ -192,7 +265,33 @@ def test_simple_rail_asp_two_agents_with_loop_multi_speed(rendering=True):
         ActionPlanElement(scheduled_at=28, action=RailEnvActions.STOP_MOVING),
 
     ]]
-    _simple_rail_wo_agents_with_loop_multi_speed(ASPProblemDescription, expected_action_plan)
+    other_expected_action_plan = [[
+        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
+        ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=13, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=14, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=15, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=16, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=17, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=18, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=19, action=RailEnvActions.STOP_MOVING)
+    ], [
+        ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=1, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=3, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_RIGHT),
+        ActionPlanElement(scheduled_at=13, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=15, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=17, action=RailEnvActions.STOP_MOVING)
+    ]]
+
+    _simple_rail_wo_agents_with_loop_multi_speed(ASPProblemDescription,
+                                                 [expected_action_plan, other_expected_action_plan])
 
 
 def test_simple_rail_with_alternatives_one_agent(rendering=True):
@@ -215,11 +314,11 @@ def test_simple_rail_with_alternatives_one_agent(rendering=True):
         ActionPlanElement(scheduled_at=15, action=2),
         ActionPlanElement(scheduled_at=16, action=2),
         ActionPlanElement(scheduled_at=17, action=4), ]]
-    _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(ASPProblemDescription, expected_action_plan)
+    _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(ASPProblemDescription, [expected_action_plan])
 
 
 # ----- SCENARIOS (solver indepenent, for all)  ----------------
-def _simple_rail_two_agents_without_loop(problem_description, expected_action_plan, ):
+def _simple_rail_two_agents_without_loop(problem_description, expected_action_plans):
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -242,19 +341,10 @@ def _simple_rail_two_agents_without_loop(problem_description, expected_action_pl
 
     actual_action_plan: ControllerFromTrainrunsReplayer = _extract_action_plan_replayer(env, problem_description)
 
-    print("expected:")
-    ControllerFromTrainruns.print_action_plan_dict(expected_action_plan)
-    print("\n\nactual:")
-    actual_action_plan.print_action_plan()
-
-    ControllerFromTrainruns.assert_actions_plans_equal(expected_action_plan, actual_action_plan.action_plan)
-    assert actual_action_plan.action_plan == expected_action_plan, \
-        "expected {}, actual {}".format(expected_action_plan, actual_action_plan)
-
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
+    _verify(actual_action_plan, env, expected_action_plans)
 
 
-def _simple_rail_wo_agents_with_loop(problem_description, expected_action_plan, ):
+def _simple_rail_wo_agents_with_loop(problem_description, expected_action_plans, ):
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -277,19 +367,10 @@ def _simple_rail_wo_agents_with_loop(problem_description, expected_action_plan, 
 
     actual_action_plan = _extract_action_plan_replayer(env, problem_description)
 
-    print("expected:")
-    ControllerFromTrainruns.print_action_plan_dict(expected_action_plan)
-    print("\n\nactual:")
-    actual_action_plan.print_action_plan()
-
-    ControllerFromTrainruns.assert_actions_plans_equal(expected_action_plan, actual_action_plan.action_plan)
-    assert actual_action_plan.action_plan == expected_action_plan, \
-        "expected {}, found {}".format(expected_action_plan, actual_action_plan)
-
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
+    _verify(actual_action_plan, env, expected_action_plans)
 
 
-def _simple_rail_wo_agents_with_loop_multi_speed(problem_description, expected_action_plan, ):
+def _simple_rail_wo_agents_with_loop_multi_speed(problem_description, expected_action_plans, ):
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -313,20 +394,10 @@ def _simple_rail_wo_agents_with_loop_multi_speed(problem_description, expected_a
 
     actual_action_plan = _extract_action_plan_replayer(env, problem_description)
 
-    print("expected:")
-    ControllerFromTrainruns.print_action_plan_dict(expected_action_plan)
-    print("\n\nactual:")
-    actual_action_plan.print_action_plan()
-
-    ControllerFromTrainruns.assert_actions_plans_equal(expected_action_plan, actual_action_plan.action_plan)
-    assert actual_action_plan.action_plan == expected_action_plan, \
-        "expected {}, found {}".format(expected_action_plan, actual_action_plan.action_plan)
-
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
+    _verify(actual_action_plan, env, expected_action_plans)
 
 
-def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(problem_description, expected_action_plan,
-                                                                    ):
+def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(problem_description, expected_action_plans):
     rail, rail_map = make_simple_rail_with_alternatives()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -355,12 +426,7 @@ def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(problem_desc
 
     actual_action_plan = _extract_action_plan_replayer(env, problem_description, 10)
 
-    actual_action_plan.print_action_plan()
-    ControllerFromTrainruns.assert_actions_plans_equal(expected_action_plan, actual_action_plan.action_plan)
-    assert actual_action_plan.action_plan == expected_action_plan, \
-        "expected {}, found {}".format(expected_action_plan, actual_action_plan.action_plan)
-
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
+    _verify(actual_action_plan, env, expected_action_plans)
 
 
 # ----- HELPER ------------------------------------------------
@@ -384,3 +450,15 @@ def _extract_action_plan_replayer(env: RailEnv, problem_description_constructor,
     print("solve_time={:5.3f}ms".format(solve_time))
     actual_action_plan: ControllerFromTrainrunsReplayer = solution.create_action_plan()
     return actual_action_plan
+
+
+def _verify(actual_action_plan, env, expected_action_plans):
+    print("expected one of:")
+    for expected_action_plan in expected_action_plans:
+        ControllerFromTrainruns.print_action_plan_dict(expected_action_plan)
+    print("\n\nactual:")
+    actual_action_plan.print_action_plan()
+    assert actual_action_plan.action_plan in expected_action_plans, \
+        "expected {}, actual {}".format(expected_action_plans, actual_action_plan)
+
+    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
