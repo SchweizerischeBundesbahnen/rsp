@@ -14,11 +14,10 @@ from typing import Tuple
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 from pandas import DataFrame
 
 matplotlib.use('Qt5Agg')
-from mpl_toolkits.mplot3d import Axes3D
-
 # Dummy import currently because otherwise the import is removed all the time but used by 3d scatter plot
 axes3d = Axes3D
 

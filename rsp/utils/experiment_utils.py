@@ -1,17 +1,15 @@
 """Solve a problem a."""
-import os
-from typing import Dict, List, Optional, NamedTuple, Set
+from typing import Dict, List, Optional, NamedTuple, Set, Callable
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun, Waypoint
-from flatland.utils.rendertools import RenderTool, AgentRenderVariant
 
 from asp.asp_solution_description import ASPSolutionDescription
-from solver.abstract_problem_description import AbstractProblemDescription
-from solver.abstract_solution_description import AbstractSolutionDescription
-from solver.asp.asp_problem_description import ASPProblemDescription
+from rsp.abstract_problem_description import AbstractProblemDescription
+from rsp.abstract_solution_description import AbstractSolutionDescription
+from rsp.asp.asp_problem_description import ASPProblemDescription
 from utils.data_types import Malfunction
 from utils.general_utils import current_milli_time, verification
 
@@ -21,6 +19,9 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('build_problem_time', float),
                                          ('solution', AbstractSolutionDescription)])
 
+# test_id: int, solver_name: str, i_step: int
+SolveProblemRenderCallback = Callable[[int, str, int], None]
+
 
 # --------------------------------------------------------------------------------------
 # Solve an `AbstractProblemDescription`
@@ -28,27 +29,13 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
 def solve_problem(env: RailEnv,
                   problem: AbstractProblemDescription,
                   agents_paths_dict: Dict[int, List[Trainrun]],
-                  rendering: bool = False,
+                  rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
                   debug: bool = False,
                   loop_index: int = 0,
                   disable_verification_in_replay: bool = False,
                   malfunction: Optional[Malfunction] = None
                   ) -> SchedulingExperimentResult:
     solver_name = problem.get_solver_name()
-
-    # --------------------------------------------------------------------------------------
-    # Rendering
-    # --------------------------------------------------------------------------------------
-    # if rendering is on
-    renderer = None
-    if rendering:
-        renderer = RenderTool(env, gl="PILSVG",
-                              agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                              show_debug=True,
-                              clear_debug_text=True,
-                              screen_height=1000,
-                              screen_width=1000)
-        _render(renderer, loop_index, solver_name, 0)
 
     # --------------------------------------------------------------------------------------
     # Preparations
@@ -81,37 +68,26 @@ def solve_problem(env: RailEnv,
     # --------------------------------------------------------------------------------------
     # Replay and verifiy the solution
     # --------------------------------------------------------------------------------------
+    total_reward = _replay(debug, disable_verification_in_replay, env, loop_index, malfunction, problem,
+                           rendering_call_back, solution, solver_name)
+
+    return SchedulingExperimentResult(total_reward, solve_time, build_problem_time, solution)
+
+
+def _replay(debug, disable_verification_in_replay, env, loop_index, malfunction, problem, rendering_call_back, solution,
+            solver_name):
     total_reward = 0
     time_step = 0
     ap: ControllerFromTrainruns = solution.create_action_plan()
     if debug:
         print(solution.get_trainruns_dict())
         ap.print_action_plan()
-
     actual_action_plan = [ap.act(time_step) for time_step in range(env._max_episode_steps)]
-
     verification("action_plan", actual_action_plan, loop_index, solver_name)
-
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
-        if debug:
-            fail = False
-            for agent in env.agents:
-                prefix = ""
-                # TODO ortools does not support multispeed yet, hence we cannot test whether the entry times are correct
-                if isinstance(problem, ASPProblemDescription) and not disable_verification_in_replay:
-                    we: Waypoint = ap.get_waypoint_before_or_at_step(agent.handle, time_step)
-                    if agent.position != we.position:
-                        prefix = "!!"
-                        fail = True
-                    if agent.malfunction_data['malfunction'] > 0 and (
-                            malfunction is None or agent.handle != malfunction.agent_id):
-                        prefix += "MM"
-                        fail = True
-
-                print(
-                    f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} in direction={agent.direction} with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we}")
-            if fail:
-                raise Exception("Unexpected state. See above for !!=unexpected position, MM=unexpected malfuntion")
+        fail = _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, problem, time_step)
+        if fail:
+            raise Exception("Unexpected state. See above for !!=unexpected position, MM=unexpected malfuntion")
 
         actions = ap.act(time_step)
 
@@ -122,24 +98,36 @@ def solve_problem(env: RailEnv,
         obs, all_rewards, done, _ = env.step(actions)
         total_reward += sum(np.array(list(all_rewards.values())))
 
-        if rendering:
-            _render(renderer=renderer, test_id=loop_index, solver_name=solver_name, i_step=time_step)
+        rendering_call_back(test_id=loop_index, solver_name=solver_name, i_step=time_step)
 
         # if all agents have reached their goals, break
         if done['__all__']:
             break
 
         time_step += 1
+    return total_reward
 
-    # --------------------------------------------------------------------------------------
-    # Cleanup
-    # --------------------------------------------------------------------------------------
-    if renderer is not None:
-        _render(renderer=renderer, test_id=loop_index, solver_name=solver_name, i_step=loop_index)
-        # close renderer window
-        renderer.close_window()
 
-    return SchedulingExperimentResult(total_reward, solve_time, build_problem_time, solution)
+def _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, problem, time_step):
+    fail = False
+    for agent in env.agents:
+        prefix = ""
+        # TODO ortools does not support multispeed yet, hence we cannot test whether the entry times are correct
+        if isinstance(problem, ASPProblemDescription) and not disable_verification_in_replay:
+            we: Waypoint = ap.get_waypoint_before_or_at_step(agent.handle, time_step)
+            if agent.position != we.position:
+                prefix = "!!"
+                fail = True
+            if agent.malfunction_data['malfunction'] > 0 and (
+                    malfunction is None or agent.handle != malfunction.agent_id):
+                prefix += "MM"
+                fail = True
+        if debug:
+            print(
+                f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
+                "in direction={agent.direction} "
+                "with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we}")
+    return fail
 
 
 # --------------------------------------------------------------------------------------
@@ -201,19 +189,3 @@ def replay_until_malfunction(solution: AbstractSolutionDescription,
 
         time_step += 1
     return None
-
-
-# --------------------------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------------------------
-def _render(renderer: Optional[RenderTool], test_id: int, solver_name, i_step: int,
-            image_output_directory: Optional[str] = './rendering_output'):
-    if renderer is not None:
-        renderer.render_env(show=True, show_observations=False, show_predictions=False)
-        if image_output_directory is not None:
-            if not os.path.exists(image_output_directory):
-                os.makedirs(image_output_directory)
-            renderer.gl.save_image(os.path.join(image_output_directory,
-                                                "flatland_frame_{:04d}_{:04d}_{}.png".format(test_id,
-                                                                                             i_step,
-                                                                                             solver_name)))

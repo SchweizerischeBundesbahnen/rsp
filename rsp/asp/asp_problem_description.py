@@ -5,10 +5,10 @@ from typing import Dict, Optional, List, Tuple, Set
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 
-from solver.abstract_problem_description import AbstractProblemDescription, Waypoint
-from solver.asp.asp_solution_description import ASPSolutionDescription
-from solver.asp.asp_solver import flux_helper, ASPObjective
-from solver.utils.data_types import Malfunction
+from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
+from rsp.asp.asp_solution_description import ASPSolutionDescription
+from rsp.asp.asp_solver import flux_helper, ASPObjective
+from rsp.utils.data_types import Malfunction
 
 
 class ASPProblemDescription(AbstractProblemDescription):
@@ -98,7 +98,7 @@ class ASPProblemDescription(AbstractProblemDescription):
 
         # penalty for objective minimize_routes.lp and heuristic_ROUTES.lp (used only if activated)
         if route_section_penalty > 0:
-            # penalty(E,P)
+            # penalty(E,P) # noqa: E800
             self.asp_program.append("penalty(({},{}),{})."
                                     .format(tuple(entry_waypoint), tuple(exit_waypoint), route_section_penalty))
 

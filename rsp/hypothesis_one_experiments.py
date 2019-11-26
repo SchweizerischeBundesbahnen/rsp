@@ -1,7 +1,7 @@
 from asp.asp_experiment_solver import ASPExperimentSolver
-from solver.utils.data_types import ParameterRanges
-from solver.utils.experiments import create_experiment_agenda, run_specific_experiments_from_research_agenda
-from solver.utils.experiments import run_experiment_agenda, save_experiment_results_to_file
+from rsp.utils.data_types import ParameterRanges
+from rsp.utils.experiments import create_experiment_agenda, run_specific_experiments_from_research_agenda
+from rsp.utils.experiments import run_experiment_agenda, save_experiment_results_to_file
 
 if __name__ == '__main__':
     # Define the parameter ranges we would like to test

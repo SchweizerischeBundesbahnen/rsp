@@ -1,5 +1,6 @@
 import time
 
+import pytest
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.observations import TreeObsForRailEnv
 from flatland.envs.predictions import ShortestPathPredictorForRailEnv
@@ -8,13 +9,12 @@ from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_generators import rail_from_grid_transition_map
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import random_schedule_generator
-from flatland.utils.rendertools import RenderTool, AgentRenderVariant
 from flatland.utils.simple_rail import make_simple_rail
 from importlib_resources import path
 
-from solver.asp.asp_problem_description import ASPProblemDescription
-from solver.asp.asp_solution_description import ASPSolutionDescription
-from solver.asp.asp_solver import _asp_helper, flux_helper
+from rsp.asp.asp_problem_description import ASPProblemDescription
+from rsp.asp.asp_solution_description import ASPSolutionDescription
+from rsp.asp.asp_solver import _asp_helper, flux_helper
 
 
 def test_asp_helper():
@@ -56,7 +56,7 @@ def test_mutual_exclusion():
     assert first_actual.issuperset(expected_dl), "expected {} to be subset of {}".format(expected_dl, first_actual)
 
 
-def test_simple_rail_asp_one_agent(rendering=False):
+def test_simple_rail_asp_one_agent():
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -78,14 +78,7 @@ def test_simple_rail_asp_one_agent(rendering=False):
                                 agent.target,
                                 1) for i, agent in enumerate(env.agents)
     }
-    if rendering:
-        renderer = RenderTool(env, gl="PILSVG",
-                              agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                              show_debug=True,
-                              clear_debug_text=True,
-                              screen_height=1000,
-                              screen_width=1000)
-        renderer.render_env(show=True, show_observations=False, show_predictions=False)
+
     start_solver = time.time()
     problem = ASPProblemDescription(env=env, agents_path_dict=agents_paths_dict)
 
@@ -178,6 +171,7 @@ def test_minimize_sum_of_running_times_scheduling():
     assert expected.issubset(actual), "actual {}, expected {}".format(actual, expected)
 
 
+@pytest.mark.skip(reason="Currently disable, does not work under Linux, see https://issues.sbb.ch/browse/SIM-149")
 def test_minimize_delay_rescheduling():
     """Case Study how to model minimizing delay with respect to given schedule and a malfunction delay."""
     encodings = []

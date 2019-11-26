@@ -1,7 +1,8 @@
 import time
 from typing import Dict, Optional, List, Callable
 
-from flatland.action_plan.action_plan import ControllerFromTrainrunsReplayer, ActionPlanElement, ControllerFromTrainruns
+from flatland.action_plan.action_plan import ActionPlanElement, ControllerFromTrainruns
+from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayer
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.observations import TreeObsForRailEnv
 from flatland.envs.predictions import ShortestPathPredictorForRailEnv, DummyPredictorForRailEnv
@@ -12,10 +13,10 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail, make_simple_rail_with_alternatives
 
-from solver.abstract_problem_description import AbstractProblemDescription
-from solver.asp.asp_problem_description import ASPProblemDescription
-from solver.googleortools.cp_sat_solver import CPSATSolver
-from solver.googleortools.ortools_problem_description import ORToolsProblemDescription
+from rsp.abstract_problem_description import AbstractProblemDescription
+from rsp.asp.asp_problem_description import ASPProblemDescription
+from rsp.googleortools.cp_sat_solver import CPSATSolver
+from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
 
 
 def generate_ortools_cpsat_problem_description(env: RailEnv,
@@ -26,7 +27,7 @@ def generate_ortools_cpsat_problem_description(env: RailEnv,
 
 
 # ----- EXPECTATIONS (solver-specific) ----------------
-def test_simple_rail_asp_two_agents_without_loop(rendering=False):
+def test_simple_rail_asp_two_agents_without_loop():
     # minimize sum of travel times over all agents!
     expected_action_plan = [[
         ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
@@ -55,10 +56,10 @@ def test_simple_rail_asp_two_agents_without_loop(rendering=False):
         ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING),
     ]]
 
-    _simple_rail_two_agents_without_loop(ASPProblemDescription, expected_action_plan, rendering=rendering)
+    _simple_rail_two_agents_without_loop(ASPProblemDescription, expected_action_plan)
 
 
-def test_simple_rail_ortools_two_agents_without_loop(rendering=False):
+def test_simple_rail_ortools_two_agents_without_loop():
     expected_action_plan = [
         [
 
@@ -90,11 +91,10 @@ def test_simple_rail_ortools_two_agents_without_loop(rendering=False):
             ActionPlanElement(scheduled_at=18, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=19, action=RailEnvActions.STOP_MOVING),
         ]]
-    _simple_rail_two_agents_without_loop(generate_ortools_cpsat_problem_description, expected_action_plan,
-                                         rendering=rendering)
+    _simple_rail_two_agents_without_loop(generate_ortools_cpsat_problem_description, expected_action_plan)
 
 
-def test_simple_rail_asp_two_agents_with_loop(rendering=False):
+def test_simple_rail_asp_two_agents_with_loop():
     # minimize sum of travel times over all agents!
     expected_action_plan = [
         [
@@ -123,10 +123,10 @@ def test_simple_rail_asp_two_agents_with_loop(rendering=False):
             ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING),
 
         ]]
-    _simple_rail_wo_agents_with_loop(ASPProblemDescription, expected_action_plan, rendering=rendering)
+    _simple_rail_wo_agents_with_loop(ASPProblemDescription, expected_action_plan)
 
 
-def test_simple_rail_ortools_two_agents_with_loop(rendering=False):
+def test_simple_rail_ortools_two_agents_with_loop():
     expected_action_plan = [[
         # enter the grid
         ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
@@ -161,8 +161,7 @@ def test_simple_rail_ortools_two_agents_with_loop(rendering=False):
         ActionPlanElement(scheduled_at=20, action=RailEnvActions.STOP_MOVING),
 
     ]]
-    _simple_rail_wo_agents_with_loop(generate_ortools_cpsat_problem_description, expected_action_plan,
-                                     rendering=rendering)
+    _simple_rail_wo_agents_with_loop(generate_ortools_cpsat_problem_description, expected_action_plan)
 
 
 def test_simple_rail_asp_two_agents_with_loop_multi_speed(rendering=True):
@@ -193,7 +192,7 @@ def test_simple_rail_asp_two_agents_with_loop_multi_speed(rendering=True):
         ActionPlanElement(scheduled_at=17, action=RailEnvActions.STOP_MOVING),
 
     ]]
-    _simple_rail_wo_agents_with_loop_multi_speed(ASPProblemDescription, expected_action_plan, rendering=rendering)
+    _simple_rail_wo_agents_with_loop_multi_speed(ASPProblemDescription, expected_action_plan)
 
 
 def test_simple_rail_with_alternatives_one_agent(rendering=True):
@@ -216,12 +215,11 @@ def test_simple_rail_with_alternatives_one_agent(rendering=True):
         ActionPlanElement(scheduled_at=15, action=2),
         ActionPlanElement(scheduled_at=16, action=2),
         ActionPlanElement(scheduled_at=17, action=4), ]]
-    _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(ASPProblemDescription, expected_action_plan,
-                                                                    rendering=rendering)
+    _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(ASPProblemDescription, expected_action_plan)
 
 
 # ----- SCENARIOS (solver indepenent, for all)  ----------------
-def _simple_rail_two_agents_without_loop(problem_description, expected_action_plan, rendering=False):
+def _simple_rail_two_agents_without_loop(problem_description, expected_action_plan, ):
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -253,10 +251,10 @@ def _simple_rail_two_agents_without_loop(problem_description, expected_action_pl
     assert actual_action_plan.action_plan == expected_action_plan, \
         "expected {}, actual {}".format(expected_action_plan, actual_action_plan)
 
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env, rendering)
+    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
 
 
-def _simple_rail_wo_agents_with_loop(problem_description, expected_action_plan, rendering=False):
+def _simple_rail_wo_agents_with_loop(problem_description, expected_action_plan, ):
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -288,10 +286,10 @@ def _simple_rail_wo_agents_with_loop(problem_description, expected_action_plan, 
     assert actual_action_plan.action_plan == expected_action_plan, \
         "expected {}, found {}".format(expected_action_plan, actual_action_plan)
 
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env, rendering)
+    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
 
 
-def _simple_rail_wo_agents_with_loop_multi_speed(problem_description, expected_action_plan, rendering=False):
+def _simple_rail_wo_agents_with_loop_multi_speed(problem_description, expected_action_plan, ):
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -324,11 +322,11 @@ def _simple_rail_wo_agents_with_loop_multi_speed(problem_description, expected_a
     assert actual_action_plan.action_plan == expected_action_plan, \
         "expected {}, found {}".format(expected_action_plan, actual_action_plan.action_plan)
 
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env, rendering)
+    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
 
 
 def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(problem_description, expected_action_plan,
-                                                                    rendering=False):
+                                                                    ):
     rail, rail_map = make_simple_rail_with_alternatives()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -362,7 +360,7 @@ def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(problem_desc
     assert actual_action_plan.action_plan == expected_action_plan, \
         "expected {}, found {}".format(expected_action_plan, actual_action_plan.action_plan)
 
-    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env, rendering)
+    ControllerFromTrainrunsReplayer.replay_verify(actual_action_plan, env)
 
 
 # ----- HELPER ------------------------------------------------

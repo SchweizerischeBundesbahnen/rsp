@@ -35,10 +35,10 @@ import pandas as pd
 from flatland.envs.rail_env import RailEnv
 from pandas import DataFrame, Series
 
-from solver.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges
-from solver.utils.experiment_env_generators import create_flatland_environment, \
+from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges
+from rsp.utils.experiment_env_generators import create_flatland_environment, \
     create_flatland_environment_with_malfunction
-from solver.utils.experiment_solver import AbstractSolver
+from rsp.utils.experiment_solver import AbstractSolver
 
 
 def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentParameters) -> Series:
@@ -83,18 +83,18 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
                                                       malfunction_env_reset=malfunction_env_reset)
         # Store results
         experiment_result = {'experiment_id': experiment_parameters.experiment_id,
-                 'time_full': current_results.time_full,
-                 'time_full_after_malfunction': current_results.time_full_after_malfunction,
-                 'time_delta_after_malfunction': current_results.time_delta_after_malfunction,
-                 'solution_full': current_results.solution_full,
-                 'solution_delta': current_results.solution_delta,
-                 'delta': current_results.delta,
-                 'size': experiment_parameters.width,
-                 'n_agents': experiment_parameters.number_of_agents,
-                 'max_num_cities': experiment_parameters.max_num_cities,
-                 'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
-                 'max_rail_in_city': experiment_parameters.max_rail_in_city,
-                 }
+                             'time_full': current_results.time_full,
+                             'time_full_after_malfunction': current_results.time_full_after_malfunction,
+                             'time_delta_after_malfunction': current_results.time_delta_after_malfunction,
+                             'solution_full': current_results.solution_full,
+                             'solution_delta': current_results.solution_delta,
+                             'delta': current_results.delta,
+                             'size': experiment_parameters.width,
+                             'n_agents': experiment_parameters.number_of_agents,
+                             'max_num_cities': experiment_parameters.max_num_cities,
+                             'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
+                             'max_rail_in_city': experiment_parameters.max_rail_in_city,
+                             }
         experiment_results = experiment_results.append(experiment_result, ignore_index=True)
     return experiment_results
 

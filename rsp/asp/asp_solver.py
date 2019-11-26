@@ -7,7 +7,7 @@ import clingo
 import numpy as np
 from importlib_resources import path
 
-from solver.asp import theory
+from rsp.asp import theory
 
 
 class ASPObjective(Enum):
@@ -126,10 +126,7 @@ def _asp_helper(encoding_files: List[str],
         if plain_encoding:
             print("taking plain_encoding={}".format(plain_encoding))
     for enc in encoding_files:
-        try:
-            ctl.load(str(enc))
-        except Exception as exc:
-            raise Exception("Could not parse {}, {}".format(enc, exc))
+        ctl.load(str(enc))
     if plain_encoding:
         ctl.add("base", [], plain_encoding)
     if verbose:
@@ -141,6 +138,18 @@ def _asp_helper(encoding_files: List[str],
 
     if bound_all_events:
         ctl.ground([("bound_all_events", [int(bound_all_events)])])
+    all_answers = _asp_loop(ctl, dl, verbose)
+    statistics: Dict = ctl.statistics
+
+    if verbose:
+        _print_configuration(ctl)
+        _print_stats(statistics)
+
+    # TODO SIM-105 bad code smell: why do we have to expose ctl and dl? If yes, we should accept them as argument again for increment
+    return FluxHelperResult(frozenset(all_answers), statistics, ctl, dl)
+
+
+def _asp_loop(ctl, dl, verbose):
     all_answers = set()
     min_cost = np.inf
     with ctl.solve(yield_=True) as handle:
@@ -157,18 +166,11 @@ def _asp_helper(encoding_files: List[str],
             for name, value in dl.assignment(model.thread_id):
                 sol.append(f"dl({name},{value})")
             all_answers.add(frozenset(sol))
-    statistics: Dict = ctl.statistics
-
-    if verbose:
-        _print_configuration(ctl)
-        _print_stats(statistics)
-
-    # TODO SIM-105 bad code smell: why do we have to expose ctl and dl? If yes, we should accept them as argument again for increment
-    return FluxHelperResult(frozenset(all_answers), statistics, ctl, dl)
+    return all_answers
 
 
 # TODO refactor the loop and break flow control copied from the paper if we are to use multi-shot optimization
-def _asp_multi_shot_solving(all_answers, asp_objective, ctl, dl, verbose: bool = False):
+def _asp_multi_shot_solving(all_answers, asp_objective, ctl, dl, verbose: bool = False):  # NOQA
     """Multi-shot optimization based on "A Tutorial on Hybrid Answer Set Solving with clingo",
     https://www.cs.uni-potsdam.de/~torsten/hybris.pdf"""
     if verbose:
@@ -202,7 +204,7 @@ def _asp_multi_shot_solving(all_answers, asp_objective, ctl, dl, verbose: bool =
                     if verbose:
                         print("Optimum found")
                     break
-        except:
+        except:  # NOQA
             if len(all_statistics) > 0:
                 # tweak statistics: we know the statistics before UNSAT must be optimoal
                 all_statistics[-1]['summary']['models']['optimal'] = 1.0

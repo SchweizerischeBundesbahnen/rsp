@@ -1,0 +1,9 @@
+flake8>=3.7.7
+flake8-eradicate>=0.2.0
+pytest>=3.8.2
+pytest-runner>=4.2
+ortools>=7.3
+
+# TODO we should pin to FLATland version
+# TODO SIM-136 move to master after mr ist merged.
+git+https://gitlab.aicrowd.com/flatland/flatland.git@core-without-rendering#egg=flatland-rl

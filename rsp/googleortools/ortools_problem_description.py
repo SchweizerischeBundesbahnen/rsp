@@ -4,12 +4,12 @@ from typing import Dict, Optional, List, Tuple
 
 from flatland.envs.rail_env import RailEnv
 
-from solver.abstract_problem_description import AbstractProblemDescription, Waypoint
-from solver.googleortools.abstract_ortools_solver import AbstractORToolsSolver
-from solver.googleortools.cp_sat_solver import CPSATSolver
-from solver.googleortools.mip_solver import MIPSolver
-from solver.googleortools.ortools_solution_description import ORToolsSolutionDescription
-from solver.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
+from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
+from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
+from rsp.googleortools.cp_sat_solver import CPSATSolver
+from rsp.googleortools.mip_solver import MIPSolver
+from rsp.googleortools.ortools_solution_description import ORToolsSolutionDescription
+from rsp.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
 
 
 class ORToolsProblemDescription(AbstractProblemDescription):
