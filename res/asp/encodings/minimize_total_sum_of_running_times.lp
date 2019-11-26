@@ -27,5 +27,10 @@ pot_penalty_for_train(T,M+D,P) :- train(T), minimumrunningtime(T,M), penalty_for
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % MINIMIZE SUM OF ALL TRAIN RUNNING TIMES <==>  MINIMIZE SUM OF HOW LONGER THEY TAKE THAN THEIR MINIMUM RUNNING TIME
+% Notice that we take any solution such that
+% - all agents have a green wave
+% - stay within the global time window
+% We do not try to minimize the global time window!
+% (Design Choice Erik)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #minimize{ P,R,T: act_penalty_for_train(T,R,P) }.

@@ -240,6 +240,3 @@ def test_rescheduling():
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
     actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
     assert actual_costs == 20, f"actual costs {actual_costs}"
-
-# TODO add test for scheduling!
-# TODO same test but t1 breaks down at about 18
