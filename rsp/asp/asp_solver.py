@@ -116,8 +116,11 @@ def _asp_helper(encoding_files: List[str],
     if deterministic_mode:
         ctl_args = ["--seed=94", "-c use_decided=1", "-t1", "--lookahead=no"]
     ctl = clingo.Control(ctl_args)
-    ctl.configuration.solve.opt_mode = 'optN'
-    ctl.configuration.solve.models = 1
+
+    # find optimal model; if not optimizing, find all models!
+    ctl.configuration.solve.models = 0
+    # find only first optimal model
+    ctl.configuration.solve.opt_mode = 'opt'
     dl.register_propagator(ctl)
 
     if verbose:

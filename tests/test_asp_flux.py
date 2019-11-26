@@ -49,10 +49,15 @@ def test_mutual_exclusion():
     with path('tests.data.asp.instances', 'dummy_two_agents.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
             models, statistics, _, _ = _asp_helper([instance_in, encoding_in])
-    assert int(statistics['summary']['models']['enumerated']) == 1
-    first_actual = list(models)[0]
-    expected_dl = set(['dl((t1,4),8)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),6)'])
-    assert first_actual.issuperset(expected_dl), "expected {} to be subset of {}".format(expected_dl, first_actual)
+
+    # we do not optimize, we get two models!
+    assert len(models) == 2
+    print(models)
+    expected_dl1 = set(['dl((t1,4),8)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),6)'])
+    expected_dl2 = set(['dl((t1,4),2)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),0)'])
+    for actual in models:
+        assert actual.issuperset(expected_dl1) or actual.issuperset(expected_dl2), \
+            "actual {} expected to be superset of {} or of {}".format(actual, expected_dl1, expected_dl2)
 
 
 def test_simple_rail_asp_one_agent():
@@ -150,26 +155,24 @@ def test_minimize_sum_of_running_times_scheduling():
         encodings.append(encoding_in)
     models, all_statistics, _, _ = _asp_helper(encodings)
 
-    # TODO why do we get twice the same model?
-    assert len(models) == 2
-    assert models[0] == models[1]
+    print(models)
+    assert len(models) == 1
+    actual = models[0]
+    dls = list(filter(lambda x: x.startswith("dl"), actual))
+    print(actual)
+    print(dls)
 
-    for actual in models:
-        dls = list(filter(lambda x: x.startswith("dl"), actual))
-        print(actual)
-        print(dls)
+    assert all_statistics['summary']['costs'][0] == 0, "found {}".format(all_statistics[0]['summary']['costs'][0])
 
-        assert all_statistics['summary']['costs'][0] == 0, "found {}".format(all_statistics[0]['summary']['costs'][0])
-
-        expected = set([
-            'dl((t1,1),2)',
-            'dl((t1,2),4)',
-            'dl((t1,3),6)',
-            'dl((t2,4),0)',
-            'dl((t2,2),2)',
-            'dl((t2,3),4)'
-        ])
-        assert expected.issubset(actual), "actual {}, expected {}".format(actual, expected)
+    expected = set([
+        'dl((t1,1),2)',
+        'dl((t1,2),4)',
+        'dl((t1,3),6)',
+        'dl((t2,4),0)',
+        'dl((t2,2),2)',
+        'dl((t2,3),4)'
+    ])
+    assert expected.issubset(actual), "actual {}, expected {}".format(actual, expected)
 
 
 def test_minimize_delay_rescheduling():
@@ -183,7 +186,7 @@ def test_minimize_delay_rescheduling():
         encodings.append(encoding_in)
     models, all_statistics, _, _ = _asp_helper(encoding_files=encodings)
     print(models)
-    assert len(models) == 2
+    assert len(models) == 1
     assert all_statistics['summary']['costs'][0] == 6, "found {}".format(all_statistics['summary']['costs'][0])
 
     expected = set([
