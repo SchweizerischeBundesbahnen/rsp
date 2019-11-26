@@ -2,14 +2,14 @@
 import os
 
 # ----------------------------- Helper -----------------------------------------------------------
-from rsp.solve_utils import list_files, load_flatland_environment_from_file, test_helper, HEADER
+from rsp.solve_utils import list_files, load_flatland_environment_from_file_with_fixed_seed, test_helper, HEADER
 
 
 def main():
     rendering = False
 
     def load_environment(loop_index, loop_item):
-        env = load_flatland_environment_from_file(loop_item)
+        env = load_flatland_environment_from_file_with_fixed_seed(loop_item)
         return env, env.width, env.height, env.get_num_agents()
 
     all_files = list_files(os.path.join(os.path.dirname(__file__), './../Envs/Round_2/'))

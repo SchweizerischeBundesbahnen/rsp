@@ -24,7 +24,7 @@ HEADER = "test_id;fraction_done_agents;total_reward;build_model_time;solve_time;
 
 
 # ----------------------------- Auxiliary functions -----------------------------------------------------------
-def load_flatland_environment_from_file(file_name):
+def load_flatland_environment_from_file_with_fixed_seed(file_name):
     rail_generator = rail_from_file(file_name)
     schedule_generator = schedule_from_file(file_name)
 
@@ -39,7 +39,7 @@ def load_flatland_environment_from_file(file_name):
     environment.reset(False, False, False, random_seed=1001)
 
     # reset speed (set all values to one)
-    reset_agent_speed(environment)
+    set_agent_speeds_to_one(environment)
 
     return environment
 
@@ -101,11 +101,7 @@ def pull_sparse_env_parameters(width_bound: Bound,
     return number_of_agents, width, height, max_num_cities, max_rails_between_cities, max_rails_in_city
 
 
-def disable_malfunction(env: RailEnv):
-    env.proportion_malfunctioning_trains = 0.0
-
-
-def reset_agent_speed(env: RailEnv):
+def set_agent_speeds_to_one(env: RailEnv):
     for a in range(env.get_num_agents()):
         env.agents[a].speed_data['speed'] = 1.0
 
@@ -128,7 +124,7 @@ def list_files(directory_name):
     return r
 
 
-def create_environment(loop_index):
+def create_environment_for_test_helper(loop_index):
     seed_value = loop_index + 1
     grid_mode = False
     width_bound = Bound(40, 100)
@@ -162,14 +158,13 @@ def create_environment(loop_index):
     return env, width, height, number_of_agents
 
 
-# ----------------------------- Test Jeöüer -----------------------------------------------------------
+# ----------------------------- Test Helper -----------------------------------------------------------
 
 ORTOOLS_CPSAT = "ortools_CPSAT"
 ASP = "ASP"
 ASP_ALTERNATIVES = "ASP_ALTERNATIVES"
 
 
-# TODO import create_environment instead of passing as argument
 def test_helper(output_file_name, rendering, tests, debug=False):
     total_reward_agents_array = []
     fraction_done_agents_array = []
@@ -185,7 +180,7 @@ def test_helper(output_file_name, rendering, tests, debug=False):
             # --------------------------------------------------------------------------------------
             # Load env
             # --------------------------------------------------------------------------------------
-            env, width, height, number_of_agents = create_environment(loop_index)
+            env, width, height, number_of_agents = create_environment_for_test_helper(loop_index)
 
             verification("env_grid", env.rail.grid.tolist(), loop_index, solver_name)
 
