@@ -5,4 +5,5 @@ pytest-runner>=4.2
 ortools>=7.3
 
 # TODO we should pin to FLATland version
-git+https://gitlab.aicrowd.com/flatland/flatland.git@master#egg=flatland-rl
+# TODO SIM-105 move back to master at least
+git+https://gitlab.aicrowd.com/flatland/flatland.git@core-without-rendering#egg=flatland-rl

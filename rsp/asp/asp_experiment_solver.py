@@ -96,7 +96,7 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
         # Re-schedule_static Delta
         # --------------------------------------------------------------------------------------
-        if False:
+        if False: # TODO SIM-105 implement
             # does not work yet
             delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling(
                 malfunction=malfunction,
