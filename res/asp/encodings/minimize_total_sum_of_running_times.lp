@@ -19,7 +19,7 @@ pot_penalty_for_train(T,M+D,P) :- train(T), minimumrunningtime(T,M), penalty_for
 
 % activate penalty if
 % (T,V') - (T,V) >= R
-&diff{ (T,V)-(T,V') } <=  -R :- act_penalty_for_train, pot_penalty_for_train(T,R,P), pot_penalty_for_train(T,R,P), train(T), start(T,V), end(T,V'), visit(T,V), visit(T,V').
+&diff{ (T,V)-(T,V') } <=  -R :- act_penalty_for_train(T,R,P), pot_penalty_for_train(T,R,P), train(T), start(T,V), end(T,V'), visit(T,V), visit(T,V').
 
 % for activation of penalty: it may only remain deactivated if
 % (T,V') - (T,V) < R

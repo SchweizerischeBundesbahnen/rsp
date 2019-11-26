@@ -131,6 +131,8 @@ class ASPProblemDescription(AbstractProblemDescription):
         self.asp_program.append("m(0,1).")
         self.asp_program.append("connection(0,(0,0),0,(0,0),0).")
         self.asp_program.append("penalty(0,0).")
+        # initially, not act_penalty_for_train activated
+        self.asp_program.append("act_penalty_for_train(0,0,0).")
 
         asp_solution = flux_helper(self.asp_program,
                                    bound_all_events=self.env._max_episode_steps,

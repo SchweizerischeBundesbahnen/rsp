@@ -30,30 +30,30 @@ def generate_ortools_cpsat_problem_description(env: RailEnv,
 def test_simple_rail_asp_two_agents_without_loop():
     # minimize sum of travel times over all agents!
     expected_action_plan = [[
-        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
-        ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=9, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=13, action=RailEnvActions.STOP_MOVING),
-
-    ], [
-        # it takes one additional time step to enter the grid!
         ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
-        # now, we're at the beginning of the cell
         ActionPlanElement(scheduled_at=1, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=2, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=3, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_RIGHT),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.STOP_MOVING),
+
+    ], [
+        # it takes one additional time step to enter the grid!
+        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
+        # now, we're at the beginning of the cell
+        ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=13, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=14, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=15, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=16, action=RailEnvActions.MOVE_RIGHT),
+        ActionPlanElement(scheduled_at=17, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=18, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=19, action=RailEnvActions.STOP_MOVING),
     ]]
 
     _simple_rail_two_agents_without_loop(ASPProblemDescription, expected_action_plan)
@@ -98,29 +98,29 @@ def test_simple_rail_asp_two_agents_with_loop():
     # minimize sum of travel times over all agents!
     expected_action_plan = [
         [
-            ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
-            ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=9, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=13, action=RailEnvActions.STOP_MOVING)
-
-        ], [
             ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=1, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=2, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=3, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_RIGHT),
+            ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
             ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
-            ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING),
+            ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING)
+
+        ], [
+            ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
+            ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=13, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=14, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=15, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=16, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=17, action=RailEnvActions.MOVE_RIGHT),
+            ActionPlanElement(scheduled_at=18, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=19, action=RailEnvActions.MOVE_FORWARD),
+            ActionPlanElement(scheduled_at=20, action=RailEnvActions.STOP_MOVING),
 
         ]]
     _simple_rail_wo_agents_with_loop(ASPProblemDescription, expected_action_plan)
@@ -167,29 +167,29 @@ def test_simple_rail_ortools_two_agents_with_loop():
 def test_simple_rail_asp_two_agents_with_loop_multi_speed(rendering=True):
     # minimize sum of travel times over all agents!
     expected_action_plan = [[
-        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
-        ActionPlanElement(scheduled_at=10, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=13, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=14, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=15, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=16, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=17, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=18, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=19, action=RailEnvActions.STOP_MOVING)
-
-    ], [
         ActionPlanElement(scheduled_at=0, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=1, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=2, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=3, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=4, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=5, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=6, action=RailEnvActions.MOVE_FORWARD),
         ActionPlanElement(scheduled_at=7, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=9, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_RIGHT),
-        ActionPlanElement(scheduled_at=13, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=15, action=RailEnvActions.MOVE_FORWARD),
-        ActionPlanElement(scheduled_at=17, action=RailEnvActions.STOP_MOVING),
+        ActionPlanElement(scheduled_at=8, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=9, action=RailEnvActions.STOP_MOVING)
+
+    ], [
+        ActionPlanElement(scheduled_at=0, action=RailEnvActions.DO_NOTHING),
+        ActionPlanElement(scheduled_at=11, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=12, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=14, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=16, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=18, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=20, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=22, action=RailEnvActions.MOVE_RIGHT),
+        ActionPlanElement(scheduled_at=24, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=26, action=RailEnvActions.MOVE_FORWARD),
+        ActionPlanElement(scheduled_at=28, action=RailEnvActions.STOP_MOVING),
 
     ]]
     _simple_rail_wo_agents_with_loop_multi_speed(ASPProblemDescription, expected_action_plan)
@@ -202,7 +202,7 @@ def test_simple_rail_with_alternatives_one_agent(rendering=True):
         ActionPlanElement(scheduled_at=2, action=2),
         ActionPlanElement(scheduled_at=3, action=2),
         ActionPlanElement(scheduled_at=4, action=2),
-        ActionPlanElement(scheduled_at=5, action=1),
+        ActionPlanElement(scheduled_at=5, action=2),
         ActionPlanElement(scheduled_at=6, action=2),
         ActionPlanElement(scheduled_at=7, action=2),
         ActionPlanElement(scheduled_at=8, action=2),
@@ -210,7 +210,7 @@ def test_simple_rail_with_alternatives_one_agent(rendering=True):
         ActionPlanElement(scheduled_at=10, action=2),
         ActionPlanElement(scheduled_at=11, action=2),
         ActionPlanElement(scheduled_at=12, action=2),
-        ActionPlanElement(scheduled_at=13, action=2),
+        ActionPlanElement(scheduled_at=13, action=3),
         ActionPlanElement(scheduled_at=14, action=2),
         ActionPlanElement(scheduled_at=15, action=2),
         ActionPlanElement(scheduled_at=16, action=2),

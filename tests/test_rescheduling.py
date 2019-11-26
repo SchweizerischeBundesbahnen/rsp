@@ -1,8 +1,10 @@
 from typing import Dict, List
 
+from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint
 
-from rsp.asp.asp_scheduling_helper import schedule_static, reschedule
+from rsp.asp.asp_problem_description import ASPProblemDescription
+from rsp.asp.asp_scheduling_helper import reschedule
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
 from rsp.utils.data_types import Malfunction, ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
@@ -66,7 +68,7 @@ def test_rescheduling():
     assert static_env.rail.grid.tolist() == expected_grid
     assert dynamic_env.rail.grid.tolist() == expected_grid
 
-    expected_schedule_train_runs = {
+    fake_schedule = {
         0: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -208,22 +210,29 @@ def test_rescheduling():
                                TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
                                TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    malfunction = Malfunction(time_step=19, agent_id=0, malfunction_duration=20)
+    fake_malfunction = Malfunction(time_step=19, agent_id=0, malfunction_duration=20)
+    k = 10
+    agents_paths_dict = {
+        i: get_k_shortest_paths(static_env,
+                                agent.initial_position,
+                                agent.initial_direction,
+                                agent.target,
+                                k) for i, agent in enumerate(static_env.agents)
+    }
+    # we derive the re-schedule problem from the schedule problem
+    schedule_problem = ASPProblemDescription(env=static_env,
+                                             agents_path_dict=agents_paths_dict)
 
-    agents_paths_dict, schedule_problem, schedule_result, schedule_solution = schedule_static(10, static_env)
-
-    schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
-    assert schedule_trainruns == expected_schedule_train_runs
-    freeze = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_env)
+    freeze = get_freeze_for_malfunction(fake_malfunction, fake_schedule, static_env)
     assert freeze == expected_freeze
-    schedule_problem.get_freezed_copy_for_rescheduling(malfunction=malfunction, freeze=freeze,
-                                                       schedule_trainruns=schedule_trainruns)
+    schedule_problem.get_freezed_copy_for_rescheduling(malfunction=fake_malfunction, freeze=freeze,
+                                                       schedule_trainruns=fake_schedule)
 
-    full_reschedule_result, full_reschedule_solution = reschedule(agents_paths_dict, malfunction,
+    full_reschedule_result, full_reschedule_solution = reschedule(agents_paths_dict, fake_malfunction,
                                                                   malfunction_env_reset=lambda *args, **kwargs: None,
                                                                   malfunction_rail_env=dynamic_env,
                                                                   schedule_problem=schedule_problem,
-                                                                  schedule_trainruns=schedule_trainruns,
+                                                                  schedule_trainruns=fake_schedule,
                                                                   static_rail_env=static_env,
                                                                   rendering=False,
                                                                   debug=False
