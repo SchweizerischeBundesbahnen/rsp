@@ -38,7 +38,7 @@ def flux_helper(
         bound_all_events: Optional[int] = None,
         heuristic_routes: bool = False,
         asp_objective: ASPObjective = ASPObjective.MINIMIZE_LATEST_ARRIVAL,
-        verbose: bool = True
+        verbose: bool = False
 ) -> FluxHelperResult:
     """
     Includes the necessary encodings and calls `_asp_helper` with them.
