@@ -16,6 +16,7 @@ from rsp.utils.general_utils import current_milli_time, verification
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
                                          ('solve_time', float),
+                                         ('optimization_costs', float),
                                          ('build_problem_time', float),
                                          ('solution', AbstractSolutionDescription)])
 
@@ -71,7 +72,11 @@ def solve_problem(env: RailEnv,
     total_reward = _replay(debug, disable_verification_in_replay, env, loop_index, malfunction, problem,
                            rendering_call_back, solution, solver_name)
 
-    return SchedulingExperimentResult(total_reward, solve_time, build_problem_time, solution)
+    return SchedulingExperimentResult(total_reward=total_reward,
+                                      solve_time=solve_time,
+                                      optimization_costs=solution.get_objective_value(),
+                                      build_problem_time=build_problem_time,
+                                      solution=solution)
 
 
 def _replay(debug, disable_verification_in_replay, env, loop_index, malfunction, problem, rendering_call_back, solution,

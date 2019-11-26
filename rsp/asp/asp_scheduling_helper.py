@@ -48,6 +48,8 @@ def schedule_static(k: int,
 
     # rendering hooks
     cleanup_renderer_for_env(renderer)
+
+    # TODO SIM-105 data structure and return type hints
     return agents_paths_dict, schedule_problem, schedule_result, schedule_solution
 
 
@@ -88,4 +90,6 @@ def reschedule(agents_paths_dict,
     cleanup_renderer_for_env(renderer)
     malfunction_env_reset()
     full_reschedule_solution: ASPSolutionDescription = full_reschedule_result.solution
+
+    # TODO SIM-105 data structure and retun type hints
     return full_reschedule_result, full_reschedule_solution

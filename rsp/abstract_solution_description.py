@@ -31,8 +31,9 @@ class AbstractSolutionDescription:
         self._action_plan = ControllerFromTrainruns(self._env, solution_trainruns)
         return self._action_plan
 
-    def get_objective_value(self):
-        return self._solver.get_objective_value()
+    @abc.abstractmethod
+    def get_objective_value(self) -> float:
+        pass
 
     @abc.abstractmethod
     def _get_solver_variable_value(self, var_name: str) -> Any:

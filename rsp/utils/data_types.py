@@ -22,14 +22,17 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
 
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiments', List[ExperimentParameters])])
 
-# TODO SIM-123 Erik: do we not need the rescheduling solutions here?
-ExperimentResults = NamedTuple('ExperimentResults', [('time_full', float),
-                                                     ('time_full_after_malfunction', float),
-                                                     ('time_delta_after_malfunction', float),
-                                                     ('solution_full', Dict[int, Trainrun]),
-                                                     ('solution_delta', Dict[int, Trainrun]),
-                                                     ('delta', Dict[int, List[
-                                                         TrainrunWaypoint]])])  # TODO update to type from solution
+ExperimentResults = NamedTuple('ExperimentResults', [
+    ('time_full', float),
+    ('time_full_after_malfunction', float),
+    ('time_delta_after_malfunction', float),
+    ('solution_full', Dict[int, Trainrun]),
+    ('solution_full_after_malfunction', Dict[int, Trainrun]),
+    ('solution_delta_after_malfunction', Dict[int, Trainrun]),
+    ('costs_full', float),  # sum of travelling times in scheduling solution
+    ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
+    ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
+    ('delta', Dict[int, List[TrainrunWaypoint]])])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('agent_range', List[int]),

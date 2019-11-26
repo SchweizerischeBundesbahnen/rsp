@@ -88,3 +88,6 @@ class ASPSolutionDescription(AbstractSolutionDescription):
             solution_trainrun = self.get_trainrun_for_agent(agent_id)
             costs += solution_trainrun[-1].scheduled_at - solution_trainrun[0].scheduled_at
         return costs
+
+    def get_objective_value(self) -> float:
+        return self.asp_solution.stats['summary']['costs'][0]

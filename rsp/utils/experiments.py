@@ -63,8 +63,17 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
 
     # DataFrame to store all results of experiments
     experiment_results = pd.DataFrame(
-        columns=['experiment_id', 'time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction',
-                 'solution_full', 'solution_delta', 'delta', 'size', 'n_agents', 'max_num_cities',
+        columns=['experiment_id',
+                 'time_full',
+                 'time_full_after_malfunction',
+                 'time_delta_after_malfunction',
+                 'solution_full',
+                 'solution_full_after_malfunction',
+                 'solution_delta_after_malfunction',
+                 'costs_full',
+                 'costs_full_after_malfunction',
+                 'costs_delta_after_malfunction',
+                 'size', 'n_agents', 'max_num_cities',
                  'max_rail_between_cities', 'max_rail_in_city'])
 
     # Run the sequence of experiment
@@ -96,7 +105,11 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
                              'time_full_after_malfunction': current_results.time_full_after_malfunction,
                              'time_delta_after_malfunction': current_results.time_delta_after_malfunction,
                              'solution_full': current_results.solution_full,
-                             'solution_delta': current_results.solution_delta,
+                             'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
+                             'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
+                             'costs_full': current_results.costs_full,
+                             'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
+                             'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
                              'delta': current_results.delta,
                              'size': experiment_parameters.width,
                              'n_agents': experiment_parameters.number_of_agents,

@@ -96,7 +96,7 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
         # Re-schedule_static Delta
         # --------------------------------------------------------------------------------------
-        if False: # TODO SIM-105 implement
+        if False:  # TODO SIM-105 implement
             # does not work yet
             delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling(
                 malfunction=malfunction,
@@ -134,7 +134,11 @@ class ASPExperimentSolver(AbstractSolver):
                                             time_full_after_malfunction=full_reschedule_result.solve_time,
                                             time_delta_after_malfunction=-1,
                                             solution_full=schedule_solution.get_trainruns_dict(),
-                                            solution_delta=[],
+                                            solution_full_after_malfunction=[],
+                                            solution_delta_after_malfunction=[],
+                                            costs_full=schedule_result.optimization_costs,
+                                            costs_full_after_malfunction=full_reschedule_result.optimization_costs,
+                                            costs_delta_after_malfunction=-1,
                                             delta=delta)
         return current_results
 
