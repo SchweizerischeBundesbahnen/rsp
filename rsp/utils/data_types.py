@@ -4,7 +4,7 @@ Data types used in the experiment for the real time rescheduling research projec
 """
 from typing import NamedTuple, List, Dict
 
-from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import Trainrun, TrainrunWaypoint
 
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
@@ -28,7 +28,8 @@ ExperimentResults = NamedTuple('ExperimentResults', [('time_full', float),
                                                      ('time_delta_after_malfunction', float),
                                                      ('solution_full', Dict[int, Trainrun]),
                                                      ('solution_delta', Dict[int, Trainrun]),
-                                                     ('delta', List[int])])  # TODO update to type from solution
+                                                     ('delta', Dict[int, List[
+                                                         TrainrunWaypoint]])])  # TODO update to type from solution
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('agent_range', List[int]),

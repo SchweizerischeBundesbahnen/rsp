@@ -15,9 +15,9 @@ from numpy.random.mtrand import RandomState
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.googleortools.cp_sat_solver import CPSATSolver
 from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
-from utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env, render_env
-from utils.experiment_utils import solve_problem, current_milli_time
-from utils.general_utils import verification
+from rsp.utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env, render_env
+from rsp.utils.experiment_utils import solve_problem, current_milli_time
+from rsp.utils.general_utils import verification
 
 HEADER = "test_id;fraction_done_agents;total_reward;build_model_time;solve_time;is_solution_optimal;is_solved;" \
          "max_path_len;steps;w;h;num_agents;Solver;model_latest_arrival_time;sum_running_times\n"

@@ -157,7 +157,7 @@ class AbstractProblemDescription:
         """
 
     @abc.abstractmethod
-    def _create_objective_function_minimize(self, variables: List[Waypoint]):
+    def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
         """
         Add the objective to our model
         Parameters
@@ -171,9 +171,11 @@ class AbstractProblemDescription:
 
     def _create_along_paths(self, skip_mutual_exclusion=False):
         max_agents_steps_allowed: int = self.env._max_episode_steps
-        dummy_target_vertices: List[Waypoint] = []
+        dummy_target_vertices_dict: Dict[int, List[Waypoint]] = {}
         already_added = set()
         for agent_id, agent in enumerate(self.env.agents):
+            dummy_target_vertices_dict[agent_id] = []
+            dummy_target_vertices = dummy_target_vertices_dict[agent_id]
 
             agent_paths = self.agents_path_dict[agent_id]
             agent_min_number_of_steps = min([len(agent_path) for agent_path in agent_paths])
@@ -194,16 +196,22 @@ class AbstractProblemDescription:
                 self._add_agent_waypoints(agent, agent_id, agent_path, already_added, dummy_target_waypoint,
                                           max_agents_steps_allowed, path_index)
 
+                dummy_target_entry = (agent_id, dummy_target_waypoint)
+                if dummy_target_entry not in already_added:
+                    self._implement_agent_earliest(*dummy_target_entry, 0)
+                    self._implement_agent_latest(*dummy_target_entry, max_agents_steps_allowed)
+
         # Mutual exclusion (required only for ortools, would not be required for ASP,
         # since the grounding phase thus this for us)
         if not skip_mutual_exclusion:
             self._add_mutual_exclusion_ortools()
 
-        self._create_objective_function_minimize(dummy_target_vertices)
+        self._create_objective_function_minimize(dummy_target_vertices_dict)
 
     def _add_agent_waypoints(self, agent, agent_id, agent_path, already_added, dummy_target_waypoint,
                              max_agents_steps_allowed,
                              path_index):
+
         for waypoint_index, waypoint in enumerate(agent_path[:-1]):
 
             current_position = waypoint.position

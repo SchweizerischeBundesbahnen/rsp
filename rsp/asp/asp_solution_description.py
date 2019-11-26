@@ -13,7 +13,7 @@ class ASPSolutionDescription(AbstractSolutionDescription):
     def __init__(self, env: RailEnv, asp_solution: FluxHelperResult):
         super(self.__class__, self).__init__(env)
         self.asp_solution: FluxHelperResult = asp_solution
-        self.answer_set: Set[str] = list(self.asp_solution.answer_sets)[0]
+        self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
 
     def _get_solver_variable_value(self, var_name) -> str:
         return list(filter(lambda s: s.startswith(str(var_name)), self.answer_set))[0]

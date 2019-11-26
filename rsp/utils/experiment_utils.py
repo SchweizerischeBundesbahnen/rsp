@@ -6,12 +6,12 @@ from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun, Waypoint
 
-from asp.asp_solution_description import ASPSolutionDescription
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from utils.data_types import Malfunction
-from utils.general_utils import current_milli_time, verification
+from rsp.asp.asp_solution_description import ASPSolutionDescription
+from rsp.utils.data_types import Malfunction
+from rsp.utils.general_utils import current_milli_time, verification
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
@@ -122,11 +122,11 @@ def _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, pro
                     malfunction is None or agent.handle != malfunction.agent_id):
                 prefix += "MM"
                 fail = True
-        if debug:
-            print(
-                f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
-                "in direction={agent.direction} "
-                "with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we}")
+            if debug:
+                print(
+                    f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
+                    f"in direction={agent.direction} "
+                    f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we}")
     return fail
 
 

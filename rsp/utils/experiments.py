@@ -28,6 +28,7 @@ load_experiment_results_to_file
 
 import errno
 import os
+import pprint
 from typing import List, Tuple
 
 import numpy as np
@@ -40,8 +41,11 @@ from rsp.utils.experiment_env_generators import create_flatland_environment, \
     create_flatland_environment_with_malfunction
 from rsp.utils.experiment_solver import AbstractSolver
 
+_pp = pprint.PrettyPrinter(indent=4)
 
-def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentParameters) -> Series:
+
+def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentParameters, verbose=True,
+                   force_only_one_trial=True) -> Series:
     """
 
     Run a single experiment with a given solver and ExperimentParameters
@@ -64,8 +68,13 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
                  'max_rail_between_cities', 'max_rail_in_city'])
 
     # Run the sequence of experiment
-    for trial in range(experiment_parameters.trials_in_experiment):
+    for trial in range(experiment_parameters.trials_in_experiment if not force_only_one_trial else 1):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
+        if verbose:
+            print("*** experiment paramters of trial {} for experiment {}".format(trial + 1,
+                                                                                  experiment_parameters.experiment_id))
+            _pp.pprint(experiment_parameters)
+
         # Create experiment environments
         static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
 
@@ -96,6 +105,11 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
                              'max_rail_in_city': experiment_parameters.max_rail_in_city,
                              }
         experiment_results = experiment_results.append(experiment_result, ignore_index=True)
+        if verbose:
+            print("*** experiment result of trial {} for experiment {}".format(trial + 1,
+                                                                               experiment_parameters.experiment_id))
+            _pp.pprint(experiment_result)
+
     return experiment_results
 
 

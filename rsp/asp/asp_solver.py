@@ -1,7 +1,7 @@
 import json
 import time
 from enum import Enum
-from typing import List, Optional, Set, Any, Tuple, NamedTuple, Dict
+from typing import List, Optional, Set, NamedTuple, Dict
 
 import clingo
 import numpy as np
@@ -26,7 +26,7 @@ class ASPObjective(Enum):
 
 FluxHelperResult = NamedTuple('FluxHelperResult', [
     # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
-    ('answer_sets', Set[Set[str]]),
+    ('answer_sets', List[Set[str]]),
     ('stats', Dict),
     ('ctl', clingo.Control),
     ('dl', theory.Theory),
@@ -85,8 +85,7 @@ def _asp_helper(encoding_files: List[str],
                 plain_encoding: Optional[str] = None,
                 verbose: bool = False,
                 bound_all_events: Optional[int] = None,
-                deterministic_mode: bool = True) -> Tuple[Set[str], List[Any]]:
-    # TODO return type structure
+                deterministic_mode: bool = True) -> FluxHelperResult:
     """
     Runs clingo-dl with in the desired mode.
 
@@ -117,7 +116,7 @@ def _asp_helper(encoding_files: List[str],
     if deterministic_mode:
         ctl_args = ["--seed=94", "-c use_decided=1", "-t1", "--lookahead=no"]
     ctl = clingo.Control(ctl_args)
-    ctl.configuration.solve.opt_mode = 'opt'
+    ctl.configuration.solve.opt_mode = 'optN'
     ctl.configuration.solve.models = 1
     dl.register_propagator(ctl)
 
@@ -142,15 +141,16 @@ def _asp_helper(encoding_files: List[str],
     statistics: Dict = ctl.statistics
 
     if verbose:
+        print(all_answers)
         _print_configuration(ctl)
         _print_stats(statistics)
 
     # TODO SIM-105 bad code smell: why do we have to expose ctl and dl? If yes, we should accept them as argument again for increment
-    return FluxHelperResult(frozenset(all_answers), statistics, ctl, dl)
+    return FluxHelperResult(all_answers, statistics, ctl, dl)
 
 
 def _asp_loop(ctl, dl, verbose):
-    all_answers = set()
+    all_answers = []
     min_cost = np.inf
     with ctl.solve(yield_=True) as handle:
         for model in handle:
@@ -160,12 +160,12 @@ def _asp_loop(ctl, dl, verbose):
                     if verbose:
                         print("Optimization: {}".format(cost))
                     min_cost = cost
-                    all_answers = set()
+                    all_answers = []
             # TODO SIM-121 convert to handable data structures instead of strings!
             sol = str(model).split(" ")
             for name, value in dl.assignment(model.thread_id):
                 sol.append(f"dl({name},{value})")
-            all_answers.add(frozenset(sol))
+            all_answers.append(frozenset(sol))
     return all_answers
 
 

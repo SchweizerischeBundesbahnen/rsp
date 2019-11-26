@@ -133,7 +133,7 @@ class ORToolsProblemDescription(AbstractProblemDescription):
 
         self._solver.Add(agent_1_before_agent_2_res_x + agent_2_before_agent_1_res_x == 1)
 
-    def _create_objective_function_minimize(self, variables: List[Waypoint]):
+    def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
         """Creates an objective function to minimize in the solver.
 
         Parameters
@@ -141,7 +141,11 @@ class ORToolsProblemDescription(AbstractProblemDescription):
         variables
             the target waypoints of the agents
         """
-        self._solver.build_objective_function(variables)
+        all_variables = []
+        for vars in variables.values():
+            all_variables += vars
+
+        self._solver.build_objective_function(all_variables)
 
     def solve(self) -> ORToolsSolutionDescription:
         self._status = self._solver.Solve()

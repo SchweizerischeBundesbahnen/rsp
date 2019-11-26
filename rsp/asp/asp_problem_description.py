@@ -3,7 +3,7 @@ from __future__ import print_function
 from typing import Dict, Optional, List, Tuple, Set
 
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
 from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
 from rsp.asp.asp_solution_description import ASPSolutionDescription
@@ -22,6 +22,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         self.asp_program: List[str] = []
         self.env: RailEnv = env
         self.asp_objective: ASPObjective = asp_objective
+        self.dummy_target_vertices: Optional[Dict[int, List[Waypoint]]] = None
 
         self.agents_waypoints: Dict[int, Set[Waypoint]] = {
             agent.handle: {waypoint
@@ -54,7 +55,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         for target_waypoint in target_vertices:
             self.asp_program.append("end(t{}, {}).".format(agent_id, tuple(target_waypoint)))
 
-    def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time):
+    def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time: int):
         """See `AbstractProblemDescription`."""
 
         # ASP fact e(T,V,E)
@@ -117,9 +118,9 @@ class ASPProblemDescription(AbstractProblemDescription):
         pass
 
     # create objective function to minimize
-    def _create_objective_function_minimize(self, variables: List[Waypoint]):
+    def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
         # TODO SIM-137 SIM-113 bad code smell: the chosen minimization objective is passed when the ASP solver is called, but added here in ortools
-        pass
+        self.dummy_target_vertices = variables
 
     def solve(self) -> ASPSolutionDescription:
         # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
@@ -140,19 +141,23 @@ class ASPProblemDescription(AbstractProblemDescription):
 
     def get_freezed_copy_for_rescheduling(self,
                                           malfunction: Malfunction,
-                                          trainruns_dict: Dict[int, Trainrun],
+                                          freeze: Dict[int, Set[TrainrunWaypoint]],
+                                          schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
                                           verbose: bool = False) -> 'ASPProblemDescription':
         """
         Returns a problem description with additional constraints to freeze all the variables up to malfunction.
 
-        See :meth:`solver.asp.asp_problem_description.ASPProblemDescription._get_freeze_for_trainrun` for implementation details.
+        The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_trainrun`.
+
+
+        The ASP constraints are derived by :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_freeze_to_ASP`.
 
         Parameters
         ----------
         malfunction
             the malfunction
         trainruns_dict
-            the schedule
+            the schedule_static
         verbose
             print debug information
 
@@ -164,25 +169,38 @@ class ASPProblemDescription(AbstractProblemDescription):
         env = self.env
         freezed_copy = ASPProblemDescription(env, self.agents_path_dict, ASPObjective.MINIMIZE_DELAY)
         freezed_copy.asp_program = self.asp_program.copy()
-        # silence "info: atom does not occur in any rule head:" without silencing all warnings
-        freezed_copy.asp_program.append("potlate(0,0,0,0).")
-        for agent in self.env.agents:
-            if verbose:
-                print(f"freezing agent {agent.handle}")
-                print(f"waypoints={self.agents_waypoints[agent.handle]}")
-                print(f"paths={self.agents_path_dict[agent.handle]}")
-            freeze = self._get_freeze_for_trainrun(agent.handle, trainruns_dict[agent.handle], malfunction)
-            freezed_copy.asp_program += freeze
+
+        # remove all earliest constraints
+        freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
+
+        # add constraints for dummy target nodes
+        for agent_id, dummy_target_waypoints in self.dummy_target_vertices.items():
+            train = "t{}".format(agent_id)
+            for dummy_target_waypoint in dummy_target_waypoints:
+                vertex = tuple(dummy_target_waypoint)
+                # TODO check whether we need +1 or speed^-1
+                freezed_copy.asp_program.append(
+                    f"e({train},{vertex},{schedule_trainruns[agent_id][-1].scheduled_at + 1}).")
+
+        # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
+        # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
+        # TODO ASP: possibly only penalize only in intervals for speed-up
+        freezed_copy.asp_program.append("#const upper_bound_linear_penalty = 60.")
+        freezed_copy.asp_program.append("#const penalty_after_linear = 5000000.")
+
+        freezed_copy.asp_program.append("linear_range(1..upper_bound_linear_penalty).")
+        freezed_copy.asp_program.append("potlate(T,V,E+S,1) :- e(T,V,E), linear_range(S), end(T,V).")
+        freezed_copy.asp_program.append(
+            "potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).")
+
+        for agent_id, trainrun_waypoints in freeze.items():
+            f = self._translate_freeze_to_ASP(agent_id, freeze[agent_id], malfunction)
+            freezed_copy.asp_program += f
+
         return freezed_copy
 
-    def _get_freeze_for_trainrun(self, agent_id: int, agent_solution_trainrun: Trainrun, malfunction: Malfunction,
-                                 verbose: bool = False) -> \
-            List[str]:
+    def _translate_freeze_to_ASP(self, agent_id: int, freeze: List[TrainrunWaypoint], malfunction: Malfunction):
         """
-        Keep everything the same up to malfunction and delay the malfunctioning train by the malfunction duration.
-
-        Input: Schedule gives us schedules times schedule_time_(train,vertex) and routes by visit(train,vertex) == True.
-
         The model is freezed by adding constraints in the following way:
         - for all schedule_time_(train,vertex) <= malfunction.time_step:
            - freeze visit(train,vertex) == True
@@ -194,29 +212,18 @@ class ASPProblemDescription(AbstractProblemDescription):
         - for all trains and all their vertices s.t. schedule_time_(train,vertex) > malfunction.time_step or schedule_time_(train,vertex) == None
            -  dl(train,vertex) >= malfunction.time_step
            (in particular, if a train has not entered yet, it must not enter in the re-scheduling before the malfunction)
-
-        Parameters
-        ----------
-        agent_id
-        agent_solution_trainrun
-        malfunction
-
-        Returns
-        -------
-
         """
-        frozen = []
-        time = 0
+        frozen: List[TrainrunWaypoint] = []
         done: Set[Waypoint] = set()
         previous_vertex = None
-        for waypoint_index, trainrun_waypoint in enumerate(agent_solution_trainrun):
-            train = "t{}".format(agent_id)
+        train = "t{}".format(agent_id)
+
+        # constraint all times
+        for trainrun_waypoint in freeze:
             vertex = tuple(trainrun_waypoint.waypoint)
-
+            time = trainrun_waypoint.scheduled_at
+            # all times up to the malfunction are constrained to stay the same
             if trainrun_waypoint.scheduled_at <= malfunction.time_step:
-                done.add(trainrun_waypoint.waypoint)
-                time = trainrun_waypoint.scheduled_at
-
                 # 1. freeze times up to malfunction
                 # (train,vertex) <= time --> &diff{ (train,vertex)-0 } <= time.
                 # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
@@ -233,40 +240,33 @@ class ASPProblemDescription(AbstractProblemDescription):
                 # visit(t1,1).
                 frozen.append(f"visit({train},{vertex}).")
 
-                # do we have to add route(....)?
-                if previous_vertex:
-                    # route(T,(V,V')).
-                    frozen.append(f"route({train},({previous_vertex},{vertex})).")
-
-                # TODO discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
+            # all times after the malfunction are constrained to be larger or equal to our input
             else:
-                # we're at the first vertex after the freeeze;
-                # the train has already entered the edge leading to this vertex (speed fraction >= 0);
-                # therefore, freeze this vertex as well since the train cannot "beam" to another edge
-                if waypoint_index > 0:
-                    done.add(trainrun_waypoint.waypoint)
-                    frozen.append(f"visit({train},{vertex}).")
+                # 1. freeze times up to malfunction
+                # (train,vertex) <= time --> &diff{ (train,vertex)-0 } <= time.
+                frozen.append(f"&diff{{ 0-({train},{vertex}) }}  <= -{time}.")
 
-                    if malfunction.agent_id == agent_id:
-                        # TODO is this safe because of rounding errors?
-                        minimum_travel_time = int(1 / self.env.agents[agent_id].speed_data['speed'])
-                        # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
-                        earliest_time = time + minimum_travel_time + malfunction.malfunction_duration
+                # 2. in order to speed up search (probably), add (maybe) redundant constraints on time windows
+                # e(t1,1,2).
+                frozen.append(f"e({train},{vertex},{time}).")
 
-                        if verbose:
-                            print(f"agent {agent_id} at {vertex} earliest_time={earliest_time}")
+                # 3. in order to speed up search (probably), add (maybe) redundant constraints on routes
+                # visit(t1,1).
+                frozen.append(f"visit({train},{vertex}).")
 
-                        frozen.append(f"&diff{{ 0-({train},{vertex}) }}  <= -{earliest_time}.")
+            # do we have to add route(....)?
+            if previous_vertex:
+                # route(T,(V,V')).
+                frozen.append(f"route({train},({previous_vertex},{vertex})).")
 
-                        frozen.append(f"e({train},{vertex},{earliest_time}).")
-
-                        frozen.append(f"visit({train},{vertex}).")
-
-                # do not consider remainder of this train!
-                break
             previous_vertex = vertex
+            done.add(trainrun_waypoint.waypoint)
+
         for waypoint in {waypoint for waypoint in self.agents_waypoints[agent_id] if waypoint not in done}:
             vertex = tuple(waypoint)
             # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
             frozen.append(f"e({train},{vertex},{malfunction.time_step}).")
+
+        # TODO discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
+
         return frozen
