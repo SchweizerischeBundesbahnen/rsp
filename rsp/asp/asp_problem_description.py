@@ -168,37 +168,37 @@ class ASPProblemDescription(AbstractProblemDescription):
         ASPProblemDescription
 
         """
-        env = self.env
-        freezed_copy = ASPProblemDescription(env, self.agents_path_dict, ASPObjective.MINIMIZE_DELAY)
-        freezed_copy.asp_program = self.asp_program.copy()
-
-        # remove all earliest constraints
-        freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
-
-        # add constraints for dummy target nodes
-        for agent_id, dummy_target_waypoints in self.dummy_target_vertices.items():
-            train = "t{}".format(agent_id)
-            for dummy_target_waypoint in dummy_target_waypoints:
-                vertex = tuple(dummy_target_waypoint)
-                # TODO check whether we need +1 or speed^-1
-                freezed_copy.asp_program.append(
-                    f"e({train},{vertex},{schedule_trainruns[agent_id][-1].scheduled_at + 1}).")
-
-        # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
-        # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
-        # TODO ASP: possibly only penalize only in intervals for speed-up
-        freezed_copy.asp_program.append("#const upper_bound_linear_penalty = 60.")
-        freezed_copy.asp_program.append("#const penalty_after_linear = 5000000.")
-
-        freezed_copy.asp_program.append("linear_range(1..upper_bound_linear_penalty).")
-        freezed_copy.asp_program.append("potlate(T,V,E+S,1) :- e(T,V,E), linear_range(S), end(T,V).")
-        freezed_copy.asp_program.append(
-            "potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).")
+        freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
 
         for agent_id, trainrun_waypoints in freeze.items():
             f = self._translate_freeze_to_ASP(agent_id, freeze[agent_id], malfunction)
             freezed_copy.asp_program += f
 
+        return freezed_copy
+
+    def _prepare_freezed_copy(self, schedule_trainruns):
+        env = self.env
+        freezed_copy = ASPProblemDescription(env, self.agents_path_dict, ASPObjective.MINIMIZE_DELAY)
+        freezed_copy.asp_program = self.asp_program.copy()
+        # remove all earliest constraints
+        freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
+        # add constraints for dummy target nodes
+        for agent_id, dummy_target_waypoints in self.dummy_target_vertices.items():
+            train = "t{}".format(agent_id)
+            for dummy_target_waypoint in dummy_target_waypoints:
+                vertex = tuple(dummy_target_waypoint)
+                # add + 1 for dummy target edge within target cell
+                freezed_copy.asp_program.append(
+                    f"e({train},{vertex},{schedule_trainruns[agent_id][-1].scheduled_at + 1}).")
+        # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
+        # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
+        # TODO ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up
+        freezed_copy.asp_program.append("#const upper_bound_linear_penalty = 60.")
+        freezed_copy.asp_program.append("#const penalty_after_linear = 5000000.")
+        freezed_copy.asp_program.append("linear_range(1..upper_bound_linear_penalty).")
+        freezed_copy.asp_program.append("potlate(T,V,E+S,1) :- e(T,V,E), linear_range(S), end(T,V).")
+        freezed_copy.asp_program.append(
+            "potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).")
         return freezed_copy
 
     def _translate_freeze_to_ASP(self, agent_id: int, freeze: List[TrainrunWaypoint], malfunction: Malfunction):
@@ -269,6 +269,6 @@ class ASPProblemDescription(AbstractProblemDescription):
             # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
             frozen.append(f"e({train},{vertex},{malfunction.time_step}).")
 
-        # TODO discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
+        # TODO ASP performance enhancement: discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
 
         return frozen

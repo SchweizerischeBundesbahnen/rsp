@@ -8,7 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoi
 from numpy.random.mtrand import RandomState
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_scheduling_helper import reschedule
+from rsp.asp.asp_scheduling_helper import reschedule, determine_delta
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
 from rsp.utils.data_types import ExperimentParameters, Malfunction
 from rsp.utils.experiments import create_env_pair_for_experiment
@@ -253,6 +253,77 @@ def test_rescheduling():
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
     actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
     assert actual_costs == 20, f"actual costs {actual_costs}"
+
+    delta, delta_freeze = determine_delta(full_reschedule_trainruns, fake_malfunction,
+                                          fake_schedule, verbose=True)
+
+    assert delta == {
+        0: [TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(8, 25), direction=1)),
+            TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(8, 26), direction=1)),
+            TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(8, 27), direction=1)),
+            TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(8, 28), direction=1)),
+            TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(8, 29), direction=1)),
+            TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(9, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(10, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(11, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(12, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(13, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(14, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(15, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(16, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=53, waypoint=Waypoint(position=(17, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=54, waypoint=Waypoint(position=(18, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=55, waypoint=Waypoint(position=(19, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=56, waypoint=Waypoint(position=(20, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=57, waypoint=Waypoint(position=(21, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=58, waypoint=Waypoint(position=(22, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=59, waypoint=Waypoint(position=(23, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=60, waypoint=Waypoint(position=(23, 28), direction=3)),
+            TrainrunWaypoint(scheduled_at=61, waypoint=Waypoint(position=(23, 27), direction=3)),
+            TrainrunWaypoint(scheduled_at=62, waypoint=Waypoint(position=(24, 27), direction=2)),
+            TrainrunWaypoint(scheduled_at=63, waypoint=Waypoint(position=(24, 26), direction=3)),
+            TrainrunWaypoint(scheduled_at=64, waypoint=Waypoint(position=(24, 25), direction=3)),
+            TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(24, 24), direction=3)),
+            TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(24, 23), direction=3))],
+        1: []
+    }
+    assert delta_freeze == {
+        0: [
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=1)),
+            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
+            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(8, 25), direction=1)),
+        ],
+        1: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+            TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
+            TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
+            TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
+            TrainrunWaypoint(scheduled_at=5, waypoint=Waypoint(position=(23, 27), direction=1)),
+            TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(23, 28), direction=1)),
+            TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(23, 29), direction=1)),
+            TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(22, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(21, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(20, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(19, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(18, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(17, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(15, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(14, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(13, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(12, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(11, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(10, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(9, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=22, waypoint=Waypoint(position=(8, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=23, waypoint=Waypoint(position=(7, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=24, waypoint=Waypoint(position=(7, 28), direction=3)),
+            TrainrunWaypoint(scheduled_at=25, waypoint=Waypoint(position=(7, 27), direction=3)),
+            TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(7, 26), direction=3)),
+            TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(7, 25), direction=3)),
+            TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
+            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]
+    }
 
 
 def test_rescheduling_first_train_goes_earlier():
@@ -521,3 +592,73 @@ def test_rescheduling_first_train_goes_earlier():
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
     actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
     assert actual_costs == 20, f"actual costs {actual_costs}"
+
+    delta, freeze = determine_delta(full_reschedule_trainruns, fake_malfunction,
+                                    fake_schedule, verbose=True)
+    assert delta == {
+        0: [
+            TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(8, 23), direction=1)),
+            TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(8, 24), direction=1)),
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 25), direction=1)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 26), direction=1)),
+            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 27), direction=1)),
+            TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 28), direction=1)),
+            TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(8, 29), direction=1)),
+            TrainrunWaypoint(scheduled_at=22, waypoint=Waypoint(position=(9, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=23, waypoint=Waypoint(position=(10, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=24, waypoint=Waypoint(position=(11, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=25, waypoint=Waypoint(position=(12, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(13, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(13, 28), direction=3)),
+            TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(14, 28), direction=2)),
+            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(15, 28), direction=2)),
+            TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(16, 28), direction=2)),
+            TrainrunWaypoint(scheduled_at=31, waypoint=Waypoint(position=(17, 28), direction=2)),
+            TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(17, 29), direction=1)),
+            TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(18, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=34, waypoint=Waypoint(position=(19, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(20, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=36, waypoint=Waypoint(position=(21, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=37, waypoint=Waypoint(position=(22, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=38, waypoint=Waypoint(position=(23, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=39, waypoint=Waypoint(position=(24, 29), direction=2)),
+            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(24, 28), direction=3)),
+            TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(24, 27), direction=3)),
+            TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(24, 26), direction=3)),
+            TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(24, 25), direction=3)),
+            TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 24), direction=3)),
+            TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 23), direction=3))],
+        1: [
+            TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=36, waypoint=Waypoint(position=(14, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=37, waypoint=Waypoint(position=(13, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=38, waypoint=Waypoint(position=(12, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=39, waypoint=Waypoint(position=(11, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(10, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(9, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(8, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(7, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(7, 28), direction=3)),
+            TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(7, 27), direction=3)),
+            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 26), direction=3)),
+            TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(7, 25), direction=3)),
+            TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(7, 24), direction=3)),
+            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 23), direction=3))]}
+    assert freeze == {
+        0: [],
+        1: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+            TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
+            TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
+            TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
+            TrainrunWaypoint(scheduled_at=5, waypoint=Waypoint(position=(23, 27), direction=1)),
+            TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(23, 28), direction=1)),
+            TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(23, 29), direction=1)),
+            TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(22, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(21, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(20, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(19, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(18, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(17, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0)),
+            TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))
+            ]}

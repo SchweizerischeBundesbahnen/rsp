@@ -1,10 +1,11 @@
+import pprint
 from typing import Set, Dict, List
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_scheduling_helper import reschedule, schedule_static
+from rsp.asp.asp_scheduling_helper import reschedule, schedule_static, determine_delta
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.experiment_render_utils import render_env
@@ -21,6 +22,7 @@ class ASPExperimentSolver(AbstractSolver):
     run_experiment_trial:
         Returns the correct data format to run tests on full research pipeline
     """
+    _pp = pprint.PrettyPrinter(indent=4)
 
     def run_experiment_trial(
             self,
@@ -90,14 +92,14 @@ class ASPExperimentSolver(AbstractSolver):
         # Determine Delta
         # --------------------------------------------------------------------------------------
 
-        delta, inverse_delta = self._determine_delta(full_reschedule_trainrunwaypoints_dict, malfunction,
-                                                     schedule_trainrunwaypoints, verbose)
+        delta, inverse_delta = determine_delta(full_reschedule_trainrunwaypoints_dict, malfunction,
+                                               schedule_trainrunwaypoints, verbose)
 
         # --------------------------------------------------------------------------------------
         # Re-schedule_static Delta
         # --------------------------------------------------------------------------------------
-        if False:  # TODO SIM-105 implement
-            # does not work yet
+        # does not work yet
+        if False:
             delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling(
                 malfunction=malfunction,
                 freeze=inverse_delta,
@@ -141,34 +143,3 @@ class ASPExperimentSolver(AbstractSolver):
                                             costs_delta_after_malfunction=-1,
                                             delta=delta)
         return current_results
-
-    def _determine_delta(self, full_reschedule_trainrunwaypoints_dict, malfunction, schedule_trainrunwaypoints,
-                         verbose):
-        # Delta is all train run way points in the re-schedule_static that are not also in the schedule_static
-        delta: Dict[int, Set[TrainrunWaypoint]] = {
-            agent_id: sorted(list(
-                full_reschedule_trainrunwaypoints_dict[agent_id].difference(schedule_trainrunwaypoints[agent_id])),
-                key=lambda p: p.scheduled_at)
-            for agent_id in schedule_trainrunwaypoints.keys()
-        }
-        if verbose:
-            print(f"  **** delta={delta}")
-        # TODO SIM-105 make option to switch verification on and off?
-        for agent_id, delta_waypoints in delta.items():
-            for delta_waypoint in delta_waypoints:
-                assert delta_waypoint.scheduled_at >= malfunction.time_step, f"found \n\n"
-                "  **** delta_waypoint {delta_waypoint} of agent {agent_id},\n\n"
-                "  **** malfunction is {malfunction}.\n\n"
-                "  **** schedule_static={schedule_trainruns[agent_id]}.\n\n"
-                "  **** full re-schedule_static=schedule_static={full_reschedule_trainruns[agent_id]}"
-        # Inverse Delta = Freeze are all train run way points in the re-schedule_static that not in the delta
-        if verbose:
-            for agent_id in delta.keys():
-                print(f"  **** reschedule for {agent_id}")
-                print(full_reschedule_trainrunwaypoints_dict[agent_id].difference(set(delta[agent_id])))
-        inverse_delta: Dict[int, List[TrainrunWaypoint]] = \
-            {agent_id: sorted(list(full_reschedule_trainrunwaypoints_dict[agent_id].difference(set(delta[agent_id]))),
-                              key=lambda p: p.scheduled_at) for agent_id in delta.keys()}
-        if verbose:
-            print(f"  **** inverse delta ={inverse_delta}")
-        return delta, inverse_delta
