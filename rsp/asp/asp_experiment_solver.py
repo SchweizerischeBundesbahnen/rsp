@@ -119,12 +119,12 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
         current_results = ExperimentResults(time_full=schedule_result.solve_time,
                                             time_full_after_malfunction=full_reschedule_result.solve_time,
-                                            time_delta_after_malfunction=-1,
+                                            time_delta_after_malfunction=delta_reschedule_result.solve_time,
                                             solution_full=schedule_solution.get_trainruns_dict(),
-                                            solution_full_after_malfunction=[],
-                                            solution_delta_after_malfunction=[],
+                                            solution_full_after_malfunction=full_reschedule_solution.get_trainruns_dict(),
+                                            solution_delta_after_malfunction=delta_reschedule_solution.get_trainruns_dict(),
                                             costs_full=schedule_result.optimization_costs,
                                             costs_full_after_malfunction=full_reschedule_result.optimization_costs,
-                                            costs_delta_after_malfunction=-1,
+                                            costs_delta_after_malfunction=delta_reschedule_result.optimization_costs,
                                             delta=delta)
         return current_results
