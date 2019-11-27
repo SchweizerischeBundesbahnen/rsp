@@ -176,7 +176,7 @@ def test_minimize_sum_of_running_times_scheduling():
 
 
 def test_minimize_delay_rescheduling():
-    """Case Study how to model minimizing delay with respect to given schedule_static and a malfunction delay."""
+    """Case Study how to model minimizing delay with respect to given schedule and a malfunction delay."""
     encodings = []
     with path('tests.data.asp.instances', 'dummy_two_agents_rescheduling.lp') as instance_in:
         encodings.append(instance_in)

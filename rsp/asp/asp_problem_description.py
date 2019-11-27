@@ -141,25 +141,25 @@ class ASPProblemDescription(AbstractProblemDescription):
         #  but deduce the result in order to make solution description stateless
         return ASPSolutionDescription(env=self.env, asp_solution=asp_solution)
 
-    def get_freezed_copy_for_rescheduling(self,
-                                          malfunction: Malfunction,
-                                          freeze: Dict[int, Set[TrainrunWaypoint]],
-                                          schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
-                                          verbose: bool = False) -> 'ASPProblemDescription':
+    def get_freezed_copy_for_rescheduling_full_after_malfunction(self,
+                                                                 malfunction: Malfunction,
+                                                                 freeze: Dict[int, Set[TrainrunWaypoint]],
+                                                                 schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
+                                                                 verbose: bool = False) -> 'ASPProblemDescription':
         """
         Returns a problem description with additional constraints to freeze all the variables up to malfunction.
 
         The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_trainrun`.
 
 
-        The ASP constraints are derived by :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_freeze_to_ASP`.
+        The ASP constraints are derived by :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_freeze_full_after_malfunction_to_ASP`.
 
         Parameters
         ----------
         malfunction
             the malfunction
         trainruns_dict
-            the schedule_static
+            the schedule
         verbose
             print debug information
 
@@ -171,9 +171,43 @@ class ASPProblemDescription(AbstractProblemDescription):
         freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
 
         for agent_id, trainrun_waypoints in freeze.items():
-            f = self._translate_freeze_to_ASP(agent_id, freeze[agent_id], malfunction)
+            f = self._translate_freeze_full_after_malfunction_to_ASP(agent_id, freeze[agent_id], malfunction)
             freezed_copy.asp_program += f
 
+        return freezed_copy
+
+    def get_freezed_copy_for_rescheduling_delta_after_malfunction(self,
+                                                                  malfunction: Malfunction,
+                                                                  freeze: Dict[int, Set[TrainrunWaypoint]],
+                                                                  schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
+                                                                  verbose: bool = False) -> 'ASPProblemDescription':
+        """
+        Returns a problem description with additional constraints to freeze all the variables up to malfunction.
+
+        The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_trainrun`.
+
+
+        The ASP constraints are derived by :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_freeze_full_after_malfunction_to_ASP`.
+
+        Parameters
+        ----------
+        malfunction
+            the malfunction
+        trainruns_dict
+            the schedule
+        verbose
+            print debug information
+
+        Returns
+        -------
+        ASPProblemDescription
+
+        """
+        freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
+
+        for agent_id, trainrun_waypoints in freeze.items():
+            f = self._translate_freeze_delta_after_malfunction_to_ASP(agent_id, freeze[agent_id], malfunction)
+            freezed_copy.asp_program += f
         return freezed_copy
 
     def _prepare_freezed_copy(self, schedule_trainruns):
@@ -201,7 +235,8 @@ class ASPProblemDescription(AbstractProblemDescription):
             "potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).")
         return freezed_copy
 
-    def _translate_freeze_to_ASP(self, agent_id: int, freeze: List[TrainrunWaypoint], malfunction: Malfunction):
+    def _translate_freeze_full_after_malfunction_to_ASP(self, agent_id: int, freeze: List[TrainrunWaypoint],
+                                                        malfunction: Malfunction):
         """
         The model is freezed by adding constraints in the following way:
         - for all schedule_time_(train,vertex) <= malfunction.time_step:
@@ -264,6 +299,59 @@ class ASPProblemDescription(AbstractProblemDescription):
             previous_vertex = vertex
             done.add(trainrun_waypoint.waypoint)
 
+        for waypoint in {waypoint for waypoint in self.agents_waypoints[agent_id] if waypoint not in done}:
+            vertex = tuple(waypoint)
+            # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
+            frozen.append(f"e({train},{vertex},{malfunction.time_step}).")
+
+        # TODO ASP performance enhancement: discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
+
+        return frozen
+
+    def _translate_freeze_delta_after_malfunction_to_ASP(self, agent_id: int, freeze: List[TrainrunWaypoint],
+                                                         malfunction: Malfunction):
+        """
+        The model is freezed by adding constraints in the following way:
+        - for all train run waypoints in the freeze, add
+          - dl(train,vertex) == trainrun_waypoint.scheduled_at
+        - for all other possible route waypoints, add
+           -  dl(train,vertex) >= malfunction.time_step
+        """
+        frozen: List[TrainrunWaypoint] = []
+        done: Set[Waypoint] = set()
+        previous_vertex = None
+        train = "t{}".format(agent_id)
+
+        # constraint all times in the freeze to stay the same
+        for trainrun_waypoint in freeze:
+            vertex = tuple(trainrun_waypoint.waypoint)
+            time = trainrun_waypoint.scheduled_at
+            # constraint times to stay the same
+            # 1. freeze times up to malfunction
+            # (train,vertex) <= time --> &diff{ (train,vertex)-0 } <= time.
+            # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
+            frozen.append(f"&diff{{ ({train},{vertex})-0 }} <= {time}.")
+            frozen.append(f"&diff{{ 0-({train},{vertex}) }}  <= -{time}.")
+
+            # 2. in order to speed up search (probably), add (maybe) redundant constraints on time windows
+            # e(t1,1,2).
+            frozen.append(f"e({train},{vertex},{time}).")
+            # l(t1,1,2).
+            frozen.append(f"l({train},{vertex},{time}).")
+
+            # 3. in order to speed up search (probably), add (maybe) redundant constraints on routes
+            # visit(t1,1).
+            frozen.append(f"visit({train},{vertex}).")
+
+            # do we have to add route(....)?
+            if previous_vertex:
+                # route(T,(V,V')).
+                frozen.append(f"route({train},({previous_vertex},{vertex})).")
+
+            previous_vertex = vertex
+            done.add(trainrun_waypoint.waypoint)
+
+        # constraint all other times in the freeze to be >= malfunction
         for waypoint in {waypoint for waypoint in self.agents_waypoints[agent_id] if waypoint not in done}:
             vertex = tuple(waypoint)
             # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.

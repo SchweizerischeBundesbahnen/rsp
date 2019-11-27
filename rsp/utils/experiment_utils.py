@@ -1,4 +1,5 @@
 """Solve a problem a."""
+import pprint
 from typing import Dict, List, Optional, NamedTuple, Set, Callable
 
 import numpy as np
@@ -22,6 +23,8 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
 
 # test_id: int, solver_name: str, i_step: int
 SolveProblemRenderCallback = Callable[[int, str, int], None]
+
+_pp = pprint.PrettyPrinter(indent=4)
 
 
 # --------------------------------------------------------------------------------------
@@ -85,8 +88,12 @@ def _replay(debug, disable_verification_in_replay, env, loop_index, malfunction,
     time_step = 0
     ap: ControllerFromTrainruns = solution.create_action_plan()
     if debug:
-        print(solution.get_trainruns_dict())
+        print("  **** solution to replay:")
+        print(_pp.pformat(solution.get_trainruns_dict()))
+        print("  **** action plan to replay:")
         ap.print_action_plan()
+        print("  **** malfunction to replay:")
+        print(_pp.pformat(malfunction))
     actual_action_plan = [ap.act(time_step) for time_step in range(env._max_episode_steps)]
     verification("action_plan", actual_action_plan, loop_index, solver_name)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:

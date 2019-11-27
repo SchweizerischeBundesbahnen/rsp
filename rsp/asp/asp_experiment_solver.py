@@ -1,16 +1,15 @@
 import pprint
-from typing import Set, Dict, List
+from typing import Dict, List
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
-from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_scheduling_helper import reschedule, schedule_static, determine_delta
+from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, schedule_full, determine_delta, \
+    reschedule_delta_after_malfunction
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.experiment_render_utils import render_env
 from rsp.utils.experiment_solver import AbstractSolver, RendererForEnvInit, RendererForEnvRender, RendererForEnvCleanup
-from rsp.utils.experiment_utils import solve_problem, replay_until_malfunction
+from rsp.utils.experiment_utils import replay_until_malfunction
 
 
 class ASPExperimentSolver(AbstractSolver):
@@ -51,11 +50,10 @@ class ASPExperimentSolver(AbstractSolver):
         -------
         ExperimentResults
         """
-        agents_paths_dict, schedule_problem, schedule_result, schedule_solution = schedule_static(k, static_rail_env,
-                                                                                                  rendering)
+        agents_paths_dict, schedule_problem, schedule_result, schedule_solution = schedule_full(k, static_rail_env,
+                                                                                                rendering)
 
         schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
-        schedule_trainrunwaypoints = {agent_id: set(train_run) for agent_id, train_run in schedule_trainruns.items()}
 
         if verbose:
             print(f"  **** schedule_solution={schedule_trainruns}")
@@ -74,60 +72,47 @@ class ASPExperimentSolver(AbstractSolver):
             print(f"  **** malfunction={malfunction}")
 
         # --------------------------------------------------------------------------------------
-        # Re-schedule_static Full
+        # Re-schedule Full
         # --------------------------------------------------------------------------------------
 
-        full_reschedule_result, full_reschedule_solution = reschedule(agents_paths_dict, malfunction,
-                                                                      malfunction_env_reset, malfunction_rail_env,
-                                                                      schedule_problem,
-                                                                      schedule_trainruns, static_rail_env, rendering)
+        full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(agents_paths_dict,
+                                                                                             malfunction,
+                                                                                             malfunction_env_reset,
+                                                                                             malfunction_rail_env,
+                                                                                             schedule_problem,
+                                                                                             schedule_trainruns,
+                                                                                             static_rail_env, rendering)
+        malfunction_env_reset()
 
         if verbose:
             print(f"  **** full re-schedule_solution=\n{full_reschedule_solution.get_trainruns_dict()}")
         full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_solution.get_trainruns_dict()
-        full_reschedule_trainrunwaypoints_dict: Dict[int, Set[TrainrunWaypoint]] = \
-            {agent_id: set(train_run) for agent_id, train_run in full_reschedule_trainruns.items()}
 
         # --------------------------------------------------------------------------------------
-        # Determine Delta
+        # Re-Schedule Delta
         # --------------------------------------------------------------------------------------
 
-        delta, inverse_delta = determine_delta(full_reschedule_trainrunwaypoints_dict, malfunction,
-                                               schedule_trainrunwaypoints, verbose)
+        delta, inverse_delta = determine_delta(full_reschedule_trainruns, malfunction,
+                                               schedule_trainruns, verbose=False)
 
-        # --------------------------------------------------------------------------------------
-        # Re-schedule_static Delta
-        # --------------------------------------------------------------------------------------
-        # does not work yet
-        if False:
-            delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling(
-                malfunction=malfunction,
-                freeze=inverse_delta,
-                schedule_trainruns=full_reschedule_trainruns
-            )
+        delta_reschedule_result = reschedule_delta_after_malfunction(agents_paths_dict,
+                                                                     full_reschedule_trainruns,
+                                                                     inverse_delta,
+                                                                     malfunction,
+                                                                     malfunction_rail_env,
+                                                                     schedule_problem=schedule_problem,
+                                                                     rendering=rendering,
+                                                                     init_renderer_for_env=init_renderer_for_env,
+                                                                     render_renderer_for_env=render_renderer_for_env,
+                                                                     cleanup_renderer_for_env=cleanup_renderer_for_env)
+        malfunction_env_reset()
+        delta_reschedule_solution: ASPSolutionDescription = delta_reschedule_result.solution
 
-            renderer = init_renderer_for_env(malfunction_rail_env, rendering)
+        if verbose:
+            print(f"  **** delta re-schedule solution")
+            print(delta_reschedule_solution.get_trainruns_dict())
 
-            def render(test_id: int, solver_name, i_step: int):
-                render_env(renderer, test_id, solver_name, i_step)
-
-            delta_reschedule_result = solve_problem(
-                env=malfunction_rail_env,
-                problem=delta_reschedule_problem,
-                agents_paths_dict=agents_paths_dict,
-                rendering_call_back=render,
-                debug=False,
-                malfunction=malfunction)
-            cleanup_renderer_for_env(renderer)
-            malfunction_env_reset()
-            delta_reschedule_solution: ASPSolutionDescription = delta_reschedule_result.solution
-
-            if verbose:
-                print(f"  **** delta re-schedule solution")
-                print(delta_reschedule_solution.get_trainruns_dict())
-
-        # TODO SIM-105 analyse running times (grounding vs solving - etc.)
-        # TODO SIM-105 display sum of delays in both approaches
+        # TODO ASP performance analyse running times (grounding vs solving - etc.)
 
         # --------------------------------------------------------------------------------------
         # Result

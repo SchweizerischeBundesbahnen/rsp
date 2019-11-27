@@ -44,7 +44,7 @@ from rsp.utils.experiment_solver import AbstractSolver
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentParameters, verbose=True,
+def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentParameters, verbose=False,
                    force_only_one_trial=True) -> Series:
     """
 
@@ -73,8 +73,12 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
                  'costs_full',
                  'costs_full_after_malfunction',
                  'costs_delta_after_malfunction',
-                 'size', 'n_agents', 'max_num_cities',
-                 'max_rail_between_cities', 'max_rail_in_city'])
+                 'delta',
+                 'size',
+                 'n_agents',
+                 'max_num_cities',
+                 'max_rail_between_cities',
+                 'max_rail_in_city'])
 
     # Run the sequence of experiment
     for trial in range(experiment_parameters.trials_in_experiment if not force_only_one_trial else 1):

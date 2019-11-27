@@ -3,7 +3,7 @@ from typing import Dict, List
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint
 
 from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.asp.asp_scheduling_helper import schedule_static
+from rsp.asp.asp_scheduling_helper import schedule_full
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
 
@@ -126,7 +126,7 @@ def test_scheduling():
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    agents_paths_dict, schedule_problem, schedule_result, schedule_solution = schedule_static(10, static_env)
+    agents_paths_dict, schedule_problem, schedule_result, schedule_solution = schedule_full(10, static_env)
     schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
     print(schedule_trainruns)
     assert schedule_trainruns == expected_schedule_train_runs
