@@ -1,34 +1,35 @@
 import pprint
-from typing import Dict, Callable, List
+from typing import Dict, Callable, List, Tuple
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
-from flatland.envs.rail_trainrun_data_structures import Trainrun, TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
 from rsp.utils.data_types import Malfunction
 from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
-from rsp.utils.experiment_utils import solve_problem
+from rsp.utils.experiment_utils import solve_problem, SchedulingExperimentResult
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-# TODO SIM-105 add type definition TrainrunDict to FLATland
-# TODO SIM-105 docstring and type hints in this module
 def schedule_full(k: int,
                   static_rail_env: RailEnv,
                   rendering: bool = False,
                   debug: bool = False,
                   init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
                   render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-                  cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None, ):
+                  cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
+                  ) -> Tuple[ASPProblemDescription, SchedulingExperimentResult]:
     """
+    Solves the Full Scheduling Problem for static rail env (i.e. without malfunctions).
 
     Parameters
     ----------
     k
+        number of routing alterantives to consider
     static_rail_env
     rendering
     debug
@@ -43,7 +44,7 @@ def schedule_full(k: int,
     # --------------------------------------------------------------------------------------
     # Generate k shortest paths
     # --------------------------------------------------------------------------------------
-    # TODO add method to FLATland to create of k shortest paths for all agents
+    # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
     agents_paths_dict = {
         i: get_k_shortest_paths(static_rail_env,
                                 agent.initial_position,
@@ -68,18 +69,16 @@ def schedule_full(k: int,
         problem=schedule_problem,
         rendering_call_back=render,
         debug=debug)
-    schedule_solution: ASPSolutionDescription = schedule_result.solution
 
     # rendering hooks
     cleanup_renderer_for_env(renderer)
 
-    # TODO SIM-105 data structure and return type hints
-    return agents_paths_dict, schedule_problem, schedule_result, schedule_solution
+    return schedule_problem, schedule_result
 
 
 def reschedule_full_after_malfunction(
         schedule_problem: ASPProblemDescription,
-        schedule_trainruns: Dict[int, Trainrun],
+        schedule_trainruns: TrainrunDict,
         static_rail_env: RailEnv,
         malfunction: Malfunction,
         malfunction_rail_env: RailEnv,
@@ -91,6 +90,7 @@ def reschedule_full_after_malfunction(
         render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
         cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None, ):
     """
+    Solve the Full Scheduling Problem for static rail env (i.e. without malfunctions).
 
     Parameters
     ----------
@@ -134,14 +134,13 @@ def reschedule_full_after_malfunction(
     malfunction_env_reset()
     full_reschedule_solution: ASPSolutionDescription = full_reschedule_result.solution
 
-    # TODO SIM-105 data structure and retun type hints
     return full_reschedule_result, full_reschedule_solution
 
 
 def reschedule_delta_after_malfunction(
         schedule_problem: ASPProblemDescription,
-        full_reschedule_trainruns: Dict[int, Trainrun],
-        inverse_delta: Dict[int, List[TrainrunWaypoint]],
+        full_reschedule_trainruns: TrainrunDict,
+        freeze: Dict[int, List[TrainrunWaypoint]],
         malfunction: Malfunction,
         malfunction_rail_env: RailEnv,
         rendering: bool = False,
@@ -149,14 +148,14 @@ def reschedule_delta_after_malfunction(
         init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
         render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
         cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
-):
+) -> SchedulingExperimentResult:
     """
 
     Parameters
     ----------
     schedule_problem
     full_reschedule_trainruns
-    inverse_delta
+    freeze
     malfunction
     malfunction_rail_env
     rendering
@@ -171,7 +170,7 @@ def reschedule_delta_after_malfunction(
     """
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling_delta_after_malfunction(
         malfunction=malfunction,
-        freeze=inverse_delta,
+        freeze=freeze,
         schedule_trainruns=full_reschedule_trainruns
     )
     renderer = init_renderer_for_env(malfunction_rail_env, rendering)
@@ -189,12 +188,12 @@ def reschedule_delta_after_malfunction(
     return delta_reschedule_result
 
 
-# TODO ASP performance enhancement: we consider the worst case: we leave everything open;
+# TODO SIM-146 ASP performance enhancement: we consider the worst case: we leave everything open;
 #      we do not give the ASP solver the information about the full re-schedule!!
-def determine_delta(full_reschedule_trainrunwaypoints_dict: Dict[int, Trainrun],
+def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
                     malfunction: Malfunction,
-                    schedule_trainrunwaypoints: Dict[int, Trainrun],
-                    verbose: bool = False):
+                    schedule_trainrunwaypoints: TrainrunDict,
+                    verbose: bool = False) -> Tuple[TrainrunDict, TrainrunDict]:
     """
     Delta contains the information about what is changed by the malfunction with respect to the malfunction
     - all train run way points in the re-schedule that are different from the initial schedule.
@@ -220,7 +219,7 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: Dict[int, Trainrun],
         print(f"  **** full re-schedule")
         print(_pp.pformat(full_reschedule_trainrunwaypoints_dict))
     # Delta is all train run way points in the re-schedule that are not also in the schedule
-    delta: Dict[int, Trainrun] = {
+    delta: TrainrunDict = {
         agent_id: sorted(list(
             set(full_reschedule_trainrunwaypoints_dict[agent_id]).difference(
                 set(schedule_trainrunwaypoints[agent_id]))),
@@ -228,7 +227,7 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: Dict[int, Trainrun],
         for agent_id in schedule_trainrunwaypoints.keys()
     }
 
-    freeze: Dict[int, Trainrun] = \
+    freeze: TrainrunDict = \
         {agent_id: sorted(list(
             set(full_reschedule_trainrunwaypoints_dict[agent_id]).intersection(
                 set(schedule_trainrunwaypoints[agent_id]))),

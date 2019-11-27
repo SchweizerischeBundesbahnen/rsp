@@ -94,7 +94,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         self.asp_program.append(
             "resource(resource_{}_{},({},{})).".format(*resource_id, tuple(entry_waypoint), tuple(exit_waypoint)))
 
-        # TODO SIM-129: release time = 1 to allow for synchronization in FLATland
+        # TODO SIM-129: release time = 1 to allow for synchronization in FLATland - can we get rid of it?
         self.asp_program.append("b(resource_{}_{},1).".format(*resource_id))
 
         # penalty for objective minimize_routes.lp and heuristic_ROUTES.lp (used only if activated)
@@ -224,7 +224,7 @@ class ASPProblemDescription(AbstractProblemDescription):
                     f"e({train},{vertex},{schedule_trainruns[agent_id][-1].scheduled_at + 1}).")
         # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
         # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
-        # TODO ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up
+        # TODO SIM-146 ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up
         freezed_copy.asp_program.append("#const upper_bound_linear_penalty = 60.")
         freezed_copy.asp_program.append("#const penalty_after_linear = 5000000.")
         freezed_copy.asp_program.append("linear_range(1..upper_bound_linear_penalty).")
@@ -302,7 +302,7 @@ class ASPProblemDescription(AbstractProblemDescription):
             # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
             frozen.append(f"e({train},{vertex},{malfunction.time_step}).")
 
-        # TODO ASP performance enhancement: discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
+        # TODO SIM-146 ASP performance enhancement: discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
 
         return frozen
 
@@ -355,6 +355,6 @@ class ASPProblemDescription(AbstractProblemDescription):
             # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
             frozen.append(f"e({train},{vertex},{malfunction.time_step}).")
 
-        # TODO ASP performance enhancement: discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
+        # TODO SIM-146 ASP performance enhancement: discuss with Potsdam whether excluding routes that can never be entered would speed solution time as well.
 
         return frozen

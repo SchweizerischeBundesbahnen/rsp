@@ -209,8 +209,8 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
     -------
     ExperimentAgenda built from the ParameterRanges
     """
-    # Todo Check that parameters are correctly filled into ExperimentParameters
-    # Todo add malfunction parameters correctly to ExperimentParameters
+    # TODO Check that parameters are correctly filled into ExperimentParameters
+    # TODO add malfunction parameters correctly to ExperimentParameters
     number_of_dimensions = len(parameter_ranges)
     parameter_values = [[] for i in range(number_of_dimensions)]
 
@@ -271,8 +271,6 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
 
 def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEnv, RailEnv]:
     """
-    # TODO: Write test to check that these envs are identical at step 0: https://gitlab.aicrowd.com/flatland/submission-scoring/issues/1
-
     Parameters
     ----------
     params: ExperimentParameters

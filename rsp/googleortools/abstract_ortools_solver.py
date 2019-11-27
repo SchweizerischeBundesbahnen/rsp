@@ -1,4 +1,4 @@
-# TODO use @abc.abstractmethod
+# TODO ortools refactor use @abc.abstractmethod
 class AbstractORToolsSolver:
 
     def name(self):

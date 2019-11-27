@@ -50,8 +50,8 @@ class ASPExperimentSolver(AbstractSolver):
         -------
         ExperimentResults
         """
-        agents_paths_dict, schedule_problem, schedule_result, schedule_solution = schedule_full(k, static_rail_env,
-                                                                                                rendering)
+        schedule_problem, schedule_result = schedule_full(k, static_rail_env, rendering)
+        schedule_solution = schedule_result.solution
 
         schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
 
@@ -95,12 +95,14 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-Schedule Delta
         # --------------------------------------------------------------------------------------
 
-        delta, inverse_delta = determine_delta(full_reschedule_trainruns, malfunction,
-                                               schedule_trainruns, verbose=False)
+        delta, freeze = determine_delta(full_reschedule_trainruns,
+                                        malfunction,
+                                        schedule_trainruns,
+                                        verbose=False)
 
         delta_reschedule_result = reschedule_delta_after_malfunction(
             full_reschedule_trainruns=full_reschedule_trainruns,
-            inverse_delta=inverse_delta,
+            freeze=freeze,
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
             schedule_problem=schedule_problem,
@@ -115,7 +117,7 @@ class ASPExperimentSolver(AbstractSolver):
             print(f"  **** delta re-schedule solution")
             print(delta_reschedule_solution.get_trainruns_dict())
 
-        # TODO ASP performance analyse running times (grounding vs solving - etc.)
+        # TODO SIM-146 ASP performance analyse running times (grounding vs solving - etc.)
 
         # --------------------------------------------------------------------------------------
         # Result

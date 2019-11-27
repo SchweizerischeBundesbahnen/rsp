@@ -126,7 +126,8 @@ def test_scheduling():
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    agents_paths_dict, schedule_problem, schedule_result, schedule_solution = schedule_full(10, static_env)
+    schedule_problem, schedule_result = schedule_full(10, static_env)
+    schedule_solution = schedule_result.solution
     schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
     print(schedule_trainruns)
     assert schedule_trainruns == expected_schedule_train_runs
@@ -144,9 +145,11 @@ def test_scheduling():
     expected_total_running_times = sum(agent_running_times)
     assert expected_total_running_times == 58, f"found {expected_total_running_times}"
 
-    agent_minimum_running_times = sum(
-        [AbstractProblemDescription.get_agent_minimum_running_time(agent, agents_paths_dict[agent.handle])
-         for agent in static_env.agents])
+    agent_minimum_running_times = sum([
+        AbstractProblemDescription.get_agent_minimum_running_time(
+            agent,
+            schedule_problem.agents_path_dict[agent.handle])
+        for agent in static_env.agents])
     assert expected_total_running_times == agent_minimum_running_times, \
         f"expected expected_total_running_times={expected_total_running_times}" + \
         "==agent_minimum_running_times={agent_minimum_running_times}"

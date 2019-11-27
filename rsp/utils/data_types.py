@@ -4,7 +4,7 @@ Data types used in the experiment for the real time rescheduling research projec
 """
 from typing import NamedTuple, List, Dict
 
-from flatland.envs.rail_trainrun_data_structures import Trainrun, TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict
 
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
@@ -26,9 +26,9 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('time_full', float),
     ('time_full_after_malfunction', float),
     ('time_delta_after_malfunction', float),
-    ('solution_full', Dict[int, Trainrun]),
-    ('solution_full_after_malfunction', Dict[int, Trainrun]),
-    ('solution_delta_after_malfunction', Dict[int, Trainrun]),
+    ('solution_full', TrainrunDict),
+    ('solution_full_after_malfunction', TrainrunDict),
+    ('solution_delta_after_malfunction', TrainrunDict),
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
     ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule

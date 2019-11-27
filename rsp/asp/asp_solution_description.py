@@ -41,7 +41,7 @@ class ASPSolutionDescription(AbstractSolutionDescription):
         return TrainrunWaypoint(scheduled_at=entry, waypoint=Waypoint(position=(r, c), direction=d))
 
     def get_entry_time(self, agent_id: int, v: Waypoint) -> int:
-        # TODO SIM asp_solver should use proper data structures instead of strings to represent answer sets
+        # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
         # hack since Python's tuple representations has spaces, but ASP gives us them without.
         position_part = str(tuple(v)).replace(" ", "")
         var_prefix = "dl((t{},{}),".format(agent_id, position_part)

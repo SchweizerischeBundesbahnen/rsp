@@ -576,8 +576,7 @@ def test_rescheduling_first_train_goes_earlier():
     dynamic_env.malfunction_generator, dynamic_env.malfunction_process_data = generator, MalfunctionProcessData(0, 0, 0)
 
     full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
-        malfunction=
-        fake_malfunction,
+        malfunction=fake_malfunction,
         malfunction_env_reset=lambda *args, **kwargs: None,
         malfunction_rail_env=dynamic_env,
         schedule_problem=schedule_problem,

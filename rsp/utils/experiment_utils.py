@@ -46,8 +46,7 @@ def solve_problem(env: RailEnv,
     problem
     disable_verification_in_replay
         Whether it is tested the replay corresponds to the problem's solution
-        TODO SIM-105 Should this be disable replay completely to gain time, i.e. whenever replay is perfor
-        TODO SIM-105 profile experiments to test how much time replay takes in the experiments
+        TODO SIM-105 Should there be option to disable replay completely? Profile experiments to test how much time replay takes in the experiments.
     env
         The env to run the verification with
     rendering_call_back
@@ -126,8 +125,7 @@ def replay(env: RailEnv,
     problem
     disable_verification_in_replay
         Whether it is tested the replay corresponds to the problem's solution
-        TODO SIM-105 Should this be disable replay completely to gain time, i.e. whenever replay is perfor
-        TODO SIM-105 profile experiments to test how much time replay takes in the experiments
+        TODO SIM-105 Should there be option to disable replay completely? Profile experiments to test how much time replay takes in the experiments.
     env
         The env to run the verification with
     rendering_call_back

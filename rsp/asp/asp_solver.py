@@ -19,9 +19,7 @@ class ASPObjective(Enum):
     """
     MINIMIZE_SUM_RUNNING_TIMES = "minimize_total_sum_of_running_times"  # minimize_total_sum_of_running_times.lp
     MINIMIZE_LATEST_ARRIVAL = "bound_all_events"  # multi-shot + bound_all_events.lp
-    # TODO SIM-137 delay minimization for re-scheduling
     MINIMIZE_DELAY = "minimize_delay"
-    MINIMIZE_ROUTES = "minimize_routes"
 
 
 FluxHelperResult = NamedTuple('FluxHelperResult', [
@@ -64,7 +62,7 @@ def flux_helper(
     with path('res.asp.encodings', 'encoding.lp') as encoding_path:
         paths = [encoding_path]
 
-    # TODO performance test with/without heuristics
+    # TODO SIM-146 performance test with/without heuristics
     if heuristic_routes:
         with path('res.asp.encodings', 'heuristic_ROUTES.lp') as heuristic_routes_path:
             paths.append(heuristic_routes_path)
