@@ -137,8 +137,6 @@ class ASPProblemDescription(AbstractProblemDescription):
         asp_solution = flux_helper(self.asp_program,
                                    bound_all_events=self.env._max_episode_steps,
                                    asp_objective=self.asp_objective)
-        # TODO SIM-105 bad code smell: we should not pass the ctl instance,
-        #  but deduce the result in order to make solution description stateless
         return ASPSolutionDescription(env=self.env, asp_solution=asp_solution)
 
     def get_freezed_copy_for_rescheduling_full_after_malfunction(self,

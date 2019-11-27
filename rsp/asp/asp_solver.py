@@ -28,6 +28,7 @@ FluxHelperResult = NamedTuple('FluxHelperResult', [
     # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
     ('answer_sets', List[Set[str]]),
     ('stats', Dict),
+    # future use for incremental solving?
     ('ctl', clingo.Control),
     ('dl', theory.Theory),
 ])
@@ -148,7 +149,6 @@ def _asp_helper(encoding_files: List[str],
         _print_configuration(ctl)
         _print_stats(statistics)
 
-    # TODO SIM-105 bad code smell: why do we have to expose ctl and dl? If yes, we should accept them as argument again for increment
     return FluxHelperResult(all_answers, statistics, ctl, dl)
 
 

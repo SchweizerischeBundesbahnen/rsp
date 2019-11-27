@@ -9,7 +9,7 @@ from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, sch
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.experiment_solver import AbstractSolver, RendererForEnvInit, RendererForEnvRender, RendererForEnvCleanup
-from rsp.utils.experiment_utils import replay_until_malfunction
+from rsp.utils.experiment_utils import replay
 
 
 class ASPExperimentSolver(AbstractSolver):
@@ -63,7 +63,9 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
 
         malfunction_env_reset()
-        malfunction = replay_until_malfunction(solution=schedule_solution, env=malfunction_rail_env)
+        malfunction = replay(solution=schedule_solution, env=malfunction_rail_env, stop_on_malfunction=True,
+                             problem=schedule_problem,
+                             disable_verification_in_replay=True)
         malfunction_env_reset()
         if not malfunction:
             raise Exception("Could not produce a malfunction")
@@ -75,13 +77,14 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-schedule Full
         # --------------------------------------------------------------------------------------
 
-        full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(agents_paths_dict,
-                                                                                             malfunction,
-                                                                                             malfunction_env_reset,
-                                                                                             malfunction_rail_env,
-                                                                                             schedule_problem,
-                                                                                             schedule_trainruns,
-                                                                                             static_rail_env, rendering)
+        full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+            malfunction=malfunction,
+            malfunction_env_reset=malfunction_env_reset,
+            malfunction_rail_env=malfunction_rail_env,
+            schedule_problem=schedule_problem,
+            schedule_trainruns=schedule_trainruns,
+            static_rail_env=static_rail_env,
+            rendering=rendering)
         malfunction_env_reset()
 
         if verbose:
@@ -95,16 +98,16 @@ class ASPExperimentSolver(AbstractSolver):
         delta, inverse_delta = determine_delta(full_reschedule_trainruns, malfunction,
                                                schedule_trainruns, verbose=False)
 
-        delta_reschedule_result = reschedule_delta_after_malfunction(agents_paths_dict,
-                                                                     full_reschedule_trainruns,
-                                                                     inverse_delta,
-                                                                     malfunction,
-                                                                     malfunction_rail_env,
-                                                                     schedule_problem=schedule_problem,
-                                                                     rendering=rendering,
-                                                                     init_renderer_for_env=init_renderer_for_env,
-                                                                     render_renderer_for_env=render_renderer_for_env,
-                                                                     cleanup_renderer_for_env=cleanup_renderer_for_env)
+        delta_reschedule_result = reschedule_delta_after_malfunction(
+            full_reschedule_trainruns=full_reschedule_trainruns,
+            inverse_delta=inverse_delta,
+            malfunction=malfunction,
+            malfunction_rail_env=malfunction_rail_env,
+            schedule_problem=schedule_problem,
+            rendering=rendering,
+            init_renderer_for_env=init_renderer_for_env,
+            render_renderer_for_env=render_renderer_for_env,
+            cleanup_renderer_for_env=cleanup_renderer_for_env)
         malfunction_env_reset()
         delta_reschedule_solution: ASPSolutionDescription = delta_reschedule_result.solution
 

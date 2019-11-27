@@ -224,7 +224,7 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
     for param_id, parameter_set in enumerate(full_param_set):
-        # TODO SIM-105 Fix the dependance on the order of parameters in generator maybe work with namedtuples?
+        # TODO can we use named structure in pandas?
         current_experiment = ExperimentParameters(experiment_id=param_id,
                                                   trials_in_experiment=trials_per_experiment,
                                                   number_of_agents=parameter_set[1],

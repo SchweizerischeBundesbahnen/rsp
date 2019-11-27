@@ -1,9 +1,9 @@
 import pprint
-from typing import Dict
+from typing import Dict, Callable, List
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
-from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import Trainrun, TrainrunWaypoint
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
@@ -15,6 +15,7 @@ from rsp.utils.experiment_utils import solve_problem
 _pp = pprint.PrettyPrinter(indent=4)
 
 
+# TODO SIM-105 add type definition TrainrunDict to FLATland
 # TODO SIM-105 docstring and type hints in this module
 def schedule_full(k: int,
                   static_rail_env: RailEnv,
@@ -23,6 +24,22 @@ def schedule_full(k: int,
                   init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
                   render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
                   cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None, ):
+    """
+
+    Parameters
+    ----------
+    k
+    static_rail_env
+    rendering
+    debug
+    init_renderer_for_env
+    render_renderer_for_env
+    cleanup_renderer_for_env
+
+    Returns
+    -------
+
+    """
     # --------------------------------------------------------------------------------------
     # Generate k shortest paths
     # --------------------------------------------------------------------------------------
@@ -49,7 +66,6 @@ def schedule_full(k: int,
     schedule_result = solve_problem(
         env=static_rail_env,
         problem=schedule_problem,
-        agents_paths_dict=agents_paths_dict,
         rendering_call_back=render,
         debug=debug)
     schedule_solution: ASPSolutionDescription = schedule_result.solution
@@ -61,19 +77,40 @@ def schedule_full(k: int,
     return agents_paths_dict, schedule_problem, schedule_result, schedule_solution
 
 
-def reschedule_full_after_malfunction(agents_paths_dict,
-                                      malfunction,
-                                      malfunction_env_reset,
-                                      malfunction_rail_env,
-                                      schedule_problem,
-                                      schedule_trainruns,
-                                      static_rail_env,
-                                      debug: bool = False,
-                                      disable_verification_in_replay: bool = False,
-                                      rendering: bool = False,
-                                      init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
-                                      render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-                                      cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None, ):
+def reschedule_full_after_malfunction(
+        schedule_problem: ASPProblemDescription,
+        schedule_trainruns: Dict[int, Trainrun],
+        static_rail_env: RailEnv,
+        malfunction: Malfunction,
+        malfunction_rail_env: RailEnv,
+        malfunction_env_reset: Callable[[], None],
+        debug: bool = False,
+        disable_verification_in_replay: bool = False,
+        rendering: bool = False,
+        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
+        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
+        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None, ):
+    """
+
+    Parameters
+    ----------
+    schedule_problem
+    schedule_trainruns
+    static_rail_env
+    malfunction
+    malfunction_rail_env
+    malfunction_env_reset
+    debug
+    disable_verification_in_replay
+    rendering
+    init_renderer_for_env
+    render_renderer_for_env
+    cleanup_renderer_for_env
+
+    Returns
+    -------
+
+    """
     freeze = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env)
     full_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling_full_after_malfunction(
         malfunction=malfunction,
@@ -88,10 +125,9 @@ def reschedule_full_after_malfunction(agents_paths_dict,
     full_reschedule_result = solve_problem(
         env=malfunction_rail_env,
         problem=full_reschedule_problem,
-        agents_paths_dict=agents_paths_dict,
         rendering_call_back=render,
         debug=debug,
-        malfunction=malfunction,
+        expected_malfunction=malfunction,
         disable_verification_in_replay=disable_verification_in_replay
     )
     cleanup_renderer_for_env(renderer)
@@ -102,16 +138,37 @@ def reschedule_full_after_malfunction(agents_paths_dict,
     return full_reschedule_result, full_reschedule_solution
 
 
-def reschedule_delta_after_malfunction(agents_paths_dict,
-                                       full_reschedule_trainruns,
-                                       inverse_delta, malfunction, malfunction_rail_env,
-                                       schedule_problem,
-                                       rendering: bool = False,
-                                       debug: bool = False,
-                                       init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
-                                       render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-                                       cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
-                                       ):
+def reschedule_delta_after_malfunction(
+        schedule_problem: ASPProblemDescription,
+        full_reschedule_trainruns: Dict[int, Trainrun],
+        inverse_delta: Dict[int, List[TrainrunWaypoint]],
+        malfunction: Malfunction,
+        malfunction_rail_env: RailEnv,
+        rendering: bool = False,
+        debug: bool = False,
+        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
+        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
+        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
+):
+    """
+
+    Parameters
+    ----------
+    schedule_problem
+    full_reschedule_trainruns
+    inverse_delta
+    malfunction
+    malfunction_rail_env
+    rendering
+    debug
+    init_renderer_for_env
+    render_renderer_for_env
+    cleanup_renderer_for_env
+
+    Returns
+    -------
+
+    """
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling_delta_after_malfunction(
         malfunction=malfunction,
         freeze=inverse_delta,
@@ -125,10 +182,9 @@ def reschedule_delta_after_malfunction(agents_paths_dict,
     delta_reschedule_result = solve_problem(
         env=malfunction_rail_env,
         problem=delta_reschedule_problem,
-        agents_paths_dict=agents_paths_dict,
         rendering_call_back=render,
         debug=debug,
-        malfunction=malfunction)
+        expected_malfunction=malfunction)
     cleanup_renderer_for_env(renderer)
     return delta_reschedule_result
 
@@ -136,7 +192,8 @@ def reschedule_delta_after_malfunction(agents_paths_dict,
 # TODO ASP performance enhancement: we consider the worst case: we leave everything open;
 #      we do not give the ASP solver the information about the full re-schedule!!
 def determine_delta(full_reschedule_trainrunwaypoints_dict: Dict[int, Trainrun],
-                    malfunction: Malfunction, schedule_trainrunwaypoints: Dict[int, Trainrun],
+                    malfunction: Malfunction,
+                    schedule_trainrunwaypoints: Dict[int, Trainrun],
                     verbose: bool = False):
     """
     Delta contains the information about what is changed by the malfunction with respect to the malfunction
@@ -151,12 +208,18 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: Dict[int, Trainrun],
     - constrain all times in the Inverse Delta to the value in the inverse delta
     - constrain all all other times to be greater or equal the start of the malfunction.
 
+    Parameters
+    ----------
+    full_reschedule_trainrunwaypoints_dict
+    malfunction
+    schedule_trainrunwaypoints
+    verbose
+
     """
     if verbose:
         print(f"  **** full re-schedule")
         print(_pp.pformat(full_reschedule_trainrunwaypoints_dict))
     # Delta is all train run way points in the re-schedule that are not also in the schedule
-    # TODO SIM-105 add type definition TrainrunDict to FLATland
     delta: Dict[int, Trainrun] = {
         agent_id: sorted(list(
             set(full_reschedule_trainrunwaypoints_dict[agent_id]).difference(

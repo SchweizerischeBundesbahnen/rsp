@@ -230,7 +230,6 @@ def test_helper(output_file_name, rendering, tests, debug=False):
 
             total_reward, solve_time, build_problem_time, solution = solve_problem(
                 problem=problem, loop_index=loop_index, env=env,
-                agents_paths_dict=agents_paths_dict,
                 rendering_call_back=render, debug=debug)
             cleanup_renderer_for_env(renderer)
 

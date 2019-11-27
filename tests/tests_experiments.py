@@ -103,7 +103,6 @@ def test_regression_experiment_agenda():
     solver = ASPExperimentSolver()
     result = run_experiment_agenda(solver, agenda)
 
-    # TODO SIM-105 test assertions - for the time being keep it a smoke test (does test run through?)
     with pandas.option_context('display.max_rows', None, 'display.max_columns',
                                None):  # more options can be specified also
         result_dict = result.to_dict()
@@ -327,4 +326,5 @@ def test_regression_experiment_agenda():
 
     for key in expected_result_dict:
         if not key.startswith("time"):
-            assert expected_result_dict[key] == result_dict[key], f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"
+            assert expected_result_dict[key] == result_dict[key], \
+                f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"

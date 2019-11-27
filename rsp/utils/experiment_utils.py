@@ -1,11 +1,11 @@
 """Solve a problem a."""
 import pprint
-from typing import Dict, List, Optional, NamedTuple, Set, Callable
+from typing import Optional, NamedTuple, Set, Callable
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import Trainrun, Waypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
@@ -32,20 +32,43 @@ _pp = pprint.PrettyPrinter(indent=4)
 # --------------------------------------------------------------------------------------
 def solve_problem(env: RailEnv,
                   problem: AbstractProblemDescription,
-                  agents_paths_dict: Dict[int, List[Trainrun]],
                   rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
                   debug: bool = False,
                   loop_index: int = 0,
                   disable_verification_in_replay: bool = False,
-                  malfunction: Optional[Malfunction] = None
+                  expected_malfunction: Optional[Malfunction] = None
                   ) -> SchedulingExperimentResult:
-    solver_name = problem.get_solver_name()
+    """
+    Solves an :class:`AbstractProblemDescription` and optionally verifies it againts the provided :class:`RailEnv`.
 
+    Parameters
+    ----------
+    problem
+    disable_verification_in_replay
+        Whether it is tested the replay corresponds to the problem's solution
+        TODO SIM-105 Should this be disable replay completely to gain time, i.e. whenever replay is perfor
+        TODO SIM-105 profile experiments to test how much time replay takes in the experiments
+    env
+        The env to run the verification with
+    rendering_call_back
+        Called every step in replay
+    debug
+        Display debugging information
+    loop_index
+        Used for display, should identify the problem instance
+    expected_malfunction
+        Used in verification if provided
+
+    Returns
+    -------
+    SchedulingExperimentResult
+
+    """
     # --------------------------------------------------------------------------------------
     # Preparations
     # --------------------------------------------------------------------------------------
     minimum_number_of_shortest_paths_over_all_agents = np.min(
-        [len(agents_paths) for agents_paths in agents_paths_dict.values()])
+        [len(agents_paths) for agents_paths in problem.agents_path_dict.values()])
 
     if minimum_number_of_shortest_paths_over_all_agents == 0:
         raise Exception("At least one Agent has no path to its target!")
@@ -72,8 +95,10 @@ def solve_problem(env: RailEnv,
     # --------------------------------------------------------------------------------------
     # Replay and verifiy the solution
     # --------------------------------------------------------------------------------------
-    total_reward = _replay(debug, disable_verification_in_replay, env, loop_index, malfunction, problem,
-                           rendering_call_back, solution, solver_name)
+    total_reward = replay(env=env, loop_index=loop_index, expected_malfunction=expected_malfunction, problem=problem,
+                          rendering_call_back=rendering_call_back, solution=solution,
+                          debug=debug,
+                          disable_verification_in_replay=disable_verification_in_replay)
 
     return SchedulingExperimentResult(total_reward=total_reward,
                                       solve_time=solve_time,
@@ -82,22 +107,62 @@ def solve_problem(env: RailEnv,
                                       solution=solution)
 
 
-def _replay(debug, disable_verification_in_replay, env, loop_index, malfunction, problem, rendering_call_back, solution,
-            solver_name):
+def replay(env: RailEnv,
+           problem: AbstractProblemDescription,
+           solution: AbstractSolutionDescription,
+           expected_malfunction: Optional[Malfunction] = None,
+           rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
+           debug: bool = False,
+           loop_index: int = 0,
+           stop_on_malfunction: bool = False,
+           disable_verification_in_replay: bool = False) -> Optional[Malfunction]:
+    """
+    Replay the solution an check whether the actions againts FLATland env can be performed as against.
+    Verifies that the solution is indeed a solution in the FLATland sense.
+
+    Parameters
+    ----------
+
+    problem
+    disable_verification_in_replay
+        Whether it is tested the replay corresponds to the problem's solution
+        TODO SIM-105 Should this be disable replay completely to gain time, i.e. whenever replay is perfor
+        TODO SIM-105 profile experiments to test how much time replay takes in the experiments
+    env
+        The env to run the verification with
+    rendering_call_back
+        Called every step in replay
+    debug
+        Display debugging information
+    loop_index
+        Used for display, should identify the problem instance
+    expected_malfunction
+        If provided and verification is enabled, it is checked that the malfunction happens as expected.
+    stop_on_malfunction
+        If true, stops and returns upon entering into malfunction; in this case returns the malfunction
+
+
+    Returns
+    -------
+    Optional[Malfunction]
+        The malfunction in `stop_on_malfunction` mode, `None` else.
+
+    """
     total_reward = 0
     time_step = 0
+    solver_name = problem.get_solver_name()
     ap: ControllerFromTrainruns = solution.create_action_plan()
     if debug:
         print("  **** solution to replay:")
         print(_pp.pformat(solution.get_trainruns_dict()))
         print("  **** action plan to replay:")
         ap.print_action_plan()
-        print("  **** malfunction to replay:")
-        print(_pp.pformat(malfunction))
+        print("  **** expected_malfunction to replay:")
+        print(_pp.pformat(expected_malfunction))
     actual_action_plan = [ap.act(time_step) for time_step in range(env._max_episode_steps)]
     verification("action_plan", actual_action_plan, loop_index, solver_name)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
-        fail = _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, problem, time_step)
+        fail = _check_fail(ap, debug, disable_verification_in_replay, env, expected_malfunction, problem, time_step)
         if fail:
             raise Exception("Unexpected state. See above for !!=unexpected position, MM=unexpected malfuntion")
 
@@ -109,6 +174,12 @@ def _replay(debug, disable_verification_in_replay, env, loop_index, malfunction,
 
         obs, all_rewards, done, _ = env.step(actions)
         total_reward += sum(np.array(list(all_rewards.values())))
+
+        if stop_on_malfunction:
+            for agent in env.agents:
+                if agent.malfunction_data['malfunction'] > 0:
+                    # malfunction duration is already decreased by one in this step(), therefore add +1!
+                    return Malfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
 
         rendering_call_back(test_id=loop_index, solver_name=solver_name, i_step=time_step)
 
@@ -140,64 +211,3 @@ def _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, pro
                     f"in direction={agent.direction} "
                     f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we}")
     return fail
-
-
-# --------------------------------------------------------------------------------------
-# Malfunction
-# --------------------------------------------------------------------------------------
-# TODO SIM-105 refactor: we copy alot of code with the replay function. should we condense this all into one function with optionals. Such as
-#  Replay from time t
-#  replay to time t
-#  Replay from t1 to t2
-#  Replay until malfunct
-
-def replay_until_malfunction(solution: AbstractSolutionDescription,
-                             env: RailEnv,
-                             debug: bool = False) -> Optional[Malfunction]:
-    """
-    Replays the action plan from the solution until an agent gets a malfunction.
-
-    Parameters
-    ----------
-    solution
-    problem
-    env
-    debug
-
-    Returns
-    -------
-    Tuple[int,int]
-        time step of the malfunction
-
-    """
-    # --------------------------------------------------------------------------------------
-    # Replay and verifiy the solution
-    # --------------------------------------------------------------------------------------
-    time_step = 0
-    ap: ControllerFromTrainruns = solution.create_action_plan()
-
-    while not env.dones['__all__'] and time_step <= env._max_episode_steps:
-        if debug:
-            for agent in env.agents:
-                print("[{}] agent {} at {} {} ".format(time_step, agent.handle, agent.position, agent.direction, agent))
-
-        for a, agent in enumerate(env.agents):
-            we: Waypoint = ap.get_waypoint_before_or_at_step(a, time_step)
-            assert agent.position == we.position, \
-                "before [{}] agent {} replay expected position {}, actual position {}".format(
-                    time_step, a, we.position, agent.position)
-        actions = ap.act(time_step)
-
-        obs, all_rewards, done, _ = env.step(actions)
-
-        for agent in env.agents:
-            if agent.malfunction_data['malfunction'] > 0:
-                # malfunction duration is already decreased by one in this step(), therefore add +1!
-                return Malfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
-
-        # if all agents have reached their goals, break
-        if done['__all__']:
-            break
-
-        time_step += 1
-    return None
