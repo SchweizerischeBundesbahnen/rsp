@@ -27,6 +27,7 @@ We hope that Graph Neural Networks are a natural way to represent the graph stru
 
 ## Pipeline for Verification of Hypothesis 1
 ### Input generation
+
 | Step                           |
 | ------------------------------ |
 | Generate infrastructure        |
@@ -36,6 +37,7 @@ We hope that Graph Neural Networks are a natural way to represent the graph stru
 
 ### Hypothesis Validation
 How big is the speed up if we know Delta?
+
 | Step                                  |
 | ------------------------------------- |
 | Re-Scheduling full w/o restrictions   |

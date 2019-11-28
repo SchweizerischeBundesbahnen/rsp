@@ -32,7 +32,9 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
     ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
-    ('delta', Dict[int, List[TrainrunWaypoint]])])
+    ('delta', Dict[int, List[TrainrunWaypoint]])
+    # train run way points in the full re-schedule that are not in the full schedule
+])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('agent_range', List[int]),

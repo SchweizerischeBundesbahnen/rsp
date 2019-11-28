@@ -189,6 +189,10 @@ def _print_stats(statistics):
                   statistics["summary"]["times"]["sat"],
                   statistics["summary"]["times"]["unsat"],
                   ))
+    percentage_solving_time = \
+        100 * statistics["summary"]["times"]["solve"] / (statistics["summary"]["times"]["total"]
+                                                         if statistics["summary"]["times"]["total"] != 0 else 1)
+    print("Solving time : {:5.1f}%".format(percentage_solving_time))
     print("CPU Time     : {:5.3f}s".format(statistics["summary"]["times"]["cpu"]))
     print("=================================================================================")
     print("")

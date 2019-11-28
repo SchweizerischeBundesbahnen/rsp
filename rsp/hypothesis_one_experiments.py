@@ -1,7 +1,8 @@
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ParameterRanges
-from rsp.utils.experiments import create_experiment_agenda, run_specific_experiments_from_research_agenda
-from rsp.utils.experiments import run_experiment_agenda, save_experiment_results_to_file
+from rsp.utils.experiments import create_experiment_agenda, run_specific_experiments_from_research_agenda, \
+    save_experiment_results_to_file
+from rsp.utils.experiments import run_experiment_agenda
 
 if __name__ == '__main__':
     # Define the parameter ranges we would like to test
@@ -20,10 +21,10 @@ if __name__ == '__main__':
     solver = ASPExperimentSolver()
 
     # Run experiments
-    experiment_results = run_experiment_agenda(solver, experiment_agenda)
+    experiment_results = run_experiment_agenda(solver, experiment_agenda, verbose=True)
 
     # Re-run desired experiments
-    few_experiment_results = run_specific_experiments_from_research_agenda(solver, experiment_agenda, [1, 3])
+    few_experiment_results = run_specific_experiments_from_research_agenda(solver, experiment_agenda, range(7))
 
     # Save experiment results in a file
     save_experiment_results_to_file(experiment_results, "./experiment_data/test_setup.json")
