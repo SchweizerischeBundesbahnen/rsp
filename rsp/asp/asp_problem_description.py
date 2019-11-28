@@ -4,6 +4,7 @@ from typing import Dict, Optional, List, Tuple, Set
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from overrides import overrides
 
 from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
 from rsp.asp.asp_solution_description import ASPSolutionDescription
@@ -32,21 +33,18 @@ class ASPProblemDescription(AbstractProblemDescription):
 
         super().__init__(env, agents_path_dict, skip_mutual_exclusion=True)
 
+    @overrides
     def get_solver_name(self) -> str:
-        """Return the solver name for printing."""
+        """See :class:`AbstractProblemDescription`."""
 
         # determine number of routing alternatives
         k = max([len(agent_paths) for agent_paths in self.agents_path_dict.values()])
         return "ASP_{}".format(k)
 
+    @overrides
     def _implement_train(self, agent_id: int, start_vertices: List[Waypoint], target_vertices: List[Waypoint],
                          minimum_running_time: int):
-        """See `AbstractProblemDescription`.
-
-        Parameters
-        ----------
-        minimum_running_time
-        """
+        """See :class:`AbstractProblemDescription`."""
 
         self.asp_program.append("train(t{}).".format(agent_id))
         self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
@@ -55,26 +53,24 @@ class ASPProblemDescription(AbstractProblemDescription):
         for target_waypoint in target_vertices:
             self.asp_program.append("end(t{}, {}).".format(agent_id, tuple(target_waypoint)))
 
+    @overrides
     def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """See `AbstractProblemDescription`."""
+        """See :class:`AbstractProblemDescription`."""
 
         # ASP fact e(T,V,E)
         self.asp_program.append("e(t{},{},{}).".format(agent_id, tuple(waypoint), int(time)))
 
+    @overrides
     def _implement_agent_latest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """See `AbstractProblemDescription`."""
+        """See :class:`AbstractProblemDescription`."""
 
         # ASP fact l(T,V,E)
         self.asp_program.append("l(t{},{},{}).".format(agent_id, tuple(waypoint), int(time)))
 
+    @overrides
     def _implement_route_section(self, agent_id: int, entry_waypoint: Waypoint, exit_waypoint: Waypoint,
                                  resource_id: Tuple[int, int], minimum_travel_time: int = 1, route_section_penalty=0):
-        """See `AbstractProblemDescription`.
-
-        Parameters
-        ----------
-        route_section_penalty
-        """
+        """See :class:`AbstractProblemDescription`."""
 
         # add edge: edge(T,V,V')
         self.asp_program.append("edge(t{}, {},{}).".format(agent_id, tuple(entry_waypoint), tuple(exit_waypoint)))
@@ -103,6 +99,7 @@ class ASPProblemDescription(AbstractProblemDescription):
             self.asp_program.append("penalty(({},{}),{})."
                                     .format(tuple(entry_waypoint), tuple(exit_waypoint), route_section_penalty))
 
+    @overrides
     def _implement_resource_mutual_exclusion(self,
                                              agent_1_id: int,
                                              agent_1_entry_waypoint: Waypoint,
@@ -117,12 +114,15 @@ class ASPProblemDescription(AbstractProblemDescription):
         # nothing to do here since derived from data
         pass
 
-    # create objective function to minimize
+    @overrides
     def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
+        """See :class:`AbstractProblemDescription`."""
         # TODO SIM-137 SIM-113 bad code smell: the chosen minimization objective is passed when the ASP solver is called, but added here in ortools
         self.dummy_target_vertices = variables
 
+    @overrides
     def solve(self) -> ASPSolutionDescription:
+        """See :class:`AbstractProblemDescription`."""
         # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
         # (we don't use all features in encoding.lp)
         self.asp_program.append("bridge(0,0,0).")

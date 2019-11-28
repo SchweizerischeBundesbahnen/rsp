@@ -77,7 +77,7 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-schedule Full
         # --------------------------------------------------------------------------------------
 
-        full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+        full_reschedule_result = reschedule_full_after_malfunction(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
             malfunction_rail_env=malfunction_rail_env,
@@ -86,6 +86,7 @@ class ASPExperimentSolver(AbstractSolver):
             static_rail_env=static_rail_env,
             rendering=rendering)
         malfunction_env_reset()
+        full_reschedule_solution = full_reschedule_result.solution
 
         if verbose:
             print(f"  **** full re-schedule_solution=\n{full_reschedule_solution.get_trainruns_dict()}")

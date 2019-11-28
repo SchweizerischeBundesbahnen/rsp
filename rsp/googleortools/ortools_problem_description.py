@@ -3,6 +3,7 @@ from __future__ import print_function
 from typing import Dict, Optional, List, Tuple
 
 from flatland.envs.rail_env import RailEnv
+from overrides import overrides
 
 from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
 from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
@@ -26,8 +27,9 @@ class ORToolsProblemDescription(AbstractProblemDescription):
         super().__init__(env, agents_path_dict)
         self._solver = solver
 
+    @overrides
     def get_solver_name(self) -> str:
-        """Return the solver name for printing."""
+        """See :class:`AbstractProblemDescription`."""
         # TODO refactor: delegate to solver to return its name?
         if isinstance(self._solver, CPSATSolver):
             return "ortools_CPSAT"
@@ -40,19 +42,16 @@ class ORToolsProblemDescription(AbstractProblemDescription):
             return self._solver.IntVar(lower_bound, upper_bound, var_name)
         return var
 
+    @overrides
     def _implement_train(self, agent_id: int, start_vertices: List[Waypoint], target_vertices: List[Waypoint],
                          minimum_running_time: int):
-        """See `AbstractProblemDescription`.
-
-        Parameters
-        ----------
-        minimum_running_time
-        """
+        """See :class:`AbstractProblemDescription`."""
         # nothing to do here
         pass
 
+    @overrides
     def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time):
-        """See `AbstractProblemDescription`."""
+        """See :class:`AbstractProblemDescription`."""
         infinity = self._solver.infinity()
         t_agent_entry = self._lookup_or_create_int_var(make_variable_name_agent_at_waypoint(agent_id, waypoint),
                                                        -infinity, infinity)
@@ -60,8 +59,9 @@ class ORToolsProblemDescription(AbstractProblemDescription):
             print("Rule 102 Time windows for earliest-requirements.")
         self._solver.Add(t_agent_entry >= int(time))
 
+    @overrides
     def _implement_agent_latest(self, agent_id: int, waypoint: Waypoint, time):
-        """See `AbstractProblemDescription`."""
+        """See :class:`AbstractProblemDescription`."""
         infinity = self._solver.infinity()
         t_agent = self._lookup_or_create_int_var(make_variable_name_agent_at_waypoint(agent_id, waypoint),
                                                  -infinity, infinity)
@@ -69,14 +69,10 @@ class ORToolsProblemDescription(AbstractProblemDescription):
             print("Rule 101 Time windows for latest-requirements.")
         self._solver.Add(t_agent <= int(time))
 
+    @overrides
     def _implement_route_section(self, agent_id: int, entry_waypoint: Waypoint, exit_waypoint: Waypoint,
                                  resource_id: Tuple[int, int], minimum_travel_time: int = 1, penalty=0):
-        """See `AbstractProblemDescription`.
-
-        Parameters
-        ----------
-        penalty
-        """
+        """See :class:`AbstractProblemDescription`."""
         infinity = self._solver.infinity()
 
         t_agent_entry = self._lookup_or_create_int_var(
@@ -90,6 +86,7 @@ class ORToolsProblemDescription(AbstractProblemDescription):
             print("Rule 103 Minimum section time")
         self._solver.Add(t_agent_exit - t_agent_entry >= int(minimum_travel_time))
 
+    @overrides
     def _implement_resource_mutual_exclusion(self,
                                              agent_1_id: int,
                                              agent_1_entry_waypoint: Waypoint,
@@ -99,7 +96,7 @@ class ORToolsProblemDescription(AbstractProblemDescription):
                                              agent_2_exit_waypoint: Waypoint,
                                              resource_id: Tuple[int, int]
                                              ):
-        """See `AbstractProblemDescription`."""
+        """See :class:`AbstractProblemDescription`."""
         infinity = self._solver.infinity()
 
         variable_name = 'res_{}_{}_agents_{}_{}'.format(*resource_id, agent_1_id, agent_2_id)
@@ -133,21 +130,18 @@ class ORToolsProblemDescription(AbstractProblemDescription):
 
         self._solver.Add(agent_1_before_agent_2_res_x + agent_2_before_agent_1_res_x == 1)
 
+    @overrides
     def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
-        """Creates an objective function to minimize in the solver.
-
-        Parameters
-        ----------
-        variables
-            the target waypoints of the agents
-        """
+        """See :class:`AbstractProblemDescription`."""
         all_variables = []
         for vars in variables.values():
             all_variables += vars
 
         self._solver.build_objective_function(all_variables)
 
+    @overrides
     def solve(self) -> ORToolsSolutionDescription:
+        """See :class:`AbstractProblemDescription`."""
         self._status = self._solver.Solve()
         # TODO bad code smell: we should not pass the solver instance,
         #  but deduce the result in order to make solution description stateless

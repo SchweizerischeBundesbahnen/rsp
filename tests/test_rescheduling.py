@@ -233,7 +233,7 @@ def test_rescheduling():
                                                                               freeze=freeze,
                                                                               schedule_trainruns=fake_schedule)
 
-    full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+    full_reschedule_result = reschedule_full_after_malfunction(
         malfunction=fake_malfunction,
         malfunction_rail_env=dynamic_env,
         schedule_problem=schedule_problem,
@@ -243,6 +243,7 @@ def test_rescheduling():
         debug=False,
         malfunction_env_reset=lambda *args, **kwargs: None
     )
+    full_reschedule_solution = full_reschedule_result.solution
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_solution.get_trainruns_dict()
 
     print(full_reschedule_trainruns)
@@ -575,7 +576,7 @@ def test_rescheduling_first_train_goes_earlier():
 
     dynamic_env.malfunction_generator, dynamic_env.malfunction_process_data = generator, MalfunctionProcessData(0, 0, 0)
 
-    full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+    full_reschedule_result = reschedule_full_after_malfunction(
         malfunction=fake_malfunction,
         malfunction_env_reset=lambda *args, **kwargs: None,
         malfunction_rail_env=dynamic_env,
@@ -585,6 +586,7 @@ def test_rescheduling_first_train_goes_earlier():
         rendering=False,
         debug=False
     )
+    full_reschedule_solution = full_reschedule_result.solution
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_solution.get_trainruns_dict()
 
     assert full_reschedule_trainruns == expected_reschedule

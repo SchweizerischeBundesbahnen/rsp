@@ -161,9 +161,12 @@ class AbstractProblemDescription:
     def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
         """
         Add the objective to our model
+
         Parameters
         ----------
         variables
+            dummy target waypoints (in order to have an edge covering the cell and to enforce that the cell has to be occupied in order to reach the target)
+
 
         Returns
         -------
@@ -172,10 +175,9 @@ class AbstractProblemDescription:
 
     def _create_along_paths(self, skip_mutual_exclusion=False):
         max_agents_steps_allowed: int = self.env._max_episode_steps
-        dummy_target_vertices_dict: Dict[int, List[Waypoint]] = {}
+        dummy_target_vertices_dict: Dict[int, List[Waypoint]] = {agent.handle: [] for agent in self.env.agents}
         already_added = set()
         for agent_id, agent in enumerate(self.env.agents):
-            dummy_target_vertices_dict[agent_id] = []
             dummy_target_vertices = dummy_target_vertices_dict[agent_id]
 
             agent_paths = self.agents_path_dict[agent_id]

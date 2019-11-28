@@ -6,7 +6,6 @@ from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
 from rsp.utils.data_types import Malfunction
 from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
@@ -39,6 +38,8 @@ def schedule_full(k: int,
 
     Returns
     -------
+    Tuple[ASPProblemDescription, SchedulingExperimentResult]
+        the problem description and the results
 
     """
     # --------------------------------------------------------------------------------------
@@ -88,7 +89,7 @@ def reschedule_full_after_malfunction(
         rendering: bool = False,
         init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
         render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None, ):
+        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None) -> SchedulingExperimentResult:
     """
     Solve the Full Scheduling Problem for static rail env (i.e. without malfunctions).
 
@@ -109,7 +110,7 @@ def reschedule_full_after_malfunction(
 
     Returns
     -------
-
+    SchedulingExperimentResult
     """
     freeze = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env)
     full_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling_full_after_malfunction(
@@ -132,9 +133,8 @@ def reschedule_full_after_malfunction(
     )
     cleanup_renderer_for_env(renderer)
     malfunction_env_reset()
-    full_reschedule_solution: ASPSolutionDescription = full_reschedule_result.solution
 
-    return full_reschedule_result, full_reschedule_solution
+    return full_reschedule_result
 
 
 def reschedule_delta_after_malfunction(
@@ -166,6 +166,7 @@ def reschedule_delta_after_malfunction(
 
     Returns
     -------
+    SchedulingExperimentResult
 
     """
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling_delta_after_malfunction(

@@ -1,4 +1,4 @@
-from typing import Set, List
+from typing import Set, List, Dict
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
@@ -6,17 +6,16 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from rsp.utils.data_types import Malfunction
 
 
-def get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env):
-    return {agent_id: _get_freeze_for_trainrun(static_rail_env, agent_id, schedule_trainrun, malfunction) for
-            agent_id, schedule_trainrun in schedule_trainruns.items()}
+def get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env) -> Dict[int, List[TrainrunWaypoint]]:
+    return {agent_id: _get_freeze_for_trainrun(static_rail_env, agent_id, schedule_trainrun, malfunction)
+            for agent_id, schedule_trainrun in schedule_trainruns.items()}
 
 
 def _get_freeze_for_trainrun(
         env: RailEnv,
         agent_id: int,
         agent_solution_trainrun: Set[TrainrunWaypoint],
-        malfunction: Malfunction,
-        verbose: bool = False) -> List[TrainrunWaypoint]:
+        malfunction: Malfunction) -> List[TrainrunWaypoint]:
     """
     Returns the logical view of the freeze:
     - all trainrun waypoints up to malfunction time step
@@ -33,6 +32,7 @@ def _get_freeze_for_trainrun(
 
     Returns
     -------
+    List[TrainrunWaypoint]
 
     """
     frozen = []
