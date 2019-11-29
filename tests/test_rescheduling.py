@@ -247,15 +247,16 @@ def test_rescheduling():
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_solution.get_trainruns_dict()
 
     print(full_reschedule_trainruns)
-    assert full_reschedule_trainruns == expected_reschedule
-
-    for agent_id in expected_freeze.keys():
-        assert set(full_reschedule_trainruns[agent_id]).issuperset(set(freeze[agent_id])), f"{agent_id}"
 
     # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 20 (=delay)
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
     actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
     assert actual_costs == 20, f"actual costs {actual_costs}"
+
+    assert full_reschedule_trainruns == expected_reschedule
+
+    for agent_id in expected_freeze.keys():
+        assert set(full_reschedule_trainruns[agent_id]).issuperset(set(freeze[agent_id])), f"{agent_id}"
 
     delta, delta_freeze = determine_delta(full_reschedule_trainruns, fake_malfunction,
                                           fake_schedule, verbose=True)
@@ -590,15 +591,15 @@ def test_rescheduling_first_train_goes_earlier():
     full_reschedule_solution = full_reschedule_result.solution
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_solution.get_trainruns_dict()
 
-    assert full_reschedule_trainruns == expected_reschedule
-
-    for agent_id in expected_freeze.keys():
-        assert set(full_reschedule_trainruns[agent_id]).issuperset(set(freeze[agent_id])), f"{agent_id}"
-
     # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
     actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
     assert actual_costs == 20, f"actual costs {actual_costs}"
+
+    assert full_reschedule_trainruns == expected_reschedule
+
+    for agent_id in expected_freeze.keys():
+        assert set(full_reschedule_trainruns[agent_id]).issuperset(set(freeze[agent_id])), f"{agent_id}"
 
     delta, freeze = determine_delta(full_reschedule_trainruns, fake_malfunction,
                                     fake_schedule, verbose=True)

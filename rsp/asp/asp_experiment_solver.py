@@ -77,6 +77,8 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-schedule Full
         # --------------------------------------------------------------------------------------
 
+        from rsp.utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env
+
         full_reschedule_result = reschedule_full_after_malfunction(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
@@ -84,7 +86,14 @@ class ASPExperimentSolver(AbstractSolver):
             schedule_problem=schedule_problem,
             schedule_trainruns=schedule_trainruns,
             static_rail_env=static_rail_env,
-            rendering=rendering)
+            rendering=rendering
+            # uncomment the following lines for rendering
+            # rendering=True, # NOQA
+            # debug=True, # NOQA
+            # init_renderer_for_env=init_renderer_for_env, # NOQA
+            # render_renderer_for_env=render_env, # NOQA
+            # cleanup_renderer_for_env=cleanup_renderer_for_env # NOQA
+        )
         malfunction_env_reset()
         full_reschedule_solution = full_reschedule_result.solution
 

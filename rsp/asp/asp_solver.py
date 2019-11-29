@@ -80,8 +80,12 @@ def flux_helper(
     with path('res.asp.encodings', 'encoding.lp') as encoding_path:
         paths = [encoding_path]
 
-    if asp_heurisics and False:
+    if asp_heurisics:
         for asp_heurisic in asp_heurisics:
+            # TODO SIM-146 why does seq fail?
+            if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY,
+                                ASPHeuristics.HEURISIC_ROUTES]:
+                continue
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
                 paths.append(heuristic_routes_path)
     if asp_objective:

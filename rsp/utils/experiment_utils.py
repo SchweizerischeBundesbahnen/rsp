@@ -79,7 +79,7 @@ def solve_problem(env: RailEnv,
     build_problem_time = (current_milli_time() - start_build_problem) / 1000.0
 
     start_solver = current_milli_time()
-    solution: AbstractSolutionDescription = problem.solve(verbose=debug)
+    solution: AbstractSolutionDescription = problem.solve()
     solve_time = (current_milli_time() - start_solver) / 1000.0
     assert solution.is_solved()
 
@@ -207,5 +207,8 @@ def _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, pro
                 print(
                     f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
                     f"in direction={agent.direction} "
-                    f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we}")
+                    f"(initial_position={agent.initial_position}, initial_direction={agent.initial_direction}, target={agent.target}"
+                    f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we} "
+
+                )
     return fail
