@@ -4,7 +4,7 @@ Data types used in the experiment for the real time rescheduling research projec
 """
 from typing import NamedTuple, List, Dict
 
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict, Waypoint
 
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
@@ -22,6 +22,12 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
 
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiments', List[ExperimentParameters])])
 
+ExperimentMalfunction = NamedTuple('ExperimentMalfunction', [
+    ('time_step', int),
+    ('agent_id', int),
+    ('malfunction_duration', int)
+])
+
 ExperimentResults = NamedTuple('ExperimentResults', [
     ('time_full', float),
     ('time_full_after_malfunction', float),
@@ -32,8 +38,11 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
     ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
-    ('delta', Dict[int, List[TrainrunWaypoint]])
-    # train run way points in the full re-schedule that are not in the full schedule
+    # delta: train run way points in the full re-schedule that are not in the full schedule
+    ('delta', Dict[int, List[TrainrunWaypoint]]),
+    ('malfunction', ExperimentMalfunction),
+    # TODO SIM-146 rename TrainPath = List[Waypoint] and TrainPathDict = Dict[int,TrainPath]
+    ('agent_paths_dict', Dict[int, List[Waypoint]])
 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
@@ -44,9 +53,3 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('earliest_malfunction', List[int]),
                                                  ('malfunction_duration', List[int])
                                                  ])
-
-Malfunction = NamedTuple('Malfunction', [
-    ('time_step', int),
-    ('agent_id', int),
-    ('malfunction_duration', int)
-])

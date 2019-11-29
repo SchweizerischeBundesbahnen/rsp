@@ -20,7 +20,6 @@ class AbstractProblemDescription:
                  skip_mutual_exclusion: bool = False):
         self.env = env
         self.agents_path_dict: Dict[int, Optional[List[Waypoint]]] = agents_path_dict
-        self._max_speed = 0
         self._create_along_paths(skip_mutual_exclusion)
 
     @abc.abstractmethod
@@ -46,7 +45,7 @@ class AbstractProblemDescription:
         return Waypoint(position=(r, c),
                         direction=int(d))  # convert Grid4TransitionsEnum to int so it can be used as int in ASP!
 
-    def convert_agent_target_to_dumm_target_waypoint(self, agent) -> Waypoint:
+    def convert_agent_target_to_dummy_target_waypoint(self, agent) -> Waypoint:
         return Waypoint(position=agent.target, direction=self.__class__.MAGIC_DIRECTION_FOR_TARGET)
 
     @abc.abstractmethod
@@ -186,7 +185,7 @@ class AbstractProblemDescription:
             for path_index, agent_path in enumerate(agent_paths):
                 source_waypoint = self.convert_position_and_entry_direction_to_waypoint(*agent_path[0].position,
                                                                                         agent_path[0].direction)
-                dummy_target_waypoint = self.convert_agent_target_to_dumm_target_waypoint(agent)
+                dummy_target_waypoint = self.convert_agent_target_to_dummy_target_waypoint(agent)
                 dummy_target_vertices.append(dummy_target_waypoint)
 
                 self._implement_train(agent_id,
@@ -221,10 +220,18 @@ class AbstractProblemDescription:
         agent_minimum_running_time = int(agent_min_number_of_steps // agent.speed_data['speed'] + 1)
         return agent_minimum_running_time
 
-    def _add_agent_waypoints(self, agent, agent_id, agent_path, already_added, dummy_target_waypoint,
+    def _add_agent_waypoints(self,
+                             agent: EnvAgent,
+                             agent_id: int,
+                             agent_path,
+                             already_added,
+                             dummy_target_waypoint,
                              max_agents_steps_allowed,
                              path_index):
 
+        minimum_running_time_p_cell = int(np.ceil(1.0 / agent.speed_data['speed']))
+
+        # agents paths are ordered by shortest path -> we add constraints for the occurence in the first path encountered only.
         for waypoint_index, waypoint in enumerate(agent_path[:-1]):
 
             current_position = waypoint.position
@@ -233,31 +240,18 @@ class AbstractProblemDescription:
             entry_waypoint = self.convert_position_and_entry_direction_to_waypoint(*current_position,
                                                                                    current_direction)
 
-            # add time window [0,max_agents_steps_allowed] for entry event
+            # add time window [0 * waypoint_index * minimum_running_time_p_cell+1,max_agents_steps_allowed] for entry event
+            # 0 for first
             agent_entry = (agent_id, entry_waypoint)
             if agent_entry not in already_added:
-                self._implement_agent_earliest(*agent_entry, 0)
+                self._implement_agent_earliest(
+                    *agent_entry, 0 * waypoint_index * minimum_running_time_p_cell + 1
+                    if waypoint_index > 0
+                    else 0)
                 self._implement_agent_latest(*agent_entry, max_agents_steps_allowed)
 
-            minimum_running_time = np.ceil(1.0 / agent.speed_data['speed'])
-
-            # FLATland agents stay one tick in the first cell when they are place before they move
-            if waypoint_index == 0:
-                minimum_running_time += 1
-
-            self._max_speed = max(self._max_speed, minimum_running_time)
-            next_action_element: Waypoint = agent_path[waypoint_index + 1]
-            next_position = next_action_element.position
-            next_direction = next_action_element.direction
-            next_waypoint = self.convert_position_and_entry_direction_to_waypoint(*next_position,
-                                                                                  next_direction)
-
-            # add time window [0,max_agents_steps_allowed] for exit event
-            agent_exit = (agent_id, next_waypoint)
-            if agent_exit not in already_added:
-                already_added.add(agent_exit)
-                self._implement_agent_earliest(*agent_exit, 0)
-                self._implement_agent_latest(*agent_exit, max_agents_steps_allowed)
+            next_waypoint: Waypoint = agent_path[waypoint_index + 1]
+            next_position = next_waypoint.position
 
             # add minimum running time etc for this section
             agent_section = (agent_id, entry_waypoint, next_waypoint)
@@ -266,14 +260,23 @@ class AbstractProblemDescription:
                 # we use the path_index to penalize taking this route section
                 # N.B. the penalty is the index of the first occurrence of this route section
                 #      in the given k paths.
-                self._implement_route_section(*agent_section, current_position, minimum_running_time,
+                self._implement_route_section(*agent_section,
+                                              current_position,
+                                              # FLATland agents stay one tick in the first cell when they are place before they move
+                                              minimum_running_time_p_cell if waypoint_index > 0 else minimum_running_time_p_cell + 1,
                                               path_index)
 
             if Vec2d.is_equal(agent.target, next_position):
-                agent_target = (agent_id, next_waypoint, dummy_target_waypoint)
-                if agent_target not in already_added:
+                agent_entry_target = (agent_id, next_waypoint, dummy_target_waypoint)
+                if agent_entry_target not in already_added:
+                    # TODO do we have to check that initial_position != target?
+                    self._implement_agent_earliest(*agent_entry,
+                                                   0 * (waypoint_index + 1) * minimum_running_time_p_cell + 1)
+                    self._implement_agent_latest(*agent_entry, max_agents_steps_allowed)
+
                     # stay in the last cell for one tick to allow for synchronization
-                    self._implement_route_section(*agent_target, next_position, 1)
+                    # TODO SIM-129 can we with this but without additional release time to be consistent with FLATland?
+                    self._implement_route_section(*agent_entry_target, next_position, 1)
 
     def _add_mutual_exclusion_ortools(self):
         for agent_id, agent in enumerate(self.env.agents):
@@ -283,7 +286,7 @@ class AbstractProblemDescription:
                     entry_waypoint = self.convert_position_and_entry_direction_to_waypoint(*waypoint.position,
                                                                                            waypoint.direction)
                     if Vec2d.is_equal(position, agent_path[-1].position):
-                        exit_waypoint = self.convert_agent_target_to_dumm_target_waypoint(agent)
+                        exit_waypoint = self.convert_agent_target_to_dummy_target_waypoint(agent)
                     else:
                         next_action_element: Waypoint = agent_path[waypoint_index + 1]
                         next_position = next_action_element.position
@@ -310,7 +313,7 @@ class AbstractProblemDescription:
                         opp_p_data.direction)
 
                     if Vec2d.is_equal(opp_p_data.position, opp_agent_path[-1].position):
-                        opp_exit_waypoint = self.convert_agent_target_to_dumm_target_waypoint(opp_agent)
+                        opp_exit_waypoint = self.convert_agent_target_to_dummy_target_waypoint(opp_agent)
 
                     else:
                         opp_data_next_action_element = opp_agent_path[opp_path_loop + 1]
@@ -331,7 +334,7 @@ class AbstractProblemDescription:
                         )
 
     @abc.abstractmethod
-    def solve(self) -> AbstractSolutionDescription:
+    def solve(self, verbose: bool = False) -> AbstractSolutionDescription:
         """
         Used in `AbstractSolutionDescription.solve_problem()` to trigger the solver and
         wrap the problem description in a solution description.

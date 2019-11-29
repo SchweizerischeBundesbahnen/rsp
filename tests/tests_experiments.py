@@ -3,7 +3,6 @@ Run tests for different experiment methods
 """
 import pandas
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint
-from numpy import nan
 
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ExperimentParameters, ExperimentAgenda
@@ -109,6 +108,8 @@ def test_regression_experiment_agenda():
         print(result_dict)
 
     expected_result_dict = {
+        # TODO SIM-146 why are costs_delta_after_malfunction zero? this might correct tecnically,
+        #  but is confusing from a logical point of view (should be same as costs_full_after_malfunction
         'costs_delta_after_malfunction': {0: 0.0}, 'costs_full': {0: 2.0}, 'costs_full_after_malfunction': {0: 40.0},
         'delta': {0: {0: [TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(21, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(22, 29), direction=2)),
@@ -144,7 +145,7 @@ def test_regression_experiment_agenda():
                           TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(7, 24), direction=3)),
                           TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3))]}},
         'experiment_id': {0: 0}, 'max_num_cities': {0: 20}, 'max_rail_between_cities': {0: 2},
-        'max_rail_in_city': {0: 6}, 'n_agents': {0: 2}, 'size': {0: 30}, 'solution_delta': {0: nan},
+        'max_rail_in_city': {0: 6}, 'n_agents': {0: 2}, 'size': {0: 30},
         'solution_delta_after_malfunction': {0: {
             0: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(8, 24), direction=1)),

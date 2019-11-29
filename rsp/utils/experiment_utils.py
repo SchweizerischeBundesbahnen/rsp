@@ -11,7 +11,7 @@ from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.utils.data_types import Malfunction
+from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time, verification
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
@@ -36,7 +36,7 @@ def solve_problem(env: RailEnv,
                   debug: bool = False,
                   loop_index: int = 0,
                   disable_verification_in_replay: bool = False,
-                  expected_malfunction: Optional[Malfunction] = None
+                  expected_malfunction: Optional[ExperimentMalfunction] = None
                   ) -> SchedulingExperimentResult:
     """
     Solves an :class:`AbstractProblemDescription` and optionally verifies it againts the provided :class:`RailEnv`.
@@ -79,7 +79,7 @@ def solve_problem(env: RailEnv,
     build_problem_time = (current_milli_time() - start_build_problem) / 1000.0
 
     start_solver = current_milli_time()
-    solution: AbstractSolutionDescription = problem.solve()
+    solution: AbstractSolutionDescription = problem.solve(verbose=debug)
     solve_time = (current_milli_time() - start_solver) / 1000.0
     assert solution.is_solved()
 
@@ -109,12 +109,12 @@ def solve_problem(env: RailEnv,
 def replay(env: RailEnv,
            problem: AbstractProblemDescription,
            solution: AbstractSolutionDescription,
-           expected_malfunction: Optional[Malfunction] = None,
+           expected_malfunction: Optional[ExperimentMalfunction] = None,
            rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
            debug: bool = False,
            loop_index: int = 0,
            stop_on_malfunction: bool = False,
-           disable_verification_in_replay: bool = False) -> Optional[Malfunction]:
+           disable_verification_in_replay: bool = False) -> Optional[ExperimentMalfunction]:
     """
     Replay the solution an check whether the actions againts FLATland env can be performed as against.
     Verifies that the solution is indeed a solution in the FLATland sense.
@@ -177,7 +177,7 @@ def replay(env: RailEnv,
             for agent in env.agents:
                 if agent.malfunction_data['malfunction'] > 0:
                     # malfunction duration is already decreased by one in this step(), therefore add +1!
-                    return Malfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
+                    return ExperimentMalfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
 
         rendering_call_back(test_id=loop_index, solver_name=solver_name, i_step=time_step)
 

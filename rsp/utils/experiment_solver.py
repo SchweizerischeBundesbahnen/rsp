@@ -9,7 +9,7 @@ from typing import Callable, Any
 import numpy as np
 from flatland.envs.rail_env import RailEnv
 
-from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResults, ExperimentMalfunction
 
 # abstract from rendering to have unit tests without dependendance on FLATland rendering
 RendererForEnvInit = Callable[[RailEnv, bool], Any]
@@ -96,6 +96,9 @@ class DummySolver(AbstractSolver):
                 -5, 5),
             solution_full=[(1, 3), (2, 4)],
             solution_delta=[(1, 3), (2, 4)],
-            delta=[1, 2, 3, 4, 5, 7])
+            delta=[1, 2, 3, 4, 5, 7],
+            malfunction=ExperimentMalfunction(-1, -1 - 1),
+            agent_paths_dict={}
+        )
 
         return current_results

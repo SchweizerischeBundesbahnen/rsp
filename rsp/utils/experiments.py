@@ -37,7 +37,7 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame, Series
 
-from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges
+from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults
 from rsp.utils.experiment_env_generators import create_flatland_environment, \
     create_flatland_environment_with_malfunction
 from rsp.utils.experiment_solver import AbstractSolver
@@ -55,6 +55,7 @@ COLUMNS = ['experiment_id',
            'costs_full_after_malfunction',
            'costs_delta_after_malfunction',
            'delta',
+           'malfunction',
            'size',
            'n_agents',
            'max_num_cities',
@@ -103,92 +104,155 @@ def run_experiment(solver: AbstractSolver,
 
         # Run experiments
         # TODO pass k (number of routing alternatives) explicitly
-        current_results = solver.run_experiment_trial(static_rail_env=static_rail_env,
-                                                      malfunction_rail_env=malfunction_rail_env,
-                                                      malfunction_env_reset=malfunction_env_reset)
+        current_results: ExperimentResults = solver.run_experiment_trial(static_rail_env=static_rail_env,
+                                                                         malfunction_rail_env=malfunction_rail_env,
+                                                                         malfunction_env_reset=malfunction_env_reset)
         # Store results
         time_delta_after_m = current_results.time_delta_after_malfunction
         time_full_after_m = current_results.time_full_after_malfunction
-        experiment_result = {'experiment_id': experiment_parameters.experiment_id,
-                             'time_full': current_results.time_full,
-                             'time_full_after_malfunction': time_delta_after_m,
-                             'time_delta_after_malfunction': time_full_after_m,
-                             'solution_full': current_results.solution_full,
-                             'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
-                             'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
-                             'costs_full': current_results.costs_full,
-                             'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
-                             'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
-                             'delta': current_results.delta,
-                             'size': experiment_parameters.width,
-                             'n_agents': experiment_parameters.number_of_agents,
-                             'max_num_cities': experiment_parameters.max_num_cities,
-                             'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
-                             'max_rail_in_city': experiment_parameters.max_rail_in_city,
-                             }
-        experiment_results = experiment_results.append(experiment_result, ignore_index=True)
+        experiment_result_dict = {'experiment_id': experiment_parameters.experiment_id,
+                                  'time_full': current_results.time_full,
+                                  'time_full_after_malfunction': time_delta_after_m,
+                                  'time_delta_after_malfunction': time_full_after_m,
+                                  'solution_full': current_results.solution_full,
+                                  'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
+                                  'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
+                                  'costs_full': current_results.costs_full,
+                                  'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
+                                  'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
+                                  'delta': current_results.delta,
+                                  'malfunction': current_results.malfunction,
+                                  'size': experiment_parameters.width,
+                                  'n_agents': experiment_parameters.number_of_agents,
+                                  'max_num_cities': experiment_parameters.max_num_cities,
+                                  'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
+                                  'max_rail_in_city': experiment_parameters.max_rail_in_city,
+                                  }
+        experiment_results = experiment_results.append(experiment_result_dict, ignore_index=True)
         if verbose:
             print("*** experiment result of trial {} for experiment {}".format(trial + 1,
                                                                                experiment_parameters.experiment_id))
 
-            _pp.pprint({key: value for key, value in experiment_result.items()
-                        if not key.startswith('solution_') and not key == 'delta'})
+            _pp.pprint({key: experiment_result_dict[key] for key in COLUMNS
+                        # if not key.startswith('solution_') and not key == 'delta'
+                        })
 
-            # Delta is all train run way points in the re-schedule that are not also in the schedule
-            schedule_trainrunwaypoints = current_results.solution_full
-            full_reschedule_trainrunwaypoints_dict = current_results.solution_full_after_malfunction
-            delta: TrainrunDict = {
-                agent_id: sorted(list(
-                    set(full_reschedule_trainrunwaypoints_dict[agent_id]).difference(
-                        set(schedule_trainrunwaypoints[agent_id]))),
-                    key=lambda p: p.scheduled_at)
-                for agent_id in schedule_trainrunwaypoints.keys()
-            }
-            delta_percentage = 100 * sum([len(delta[agent_id]) for agent_id in delta.keys()]) / sum(
-                [len(full_reschedule_trainrunwaypoints_dict[agent_id]) for agent_id in
-                 full_reschedule_trainrunwaypoints_dict.keys()])
-
-            # Freeze is all train run way points in the schedule that are also in the re-schedule
-            freeze: TrainrunDict = \
-                {agent_id: sorted(list(
-                    set(full_reschedule_trainrunwaypoints_dict[agent_id]).intersection(
-                        set(schedule_trainrunwaypoints[agent_id]))),
-                    key=lambda p: p.scheduled_at) for agent_id in delta.keys()}
-            freeze_percentage = 100 * sum([len(freeze[agent_id]) for agent_id in freeze.keys()]) / sum(
-                [len(schedule_trainrunwaypoints[agent_id]) for agent_id in schedule_trainrunwaypoints.keys()])
-
-            print(
-                f"**** freeze: {freeze_percentage}% of waypoints in the full schedule are the same in the full re-schedule")
-            print(f"**** delta: {delta_percentage}% of waypoints in the re-schedule are the as in the initial schedule")
-
-            all_full_reschedule_trainrunwaypoints = {
-                full_reschedule_trainrunwaypoint
-                for full_reschedule_trainrunwaypoints in full_reschedule_trainrunwaypoints_dict.values()
-                for full_reschedule_trainrunwaypoint in full_reschedule_trainrunwaypoints
-            }
-            all_delta_reschedule_trainrunwaypoints = {
-                full_reschedule_trainrunwaypoint
-                for full_reschedule_trainrunwaypoints in current_results.solution_delta_after_malfunction.values()
-                for full_reschedule_trainrunwaypoint in full_reschedule_trainrunwaypoints
-            }
-
-            full_delta_same_counts = len(
-                all_full_reschedule_trainrunwaypoints.intersection(all_delta_reschedule_trainrunwaypoints))
-            full_delta_same_percentage = 100 * full_delta_same_counts / len(all_full_reschedule_trainrunwaypoints)
-            full_delta_new_counts = len(
-                all_delta_reschedule_trainrunwaypoints.difference(all_full_reschedule_trainrunwaypoints))
-            full_delta_stale_counts = len(
-                all_full_reschedule_trainrunwaypoints.difference(all_delta_reschedule_trainrunwaypoints))
-            print(
-                f"**** full re-schedule -> delta re-schedule: "
-                f"same {full_delta_same_percentage}% ({full_delta_same_counts})"
-                f"(+{full_delta_new_counts}, -{full_delta_stale_counts}) waypoints")
-            time_rescheduling_improve_perc = 100 * (time_delta_after_m - time_full_after_m) / time_full_after_m
-            print(f"**** full re-schedule -> delta re-schedule: "
-                  f"time {time_rescheduling_improve_perc:+2.1f}% "
-                  f"{time_full_after_m}s -> {time_delta_after_m}s")
+            _analyze_times(current_results)
+            _analyze_paths(current_results, env)
 
     return experiment_results
+
+
+# TODO print only or add to experiment results?
+def _analyze_times(current_results: ExperimentResults):
+    time_delta_after_m = current_results.time_delta_after_malfunction
+    time_full_after_m = current_results.time_full_after_malfunction
+    # Delta is all train run way points in the re-schedule that are not also in the schedule
+    schedule_trainrunwaypoints = current_results.solution_full
+    full_reschedule_trainrunwaypoints_dict = current_results.solution_full_after_malfunction
+    delta: TrainrunDict = {
+        agent_id: sorted(list(
+            set(full_reschedule_trainrunwaypoints_dict[agent_id]).difference(
+                set(schedule_trainrunwaypoints[agent_id]))),
+            key=lambda p: p.scheduled_at)
+        for agent_id in schedule_trainrunwaypoints.keys()
+    }
+    delta_percentage = 100 * sum([len(delta[agent_id]) for agent_id in delta.keys()]) / sum(
+        [len(full_reschedule_trainrunwaypoints_dict[agent_id]) for agent_id in
+         full_reschedule_trainrunwaypoints_dict.keys()])
+    # Freeze is all train run way points in the schedule that are also in the re-schedule
+    freeze: TrainrunDict = \
+        {agent_id: sorted(list(
+            set(full_reschedule_trainrunwaypoints_dict[agent_id]).intersection(
+                set(schedule_trainrunwaypoints[agent_id]))),
+            key=lambda p: p.scheduled_at) for agent_id in delta.keys()}
+    freeze_percentage = 100 * sum([len(freeze[agent_id]) for agent_id in freeze.keys()]) / sum(
+        [len(schedule_trainrunwaypoints[agent_id]) for agent_id in schedule_trainrunwaypoints.keys()])
+    print(
+        f"**** freeze: {freeze_percentage}% of waypoints in the full schedule are the same in the full re-schedule")
+    print(f"**** delta: {delta_percentage}% of waypoints in the re-schedule are the as in the initial schedule")
+    all_full_reschedule_trainrunwaypoints = {
+        full_reschedule_trainrunwaypoint
+        for full_reschedule_trainrunwaypoints in full_reschedule_trainrunwaypoints_dict.values()
+        for full_reschedule_trainrunwaypoint in full_reschedule_trainrunwaypoints
+    }
+    all_delta_reschedule_trainrunwaypoints = {
+        full_reschedule_trainrunwaypoint
+        for full_reschedule_trainrunwaypoints in current_results.solution_delta_after_malfunction.values()
+        for full_reschedule_trainrunwaypoint in full_reschedule_trainrunwaypoints
+    }
+    full_delta_same_counts = len(
+        all_full_reschedule_trainrunwaypoints.intersection(all_delta_reschedule_trainrunwaypoints))
+    full_delta_same_percentage = 100 * full_delta_same_counts / len(all_full_reschedule_trainrunwaypoints)
+    full_delta_new_counts = len(
+        all_delta_reschedule_trainrunwaypoints.difference(all_full_reschedule_trainrunwaypoints))
+    full_delta_stale_counts = len(
+        all_full_reschedule_trainrunwaypoints.difference(all_delta_reschedule_trainrunwaypoints))
+    print(
+        f"**** full re-schedule -> delta re-schedule: "
+        f"same {full_delta_same_percentage}% ({full_delta_same_counts})"
+        f"(+{full_delta_new_counts}, -{full_delta_stale_counts}) waypoints")
+    time_rescheduling_improve_perc = 100 * (time_delta_after_m - time_full_after_m) / time_full_after_m
+    print(f"**** full re-schedule -> delta re-schedule: "
+          f"time {time_rescheduling_improve_perc:+2.1f}% "
+          f"{time_full_after_m}s -> {time_delta_after_m}s")
+
+
+# TODO print only or add to experiment results?
+def _analyze_paths(experiment_results: ExperimentResults, env: RailEnv):
+    schedule_trainruns = experiment_results.solution_full
+    malfunction = experiment_results.malfunction
+    agents_path_dict = experiment_results.agent_paths_dict
+
+    print("**** number of remaining route alternatives after malfunction")
+    for agent_id, schedule_trainrun in schedule_trainruns.items():
+        _analyze_agent_path(agent_id, agents_path_dict, env, malfunction, schedule_trainrun)
+
+
+def _analyze_agent_path(agent_id, agents_path_dict, env, malfunction, schedule_trainrun):
+    # where are we at the malfunction?
+    scheduled_already_done = None
+    scheduled_remainder = None
+    for index, trainrun_waypoint in enumerate(schedule_trainrun):
+        if trainrun_waypoint.waypoint.position == env.agents[agent_id].target:
+            scheduled_already_done = schedule_trainrun
+            # already done
+            break
+        if trainrun_waypoint.scheduled_at >= malfunction.time_step:
+            if trainrun_waypoint.scheduled_at == malfunction.time_step:
+                scheduled_already_done = schedule_trainrun[:index + 1]
+                scheduled_remainder = schedule_trainrun[index + 1:]
+            else:
+                scheduled_already_done = schedule_trainrun[:index]
+                scheduled_remainder = schedule_trainrun[index:]
+            break
+    if scheduled_remainder is None:
+        # agent has not started yet or is at the target already
+        return
+    remainder_waypoints_set = set(
+        map(lambda trainrun_waypoint: trainrun_waypoint.waypoint, scheduled_remainder))
+
+    nb_paths = 0
+    very_verbose = False
+    for path_index, agent_path in enumerate(agents_path_dict[agent_id]):
+        after_malfunction = False
+        reachable_after_malfunction = False
+        for waypoint in agent_path:
+            after_malfunction = waypoint in remainder_waypoints_set
+            reachable_after_malfunction = \
+                reachable_after_malfunction or (after_malfunction and waypoint in remainder_waypoints_set)
+            if reachable_after_malfunction:
+                nb_paths += 1
+                break
+        if very_verbose:
+            print(f"agent {agent_id}: path {path_index} "
+                  f"reachable_from_malfunction_point={after_malfunction}")
+            print(f"   agent {agent_id}: at malfunction {malfunction}, scheduled_already_done={scheduled_already_done}")
+            print(f"   agent {agent_id}: at malfunction {malfunction}, schedule_remainder={scheduled_remainder}")
+            print(f"   agent {agent_id}: path {path_index} is {agent_path}")
+
+    print(f"    * agent {agent_id}: {100 * nb_paths / len(agents_path_dict[agent_id]):3.1f}% "
+          f"({nb_paths}/{len(agents_path_dict[agent_id])}) paths open after malfunction")
 
 
 def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda,
@@ -219,8 +283,10 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
     return experiment_results
 
 
-def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda,
-                                                  experiment_ids: List[int]) -> DataFrame:
+def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
+                                                  experiment_agenda: ExperimentAgenda,
+                                                  experiment_ids: List[int],
+                                                  verbose: bool = False) -> DataFrame:
     """
 
     Run a subset of experiments of a given agenda. This is useful when trying to find bugs in code.
@@ -246,8 +312,10 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
         if current_experiment_parameters.experiment_id in experiment_ids:
-            experiment_results = experiment_results.append(
-                run_experiment(solver=solver, experiment_parameters=current_experiment_parameters), ignore_index=True)
+            experiment_result = run_experiment(solver=solver,
+                                               experiment_parameters=current_experiment_parameters,
+                                               verbose=verbose)
+            experiment_results = experiment_results.append(experiment_result, ignore_index=True)
     return experiment_results
 
 

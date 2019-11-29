@@ -8,8 +8,8 @@ from overrides import overrides
 
 from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
 from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.asp.asp_solver import flux_helper, ASPObjective
-from rsp.utils.data_types import Malfunction
+from rsp.asp.asp_solver import flux_helper, ASPObjective, ASPHeuristics
+from rsp.utils.data_types import ExperimentMalfunction
 
 
 class ASPProblemDescription(AbstractProblemDescription):
@@ -17,12 +17,17 @@ class ASPProblemDescription(AbstractProblemDescription):
     def __init__(self,
                  env: RailEnv,
                  agents_path_dict: Dict[int, Optional[List[Tuple[Waypoint]]]],
-                 asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES
+                 asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
+                 asp_heuristics: List[ASPHeuristics] = None
                  ):
 
         self.asp_program: List[str] = []
         self.env: RailEnv = env
         self.asp_objective: ASPObjective = asp_objective
+        if asp_heuristics is None:
+            self.asp_heuristics: List[ASPHeuristics] = [ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ]
+        else:
+            self.asp_heuristics: List[ASPHeuristics] = asp_heuristics
         self.dummy_target_vertices: Optional[Dict[int, List[Waypoint]]] = None
 
         self.agents_waypoints: Dict[int, Set[Waypoint]] = {
@@ -121,7 +126,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         self.dummy_target_vertices = variables
 
     @overrides
-    def solve(self) -> ASPSolutionDescription:
+    def solve(self, verbose: bool = False) -> ASPSolutionDescription:
         """See :class:`AbstractProblemDescription`."""
         # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
         # (we don't use all features in encoding.lp)
@@ -136,11 +141,13 @@ class ASPProblemDescription(AbstractProblemDescription):
 
         asp_solution = flux_helper(self.asp_program,
                                    bound_all_events=self.env._max_episode_steps,
-                                   asp_objective=self.asp_objective)
+                                   asp_objective=self.asp_objective,
+                                   asp_heurisics=self.asp_heuristics,
+                                   verbose=verbose)
         return ASPSolutionDescription(env=self.env, asp_solution=asp_solution)
 
     def get_freezed_copy_for_rescheduling_full_after_malfunction(self,
-                                                                 malfunction: Malfunction,
+                                                                 malfunction: ExperimentMalfunction,
                                                                  freeze: Dict[int, Set[TrainrunWaypoint]],
                                                                  schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
                                                                  verbose: bool = False) -> 'ASPProblemDescription':
@@ -166,7 +173,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         ASPProblemDescription
 
         """
-        freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
+        freezed_copy = self._prepare_freezed_copy(schedule_trainruns, malfunction)
 
         for agent_id, trainrun_waypoints in freeze.items():
             f = self._translate_freeze_full_after_malfunction_to_ASP(agent_id, freeze[agent_id], malfunction)
@@ -175,7 +182,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         return freezed_copy
 
     def get_freezed_copy_for_rescheduling_delta_after_malfunction(self,
-                                                                  malfunction: Malfunction,
+                                                                  malfunction: ExperimentMalfunction,
                                                                   freeze: Dict[int, Set[TrainrunWaypoint]],
                                                                   schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
                                                                   verbose: bool = False) -> 'ASPProblemDescription':
@@ -201,40 +208,50 @@ class ASPProblemDescription(AbstractProblemDescription):
         ASPProblemDescription
 
         """
-        freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
+        freezed_copy = self._prepare_freezed_copy(schedule_trainruns=schedule_trainruns, malfunction=malfunction)
 
         for agent_id, trainrun_waypoints in freeze.items():
             f = self._translate_freeze_delta_after_malfunction_to_ASP(agent_id, freeze[agent_id], malfunction)
             freezed_copy.asp_program += f
         return freezed_copy
 
-    def _prepare_freezed_copy(self, schedule_trainruns):
+    def _prepare_freezed_copy(self, schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
+                              malfunction: ExperimentMalfunction):
         env = self.env
-        freezed_copy = ASPProblemDescription(env, self.agents_path_dict, ASPObjective.MINIMIZE_DELAY)
+        freezed_copy = ASPProblemDescription(
+            env,
+            agents_path_dict=self.agents_path_dict,
+            asp_objective=ASPObjective.MINIMIZE_DELAY,
+            # TODO SIM-146 no effect yet!
+            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
+        )
         freezed_copy.asp_program = self.asp_program.copy()
         # remove all earliest constraints
+
         freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
+        asp_program = freezed_copy.asp_program
         # add constraints for dummy target nodes
         for agent_id, dummy_target_waypoints in self.dummy_target_vertices.items():
             train = "t{}".format(agent_id)
             for dummy_target_waypoint in dummy_target_waypoints:
                 vertex = tuple(dummy_target_waypoint)
                 # add + 1 for dummy target edge within target cell
-                freezed_copy.asp_program.append(
+                asp_program.append(
                     f"e({train},{vertex},{schedule_trainruns[agent_id][-1].scheduled_at + 1}).")
         # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
         # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
         # TODO SIM-146 ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up
-        freezed_copy.asp_program.append("#const upper_bound_linear_penalty = 60.")
-        freezed_copy.asp_program.append("#const penalty_after_linear = 5000000.")
-        freezed_copy.asp_program.append("linear_range(1..upper_bound_linear_penalty).")
-        freezed_copy.asp_program.append("potlate(T,V,E+S,1) :- e(T,V,E), linear_range(S), end(T,V).")
-        freezed_copy.asp_program.append(
+        asp_program.append("#const upper_bound_linear_penalty = 60.")
+        asp_program.append("#const penalty_after_linear = 5000000.")
+        asp_program.append("linear_range(1..upper_bound_linear_penalty).")
+        asp_program.append("potlate(T,V,E+S,1) :- e(T,V,E), linear_range(S), end(T,V).")
+        asp_program.append(
             "potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).")
+
         return freezed_copy
 
     def _translate_freeze_full_after_malfunction_to_ASP(self, agent_id: int, freeze: List[TrainrunWaypoint],
-                                                        malfunction: Malfunction):
+                                                        malfunction: ExperimentMalfunction):
         """
         The model is freezed by adding constraints in the following way:
         - for all schedule_time_(train,vertex) <= malfunction.time_step:
@@ -307,7 +324,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         return frozen
 
     def _translate_freeze_delta_after_malfunction_to_ASP(self, agent_id: int, freeze: List[TrainrunWaypoint],
-                                                         malfunction: Malfunction):
+                                                         malfunction: ExperimentMalfunction):
         """
         The model is freezed by adding constraints in the following way:
         - for all train run waypoints in the freeze, add

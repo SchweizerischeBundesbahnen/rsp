@@ -7,7 +7,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Trainr
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
-from rsp.utils.data_types import Malfunction
+from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
 from rsp.utils.experiment_utils import solve_problem, SchedulingExperimentResult
 
@@ -81,7 +81,7 @@ def reschedule_full_after_malfunction(
         schedule_problem: ASPProblemDescription,
         schedule_trainruns: TrainrunDict,
         static_rail_env: RailEnv,
-        malfunction: Malfunction,
+        malfunction: ExperimentMalfunction,
         malfunction_rail_env: RailEnv,
         malfunction_env_reset: Callable[[], None],
         debug: bool = False,
@@ -141,7 +141,7 @@ def reschedule_delta_after_malfunction(
         schedule_problem: ASPProblemDescription,
         full_reschedule_trainruns: TrainrunDict,
         freeze: Dict[int, List[TrainrunWaypoint]],
-        malfunction: Malfunction,
+        malfunction: ExperimentMalfunction,
         malfunction_rail_env: RailEnv,
         rendering: bool = False,
         debug: bool = False,
@@ -183,7 +183,7 @@ def reschedule_delta_after_malfunction(
         env=malfunction_rail_env,
         problem=delta_reschedule_problem,
         rendering_call_back=render,
-        debug=debug,
+        debug=True,
         expected_malfunction=malfunction)
     cleanup_renderer_for_env(renderer)
     return delta_reschedule_result
@@ -192,7 +192,7 @@ def reschedule_delta_after_malfunction(
 # TODO SIM-146 ASP performance enhancement: we consider the worst case: we leave everything open;
 #      we do not give the ASP solver the information about the full re-schedule!!
 def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
-                    malfunction: Malfunction,
+                    malfunction: ExperimentMalfunction,
                     schedule_trainrunwaypoints: TrainrunDict,
                     verbose: bool = False) -> Tuple[TrainrunDict, TrainrunDict]:
     """

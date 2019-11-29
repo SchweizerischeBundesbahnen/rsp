@@ -132,5 +132,8 @@ class ASPExperimentSolver(AbstractSolver):
                                             costs_full=schedule_result.optimization_costs,
                                             costs_full_after_malfunction=full_reschedule_result.optimization_costs,
                                             costs_delta_after_malfunction=delta_reschedule_result.optimization_costs,
-                                            delta=delta)
+                                            delta=delta,
+                                            malfunction=malfunction,
+                                            agent_paths_dict=schedule_problem.agents_path_dict
+                                            )
         return current_results

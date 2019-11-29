@@ -10,7 +10,7 @@ from numpy.random.mtrand import RandomState
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, determine_delta
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
-from rsp.utils.data_types import ExperimentParameters, Malfunction
+from rsp.utils.data_types import ExperimentParameters, ExperimentMalfunction
 from rsp.utils.experiments import create_env_pair_for_experiment
 
 
@@ -214,7 +214,7 @@ def test_rescheduling():
                                TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
                                TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    fake_malfunction = Malfunction(time_step=19, agent_id=0, malfunction_duration=20)
+    fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
     k = 10
     agents_paths_dict = {
         i: get_k_shortest_paths(static_env,
@@ -525,7 +525,7 @@ def test_rescheduling_first_train_goes_earlier():
                                TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(7, 24), direction=3)),
                                TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    fake_malfunction = Malfunction(time_step=14, agent_id=1, malfunction_duration=20)
+    fake_malfunction = ExperimentMalfunction(time_step=14, agent_id=1, malfunction_duration=20)
     k = 10
     agents_paths_dict = {
         i: get_k_shortest_paths(static_env,
@@ -546,7 +546,8 @@ def test_rescheduling_first_train_goes_earlier():
     global_nr_malfunctions = 0
     malfunction_calls = dict()
 
-    def generator(agent: EnvAgent = None, np_random: RandomState = None, reset=False) -> Optional[Malfunction]:
+    def generator(agent: EnvAgent = None, np_random: RandomState = None, reset=False) \
+            -> Optional[ExperimentMalfunction]:
         # We use the global variable to assure only a single malfunction in the env
         nonlocal global_nr_malfunctions
         nonlocal malfunction_calls
@@ -787,7 +788,7 @@ def test_delta_freeze():
                                TrainrunWaypoint(scheduled_at=64, waypoint=Waypoint(position=(7, 25), direction=3)),
                                TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(7, 24), direction=3)),
                                TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3))]}
-    malfunction = Malfunction(time_step=19, agent_id=0, malfunction_duration=20)
+    malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
     delta, freeze = determine_delta(reschedule_solution, malfunction,
                                     schedule_solution, verbose=True)
 
