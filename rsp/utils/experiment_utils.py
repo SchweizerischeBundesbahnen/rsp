@@ -5,7 +5,8 @@ from typing import Optional, NamedTuple, Set, Callable
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import Waypoint
+from flatland.envs.rail_env_shortest_paths import get_valid_move_actions_
+from flatland.envs.rail_trainrun_data_structures import Waypoint, TrainrunDict, TrainrunWaypoint
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
@@ -82,6 +83,85 @@ def solve_problem(env: RailEnv,
     solution: AbstractSolutionDescription = problem.solve()
     solve_time = (current_milli_time() - start_solver) / 1000.0
     assert solution.is_solved()
+
+    trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
+    print(_pp.pformat(solution.get_trainruns_dict()))
+
+    # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
+    for agent_id, trainrun_sparse in trainruns_dict.items():
+        minimum_running_time_per_cell = int(1 // env.agents[agent_id].speed_data['speed'])
+        assert minimum_running_time_per_cell >= 1
+
+        previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
+        previous_waypoints = set()
+        for trainrun_waypoint in trainrun_sparse:
+            # 1.a) ensure schedule is ascending and respects the train's constant speed
+            if previous_trainrun_waypoint is not None:
+                assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell
+            # 1.b) ensure train run is non-circular
+            assert trainrun_waypoint not in previous_waypoints
+            previous_trainrun_waypoint = trainrun_waypoint
+            previous_waypoints.add(trainrun_waypoint.waypoint)
+
+    # 2. verify mutual exclusion
+    agent_positions_per_time_step = {}
+    for agent_id, trainrun_sparse in trainruns_dict.items():
+
+        previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
+        for trainrun_waypoint in trainrun_sparse:
+            if previous_trainrun_waypoint is not None:
+                while trainrun_waypoint.scheduled_at > previous_trainrun_waypoint.scheduled_at + 1:
+                    time_step = previous_trainrun_waypoint.scheduled_at + 1
+                    agent_positions_per_time_step.setdefault(time_step, {})
+                    previous_trainrun_waypoint = TrainrunWaypoint(waypoint=previous_trainrun_waypoint.waypoint,
+                                                                  scheduled_at=time_step)
+
+                    agent_positions_per_time_step[time_step][agent_id] = previous_trainrun_waypoint
+            agent_positions_per_time_step.setdefault(trainrun_waypoint.scheduled_at, {})
+            agent_positions_per_time_step[trainrun_waypoint.scheduled_at][agent_id] = trainrun_waypoint
+            previous_trainrun_waypoint = trainrun_waypoint
+
+        time_step = previous_trainrun_waypoint.scheduled_at + 1
+        agent_positions_per_time_step.setdefault(time_step, {})
+        trainrun_waypoint = TrainrunWaypoint(
+            waypoint=Waypoint(position=previous_trainrun_waypoint.waypoint.position,
+                              direction=ASPProblemDescription.MAGIC_DIRECTION_FOR_TARGET),
+            scheduled_at=time_step)
+        agent_positions_per_time_step[time_step][agent_id] = trainrun_waypoint
+    for time_step in agent_positions_per_time_step:
+        positions = {trainrun_waypoint.waypoint.position for trainrun_waypoint in
+                     agent_positions_per_time_step[time_step].values()}
+        assert len(positions) == len(agent_positions_per_time_step[time_step]), \
+            f"at {time_step}, conflicting positions: {agent_positions_per_time_step[time_step]}"
+
+    # 3. check that the paths lead from the desired start and goal
+    for agent_id, agent in enumerate(env.agents):
+        assert agent_id == agent.handle
+        assert agent.handle in trainruns_dict
+        initial_trainrun_waypoint = trainruns_dict[agent_id][0]
+        assert initial_trainrun_waypoint.waypoint.position == agent.initial_position, \
+            f"agent {agent} does not start in expected initial position, found {initial_trainrun_waypoint}"
+        assert initial_trainrun_waypoint.waypoint.direction == agent.initial_direction, \
+            f"agent {agent} does not start in expected initial direction, found {initial_trainrun_waypoint}"
+        final_trainrun_waypoint = trainruns_dict[agent_id][-1]
+        assert final_trainrun_waypoint.waypoint.position == agent.target, \
+            f"agent {agent} does not end in expected target position, found {final_trainrun_waypoint}"
+
+    # 4. check that the transitions are valid FLATland transitions according to the grid
+    for agent_id, trainrun_sparse in trainruns_dict.items():
+        previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
+        for trainrun_waypoint in trainrun_sparse:
+            if previous_trainrun_waypoint is not None:
+                valid_next_waypoints = {
+                    Waypoint(position=rail_env_next_action.next_position, direction=rail_env_next_action.next_direction)
+                    for rail_env_next_action in
+                    get_valid_move_actions_(agent_direction=previous_trainrun_waypoint.waypoint.direction,
+                                            agent_position=previous_trainrun_waypoint.waypoint.position,
+                                            rail=env.rail)}
+                assert trainrun_waypoint.waypoint in valid_next_waypoints, \
+                    f"invalid move for agent {agent_id}: {previous_trainrun_waypoint} -> {trainrun_waypoint}, expected one of {valid_next_waypoints}"
+    # 5. verify costs are correct
+    # TODO SIM-146
 
     if isinstance(problem, ASPProblemDescription):
         aspsolution: ASPSolutionDescription = solution

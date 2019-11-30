@@ -83,7 +83,8 @@ def flux_helper(
     if asp_heurisics:
         for asp_heurisic in asp_heurisics:
             # TODO SIM-146 why does seq fail?
-            if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY,
+            if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ,
+                                ASPHeuristics.HEURISTIC_DELAY,
                                 ASPHeuristics.HEURISIC_ROUTES]:
                 continue
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
@@ -95,7 +96,7 @@ def flux_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,
         plain_encoding=prg_text_joined,
-        verbose=verbose
+        verbose=True
     )
 
     return flux_result

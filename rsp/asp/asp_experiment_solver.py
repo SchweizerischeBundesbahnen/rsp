@@ -112,7 +112,7 @@ class ASPExperimentSolver(AbstractSolver):
 
         delta_reschedule_result = reschedule_delta_after_malfunction(
             full_reschedule_trainruns=full_reschedule_trainruns,
-            freeze=freeze,
+            force_freeze=freeze,
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
             schedule_problem=schedule_problem,

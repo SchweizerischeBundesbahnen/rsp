@@ -1,10 +1,11 @@
 import pprint
-from typing import Dict, Callable, List, Tuple
+from typing import Callable, Tuple, List, Dict
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict, TrainrunWaypoint
 
+# TODO SIM-146 refactor: nothing special to ASP -> add freeze stuff to abc
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
 from rsp.utils.data_types import ExperimentMalfunction
@@ -91,7 +92,7 @@ def reschedule_full_after_malfunction(
         render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
         cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None) -> SchedulingExperimentResult:
     """
-    Solve the Full Scheduling Problem for static rail env (i.e. without malfunctions).
+    Solve the Full Re-Scheduling Problem for static rail env (i.e. without malfunctions).
 
     Parameters
     ----------
@@ -112,10 +113,22 @@ def reschedule_full_after_malfunction(
     -------
     SchedulingExperimentResult
     """
-    freeze = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env)
-    full_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling_full_after_malfunction(
-        malfunction=malfunction,
-        freeze=freeze,
+
+    # uncomment the following lines for rendering
+    # from rsp.utils.experiment_render_utils import cleanup_renderer_for_env  # NOQA
+    # from rsp.utils.experiment_render_utils import render_env  # NOQA
+    # from rsp.utils.experiment_render_utils import init_renderer_for_env  # NOQA
+    # rendering = True  # NOQA
+    # debug = True  # NOQA
+    # init_renderer_for_env = init_renderer_for_env  # NOQA
+    # render_renderer_for_env = render_env  # NOQA
+    # cleanup_renderer_for_env = cleanup_renderer_for_env  # NOQA
+
+    freeze_dict = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env,
+                                             schedule_problem.agents_path_dict)
+
+    full_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
+        freeze=freeze_dict,
         schedule_trainruns=schedule_trainruns
     )
     renderer = init_renderer_for_env(malfunction_rail_env, rendering)
@@ -140,7 +153,7 @@ def reschedule_full_after_malfunction(
 def reschedule_delta_after_malfunction(
         schedule_problem: ASPProblemDescription,
         full_reschedule_trainruns: TrainrunDict,
-        freeze: Dict[int, List[TrainrunWaypoint]],
+        force_freeze: Dict[int, List[TrainrunWaypoint]],
         malfunction: ExperimentMalfunction,
         malfunction_rail_env: RailEnv,
         rendering: bool = False,
@@ -155,7 +168,7 @@ def reschedule_delta_after_malfunction(
     ----------
     schedule_problem
     full_reschedule_trainruns
-    freeze
+    force_freeze
     malfunction
     malfunction_rail_env
     rendering
@@ -169,9 +182,17 @@ def reschedule_delta_after_malfunction(
     SchedulingExperimentResult
 
     """
-    delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_freezed_copy_for_rescheduling_delta_after_malfunction(
-        malfunction=malfunction,
-        freeze=freeze,
+
+    freeze_dict = get_freeze_for_malfunction(
+        malfunction,
+        full_reschedule_trainruns,
+        malfunction_rail_env,
+        schedule_problem.agents_path_dict,
+        force_freeze=force_freeze
+    )
+
+    delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
+        freeze=freeze_dict,
         schedule_trainruns=full_reschedule_trainruns
     )
     renderer = init_renderer_for_env(malfunction_rail_env, rendering)
@@ -204,7 +225,7 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
     - all train run way points that are the same in the re-schedule
     - the train run way point after the malfunction (including the delay)
 
-    We can then (see :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_freeze_full_after_malfunction_to_ASP`.)
+    We can then (see :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_experiment_freeze_to_ASP`.)
     - constrain all times in the Inverse Delta to the value in the inverse delta
     - constrain all all other times to be greater or equal the start of the malfunction.
 
@@ -253,4 +274,5 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
     # Freeze are all train run way points in the re-schedule that not in the delta
     if verbose:
         print(f"  **** freeze ={_pp.pformat(freeze)}")
+
     return delta, freeze
