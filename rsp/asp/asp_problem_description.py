@@ -193,8 +193,9 @@ class ASPProblemDescription(AbstractProblemDescription):
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
         )
         freezed_copy.asp_program = self.asp_program.copy()
-        # remove all earliest constraints
 
+        # remove all earliest constraints
+        # 2019-12-03 discussion with Potsdam (SIM-146): adding multiple earliest constraints for the same vertex could have side-effects
         freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
         asp_program = freezed_copy.asp_program
         # add constraints for dummy target nodes
@@ -235,25 +236,21 @@ class ASPProblemDescription(AbstractProblemDescription):
         frozen: List[TrainrunWaypoint] = []
         train = "t{}".format(agent_id)
 
-        # TODO SIM-146 disentangle sets!
+        # 2019-12-03 discussion with Potsdam (SIM-146)
+        # - no diff-constraints in addition to earliest/latest -> should be added immediately
+        # - no route constraints in addition to visit -> should be added immediately
 
         # constraint all times
         for trainrun_waypoint in freeze.freeze_time_and_visit:
             vertex = tuple(trainrun_waypoint.waypoint)
             time = trainrun_waypoint.scheduled_at
-            # 1. freeze times up to malfunction
-            # (train,vertex) <= time --> &diff{ (train,vertex)-0 } <= time.
-            # (train,vertex) >= time --> &diff{ 0-(train,vertex) }  <= -time.
-            frozen.append(f"&diff{{ ({train},{vertex})-0 }} <= {time}.")
-            frozen.append(f"&diff{{ 0-({train},{vertex}) }}  <= -{time}.")
-
-            # 2. in order to speed up search (probably), add (maybe) redundant constraints on time windows
+            # add earliest and latest constraints
             # e(t1,1,2).
             frozen.append(f"e({train},{vertex},{time}).")
             # l(t1,1,2).
             frozen.append(f"l({train},{vertex},{time}).")
 
-            # 3. in order to speed up search (probably), add (maybe) redundant constraints on routes
+            # add visit constraint
             # visit(t1,1).
             frozen.append(f"visit({train},{vertex}).")
 
@@ -261,15 +258,11 @@ class ASPProblemDescription(AbstractProblemDescription):
             vertex = tuple(trainrun_waypoint.waypoint)
             time = trainrun_waypoint.scheduled_at
 
-            # 1. freeze times up to malfunction
-            # (train,vertex) <= time --> &diff{ (train,vertex)-0 } <= time.
-            frozen.append(f"&diff{{ 0-({train},{vertex}) }}  <= -{time}.")
-
-            # 2. in order to speed up search (probably), add (maybe) redundant constraints on time windows
+            # add earliest constraint
             # e(t1,1,2).
             frozen.append(f"e({train},{vertex},{time}).")
 
-            # 3. vertex must be visited
+            # add visit constraint
             # visit(t1,1).
             frozen.append(f"visit({train},{vertex}).")
 
@@ -277,13 +270,13 @@ class ASPProblemDescription(AbstractProblemDescription):
             vertex = tuple(trainrun_waypoint.waypoint)
             time = trainrun_waypoint.scheduled_at
 
-            # 2. in order to speed up search (probably), add (maybe) redundant constraints on time windows
+            # add earliest constraint
             # e(t1,1,2).
             frozen.append(f"e({train},{vertex},{time}).")
 
         for waypoint in freeze.freeze_visit_only:
             vertex = tuple(waypoint)
-            # 3. vertex must be visited
+            # add visit constraint
             # visit(t1,1).
             frozen.append(f"visit({train},{vertex}).")
 
