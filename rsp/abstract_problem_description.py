@@ -188,18 +188,14 @@ class AbstractProblemDescription:
                 dummy_target_waypoint = self.convert_agent_target_to_dummy_target_waypoint(agent)
                 dummy_target_vertices.append(dummy_target_waypoint)
 
-                self._implement_train(agent_id,
-                                      [source_waypoint],
-                                      [dummy_target_waypoint],
-                                      agent_minimum_running_time)
+                if path_index == 0:
+                    self._implement_train(agent_id,
+                                          [source_waypoint],
+                                          [dummy_target_waypoint],
+                                          agent_minimum_running_time)
 
                 self._add_agent_waypoints(agent, agent_id, agent_path, already_added, dummy_target_waypoint,
                                           max_agents_steps_allowed, path_index)
-
-                dummy_target_entry = (agent_id, dummy_target_waypoint)
-                if dummy_target_entry not in already_added:
-                    self._implement_agent_earliest(*dummy_target_entry, 0)
-                    self._implement_agent_latest(*dummy_target_entry, max_agents_steps_allowed)
 
         # Mutual exclusion (required only for ortools, would not be required for ASP,
         # since the grounding phase thus this for us)
@@ -240,18 +236,19 @@ class AbstractProblemDescription:
             entry_waypoint = self.convert_position_and_entry_direction_to_waypoint(*current_position,
                                                                                    current_direction)
 
-            # add time window [0 * waypoint_index * minimum_running_time_p_cell+1,max_agents_steps_allowed] for entry event
-            # 0 for first
+            # add time window [waypoint_index * minimum_running_time_p_cell+1,max_agents_steps_allowed] for entry event
+            # TODO SIM-146 documentation by k-shortest path, is it ensured that the first path is the earliest at that node?! I think so
             agent_entry = (agent_id, entry_waypoint)
             if agent_entry not in already_added:
                 self._implement_agent_earliest(
-                    *agent_entry, 0 * waypoint_index * minimum_running_time_p_cell + 1
-                    if waypoint_index > 0
-                    else 0)
+                    *agent_entry,
+                    waypoint_index * minimum_running_time_p_cell + 1 if waypoint_index > 0 else 0
+                )
                 self._implement_agent_latest(*agent_entry, max_agents_steps_allowed)
 
             next_waypoint: Waypoint = agent_path[waypoint_index + 1]
             next_position = next_waypoint.position
+            next_entry = (agent_id, next_waypoint)
 
             # add minimum running time etc for this section
             agent_section = (agent_id, entry_waypoint, next_waypoint)
@@ -266,17 +263,27 @@ class AbstractProblemDescription:
                                               minimum_running_time_p_cell if waypoint_index > 0 else minimum_running_time_p_cell + 1,
                                               path_index)
 
+            # TODO do we have to check that initial_position != target?
+
             if Vec2d.is_equal(agent.target, next_position):
-                agent_entry_target = (agent_id, next_waypoint, dummy_target_waypoint)
-                if agent_entry_target not in already_added:
-                    # TODO do we have to check that initial_position != target?
-                    self._implement_agent_earliest(*agent_entry,
-                                                   0 * (waypoint_index + 1) * minimum_running_time_p_cell + 1)
-                    self._implement_agent_latest(*agent_entry, max_agents_steps_allowed)
+                agent_dummy_section = (agent_id, next_waypoint, dummy_target_waypoint)
+                if agent_dummy_section not in already_added:
+                    already_added.add(agent_dummy_section)
+
+                    self._implement_agent_earliest(*next_entry, (waypoint_index + 1) * minimum_running_time_p_cell + 1)
+                    self._implement_agent_latest(*next_entry, max_agents_steps_allowed)
 
                     # stay in the last cell for one tick to allow for synchronization
                     # TODO SIM-129 can we with this but without additional release time to be consistent with FLATland?
-                    self._implement_route_section(*agent_entry_target, next_position, 1)
+                    self._implement_route_section(*agent_dummy_section, next_position, 1)
+
+                    agent_entry_dummy_target = (agent_id, dummy_target_waypoint)
+                    if agent_entry_dummy_target not in already_added:
+                        already_added.add(agent_entry_dummy_target)
+                        # same as entry into target; synchronisation by release time 1 of the cell!
+                        self._implement_agent_earliest(*agent_entry_dummy_target,
+                                                       (waypoint_index + 1) * minimum_running_time_p_cell + 1)
+                        self._implement_agent_latest(*agent_entry_dummy_target, max_agents_steps_allowed)
 
     def _add_mutual_exclusion_ortools(self):
         for agent_id, agent in enumerate(self.env.agents):

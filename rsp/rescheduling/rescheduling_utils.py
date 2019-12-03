@@ -70,8 +70,6 @@ def _get_freeze_for_trainrun(
     freeze_time_and_visit_waypoints_set: Set[Waypoint] = {trainrun_waypoint.waypoint for trainrun_waypoint in
                                                           freeze_time_and_visit}
 
-    banned: List[Waypoint] = []
-
     freeze_earliest_and_visit = []
     freeze_earliest_and_visit_waypoints_set: Set[Waypoint] = set()
 
@@ -120,7 +118,28 @@ def _get_freeze_for_trainrun(
     if force_freeze is None:
         assert len(freeze_earliest_and_visit) <= 1
 
+    banned, freeze_earliest_only = _derive_earliest_for_all_routing_alternatives(
+        agent_paths, earliest,
+        freeze_earliest_and_visit_waypoints_set,
+        freeze_time_and_visit_waypoints_set,
+        minimum_travel_time)
+
+    return ExperimentFreeze(freeze_time_and_visit=freeze_time_and_visit,
+                            freeze_earliest_and_visit=freeze_earliest_and_visit,
+                            freeze_earliest_only=freeze_earliest_only,
+                            freeze_visit_only=[],
+                            freeze_banned=banned,
+                            )
+
+
+def _derive_earliest_for_all_routing_alternatives(
+        agent_paths: List[List[Waypoint]],
+        earliest: Dict[Waypoint, int],
+        freeze_earliest_and_visit_waypoints_set: Set[Waypoint],
+        freeze_time_and_visit_waypoints_set: Set[Waypoint],
+        minimum_travel_time: int):
     # derive earliest for all routing alternatives
+    banned: List[Waypoint] = []
     for agent_path in agent_paths:
         agent_path_reachable = False
         previous_earliest = numpy.inf
@@ -139,7 +158,6 @@ def _get_freeze_for_trainrun(
                 earliest[waypoint] = min(earliest.get(waypoint, numpy.inf), earliest_here)
                 assert earliest[waypoint] < numpy.inf
                 previous_earliest = earliest[waypoint]
-
     assert len(freeze_earliest_and_visit_waypoints_set.intersection(freeze_time_and_visit_waypoints_set)) == 0
     # now, we're able to collect earliest only among those which are not full time-frozen and not semi-frozen...
     freeze_earliest_only: List[TrainrunWaypoint] = [
@@ -147,13 +165,7 @@ def _get_freeze_for_trainrun(
         for waypoint, earliest_time in earliest.items()
         if
         waypoint not in freeze_time_and_visit_waypoints_set and waypoint not in freeze_earliest_and_visit_waypoints_set]
-
-    return ExperimentFreeze(freeze_time_and_visit=freeze_time_and_visit,
-                            freeze_earliest_and_visit=freeze_earliest_and_visit,
-                            freeze_earliest_only=freeze_earliest_only,
-                            freeze_visit_only=[],
-                            freeze_banned=banned,
-                            )
+    return banned, freeze_earliest_only
 
 
 def verify_experiment_freeze_for_agent(freeze: ExperimentFreeze, agent_paths: List[List[Waypoint]]):

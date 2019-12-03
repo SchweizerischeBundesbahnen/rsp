@@ -14,7 +14,7 @@ from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
-from rsp.utils.general_utils import current_milli_time, verification
+from rsp.utils.general_utils import current_milli_time, verification_by_file
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
@@ -88,17 +88,16 @@ def solve_problem(env: RailEnv,
     assert solution.is_solved()
 
     trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
-    print(_pp.pformat(solution.get_trainruns_dict()))
-
-    verify_trainruns_dict(env, trainruns_dict)
+    if debug:
+        print(_pp.pformat(solution.get_trainruns_dict()))
 
     if isinstance(problem, ASPProblemDescription):
         aspsolution: ASPSolutionDescription = solution
         actual_answer_set: Set[str] = aspsolution.asp_solution.answer_sets
 
-        verification("answer_set", actual_answer_set, loop_index, problem.get_solver_name())
+        verification_by_file("answer_set", actual_answer_set, loop_index, problem.get_solver_name())
 
-    verification("solution_trainrun_dict", solution.get_trainruns_dict(), loop_index, problem.get_solver_name())
+    verification_by_file("solution_trainrun_dict", solution.get_trainruns_dict(), loop_index, problem.get_solver_name())
 
     # --------------------------------------------------------------------------------------
     # Replay and verifiy the solution
@@ -107,6 +106,8 @@ def solve_problem(env: RailEnv,
                           rendering_call_back=rendering_call_back, solution=solution,
                           debug=debug,
                           disable_verification_in_replay=disable_verification_in_replay)
+
+    verify_trainruns_dict(env, trainruns_dict)
 
     return SchedulingExperimentResult(total_reward=total_reward,
                                       solve_time=solve_time,
@@ -131,21 +132,47 @@ def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_di
 
 def verify_trainruns_dict(env, trainruns_dict):
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
-    for agent_id, trainrun_sparse in trainruns_dict.items():
-        minimum_running_time_per_cell = int(1 // env.agents[agent_id].speed_data['speed'])
-        assert minimum_running_time_per_cell >= 1
-
-        previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
-        previous_waypoints = set()
-        for trainrun_waypoint in trainrun_sparse:
-            # 1.a) ensure schedule is ascending and respects the train's constant speed
-            if previous_trainrun_waypoint is not None:
-                assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell
-            # 1.b) ensure train run is non-circular
-            assert trainrun_waypoint not in previous_waypoints
-            previous_trainrun_waypoint = trainrun_waypoint
-            previous_waypoints.add(trainrun_waypoint.waypoint)
+    _verify_trainruns_1_path_consistency(env, trainruns_dict)
     # 2. verify mutual exclusion
+    _verify_trainruns_2_mutual_exclusion(trainruns_dict)
+    # 3. check that the paths lead from the desired start and goal
+    _verify_trainruns_3_source_target(env, trainruns_dict)
+    # 4. check that the transitions are valid FLATland transitions according to the grid
+    _verify_trainruns_4_consistency_with_flatland_moves(env, trainruns_dict)
+    # 5. verify costs are correct
+    # TODO SIM-146 verify costs are correct
+
+
+def _verify_trainruns_4_consistency_with_flatland_moves(env, trainruns_dict):
+    for agent_id, trainrun_sparse in trainruns_dict.items():
+        previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
+        for trainrun_waypoint in trainrun_sparse:
+            if previous_trainrun_waypoint is not None:
+                valid_next_waypoints = {
+                    Waypoint(position=rail_env_next_action.next_position, direction=rail_env_next_action.next_direction)
+                    for rail_env_next_action in
+                    get_valid_move_actions_(agent_direction=previous_trainrun_waypoint.waypoint.direction,
+                                            agent_position=previous_trainrun_waypoint.waypoint.position,
+                                            rail=env.rail)}
+                assert trainrun_waypoint.waypoint in valid_next_waypoints, \
+                    f"invalid move for agent {agent_id}: {previous_trainrun_waypoint} -> {trainrun_waypoint}, expected one of {valid_next_waypoints}"
+
+
+def _verify_trainruns_3_source_target(env, trainruns_dict):
+    for agent_id, agent in enumerate(env.agents):
+        assert agent_id == agent.handle
+        assert agent.handle in trainruns_dict
+        initial_trainrun_waypoint = trainruns_dict[agent_id][0]
+        assert initial_trainrun_waypoint.waypoint.position == agent.initial_position, \
+            f"agent {agent} does not start in expected initial position, found {initial_trainrun_waypoint}"
+        assert initial_trainrun_waypoint.waypoint.direction == agent.initial_direction, \
+            f"agent {agent} does not start in expected initial direction, found {initial_trainrun_waypoint}"
+        final_trainrun_waypoint = trainruns_dict[agent_id][-1]
+        assert final_trainrun_waypoint.waypoint.position == agent.target, \
+            f"agent {agent} does not end in expected target position, found {final_trainrun_waypoint}"
+
+
+def _verify_trainruns_2_mutual_exclusion(trainruns_dict):
     agent_positions_per_time_step = {}
     for agent_id, trainrun_sparse in trainruns_dict.items():
 
@@ -175,33 +202,23 @@ def verify_trainruns_dict(env, trainruns_dict):
                      agent_positions_per_time_step[time_step].values()}
         assert len(positions) == len(agent_positions_per_time_step[time_step]), \
             f"at {time_step}, conflicting positions: {agent_positions_per_time_step[time_step]}"
-    # 3. check that the paths lead from the desired start and goal
-    for agent_id, agent in enumerate(env.agents):
-        assert agent_id == agent.handle
-        assert agent.handle in trainruns_dict
-        initial_trainrun_waypoint = trainruns_dict[agent_id][0]
-        assert initial_trainrun_waypoint.waypoint.position == agent.initial_position, \
-            f"agent {agent} does not start in expected initial position, found {initial_trainrun_waypoint}"
-        assert initial_trainrun_waypoint.waypoint.direction == agent.initial_direction, \
-            f"agent {agent} does not start in expected initial direction, found {initial_trainrun_waypoint}"
-        final_trainrun_waypoint = trainruns_dict[agent_id][-1]
-        assert final_trainrun_waypoint.waypoint.position == agent.target, \
-            f"agent {agent} does not end in expected target position, found {final_trainrun_waypoint}"
-    # 4. check that the transitions are valid FLATland transitions according to the grid
+
+
+def _verify_trainruns_1_path_consistency(env, trainruns_dict):
     for agent_id, trainrun_sparse in trainruns_dict.items():
+        minimum_running_time_per_cell = int(1 // env.agents[agent_id].speed_data['speed'])
+        assert minimum_running_time_per_cell >= 1
+
         previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
+        previous_waypoints = set()
         for trainrun_waypoint in trainrun_sparse:
+            # 1.a) ensure schedule is ascending and respects the train's constant speed
             if previous_trainrun_waypoint is not None:
-                valid_next_waypoints = {
-                    Waypoint(position=rail_env_next_action.next_position, direction=rail_env_next_action.next_direction)
-                    for rail_env_next_action in
-                    get_valid_move_actions_(agent_direction=previous_trainrun_waypoint.waypoint.direction,
-                                            agent_position=previous_trainrun_waypoint.waypoint.position,
-                                            rail=env.rail)}
-                assert trainrun_waypoint.waypoint in valid_next_waypoints, \
-                    f"invalid move for agent {agent_id}: {previous_trainrun_waypoint} -> {trainrun_waypoint}, expected one of {valid_next_waypoints}"
-    # 5. verify costs are correct
-    # TODO SIM-146
+                assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell
+            # 1.b) ensure train run is non-circular
+            assert trainrun_waypoint not in previous_waypoints
+            previous_trainrun_waypoint = trainrun_waypoint
+            previous_waypoints.add(trainrun_waypoint.waypoint)
 
 
 def replay(env: RailEnv,
@@ -233,7 +250,7 @@ def replay(env: RailEnv,
     loop_index
         Used for display, should identify the problem instance
     expected_malfunction
-        If provided and verification is enabled, it is checked that the malfunction happens as expected.
+        If provided and disable_verification_in_replay == False, it is checked that the malfunction happens as expected.
     stop_on_malfunction
         If true, stops and returns upon entering into malfunction; in this case returns the malfunction
 
@@ -256,7 +273,7 @@ def replay(env: RailEnv,
         print("  **** expected_malfunction to replay:")
         print(_pp.pformat(expected_malfunction))
     actual_action_plan = [ap.act(time_step) for time_step in range(env._max_episode_steps)]
-    verification("action_plan", actual_action_plan, loop_index, solver_name)
+    verification_by_file("action_plan", actual_action_plan, loop_index, solver_name)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = _check_fail(ap, debug, disable_verification_in_replay, env, expected_malfunction, problem, time_step)
         if fail:

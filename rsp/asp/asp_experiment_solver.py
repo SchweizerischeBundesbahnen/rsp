@@ -8,7 +8,7 @@ from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, sch
     reschedule_delta_after_malfunction
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.experiment_solver import AbstractSolver, RendererForEnvInit, RendererForEnvRender, RendererForEnvCleanup
+from rsp.utils.experiment_solver import AbstractSolver
 from rsp.utils.experiment_utils import replay
 
 
@@ -31,10 +31,7 @@ class ASPExperimentSolver(AbstractSolver):
             k: int = 10,
             disable_verification_by_replay: bool = False,
             verbose: bool = False,
-            rendering: bool = False,
-            init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
-            render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-            cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
+            rendering: bool = False
     ) -> ExperimentResults:
         """
         Runs the experiment.
@@ -50,7 +47,7 @@ class ASPExperimentSolver(AbstractSolver):
         -------
         ExperimentResults
         """
-        schedule_problem, schedule_result = schedule_full(k, static_rail_env, rendering)
+        schedule_problem, schedule_result = schedule_full(k, static_rail_env, rendering=rendering, debug=False)
         schedule_solution = schedule_result.solution
 
         schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
@@ -77,8 +74,6 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-schedule Full
         # --------------------------------------------------------------------------------------
 
-        from rsp.utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env
-
         # TODO SIM-146 unify reschedule_full_after_malfunction and reschedule_delta_after_malfunction
         # TODO SIM-146 add verification that ExperimentFreeze is respected!
         full_reschedule_result = reschedule_full_after_malfunction(
@@ -88,13 +83,8 @@ class ASPExperimentSolver(AbstractSolver):
             schedule_problem=schedule_problem,
             schedule_trainruns=schedule_trainruns,
             static_rail_env=static_rail_env,
-            rendering=rendering
-            # uncomment the following lines for rendering
-            # rendering=True, # NOQA
-            # debug=True, # NOQA
-            # init_renderer_for_env=init_renderer_for_env, # NOQA
-            # render_renderer_for_env=render_env, # NOQA
-            # cleanup_renderer_for_env=cleanup_renderer_for_env # NOQA
+            rendering=rendering,
+            debug=verbose
         )
         malfunction_env_reset()
         full_reschedule_solution = full_reschedule_result.solution
@@ -113,10 +103,7 @@ class ASPExperimentSolver(AbstractSolver):
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
             schedule_problem=schedule_problem,
-            rendering=rendering,
-            init_renderer_for_env=init_renderer_for_env,
-            render_renderer_for_env=render_renderer_for_env,
-            cleanup_renderer_for_env=cleanup_renderer_for_env)
+            rendering=rendering)
         malfunction_env_reset()
         delta_reschedule_solution: ASPSolutionDescription = delta_reschedule_result.solution
 

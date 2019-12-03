@@ -19,9 +19,6 @@ def schedule_full(k: int,
                   static_rail_env: RailEnv,
                   rendering: bool = False,
                   debug: bool = False,
-                  init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
-                  render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-                  cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
                   ) -> Tuple[ASPProblemDescription, SchedulingExperimentResult]:
     """
     Solves the Full Scheduling Problem for static rail env (i.e. without malfunctions).
@@ -33,9 +30,6 @@ def schedule_full(k: int,
     static_rail_env
     rendering
     debug
-    init_renderer_for_env
-    render_renderer_for_env
-    cleanup_renderer_for_env
 
     Returns
     -------
@@ -54,22 +48,37 @@ def schedule_full(k: int,
                                 agent.target,
                                 k) for i, agent in enumerate(static_rail_env.agents)
     }
+
+    # --------------------------------------------------------------------------------------
+    # Rendering
+    # --------------------------------------------------------------------------------------
+    if rendering:
+        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
+        from rsp.utils.experiment_render_utils import render_env
+        from rsp.utils.experiment_render_utils import init_renderer_for_env
+        init_renderer_for_env = init_renderer_for_env
+        render_renderer_for_env = render_env
+        cleanup_renderer_for_env = cleanup_renderer_for_env
+    else:
+        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
+        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
+        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
+
+    renderer = init_renderer_for_env(static_rail_env, rendering)
+
+    def rendering_call_back(test_id: int, solver_name, i_step: int):
+        render_renderer_for_env(renderer, test_id, solver_name, i_step)
+
     # --------------------------------------------------------------------------------------
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
     schedule_problem = ASPProblemDescription(env=static_rail_env,
                                              agents_path_dict=agents_paths_dict)
 
-    # rendering hooks
-    renderer = init_renderer_for_env(static_rail_env, rendering)
-
-    def render(test_id: int, solver_name, i_step: int):
-        render_renderer_for_env(renderer, test_id, solver_name, i_step)
-
     schedule_result = solve_problem(
         env=static_rail_env,
         problem=schedule_problem,
-        rendering_call_back=render,
+        rendering_call_back=rendering_call_back,
         debug=debug)
 
     # rendering hooks
@@ -88,9 +97,7 @@ def reschedule_full_after_malfunction(
         debug: bool = False,
         disable_verification_in_replay: bool = False,
         rendering: bool = False,
-        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
-        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None) -> SchedulingExperimentResult:
+) -> SchedulingExperimentResult:
     """
     Solve the Full Re-Scheduling Problem for static rail env (i.e. without malfunctions).
 
@@ -105,25 +112,35 @@ def reschedule_full_after_malfunction(
     debug
     disable_verification_in_replay
     rendering
-    init_renderer_for_env
-    render_renderer_for_env
-    cleanup_renderer_for_env
 
     Returns
     -------
     SchedulingExperimentResult
     """
 
-    # TODO can we simplify if we use local imports instead of at the module level? (get rid of passing init_render_for_env etc?
-    # uncomment the following lines for rendering (we cannot use switch since ci.sbb.ch must not import rendering libs)
-    # from rsp.utils.experiment_render_utils import cleanup_renderer_for_env  # NOQA
-    # from rsp.utils.experiment_render_utils import render_env  # NOQA
-    # from rsp.utils.experiment_render_utils import init_renderer_for_env  # NOQA
-    # rendering = True  # NOQA
-    # debug = True  # NOQA
-    # init_renderer_for_env = init_renderer_for_env  # NOQA
-    # render_renderer_for_env = render_env  # NOQA
-    # cleanup_renderer_for_env = cleanup_renderer_for_env  # NOQA
+    # --------------------------------------------------------------------------------------
+    # Rendering
+    # --------------------------------------------------------------------------------------
+    if rendering:
+        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
+        from rsp.utils.experiment_render_utils import render_env
+        from rsp.utils.experiment_render_utils import init_renderer_for_env
+        init_renderer_for_env = init_renderer_for_env
+        render_renderer_for_env = render_env
+        cleanup_renderer_for_env = cleanup_renderer_for_env
+    else:
+        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
+        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
+        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
+
+    renderer = init_renderer_for_env(static_rail_env, rendering)
+
+    def rendering_call_back(test_id: int, solver_name, i_step: int):
+        render_renderer_for_env(renderer, test_id, solver_name, i_step)
+
+    # --------------------------------------------------------------------------------------
+    # Full Re-Scheduling
+    # --------------------------------------------------------------------------------------
 
     freeze_dict: ExperimentFreezeDict = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env,
                                                                    schedule_problem.agents_path_dict)
@@ -132,15 +149,11 @@ def reschedule_full_after_malfunction(
         experiment_freeze_dict=freeze_dict,
         schedule_trainruns=schedule_trainruns
     )
-    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
-
-    def render(test_id: int, solver_name, i_step: int):
-        render_renderer_for_env(renderer, test_id, solver_name, i_step)
 
     full_reschedule_result = solve_problem(
         env=malfunction_rail_env,
         problem=full_reschedule_problem,
-        rendering_call_back=render,
+        rendering_call_back=rendering_call_back,
         debug=debug,
         expected_malfunction=malfunction,
         disable_verification_in_replay=disable_verification_in_replay
@@ -159,9 +172,6 @@ def reschedule_delta_after_malfunction(
         malfunction_rail_env: RailEnv,
         rendering: bool = False,
         debug: bool = False,
-        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
-        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
-        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
 ) -> SchedulingExperimentResult:
     """
 
@@ -174,9 +184,6 @@ def reschedule_delta_after_malfunction(
     malfunction_rail_env
     rendering
     debug
-    init_renderer_for_env
-    render_renderer_for_env
-    cleanup_renderer_for_env
 
     Returns
     -------
@@ -184,15 +191,29 @@ def reschedule_delta_after_malfunction(
 
     """
 
-    # uncomment the following lines for rendering (we cannot use switch since ci.sbb.ch must not import rendering libs)
-    # from rsp.utils.experiment_render_utils import cleanup_renderer_for_env  # NOQA
-    # from rsp.utils.experiment_render_utils import render_env  # NOQA
-    # from rsp.utils.experiment_render_utils import init_renderer_for_env  # NOQA
-    # rendering = True  # NOQA
-    # debug = True  # NOQA
-    # init_renderer_for_env = init_renderer_for_env  # NOQA
-    # render_renderer_for_env = render_env  # NOQA
-    # cleanup_renderer_for_env = cleanup_renderer_for_env  # NOQA
+    # --------------------------------------------------------------------------------------
+    # Rendering
+    # --------------------------------------------------------------------------------------
+    if rendering:
+        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
+        from rsp.utils.experiment_render_utils import render_env
+        from rsp.utils.experiment_render_utils import init_renderer_for_env
+        init_renderer_for_env = init_renderer_for_env
+        render_renderer_for_env = render_env
+        cleanup_renderer_for_env = cleanup_renderer_for_env
+    else:
+        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
+        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
+        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
+
+    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
+
+    def rendering_call_back(test_id: int, solver_name, i_step: int):
+        render_renderer_for_env(renderer, test_id, solver_name, i_step)
+
+    # --------------------------------------------------------------------------------------
+    # Delta Re-Scheduling
+    # --------------------------------------------------------------------------------------
 
     delta, force_freeze = determine_delta(full_reschedule_trainruns,
                                           malfunction,
@@ -211,16 +232,12 @@ def reschedule_delta_after_malfunction(
         experiment_freeze_dict=freeze_dict,
         schedule_trainruns=full_reschedule_trainruns
     )
-    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
-
-    def render(test_id: int, solver_name, i_step: int):
-        render_renderer_for_env(renderer, test_id, solver_name, i_step)
 
     delta_reschedule_result = solve_problem(
         env=malfunction_rail_env,
         problem=delta_reschedule_problem,
-        rendering_call_back=render,
-        debug=True,
+        rendering_call_back=rendering_call_back,
+        debug=debug,
         expected_malfunction=malfunction)
     cleanup_renderer_for_env(renderer)
     return delta_reschedule_result
