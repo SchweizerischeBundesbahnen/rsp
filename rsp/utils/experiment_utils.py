@@ -12,6 +12,7 @@ from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
+from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time, verification
 
@@ -20,7 +21,9 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solve_time', float),
                                          ('optimization_costs', float),
                                          ('build_problem_time', float),
-                                         ('solution', AbstractSolutionDescription)])
+                                         ('solution', AbstractSolutionDescription),
+                                         ('experiment_freeze', Optional[ExperimentFreezeDict])
+                                         ])
 
 # test_id: int, solver_name: str, i_step: int
 SolveProblemRenderCallback = Callable[[int, str, int], None]
@@ -87,6 +90,46 @@ def solve_problem(env: RailEnv,
     trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
     print(_pp.pformat(solution.get_trainruns_dict()))
 
+    verify_trainruns_dict(env, trainruns_dict)
+
+    if isinstance(problem, ASPProblemDescription):
+        aspsolution: ASPSolutionDescription = solution
+        actual_answer_set: Set[str] = aspsolution.asp_solution.answer_sets
+
+        verification("answer_set", actual_answer_set, loop_index, problem.get_solver_name())
+
+    verification("solution_trainrun_dict", solution.get_trainruns_dict(), loop_index, problem.get_solver_name())
+
+    # --------------------------------------------------------------------------------------
+    # Replay and verifiy the solution
+    # --------------------------------------------------------------------------------------
+    total_reward = replay(env=env, loop_index=loop_index, expected_malfunction=expected_malfunction, problem=problem,
+                          rendering_call_back=rendering_call_back, solution=solution,
+                          debug=debug,
+                          disable_verification_in_replay=disable_verification_in_replay)
+
+    return SchedulingExperimentResult(total_reward=total_reward,
+                                      solve_time=solve_time,
+                                      optimization_costs=solution.get_objective_value(),
+                                      build_problem_time=build_problem_time,
+                                      solution=solution,
+                                      experiment_freeze=problem.experiment_freeze_dict)
+
+
+def get_summ_running_times_trainruns_dict(trainruns_dict: TrainrunDict):
+    return sum([
+        agent_path[-1].scheduled_at - agent_path[0].scheduled_at
+        for agent_id, agent_path in trainruns_dict.items()])
+
+
+def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_dict_reschedule: TrainrunDict):
+    return sum([
+        max(trainruns_dict_reschedule[agent_id][-1].scheduled_at - trainruns_dict_schedule[agent_id][-1].scheduled_at,
+            0)
+        for agent_id in trainruns_dict_reschedule])
+
+
+def verify_trainruns_dict(env, trainruns_dict):
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     for agent_id, trainrun_sparse in trainruns_dict.items():
         minimum_running_time_per_cell = int(1 // env.agents[agent_id].speed_data['speed'])
@@ -102,7 +145,6 @@ def solve_problem(env: RailEnv,
             assert trainrun_waypoint not in previous_waypoints
             previous_trainrun_waypoint = trainrun_waypoint
             previous_waypoints.add(trainrun_waypoint.waypoint)
-
     # 2. verify mutual exclusion
     agent_positions_per_time_step = {}
     for agent_id, trainrun_sparse in trainruns_dict.items():
@@ -133,7 +175,6 @@ def solve_problem(env: RailEnv,
                      agent_positions_per_time_step[time_step].values()}
         assert len(positions) == len(agent_positions_per_time_step[time_step]), \
             f"at {time_step}, conflicting positions: {agent_positions_per_time_step[time_step]}"
-
     # 3. check that the paths lead from the desired start and goal
     for agent_id, agent in enumerate(env.agents):
         assert agent_id == agent.handle
@@ -146,7 +187,6 @@ def solve_problem(env: RailEnv,
         final_trainrun_waypoint = trainruns_dict[agent_id][-1]
         assert final_trainrun_waypoint.waypoint.position == agent.target, \
             f"agent {agent} does not end in expected target position, found {final_trainrun_waypoint}"
-
     # 4. check that the transitions are valid FLATland transitions according to the grid
     for agent_id, trainrun_sparse in trainruns_dict.items():
         previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
@@ -162,28 +202,6 @@ def solve_problem(env: RailEnv,
                     f"invalid move for agent {agent_id}: {previous_trainrun_waypoint} -> {trainrun_waypoint}, expected one of {valid_next_waypoints}"
     # 5. verify costs are correct
     # TODO SIM-146
-
-    if isinstance(problem, ASPProblemDescription):
-        aspsolution: ASPSolutionDescription = solution
-        actual_answer_set: Set[str] = aspsolution.asp_solution.answer_sets
-
-        verification("answer_set", actual_answer_set, loop_index, problem.get_solver_name())
-
-    verification("solution_trainrun_dict", solution.get_trainruns_dict(), loop_index, problem.get_solver_name())
-
-    # --------------------------------------------------------------------------------------
-    # Replay and verifiy the solution
-    # --------------------------------------------------------------------------------------
-    total_reward = replay(env=env, loop_index=loop_index, expected_malfunction=expected_malfunction, problem=problem,
-                          rendering_call_back=rendering_call_back, solution=solution,
-                          debug=debug,
-                          disable_verification_in_replay=disable_verification_in_replay)
-
-    return SchedulingExperimentResult(total_reward=total_reward,
-                                      solve_time=solve_time,
-                                      optimization_costs=solution.get_objective_value(),
-                                      build_problem_time=build_problem_time,
-                                      solution=solution)
 
 
 def replay(env: RailEnv,

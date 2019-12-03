@@ -96,7 +96,7 @@ def flux_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,
         plain_encoding=prg_text_joined,
-        verbose=True
+        verbose=False
     )
 
     return flux_result

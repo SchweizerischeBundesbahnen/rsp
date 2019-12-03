@@ -1,13 +1,13 @@
 import pprint
-from typing import Callable, Tuple, List, Dict
+from typing import Callable, Tuple
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
-from flatland.envs.rail_trainrun_data_structures import TrainrunDict, TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 # TODO SIM-146 refactor: nothing special to ASP -> add freeze stuff to abc
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction, ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
 from rsp.utils.experiment_utils import solve_problem, SchedulingExperimentResult
@@ -114,7 +114,8 @@ def reschedule_full_after_malfunction(
     SchedulingExperimentResult
     """
 
-    # uncomment the following lines for rendering
+    # TODO can we simplify if we use local imports instead of at the module level? (get rid of passing init_render_for_env etc?
+    # uncomment the following lines for rendering (we cannot use switch since ci.sbb.ch must not import rendering libs)
     # from rsp.utils.experiment_render_utils import cleanup_renderer_for_env  # NOQA
     # from rsp.utils.experiment_render_utils import render_env  # NOQA
     # from rsp.utils.experiment_render_utils import init_renderer_for_env  # NOQA
@@ -124,11 +125,11 @@ def reschedule_full_after_malfunction(
     # render_renderer_for_env = render_env  # NOQA
     # cleanup_renderer_for_env = cleanup_renderer_for_env  # NOQA
 
-    freeze_dict = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env,
-                                             schedule_problem.agents_path_dict)
+    freeze_dict: ExperimentFreezeDict = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env,
+                                                                   schedule_problem.agents_path_dict)
 
     full_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
-        freeze=freeze_dict,
+        experiment_freeze_dict=freeze_dict,
         schedule_trainruns=schedule_trainruns
     )
     renderer = init_renderer_for_env(malfunction_rail_env, rendering)
@@ -153,7 +154,7 @@ def reschedule_full_after_malfunction(
 def reschedule_delta_after_malfunction(
         schedule_problem: ASPProblemDescription,
         full_reschedule_trainruns: TrainrunDict,
-        force_freeze: Dict[int, List[TrainrunWaypoint]],
+        schedule_trainruns: TrainrunDict,
         malfunction: ExperimentMalfunction,
         malfunction_rail_env: RailEnv,
         rendering: bool = False,
@@ -183,7 +184,22 @@ def reschedule_delta_after_malfunction(
 
     """
 
-    freeze_dict = get_freeze_for_malfunction(
+    # uncomment the following lines for rendering (we cannot use switch since ci.sbb.ch must not import rendering libs)
+    # from rsp.utils.experiment_render_utils import cleanup_renderer_for_env  # NOQA
+    # from rsp.utils.experiment_render_utils import render_env  # NOQA
+    # from rsp.utils.experiment_render_utils import init_renderer_for_env  # NOQA
+    # rendering = True  # NOQA
+    # debug = True  # NOQA
+    # init_renderer_for_env = init_renderer_for_env  # NOQA
+    # render_renderer_for_env = render_env  # NOQA
+    # cleanup_renderer_for_env = cleanup_renderer_for_env  # NOQA
+
+    delta, force_freeze = determine_delta(full_reschedule_trainruns,
+                                          malfunction,
+                                          schedule_trainruns,
+                                          verbose=False)
+
+    freeze_dict: ExperimentFreezeDict = get_freeze_for_malfunction(
         malfunction,
         full_reschedule_trainruns,
         malfunction_rail_env,
@@ -192,7 +208,7 @@ def reschedule_delta_after_malfunction(
     )
 
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
-        freeze=freeze_dict,
+        experiment_freeze_dict=freeze_dict,
         schedule_trainruns=full_reschedule_trainruns
     )
     renderer = init_renderer_for_env(malfunction_rail_env, rendering)

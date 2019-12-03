@@ -24,6 +24,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         self.asp_program: List[str] = []
         self.env: RailEnv = env
         self.asp_objective: ASPObjective = asp_objective
+        self.experiment_freeze_dict = None
         if asp_heuristics is None:
             self.asp_heuristics: List[ASPHeuristics] = [ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ]
         else:
@@ -147,7 +148,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         return ASPSolutionDescription(env=self.env, asp_solution=asp_solution)
 
     def get_copy_for_experiment_freeze(self,
-                                       freeze: ExperimentFreezeDict,
+                                       experiment_freeze_dict: ExperimentFreezeDict,
                                        schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
                                        verbose: bool = False) -> 'ASPProblemDescription':
         """
@@ -172,9 +173,11 @@ class ASPProblemDescription(AbstractProblemDescription):
         ASPProblemDescription
 
         """
-        freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
 
-        for agent_id, experiment_freeze in freeze.items():
+        freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
+        freezed_copy.experiment_freeze_dict = experiment_freeze_dict
+
+        for agent_id, experiment_freeze in experiment_freeze_dict.items():
             f = self._translate_experiment_freeze_to_ASP(agent_id, experiment_freeze)
             freezed_copy.asp_program += f
 

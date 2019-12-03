@@ -4,7 +4,7 @@ from typing import Dict, List
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
-from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, schedule_full, determine_delta, \
+from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, schedule_full, \
     reschedule_delta_after_malfunction
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentResults
@@ -79,6 +79,8 @@ class ASPExperimentSolver(AbstractSolver):
 
         from rsp.utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env
 
+        # TODO SIM-146 unify reschedule_full_after_malfunction and reschedule_delta_after_malfunction
+        # TODO SIM-146 add verification that ExperimentFreeze is respected!
         full_reschedule_result = reschedule_full_after_malfunction(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
@@ -105,14 +107,9 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-Schedule Delta
         # --------------------------------------------------------------------------------------
 
-        delta, freeze = determine_delta(full_reschedule_trainruns,
-                                        malfunction,
-                                        schedule_trainruns,
-                                        verbose=False)
-
         delta_reschedule_result = reschedule_delta_after_malfunction(
             full_reschedule_trainruns=full_reschedule_trainruns,
-            force_freeze=freeze,
+            schedule_trainruns=schedule_trainruns,
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
             schedule_problem=schedule_problem,
@@ -141,7 +138,7 @@ class ASPExperimentSolver(AbstractSolver):
                                             costs_full=schedule_result.optimization_costs,
                                             costs_full_after_malfunction=full_reschedule_result.optimization_costs,
                                             costs_delta_after_malfunction=delta_reschedule_result.optimization_costs,
-                                            delta=delta,
+                                            experiment_freeze=delta_reschedule_result.experiment_freeze,
                                             malfunction=malfunction,
                                             agent_paths_dict=schedule_problem.agents_path_dict
                                             )

@@ -54,7 +54,7 @@ COLUMNS = ['experiment_id',
            'costs_full',
            'costs_full_after_malfunction',
            'costs_delta_after_malfunction',
-           'delta',
+           'experiment_freeze',
            'malfunction',
            'size',
            'n_agents',
@@ -120,7 +120,7 @@ def run_experiment(solver: AbstractSolver,
                                   'costs_full': current_results.costs_full,
                                   'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
                                   'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
-                                  'delta': current_results.delta,
+                                  'experiment_freeze': current_results.experiment_freeze,
                                   'malfunction': current_results.malfunction,
                                   'size': experiment_parameters.width,
                                   'n_agents': experiment_parameters.number_of_agents,
@@ -150,27 +150,35 @@ def _analyze_times(current_results: ExperimentResults):
     # Delta is all train run way points in the re-schedule that are not also in the schedule
     schedule_trainrunwaypoints = current_results.solution_full
     full_reschedule_trainrunwaypoints_dict = current_results.solution_full_after_malfunction
-    delta: TrainrunDict = {
+    schedule_full_reschedule_delta: TrainrunDict = {
         agent_id: sorted(list(
             set(full_reschedule_trainrunwaypoints_dict[agent_id]).difference(
                 set(schedule_trainrunwaypoints[agent_id]))),
             key=lambda p: p.scheduled_at)
         for agent_id in schedule_trainrunwaypoints.keys()
     }
-    delta_percentage = 100 * sum([len(delta[agent_id]) for agent_id in delta.keys()]) / sum(
-        [len(full_reschedule_trainrunwaypoints_dict[agent_id]) for agent_id in
-         full_reschedule_trainrunwaypoints_dict.keys()])
+    schedule_full_reschedule_delta_percentage = \
+        100 * sum([len(schedule_full_reschedule_delta[agent_id])
+                   for agent_id in schedule_full_reschedule_delta.keys()]) / \
+        sum([len(full_reschedule_trainrunwaypoints_dict[agent_id])
+             for agent_id in full_reschedule_trainrunwaypoints_dict.keys()])
     # Freeze is all train run way points in the schedule that are also in the re-schedule
-    freeze: TrainrunDict = \
+    schedule_full_reschedule_freeze: TrainrunDict = \
         {agent_id: sorted(list(
             set(full_reschedule_trainrunwaypoints_dict[agent_id]).intersection(
                 set(schedule_trainrunwaypoints[agent_id]))),
-            key=lambda p: p.scheduled_at) for agent_id in delta.keys()}
-    freeze_percentage = 100 * sum([len(freeze[agent_id]) for agent_id in freeze.keys()]) / sum(
+            key=lambda p: p.scheduled_at) for agent_id in schedule_full_reschedule_delta.keys()}
+    schedule_full_reschedule_freeze_percentage = 100 * sum(
+        [len(schedule_full_reschedule_freeze[agent_id]) for agent_id in schedule_full_reschedule_freeze.keys()]) / sum(
         [len(schedule_trainrunwaypoints[agent_id]) for agent_id in schedule_trainrunwaypoints.keys()])
+
+    # TODO SIM-151 do we need absolute counts as well as below?
     print(
-        f"**** freeze: {freeze_percentage}% of waypoints in the full schedule are the same in the full re-schedule")
-    print(f"**** delta: {delta_percentage}% of waypoints in the re-schedule are the as in the initial schedule")
+        f"**** full schedule -> full re-schedule: {schedule_full_reschedule_freeze_percentage}%"
+        " of waypoints in the full schedule stay the same in the full re-schedule")
+    print(
+        f"**** full schedule -> full re-schedule: {schedule_full_reschedule_delta_percentage}% "
+        "of waypoints in the full re-schedule are different from the initial full schedule")
     all_full_reschedule_trainrunwaypoints = {
         full_reschedule_trainrunwaypoint
         for full_reschedule_trainrunwaypoints in full_reschedule_trainrunwaypoints_dict.values()
@@ -198,7 +206,7 @@ def _analyze_times(current_results: ExperimentResults):
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
-# TODO print only or add to experiment results?
+# TODO SIM-151 print only or add to experiment results?
 def _analyze_paths(experiment_results: ExperimentResults, env: RailEnv):
     schedule_trainruns = experiment_results.solution_full
     malfunction = experiment_results.malfunction

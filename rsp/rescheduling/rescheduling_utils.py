@@ -1,19 +1,10 @@
-from typing import Set, List, Dict, NamedTuple, Optional
+from typing import Set, List, Dict, Optional
 
 import numpy
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint, Trainrun
 
-from rsp.utils.data_types import ExperimentMalfunction
-
-ExperimentFreeze = NamedTuple('ExperimentFreeze', [
-    ('freeze_time_and_visit', List[TrainrunWaypoint]),
-    ('freeze_earliest_and_visit', List[TrainrunWaypoint]),
-    ('freeze_earliest_only', List[TrainrunWaypoint]),
-    ('freeze_visit_only', List[Waypoint]),
-    ('freeze_banned', List[Waypoint])
-])
-ExperimentFreezeDict = Dict[int, ExperimentFreeze]
+from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreezeDict, ExperimentFreeze
 
 
 # TODO SIM-146 docstring
@@ -51,7 +42,7 @@ def get_freeze_for_malfunction(malfunction, schedule_trainruns,
 def _get_freeze_for_trainrun(
         env: RailEnv,
         agent_id: int,
-        agent_solution_trainrun: Set[TrainrunWaypoint],
+        agent_solution_trainrun: Trainrun,
         malfunction: ExperimentMalfunction,
         agent_paths: List[List[Waypoint]],
         force_freeze: Optional[List[TrainrunWaypoint]] = None
@@ -89,46 +80,61 @@ def _get_freeze_for_trainrun(
 
     # collect earliest times along schedule path
     previous_waypoint_before_or_at_malfunction = True
-    for waypoint_index, trainrun_waypoint in enumerate(agent_solution_trainrun):
 
-        if trainrun_waypoint.scheduled_at <= malfunction.time_step:
-            if trainrun_waypoint.waypoint not in freeze_time_and_visit_waypoints_set:
-                freeze_time_and_visit.append(trainrun_waypoint)
-                freeze_time_and_visit_waypoints_set.add(trainrun_waypoint.waypoint)
+    if agent_solution_trainrun[0].scheduled_at > malfunction.time_step:
+        for waypoint_index, trainrun_waypoint in enumerate(agent_solution_trainrun):
+            if waypoint_index == 0:
+                earliest[trainrun_waypoint.waypoint] = malfunction.time_step
             else:
-                assert trainrun_waypoint in freeze_time_and_visit
-            previous_waypoint_before_or_at_malfunction = True
-        else:
-            # we're at the first vertex after the freeeze;
-            # the train has already entered the edge leading to this vertex (speed fraction >= 0);
-            # therefore, freeze this vertex as well since the train cannot "beam" to another edge
-            if malfunction.agent_id == agent_id:
-                earliest_time = trainrun_waypoint.scheduled_at + malfunction.malfunction_duration
-                trainrun_waypoint = TrainrunWaypoint(scheduled_at=earliest_time, waypoint=trainrun_waypoint.waypoint)
-            if previous_waypoint_before_or_at_malfunction and \
-                    trainrun_waypoint.waypoint not in freeze_time_and_visit_waypoints_set and \
-                    trainrun_waypoint.waypoint not in freeze_earliest_and_visit_waypoints_set:
-                # we're the first after the malfunction (but not when we have forced freeze) -> fix visit and earliest, thus allowing for delay
-                freeze_earliest_and_visit.append(trainrun_waypoint)
-                freeze_earliest_and_visit_waypoints_set.add(trainrun_waypoint.waypoint)
-            previous_waypoint_before_or_at_malfunction = False
-        earliest[trainrun_waypoint.waypoint] = trainrun_waypoint.scheduled_at
+                earliest[trainrun_waypoint.waypoint] = malfunction.time_step + waypoint_index * minimum_travel_time + 1
 
-    # only on the scheduled path, first after malfunction
+    else:
+        for waypoint_index, trainrun_waypoint in enumerate(agent_solution_trainrun):
+
+            if trainrun_waypoint.scheduled_at <= malfunction.time_step:
+                if trainrun_waypoint.waypoint not in freeze_time_and_visit_waypoints_set:
+                    freeze_time_and_visit.append(trainrun_waypoint)
+                    freeze_time_and_visit_waypoints_set.add(trainrun_waypoint.waypoint)
+                else:
+                    assert trainrun_waypoint in freeze_time_and_visit
+                previous_waypoint_before_or_at_malfunction = True
+            else:
+                # we're at the first vertex after the freeeze;
+                # the train has already entered the edge leading to this vertex (speed fraction >= 0);
+                # therefore, freeze this vertex as well since the train cannot "beam" to another edge
+                if malfunction.agent_id == agent_id:
+                    earliest_time = trainrun_waypoint.scheduled_at + malfunction.malfunction_duration
+                    trainrun_waypoint = TrainrunWaypoint(scheduled_at=earliest_time,
+                                                         waypoint=trainrun_waypoint.waypoint)
+
+                if previous_waypoint_before_or_at_malfunction and \
+                        trainrun_waypoint.waypoint not in freeze_time_and_visit_waypoints_set and \
+                        trainrun_waypoint.waypoint not in freeze_earliest_and_visit_waypoints_set:
+                    # we're the first after the malfunction (but not when we have forced freeze) -> fix visit and earliest, thus allowing for delay
+                    freeze_earliest_and_visit.append(trainrun_waypoint)
+                    freeze_earliest_and_visit_waypoints_set.add(trainrun_waypoint.waypoint)
+                previous_waypoint_before_or_at_malfunction = False
+            earliest[trainrun_waypoint.waypoint] = trainrun_waypoint.scheduled_at
+
+    # only on the scheduled path, first after malfunction if already in grid
     if force_freeze is None:
-        assert len(freeze_earliest_and_visit) == 1
+        assert len(freeze_earliest_and_visit) <= 1
+
     # derive earliest for all routing alternatives
     for agent_path in agent_paths:
         agent_path_reachable = False
         previous_earliest = numpy.inf
-        for waypoint in agent_path:
+        for waypoint_index, waypoint in enumerate(agent_path):
             if waypoint in earliest:
                 agent_path_reachable = True
             if not agent_path_reachable:
                 banned.append(waypoint)
             else:
                 if previous_earliest is not None:
-                    earliest_here = previous_earliest + minimum_travel_time
+                    if waypoint_index > 1:
+                        earliest_here = previous_earliest + minimum_travel_time
+                    else:
+                        earliest_here = previous_earliest + minimum_travel_time + 1
 
                 earliest[waypoint] = min(earliest.get(waypoint, numpy.inf), earliest_here)
                 assert earliest[waypoint] < numpy.inf
@@ -146,7 +152,8 @@ def _get_freeze_for_trainrun(
                             freeze_earliest_and_visit=freeze_earliest_and_visit,
                             freeze_earliest_only=freeze_earliest_only,
                             freeze_visit_only=[],
-                            freeze_banned=banned)
+                            freeze_banned=banned,
+                            )
 
 
 def verify_experiment_freeze_for_agent(freeze: ExperimentFreeze, agent_paths: List[List[Waypoint]]):
@@ -168,5 +175,5 @@ def verify_experiment_freeze_for_agent(freeze: ExperimentFreeze, agent_paths: Li
         assert waypoint not in verified, f"duplicate waypoint {waypoint}"
         verified.add(waypoint)
     assert all_waypoints == verified, \
-        f"not verified: {all_waypoints.difference(verified)}, " \
-            f"not in route alternatives: {verified.difference(all_waypoints)}"
+        f"not verified: {all_waypoints.difference(verified)}, " + \
+        f"not in route alternatives: {verified.difference(all_waypoints)}"
