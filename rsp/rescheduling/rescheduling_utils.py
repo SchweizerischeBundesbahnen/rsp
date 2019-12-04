@@ -116,7 +116,7 @@ def _get_freeze_for_delta(
     banned_set = set()
     for agent_path in banned_paths:
         for waypoint_index, waypoint in enumerate(agent_path):
-            if waypoint not in force_freeze_waypoints_set and waypoint not in earliest_dict and not waypoint in banned_set:
+            if waypoint not in force_freeze_waypoints_set and waypoint not in earliest_dict and waypoint not in banned_set:
                 banned.append(waypoint)
                 banned_set.add(waypoint)
 
@@ -275,11 +275,14 @@ def _get_freeze_for_malfunction_per_train(
     freeze_earliest_only_set = {trainrun_waypoint.waypoint for trainrun_waypoint in
                                 freeze_earliest_only}
     # collect banned
-    banned = list(OrderedDict.fromkeys([waypoint
-                                        for agent_path in agent_paths for waypoint in agent_path
-                                        if
-                                        waypoint not in freeze_time_and_visit_waypoints_set and waypoint not in freeze_earliest_and_visit_waypoints_set and waypoint not in freeze_earliest_only_set
-                                        ]))
+    banned = list(OrderedDict.fromkeys(
+        [waypoint
+         for agent_path in agent_paths
+         for waypoint in agent_path
+         if waypoint not in freeze_time_and_visit_waypoints_set
+         and waypoint not in freeze_earliest_and_visit_waypoints_set
+         and waypoint not in freeze_earliest_only_set
+         ]))
 
     return ExperimentFreeze(freeze_time_and_visit=freeze_time_and_visit,
                             freeze_earliest_and_visit=freeze_earliest_and_visit,
