@@ -97,16 +97,20 @@ def solve_problem(env: RailEnv,
 
     verification_by_file("solution_trainrun_dict", solution.get_trainruns_dict(), loop_index, problem.get_solver_name())
 
+    if debug:
+        print("####train runs dict")
+        print(_pp.pformat(trainruns_dict))
+
     # --------------------------------------------------------------------------------------
     # Replay and verifiy the solution
     # --------------------------------------------------------------------------------------
     verify_trainruns_dict(env, trainruns_dict)
-    # TODO SIM-146 should work again
-    # total_reward = replay(env=env, loop_index=loop_index, expected_malfunction=expected_malfunction, problem=problem,
-    #                       rendering_call_back=rendering_call_back, solution=solution,
-    #                       debug=debug,
-    #                       disable_verification_in_replay=disable_verification_in_replay)
-    total_reward = 0
+    total_reward = replay(env=env, loop_index=loop_index,
+                          expected_malfunction=expected_malfunction,
+                          problem=problem,
+                          rendering_call_back=rendering_call_back, solution=solution,
+                          debug=debug,
+                          disable_verification_in_replay=disable_verification_in_replay)
 
     return SchedulingExperimentResult(total_reward=total_reward,
                                       solve_time=solve_time,

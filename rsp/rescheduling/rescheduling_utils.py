@@ -9,9 +9,11 @@ from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreezeDict, Ex
 
 
 def get_freeze_for_delta(schedule_trainruns: TrainrunDict,
+                         full_reschedule_trainruns: TrainrunDict,
                          speed_dict: Dict[int, float],
                          agents_path_dict: Dict[int, List[List[Waypoint]]],
                          force_freeze: Dict[int, List[List[Waypoint]]],
+                         malfunction: ExperimentMalfunction
                          ) -> ExperimentFreezeDict:
     """
 
@@ -31,8 +33,10 @@ def get_freeze_for_delta(schedule_trainruns: TrainrunDict,
         agent_id: _get_freeze_for_delta(
             minimum_travel_time=(1 / speed_dict[agent_id]),
             schedule_trainrun=schedule_trainruns[agent_id],
+            full_reschedule_trainrun=full_reschedule_trainruns[agent_id],
             agent_paths=agents_path_dict[agent_id],
-            force_freeze=force_freeze[agent_id]
+            force_freeze=force_freeze[agent_id],
+            malfunction=malfunction if malfunction.agent_id == agent_id else None
         )
         for agent_id, schedule_trainrun in schedule_trainruns.items()}
     for agent_id in experiment_freeze_dict:
@@ -47,12 +51,27 @@ def get_freeze_for_delta(schedule_trainruns: TrainrunDict,
 def _get_freeze_for_delta(
         minimum_travel_time: int,
         schedule_trainrun: Trainrun,
+        full_reschedule_trainrun: Trainrun,
         agent_paths: List[List[Waypoint]],
-        force_freeze: List[TrainrunWaypoint]
+        force_freeze: List[TrainrunWaypoint],
+        malfunction: Optional[ExperimentMalfunction]
 ) -> ExperimentFreeze:
     force_freeze_dict = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in
                          force_freeze}
     force_freeze_waypoints_set = {trainrun_waypoint.waypoint for trainrun_waypoint in force_freeze}
+
+    # find first after malfunction and add to earliest and visit if this is the malfunctioning agent
+    freeze_earliest_and_visit = []
+    freeze_earliest_and_visit_waypoint_set: Set[Waypoint] = set()
+    trainrun_waypoint_after_malfunction = None
+    if malfunction:
+        for trainrun_waypoint in full_reschedule_trainrun:
+            if trainrun_waypoint.scheduled_at > malfunction.time_step:
+                if trainrun_waypoint.waypoint not in force_freeze_waypoints_set:
+                    freeze_earliest_and_visit.append(trainrun_waypoint)
+                    trainrun_waypoint_after_malfunction = trainrun_waypoint
+                    freeze_earliest_and_visit_waypoint_set.add(trainrun_waypoint.waypoint)
+                break
 
     earliest_dict: Dict[Waypoint, int] = OrderedDict()
 
@@ -76,16 +95,22 @@ def _get_freeze_for_delta(
                     earliest_dict[waypoint] = scheduled_start
                     previous_earliest = scheduled_start
             else:
-                tentative_earliest = max(scheduled_start + waypoint_index * minimum_travel_time + 1,
-                                         previous_earliest + minimum_travel_time)
+
+                if trainrun_waypoint_after_malfunction and waypoint == trainrun_waypoint_after_malfunction.waypoint:
+                    # if this is the agent in malfunction and we're at the vertex after malfunction, delay!
+                    tentative_earliest = trainrun_waypoint_after_malfunction.scheduled_at
+                else:
+                    # propagate earliest via path
+                    tentative_earliest = max(scheduled_start + waypoint_index * minimum_travel_time + 1,
+                                             previous_earliest + minimum_travel_time)
                 if waypoint in force_freeze_dict:
                     previous_earliest = max(tentative_earliest, force_freeze_dict[waypoint])
                 else:
                     earliest_dict[waypoint] = min(earliest_dict.get(waypoint, numpy.inf), tentative_earliest)
                     previous_earliest = earliest_dict[waypoint]
-    freeze_earliest_only = [TrainrunWaypoint(waypoint=waypoint, scheduled_at=int(scheduled_at)) for
-                            waypoint, scheduled_at in
-                            earliest_dict.items()]
+    freeze_earliest_only = [TrainrunWaypoint(waypoint=waypoint, scheduled_at=int(scheduled_at))
+                            for waypoint, scheduled_at in earliest_dict.items()
+                            if waypoint not in freeze_earliest_and_visit_waypoint_set]
 
     banned = []
     banned_set = set()
@@ -96,7 +121,7 @@ def _get_freeze_for_delta(
                 banned_set.add(waypoint)
 
     return ExperimentFreeze(freeze_time_and_visit=force_freeze.copy(),
-                            freeze_earliest_and_visit=[],
+                            freeze_earliest_and_visit=freeze_earliest_and_visit,
                             freeze_earliest_only=freeze_earliest_only,
                             freeze_visit_only=[],
                             freeze_banned=banned,

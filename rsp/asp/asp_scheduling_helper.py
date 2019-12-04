@@ -237,16 +237,18 @@ def reschedule_delta_after_malfunction(
         print(_pp.pformat(schedule_trainruns))
         print("####full_reschedule_trainruns")
         print(_pp.pformat(full_reschedule_trainruns))
-        print("####force_freeze")
-        print(malfunction)
         print("####malfunction")
+        print(malfunction)
+        print("####force_freeze")
         print(_pp.pformat(force_freeze))
     speed_dict = {agent.handle: agent.speed_data['speed'] for agent in malfunction_rail_env.agents}
     freeze_dict: ExperimentFreezeDict = get_freeze_for_delta(
         schedule_trainruns=schedule_trainruns,
+        full_reschedule_trainruns=full_reschedule_trainruns,
         speed_dict=speed_dict,
         agents_path_dict=schedule_problem.agents_path_dict,
-        force_freeze=force_freeze
+        force_freeze=force_freeze,
+        malfunction=malfunction
     )
     if debug:
         print("####freeze_dict")
