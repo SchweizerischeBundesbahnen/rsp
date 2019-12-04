@@ -99,7 +99,7 @@ def test_regression_experiment_agenda():
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
-    result = run_experiment_agenda(solver, agenda)
+    result = run_experiment_agenda(solver, agenda, verbose=True)
 
     with pandas.option_context('display.max_rows', None, 'display.max_columns',
                                None):  # more options can be specified also
@@ -107,11 +107,11 @@ def test_regression_experiment_agenda():
         print(result_dict)
 
     expected_result_dict = {
-        # TODO SIM-146 why are costs_delta_after_malfunction zero? this might correct tecnically,
+        # TODO SIM-146 why are costs_delta_after_malfunction zero? this might be correct technically,
         #  but is confusing from a logical point of view (should be same as costs_full_after_malfunction
         'costs_delta_after_malfunction': {0: 0.0},
         'costs_full': {0: 2.0},
-        'costs_full_after_malfunction': {0: 20.0},
+        'costs_full_after_malfunction': {0: 22.0},
         'experiment_id': {0: 0},
         'max_num_cities': {0: 20},
         'max_rail_between_cities': {0: 2},

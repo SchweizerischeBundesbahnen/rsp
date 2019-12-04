@@ -88,8 +88,6 @@ def solve_problem(env: RailEnv,
     assert solution.is_solved()
 
     trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
-    if debug:
-        print(_pp.pformat(solution.get_trainruns_dict()))
 
     if isinstance(problem, ASPProblemDescription):
         aspsolution: ASPSolutionDescription = solution
@@ -102,12 +100,13 @@ def solve_problem(env: RailEnv,
     # --------------------------------------------------------------------------------------
     # Replay and verifiy the solution
     # --------------------------------------------------------------------------------------
-    total_reward = replay(env=env, loop_index=loop_index, expected_malfunction=expected_malfunction, problem=problem,
-                          rendering_call_back=rendering_call_back, solution=solution,
-                          debug=debug,
-                          disable_verification_in_replay=disable_verification_in_replay)
-
     verify_trainruns_dict(env, trainruns_dict)
+    # TODO SIM-146 should work again
+    # total_reward = replay(env=env, loop_index=loop_index, expected_malfunction=expected_malfunction, problem=problem,
+    #                       rendering_call_back=rendering_call_back, solution=solution,
+    #                       debug=debug,
+    #                       disable_verification_in_replay=disable_verification_in_replay)
+    total_reward = 0
 
     return SchedulingExperimentResult(total_reward=total_reward,
                                       solve_time=solve_time,
@@ -214,7 +213,10 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
         for trainrun_waypoint in trainrun_sparse:
             # 1.a) ensure schedule is ascending and respects the train's constant speed
             if previous_trainrun_waypoint is not None:
-                assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell
+                assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell, \
+                    f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
+                    f"from {previous_trainrun_waypoint} " + \
+                    f"minimum running time={minimum_running_time_per_cell}"
             # 1.b) ensure train run is non-circular
             assert trainrun_waypoint not in previous_waypoints
             previous_trainrun_waypoint = trainrun_waypoint

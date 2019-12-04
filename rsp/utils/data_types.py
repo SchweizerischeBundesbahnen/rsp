@@ -2,6 +2,7 @@
 Data types used in the experiment for the real time rescheduling research project
 
 """
+import pprint
 from typing import NamedTuple, List, Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict, Waypoint
@@ -61,3 +62,19 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('earliest_malfunction', List[int]),
                                                  ('malfunction_duration', List[int])
                                                  ])
+
+_pp = pprint.PrettyPrinter(indent=4)
+
+
+def experimentFreezeDictPrettyPrint(d: ExperimentFreezeDict):
+    for agent_id, experiment_freeze in d.items():
+        prefix = f"agent {agent_id} "
+        experimentFreezePrettyPrint(experiment_freeze, prefix)
+
+
+def experimentFreezePrettyPrint(experiment_freeze: ExperimentFreeze, prefix: str = ""):
+    print(f"{prefix}freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
+    print(f"{prefix}freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
+    print(f"{prefix}freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
+    print(f"{prefix}freeze_visit_only={_pp.pformat(experiment_freeze.freeze_visit_only)}")
+    print(f"{prefix}freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")

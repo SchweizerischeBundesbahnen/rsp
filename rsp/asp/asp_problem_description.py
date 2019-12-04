@@ -154,7 +154,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         """
         Returns a problem description with additional constraints to freeze all the variables up to malfunction.
 
-        The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_trainrun`.
+        The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_malfunction_per_train`.
 
 
         The ASP constraints are derived by :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_experiment_freeze_to_ASP`.
@@ -198,6 +198,8 @@ class ASPProblemDescription(AbstractProblemDescription):
         # 2019-12-03 discussion with Potsdam (SIM-146): adding multiple earliest constraints for the same vertex could have side-effects
         freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
         asp_program = freezed_copy.asp_program
+
+        # TODO SIM-146 is this correct????? this seems like a dirty hack. move to where earliest are produces
         # add constraints for dummy target nodes
         for agent_id, dummy_target_waypoints in self.dummy_target_vertices.items():
             train = "t{}".format(agent_id)
@@ -206,6 +208,7 @@ class ASPProblemDescription(AbstractProblemDescription):
                 # add + 1 for dummy target edge within target cell
                 asp_program.append(
                     f"e({train},{vertex},{schedule_trainruns[agent_id][-1].scheduled_at + 1}).")
+
         # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
         # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
         # TODO SIM-146 ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up

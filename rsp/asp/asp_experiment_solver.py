@@ -103,7 +103,9 @@ class ASPExperimentSolver(AbstractSolver):
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
             schedule_problem=schedule_problem,
-            rendering=rendering)
+            rendering=rendering,
+            debug=verbose
+        )
         malfunction_env_reset()
         delta_reschedule_solution: ASPSolutionDescription = delta_reschedule_result.solution
 

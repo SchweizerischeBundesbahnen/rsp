@@ -7,8 +7,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 # TODO SIM-146 refactor: nothing special to ASP -> add freeze stuff to abc
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction, ExperimentFreezeDict
-from rsp.utils.data_types import ExperimentMalfunction
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction, ExperimentFreezeDict, \
+    get_freeze_for_delta
+from rsp.utils.data_types import ExperimentMalfunction, experimentFreezeDictPrettyPrint
 from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
 from rsp.utils.experiment_utils import solve_problem, SchedulingExperimentResult
 
@@ -133,7 +134,7 @@ def reschedule_full_after_malfunction(
         render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
         cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
 
-    renderer = init_renderer_for_env(static_rail_env, rendering)
+    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
 
     def rendering_call_back(test_id: int, solver_name, i_step: int):
         render_renderer_for_env(renderer, test_id, solver_name, i_step)
@@ -141,14 +142,20 @@ def reschedule_full_after_malfunction(
     # --------------------------------------------------------------------------------------
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
-
-    freeze_dict: ExperimentFreezeDict = get_freeze_for_malfunction(malfunction, schedule_trainruns, static_rail_env,
-                                                                   schedule_problem.agents_path_dict)
+    freeze_dict: ExperimentFreezeDict = get_freeze_for_malfunction(
+        malfunction=malfunction,
+        schedule_trainruns=schedule_trainruns,
+        env=static_rail_env,
+        agents_path_dict=schedule_problem.agents_path_dict)
 
     full_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
         schedule_trainruns=schedule_trainruns
     )
+
+    if debug:
+        print("###reschedule_full freeze_dict")
+        experimentFreezeDictPrettyPrint(freeze_dict)
 
     full_reschedule_result = solve_problem(
         env=malfunction_rail_env,
@@ -160,6 +167,10 @@ def reschedule_full_after_malfunction(
     )
     cleanup_renderer_for_env(renderer)
     malfunction_env_reset()
+
+    if debug:
+        print("###reschedule_full_after_malfunction")
+        print(_pp.pformat(full_reschedule_result.solution.get_trainruns_dict()))
 
     return full_reschedule_result
 
@@ -219,17 +230,31 @@ def reschedule_delta_after_malfunction(
                                           malfunction,
                                           schedule_trainruns,
                                           verbose=False)
-
-    freeze_dict: ExperimentFreezeDict = get_freeze_for_malfunction(
-        malfunction,
-        full_reschedule_trainruns,
-        malfunction_rail_env,
-        schedule_problem.agents_path_dict,
+    if debug:
+        print("####agents_path_dict")
+        print(_pp.pformat(schedule_problem.agents_path_dict))
+        print("####schedule_trainruns")
+        print(_pp.pformat(schedule_trainruns))
+        print("####full_reschedule_trainruns")
+        print(_pp.pformat(full_reschedule_trainruns))
+        print("####force_freeze")
+        print(malfunction)
+        print("####malfunction")
+        print(_pp.pformat(force_freeze))
+    speed_dict = {agent.handle: agent.speed_data['speed'] for agent in malfunction_rail_env.agents}
+    freeze_dict: ExperimentFreezeDict = get_freeze_for_delta(
+        schedule_trainruns=schedule_trainruns,
+        speed_dict=speed_dict,
+        agents_path_dict=schedule_problem.agents_path_dict,
         force_freeze=force_freeze
     )
+    if debug:
+        print("####freeze_dict")
+        experimentFreezeDictPrettyPrint(freeze_dict)
 
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
+        # TODO SIM-146 bad code smell: why should we need to pass the train runs so far???
         schedule_trainruns=full_reschedule_trainruns
     )
 
@@ -240,11 +265,14 @@ def reschedule_delta_after_malfunction(
         debug=debug,
         expected_malfunction=malfunction)
     cleanup_renderer_for_env(renderer)
+
+    if debug:
+        print("####delta train runs dict")
+        print(_pp.pformat(delta_reschedule_result.solution.get_trainruns_dict()))
+
     return delta_reschedule_result
 
 
-# TODO SIM-146 ASP performance enhancement: we consider the worst case: we leave everything open;
-#      we do not give the ASP solver the information about the full re-schedule!!
 def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
                     malfunction: ExperimentMalfunction,
                     schedule_trainrunwaypoints: TrainrunDict,
@@ -282,16 +310,13 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
         for agent_id in schedule_trainrunwaypoints.keys()
     }
 
+    # freeze contains everything that stays the same
     freeze: TrainrunDict = \
         {agent_id: sorted(list(
             set(full_reschedule_trainrunwaypoints_dict[agent_id]).intersection(
                 set(schedule_trainrunwaypoints[agent_id]))),
             key=lambda p: p.scheduled_at) for agent_id in delta.keys()}
-    # add first element after malfunction to inverse delta -> wee ned to freeze it!
-    trainrun_waypoint_after_malfunction = next(
-        trainrun_waypoint for trainrun_waypoint in full_reschedule_trainrunwaypoints_dict[malfunction.agent_id] if
-        trainrun_waypoint.scheduled_at > malfunction.time_step)
-    freeze[malfunction.agent_id].append(trainrun_waypoint_after_malfunction)
+
     if verbose:
         print(f"  **** delta={_pp.pformat(delta)}")
 
