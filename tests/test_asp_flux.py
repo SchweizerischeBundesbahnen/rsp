@@ -1,6 +1,5 @@
 import time
 
-import pytest
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.observations import TreeObsForRailEnv
 from flatland.envs.predictions import ShortestPathPredictorForRailEnv
@@ -50,10 +49,15 @@ def test_mutual_exclusion():
     with path('tests.data.asp.instances', 'dummy_two_agents.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
             models, statistics, _, _ = _asp_helper([instance_in, encoding_in])
-    assert int(statistics['summary']['models']['enumerated']) == 1
-    first_actual = list(models)[0]
-    expected_dl = set(['dl((t1,4),8)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),6)'])
-    assert first_actual.issuperset(expected_dl), "expected {} to be subset of {}".format(expected_dl, first_actual)
+
+    # we do not optimize, we get two models!
+    assert len(models) == 2
+    print(models)
+    expected_dl1 = set(['dl((t1,4),8)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),6)'])
+    expected_dl2 = set(['dl((t1,4),2)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),0)'])
+    for actual in models:
+        assert actual.issuperset(expected_dl1) or actual.issuperset(expected_dl2), \
+            "actual {} expected to be superset of {} or of {}".format(actual, expected_dl1, expected_dl2)
 
 
 def test_simple_rail_asp_one_agent():
@@ -151,14 +155,14 @@ def test_minimize_sum_of_running_times_scheduling():
         encodings.append(encoding_in)
     models, all_statistics, _, _ = _asp_helper(encodings)
 
+    print(models)
     assert len(models) == 1
-    actual = list(models)[0]
+    actual = models[0]
     dls = list(filter(lambda x: x.startswith("dl"), actual))
     print(actual)
     print(dls)
 
     assert all_statistics['summary']['costs'][0] == 0, "found {}".format(all_statistics[0]['summary']['costs'][0])
-    assert all_statistics['summary']['models']['enumerated'] == 1
 
     expected = set([
         'dl((t1,1),2)',
@@ -171,7 +175,6 @@ def test_minimize_sum_of_running_times_scheduling():
     assert expected.issubset(actual), "actual {}, expected {}".format(actual, expected)
 
 
-@pytest.mark.skip(reason="Currently disable, does not work under Linux, see https://issues.sbb.ch/browse/SIM-149")
 def test_minimize_delay_rescheduling():
     """Case Study how to model minimizing delay with respect to given schedule and a malfunction delay."""
     encodings = []
@@ -179,20 +182,12 @@ def test_minimize_delay_rescheduling():
         encodings.append(instance_in)
     with path('res.asp.encodings', 'encoding.lp') as encoding_in:
         encodings.append(encoding_in)
-    with path('res.asp.encodings', 'delay_linear.lp') as encoding_in:
-        encodings.append(encoding_in)
     with path('res.asp.encodings', 'minimize_delay.lp') as encoding_in:
         encodings.append(encoding_in)
     models, all_statistics, _, _ = _asp_helper(encoding_files=encodings)
+    print(models)
     assert len(models) == 1
-    actual = list(models)[0]
-    lates = list(filter(lambda x: "late" in x, actual))
-    print(lates)
-    dls = list(filter(lambda x: x.startswith("dl"), actual))
-    print(dls)
-
     assert all_statistics['summary']['costs'][0] == 6, "found {}".format(all_statistics['summary']['costs'][0])
-    assert all_statistics['summary']['models']['enumerated'] == 1
 
     expected = set([
         'dl((t1,1),0)',
@@ -202,4 +197,13 @@ def test_minimize_delay_rescheduling():
         'dl((t2,2),8)',
         'dl((t2,3),10)'
     ])
-    assert expected.issubset(actual), "actual {}, expected {}".format(actual, expected)
+    second_expected = set(
+        ['dl((t1,1),0)', 'dl((t1,2),7)', 'dl((t2,2),11)', 'dl((t2,3),13)', 'dl((t2,4),0)', 'dl((t1,3),11)']
+    )
+    for actual in models:
+        lates = list(filter(lambda x: "late" in x, actual))
+        print(lates)
+        dls = list(filter(lambda x: x.startswith("dl"), actual))
+        print(dls)
+        assert expected.issubset(actual) or second_expected.issubset(actual), "actual {}, expected {} or {}".format(
+            actual, expected, second_expected)

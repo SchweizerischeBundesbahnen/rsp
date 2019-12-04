@@ -1,7 +1,7 @@
 import json
 import time
 from enum import Enum
-from typing import List, Optional, Set, Any, Tuple, NamedTuple, Dict
+from typing import List, Optional, Set, NamedTuple, Dict
 
 import clingo
 import numpy as np
@@ -19,15 +19,14 @@ class ASPObjective(Enum):
     """
     MINIMIZE_SUM_RUNNING_TIMES = "minimize_total_sum_of_running_times"  # minimize_total_sum_of_running_times.lp
     MINIMIZE_LATEST_ARRIVAL = "bound_all_events"  # multi-shot + bound_all_events.lp
-    # TODO SIM-137 delay minimization for re-scheduling
     MINIMIZE_DELAY = "minimize_delay"
-    MINIMIZE_ROUTES = "minimize_routes"
 
 
 FluxHelperResult = NamedTuple('FluxHelperResult', [
     # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
-    ('answer_sets', Set[Set[str]]),
+    ('answer_sets', List[Set[str]]),
     ('stats', Dict),
+    # future use for incremental solving?
     ('ctl', clingo.Control),
     ('dl', theory.Theory),
 ])
@@ -63,7 +62,7 @@ def flux_helper(
     with path('res.asp.encodings', 'encoding.lp') as encoding_path:
         paths = [encoding_path]
 
-    # TODO performance test with/without heuristics
+    # TODO SIM-146 performance test with/without heuristics
     if heuristic_routes:
         with path('res.asp.encodings', 'heuristic_ROUTES.lp') as heuristic_routes_path:
             paths.append(heuristic_routes_path)
@@ -85,8 +84,7 @@ def _asp_helper(encoding_files: List[str],
                 plain_encoding: Optional[str] = None,
                 verbose: bool = False,
                 bound_all_events: Optional[int] = None,
-                deterministic_mode: bool = True) -> Tuple[Set[str], List[Any]]:
-    # TODO return type structure
+                deterministic_mode: bool = True) -> FluxHelperResult:
     """
     Runs clingo-dl with in the desired mode.
 
@@ -117,8 +115,11 @@ def _asp_helper(encoding_files: List[str],
     if deterministic_mode:
         ctl_args = ["--seed=94", "-c use_decided=1", "-t1", "--lookahead=no"]
     ctl = clingo.Control(ctl_args)
+
+    # find optimal model; if not optimizing, find all models!
+    ctl.configuration.solve.models = 0
+    # find only first optimal model
     ctl.configuration.solve.opt_mode = 'opt'
-    ctl.configuration.solve.models = 1
     dl.register_propagator(ctl)
 
     if verbose:
@@ -142,15 +143,15 @@ def _asp_helper(encoding_files: List[str],
     statistics: Dict = ctl.statistics
 
     if verbose:
+        print(all_answers)
         _print_configuration(ctl)
         _print_stats(statistics)
 
-    # TODO SIM-105 bad code smell: why do we have to expose ctl and dl? If yes, we should accept them as argument again for increment
-    return FluxHelperResult(frozenset(all_answers), statistics, ctl, dl)
+    return FluxHelperResult(all_answers, statistics, ctl, dl)
 
 
 def _asp_loop(ctl, dl, verbose):
-    all_answers = set()
+    all_answers = []
     min_cost = np.inf
     with ctl.solve(yield_=True) as handle:
         for model in handle:
@@ -160,67 +161,13 @@ def _asp_loop(ctl, dl, verbose):
                     if verbose:
                         print("Optimization: {}".format(cost))
                     min_cost = cost
-                    all_answers = set()
+                    all_answers = []
             # TODO SIM-121 convert to handable data structures instead of strings!
             sol = str(model).split(" ")
             for name, value in dl.assignment(model.thread_id):
                 sol.append(f"dl({name},{value})")
-            all_answers.add(frozenset(sol))
+            all_answers.append(frozenset(sol))
     return all_answers
-
-
-# TODO refactor the loop and break flow control copied from the paper if we are to use multi-shot optimization
-def _asp_multi_shot_solving(all_answers, asp_objective, ctl, dl, verbose: bool = False):  # NOQA
-    """Multi-shot optimization based on "A Tutorial on Hybrid Answer Set Solving with clingo",
-    https://www.cs.uni-potsdam.de/~torsten/hybris.pdf"""
-    if verbose:
-        print("Multi-shot starting...")
-    all_statistics = []
-    answers_candidate = []
-    while True:
-        # next call
-        current_bound = None
-        try:
-            with ctl.solve(yield_=True) as handle:
-                for model in handle:
-                    # extract answer set
-                    # TODO SIM-121 convert to handable data structures instead of strings!
-                    sol = str(model).split(" ")
-                    for name, value in dl.assignment(model.thread_id):
-                        sol.append(f"dl({name},{value})")
-                        if "{}".format(name) == asp_objective.value:
-                            if verbose:
-                                print("extracting bound {}".format(value))
-                            current_bound = value
-                    answers_candidate.append(frozenset(sol))
-                    if verbose:
-                        print("Answer set found: {} with bound {}".format(sol, current_bound))
-
-                    break
-                else:
-                    if len(all_statistics) > 0:
-                        # tweak statistics: we know the statistics before UNSAT must be optimoal
-                        all_statistics[-1]['summary']['models']['optimal'] = 1.0
-                    if verbose:
-                        print("Optimum found")
-                    break
-        except:  # NOQA
-            if len(all_statistics) > 0:
-                # tweak statistics: we know the statistics before UNSAT must be optimoal
-                all_statistics[-1]['summary']['models']['optimal'] = 1.0
-            # sometimes, Exception: not a valid solution arises - I don't understand why/under which circumstances
-            # source of the exception: https://github.com/potassco/clingoDL/blob/6ef185b5f17a44096607713afc0e1cb570381c7d/libclingo-dl/clingo-dl/propagator.hh
-            if verbose:
-                print("Optimum found")
-            break
-        all_statistics.append(ctl.statistics)
-        all_answers = answers_candidate
-        if verbose:
-            print("Found new bound: {}".format(current_bound))
-        if not isinstance(current_bound, int):
-            raise Exception("Something went wrong, probably no bound could be extracted")
-        ctl.ground([(asp_objective.value, [current_bound - 1])])
-    return all_answers, all_statistics
 
 
 def _print_stats(statistics):
@@ -242,6 +189,10 @@ def _print_stats(statistics):
                   statistics["summary"]["times"]["sat"],
                   statistics["summary"]["times"]["unsat"],
                   ))
+    percentage_solving_time = \
+        100 * statistics["summary"]["times"]["solve"] / (statistics["summary"]["times"]["total"]
+                                                         if statistics["summary"]["times"]["total"] != 0 else 1)
+    print("Solving time : {:5.1f}%".format(percentage_solving_time))
     print("CPU Time     : {:5.3f}s".format(statistics["summary"]["times"]["cpu"]))
     print("=================================================================================")
     print("")

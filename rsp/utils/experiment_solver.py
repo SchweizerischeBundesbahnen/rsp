@@ -4,11 +4,17 @@ Abstract class for solvers. These are used to solve the experiments surrounding 
 """
 
 import abc
+from typing import Callable, Any
 
 import numpy as np
 from flatland.envs.rail_env import RailEnv
 
 from rsp.utils.data_types import ExperimentResults
+
+# abstract from rendering to have unit tests without dependendance on FLATland rendering
+RendererForEnvInit = Callable[[RailEnv, bool], Any]
+RendererForEnvRender = Callable[[Any, int, str, int, str], None]
+RendererForEnvCleanup = Callable[[Any], None]
 
 
 class AbstractSolver:
@@ -20,7 +26,12 @@ class AbstractSolver:
             malfunction_rail_env: RailEnv,
             malfunction_env_reset,
             k: int = 10,
-            disable_verification_by_replay: bool = False
+            disable_verification_by_replay: bool = False,
+            verbose: bool = False,
+            rendering: bool = False,
+            init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
+            render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
+            cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
     ) -> ExperimentResults:
         """
         Runs the experiment.
@@ -56,7 +67,12 @@ class DummySolver(AbstractSolver):
             malfunction_rail_env: RailEnv,
             malfunction_env_reset,
             k: int = 10,
-            disable_verification_by_replay: bool = False
+            disable_verification_by_replay: bool = False,
+            verbose: bool = False,
+            rendering: bool = False,
+            init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
+            render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
+            cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
     ) -> ExperimentResults:
         """
         Runs the experiment.

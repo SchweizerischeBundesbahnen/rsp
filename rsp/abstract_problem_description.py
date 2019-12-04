@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 from flatland.core.grid.grid_utils import Vec2dOperations as Vec2d
+from flatland.envs.agent_utils import EnvAgent
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
@@ -157,12 +158,15 @@ class AbstractProblemDescription:
         """
 
     @abc.abstractmethod
-    def _create_objective_function_minimize(self, variables: List[Waypoint]):
+    def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
         """
         Add the objective to our model
+
         Parameters
         ----------
         variables
+            dummy target waypoints (in order to have an edge covering the cell and to enforce that the cell has to be occupied in order to reach the target)
+
 
         Returns
         -------
@@ -171,15 +175,14 @@ class AbstractProblemDescription:
 
     def _create_along_paths(self, skip_mutual_exclusion=False):
         max_agents_steps_allowed: int = self.env._max_episode_steps
-        dummy_target_vertices: List[Waypoint] = []
+        dummy_target_vertices_dict: Dict[int, List[Waypoint]] = {agent.handle: [] for agent in self.env.agents}
         already_added = set()
         for agent_id, agent in enumerate(self.env.agents):
+            dummy_target_vertices = dummy_target_vertices_dict[agent_id]
 
             agent_paths = self.agents_path_dict[agent_id]
-            agent_min_number_of_steps = min([len(agent_path) for agent_path in agent_paths])
+            agent_minimum_running_time = self.get_agent_minimum_running_time(agent, agent_paths)
 
-            # we assume activate_agents=False, therefore add 1!
-            agent_minimum_running_time = int(agent_min_number_of_steps // agent.speed_data['speed'] + 1)
             for path_index, agent_path in enumerate(agent_paths):
                 source_waypoint = self.convert_position_and_entry_direction_to_waypoint(*agent_path[0].position,
                                                                                         agent_path[0].direction)
@@ -194,16 +197,34 @@ class AbstractProblemDescription:
                 self._add_agent_waypoints(agent, agent_id, agent_path, already_added, dummy_target_waypoint,
                                           max_agents_steps_allowed, path_index)
 
+                dummy_target_entry = (agent_id, dummy_target_waypoint)
+                if dummy_target_entry not in already_added:
+                    self._implement_agent_earliest(*dummy_target_entry, 0)
+                    self._implement_agent_latest(*dummy_target_entry, max_agents_steps_allowed)
+
         # Mutual exclusion (required only for ortools, would not be required for ASP,
         # since the grounding phase thus this for us)
         if not skip_mutual_exclusion:
             self._add_mutual_exclusion_ortools()
 
-        self._create_objective_function_minimize(dummy_target_vertices)
+        self._create_objective_function_minimize(dummy_target_vertices_dict)
+
+    @staticmethod
+    def get_agent_minimum_running_time(agent: EnvAgent, agent_paths: List[Waypoint]):
+        """Get minimum number of steps taken in FLATland """
+
+        # agent paths do not last dummy synchronization segment
+        # number of steps is number of vertices minus 1!
+        agent_min_number_of_steps = min([len(agent_path) - 1 for agent_path in agent_paths])
+
+        # we assume activate_agents=False, therefore add 1 step!
+        agent_minimum_running_time = int(agent_min_number_of_steps // agent.speed_data['speed'] + 1)
+        return agent_minimum_running_time
 
     def _add_agent_waypoints(self, agent, agent_id, agent_path, already_added, dummy_target_waypoint,
                              max_agents_steps_allowed,
                              path_index):
+
         for waypoint_index, waypoint in enumerate(agent_path[:-1]):
 
             current_position = waypoint.position

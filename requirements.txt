@@ -3,6 +3,7 @@ flake8-eradicate>=0.2.0
 pytest>=3.8.2
 pytest-runner>=4.2
 ortools>=7.3
+overrides==2.5
 
 # TODO we should pin to FLATland version
 git+https://gitlab.aicrowd.com/flatland/flatland.git@master#egg=flatland-rl

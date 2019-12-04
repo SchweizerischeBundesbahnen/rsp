@@ -15,16 +15,16 @@ from numpy.random.mtrand import RandomState
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.googleortools.cp_sat_solver import CPSATSolver
 from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
-from utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env, render_env
-from utils.experiment_utils import solve_problem, current_milli_time
-from utils.general_utils import verification
+from rsp.utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env, render_env
+from rsp.utils.experiment_utils import solve_problem, current_milli_time
+from rsp.utils.general_utils import verification
 
 HEADER = "test_id;fraction_done_agents;total_reward;build_model_time;solve_time;is_solution_optimal;is_solved;" \
          "max_path_len;steps;w;h;num_agents;Solver;model_latest_arrival_time;sum_running_times\n"
 
 
 # ----------------------------- Auxiliary functions -----------------------------------------------------------
-def load_flatland_environment_from_file(file_name):
+def load_flatland_environment_from_file_with_fixed_seed(file_name):
     rail_generator = rail_from_file(file_name)
     schedule_generator = schedule_from_file(file_name)
 
@@ -39,7 +39,7 @@ def load_flatland_environment_from_file(file_name):
     environment.reset(False, False, False, random_seed=1001)
 
     # reset speed (set all values to one)
-    reset_agent_speed(environment)
+    set_agent_speeds_to_one(environment)
 
     return environment
 
@@ -101,11 +101,7 @@ def pull_sparse_env_parameters(width_bound: Bound,
     return number_of_agents, width, height, max_num_cities, max_rails_between_cities, max_rails_in_city
 
 
-def disable_malfunction(env: RailEnv):
-    env.proportion_malfunctioning_trains = 0.0
-
-
-def reset_agent_speed(env: RailEnv):
+def set_agent_speeds_to_one(env: RailEnv):
     for a in range(env.get_num_agents()):
         env.agents[a].speed_data['speed'] = 1.0
 
@@ -128,7 +124,7 @@ def list_files(directory_name):
     return r
 
 
-def create_environment(loop_index):
+def create_environment_for_test_helper(loop_index):
     seed_value = loop_index + 1
     grid_mode = False
     width_bound = Bound(40, 100)
@@ -162,14 +158,13 @@ def create_environment(loop_index):
     return env, width, height, number_of_agents
 
 
-# ----------------------------- Test Jeöüer -----------------------------------------------------------
+# ----------------------------- Test Helper -----------------------------------------------------------
 
 ORTOOLS_CPSAT = "ortools_CPSAT"
 ASP = "ASP"
 ASP_ALTERNATIVES = "ASP_ALTERNATIVES"
 
 
-# TODO import create_environment instead of passing as argument
 def test_helper(output_file_name, rendering, tests, debug=False):
     total_reward_agents_array = []
     fraction_done_agents_array = []
@@ -185,7 +180,7 @@ def test_helper(output_file_name, rendering, tests, debug=False):
             # --------------------------------------------------------------------------------------
             # Load env
             # --------------------------------------------------------------------------------------
-            env, width, height, number_of_agents = create_environment(loop_index)
+            env, width, height, number_of_agents = create_environment_for_test_helper(loop_index)
 
             verification("env_grid", env.rail.grid.tolist(), loop_index, solver_name)
 
@@ -235,7 +230,6 @@ def test_helper(output_file_name, rendering, tests, debug=False):
 
             total_reward, solve_time, build_problem_time, solution = solve_problem(
                 problem=problem, loop_index=loop_index, env=env,
-                agents_paths_dict=agents_paths_dict,
                 rendering_call_back=render, debug=debug)
             cleanup_renderer_for_env(renderer)
 

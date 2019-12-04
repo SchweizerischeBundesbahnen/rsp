@@ -1,5 +1,6 @@
-#const ub = 33.
-timestep(0..ub).
+#const bound_all_events = 33.
+#const upper_bound_linear_penalty = 60.
+#const penalty_after_linear = 5000000.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % network
@@ -36,16 +37,16 @@ start(t1,1).
 end(t1,3).
 
 e(t1,1,0),
-l(t1,1,ub).
+l(t1,1,bound_all_events).
 
 edge(t1,1,2).
 e(t1,2,4).
-l(t1,2,ub).
+l(t1,2,bound_all_events).
 w(t1,(1,2),2).
 
 edge(t1,2,3).
 e(t1,3,8).
-l(t1,3,ub).
+l(t1,3,bound_all_events).
 w(t1,(2,3),2).
 
 
@@ -61,16 +62,16 @@ start(t2,4).
 end(t2,3).
 
 e(t2,4,6),
-l(t2,4,ub).
+l(t2,4,bound_all_events).
 
 edge(t2,4,2).
 e(t2,2,8).
-l(t2,2,ub).
+l(t2,2,bound_all_events).
 w(t2,(4,2),0).
 
 edge(t2,2,3).
 e(t2,3,10).
-l(t2,3,ub).
+l(t2,3,bound_all_events).
 w(t2,(2,3),0).
 
 
@@ -82,8 +83,14 @@ w(t2,(2,3),0).
 % delay of 3 minutes of t1 at node 2:
 &diff { 0 - (t1,2) } <= -7.
 
-% penalize +1 at each time step after the scheduled time
-potlate(T,V,E+S,1) :- e(T,V,E), timestep(S), end(T,V),S>=1.
+% linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
+% penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
+linear_range(1..upper_bound_linear_penalty).
+potlate(T,V,E+S,1) :- e(T,V,E), linear_range(S), end(T,V).
+potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).
+
+
+
 
 % delay minimization should enforce taking the faster train first:
 %'dl((t1,1),0)',

@@ -28,11 +28,13 @@ load_experiment_results_to_file
 
 import errno
 import os
+import pprint
 from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame, Series
 
 from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges
@@ -40,8 +42,30 @@ from rsp.utils.experiment_env_generators import create_flatland_environment, \
     create_flatland_environment_with_malfunction
 from rsp.utils.experiment_solver import AbstractSolver
 
+_pp = pprint.PrettyPrinter(indent=4)
 
-def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentParameters) -> Series:
+COLUMNS = ['experiment_id',
+           'time_full',
+           'time_full_after_malfunction',
+           'time_delta_after_malfunction',
+           'solution_full',
+           'solution_full_after_malfunction',
+           'solution_delta_after_malfunction',
+           'costs_full',
+           'costs_full_after_malfunction',
+           'costs_delta_after_malfunction',
+           'delta',
+           'size',
+           'n_agents',
+           'max_num_cities',
+           'max_rail_between_cities',
+           'max_rail_in_city']
+
+
+def run_experiment(solver: AbstractSolver,
+                   experiment_parameters: ExperimentParameters,
+                   verbose=False,
+                   force_only_one_trial=True) -> Series:
     """
 
     Run a single experiment with a given solver and ExperimentParameters
@@ -58,14 +82,15 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
     """
 
     # DataFrame to store all results of experiments
-    experiment_results = pd.DataFrame(
-        columns=['experiment_id', 'time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction',
-                 'solution_full', 'solution_delta', 'delta', 'size', 'n_agents', 'max_num_cities',
-                 'max_rail_between_cities', 'max_rail_in_city'])
-
+    experiment_results = pd.DataFrame(columns=COLUMNS)
     # Run the sequence of experiment
-    for trial in range(experiment_parameters.trials_in_experiment):
+    for trial in range(experiment_parameters.trials_in_experiment if not force_only_one_trial else 1):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
+        if verbose:
+            print("*** experiment parameters of trial {} for experiment {}".format(trial + 1,
+                                                                                   experiment_parameters.experiment_id))
+            _pp.pprint(experiment_parameters)
+
         # Create experiment environments
         static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
 
@@ -82,12 +107,18 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
                                                       malfunction_rail_env=malfunction_rail_env,
                                                       malfunction_env_reset=malfunction_env_reset)
         # Store results
+        time_delta_after_m = current_results.time_delta_after_malfunction
+        time_full_after_m = current_results.time_full_after_malfunction
         experiment_result = {'experiment_id': experiment_parameters.experiment_id,
                              'time_full': current_results.time_full,
-                             'time_full_after_malfunction': current_results.time_full_after_malfunction,
-                             'time_delta_after_malfunction': current_results.time_delta_after_malfunction,
+                             'time_full_after_malfunction': time_delta_after_m,
+                             'time_delta_after_malfunction': time_full_after_m,
                              'solution_full': current_results.solution_full,
-                             'solution_delta': current_results.solution_delta,
+                             'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
+                             'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
+                             'costs_full': current_results.costs_full,
+                             'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
+                             'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
                              'delta': current_results.delta,
                              'size': experiment_parameters.width,
                              'n_agents': experiment_parameters.number_of_agents,
@@ -96,10 +127,72 @@ def run_experiment(solver: AbstractSolver, experiment_parameters: ExperimentPara
                              'max_rail_in_city': experiment_parameters.max_rail_in_city,
                              }
         experiment_results = experiment_results.append(experiment_result, ignore_index=True)
+        if verbose:
+            print("*** experiment result of trial {} for experiment {}".format(trial + 1,
+                                                                               experiment_parameters.experiment_id))
+
+            _pp.pprint({key: value for key, value in experiment_result.items()
+                        if not key.startswith('solution_') and not key == 'delta'})
+
+            # Delta is all train run way points in the re-schedule that are not also in the schedule
+            schedule_trainrunwaypoints = current_results.solution_full
+            full_reschedule_trainrunwaypoints_dict = current_results.solution_full_after_malfunction
+            delta: TrainrunDict = {
+                agent_id: sorted(list(
+                    set(full_reschedule_trainrunwaypoints_dict[agent_id]).difference(
+                        set(schedule_trainrunwaypoints[agent_id]))),
+                    key=lambda p: p.scheduled_at)
+                for agent_id in schedule_trainrunwaypoints.keys()
+            }
+            delta_percentage = 100 * sum([len(delta[agent_id]) for agent_id in delta.keys()]) / sum(
+                [len(full_reschedule_trainrunwaypoints_dict[agent_id]) for agent_id in
+                 full_reschedule_trainrunwaypoints_dict.keys()])
+
+            # Freeze is all train run way points in the schedule that are also in the re-schedule
+            freeze: TrainrunDict = \
+                {agent_id: sorted(list(
+                    set(full_reschedule_trainrunwaypoints_dict[agent_id]).intersection(
+                        set(schedule_trainrunwaypoints[agent_id]))),
+                    key=lambda p: p.scheduled_at) for agent_id in delta.keys()}
+            freeze_percentage = 100 * sum([len(freeze[agent_id]) for agent_id in freeze.keys()]) / sum(
+                [len(schedule_trainrunwaypoints[agent_id]) for agent_id in schedule_trainrunwaypoints.keys()])
+
+            print(
+                f"**** freeze: {freeze_percentage}% of waypoints in the full schedule are the same in the full re-schedule")
+            print(f"**** delta: {delta_percentage}% of waypoints in the re-schedule are the as in the initial schedule")
+
+            all_full_reschedule_trainrunwaypoints = {
+                full_reschedule_trainrunwaypoint
+                for full_reschedule_trainrunwaypoints in full_reschedule_trainrunwaypoints_dict.values()
+                for full_reschedule_trainrunwaypoint in full_reschedule_trainrunwaypoints
+            }
+            all_delta_reschedule_trainrunwaypoints = {
+                full_reschedule_trainrunwaypoint
+                for full_reschedule_trainrunwaypoints in current_results.solution_delta_after_malfunction.values()
+                for full_reschedule_trainrunwaypoint in full_reschedule_trainrunwaypoints
+            }
+
+            full_delta_same_counts = len(
+                all_full_reschedule_trainrunwaypoints.intersection(all_delta_reschedule_trainrunwaypoints))
+            full_delta_same_percentage = 100 * full_delta_same_counts / len(all_full_reschedule_trainrunwaypoints)
+            full_delta_new_counts = len(
+                all_delta_reschedule_trainrunwaypoints.difference(all_full_reschedule_trainrunwaypoints))
+            full_delta_stale_counts = len(
+                all_full_reschedule_trainrunwaypoints.difference(all_delta_reschedule_trainrunwaypoints))
+            print(
+                f"**** full re-schedule -> delta re-schedule: "
+                f"same {full_delta_same_percentage}% ({full_delta_same_counts})"
+                f"(+{full_delta_new_counts}, -{full_delta_stale_counts}) waypoints")
+            time_rescheduling_improve_perc = 100 * (time_delta_after_m - time_full_after_m) / time_full_after_m
+            print(f"**** full re-schedule -> delta re-schedule: "
+                  f"time {time_rescheduling_improve_perc:+2.1f}% "
+                  f"{time_full_after_m}s -> {time_delta_after_m}s")
+
     return experiment_results
 
 
-def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda) -> DataFrame:
+def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda,
+                          verbose: bool = False) -> DataFrame:
     """
      Run a given experiment_agenda with a suitable solver, return the results as a DataFrame
 
@@ -116,15 +209,13 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
     """
 
     # DataFrame to store all results of experiments
-    experiment_results = pd.DataFrame(
-        columns=['experiment_id', 'time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction',
-                 'solution_full', 'solution_delta', 'delta', 'size', 'n_agents', 'max_num_cities',
-                 'max_rail_between_cities', 'max_rail_in_city'])
+    experiment_results = pd.DataFrame(columns=COLUMNS)
 
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
         experiment_results = experiment_results.append(
-            run_experiment(solver=solver, experiment_parameters=current_experiment_parameters), ignore_index=True)
+            run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=verbose),
+            ignore_index=True)
     return experiment_results
 
 
@@ -150,10 +241,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
     """
 
     # DataFrame to store all results of experiments
-    experiment_results = pd.DataFrame(
-        columns=['experiment_id', 'time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction',
-                 'solution_full', 'solution_delta', 'delta', 'size', 'n_agents', 'max_num_cities',
-                 'max_rail_between_cities', 'max_rail_in_city'])
+    experiment_results = pd.DataFrame(columns=COLUMNS)
 
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
@@ -178,8 +266,8 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
     -------
     ExperimentAgenda built from the ParameterRanges
     """
-    # Todo Check that parameters are correctly filled into ExperimentParameters
-    # Todo add malfunction parameters correctly to ExperimentParameters
+    # TODO Check that parameters are correctly filled into ExperimentParameters
+    # TODO add malfunction parameters correctly to ExperimentParameters
     number_of_dimensions = len(parameter_ranges)
     parameter_values = [[] for i in range(number_of_dimensions)]
 
@@ -193,7 +281,7 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
     for param_id, parameter_set in enumerate(full_param_set):
-        # TODO SIM-105 Fix the dependance on the order of parameters in generator maybe work with namedtuples?
+        # TODO can we use named structure in pandas?
         current_experiment = ExperimentParameters(experiment_id=param_id,
                                                   trials_in_experiment=trials_per_experiment,
                                                   number_of_agents=parameter_set[1],
@@ -240,8 +328,6 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
 
 def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEnv, RailEnv]:
     """
-    # TODO: Write test to check that these envs are identical at step 0: https://gitlab.aicrowd.com/flatland/submission-scoring/issues/1
-
     Parameters
     ----------
     params: ExperimentParameters

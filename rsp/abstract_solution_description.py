@@ -1,11 +1,11 @@
 from __future__ import print_function
 
 import abc
-from typing import Dict, Any
+from typing import Any
 
 from flatland.action_plan.action_plan import ActionPlanDict, ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import Waypoint, Trainrun
+from flatland.envs.rail_trainrun_data_structures import Waypoint, Trainrun, TrainrunDict
 
 
 class AbstractSolutionDescription:
@@ -31,8 +31,9 @@ class AbstractSolutionDescription:
         self._action_plan = ControllerFromTrainruns(self._env, solution_trainruns)
         return self._action_plan
 
-    def get_objective_value(self):
-        return self._solver.get_objective_value()
+    @abc.abstractmethod
+    def get_objective_value(self) -> float:
+        pass
 
     @abc.abstractmethod
     def _get_solver_variable_value(self, var_name: str) -> Any:
@@ -64,6 +65,6 @@ class AbstractSolutionDescription:
     def get_trainrun_for_agent(self, agent_id: int) -> Trainrun:
         """Get train run of the agent in the solution."""
 
-    def get_trainruns_dict(self) -> Dict[int, Trainrun]:
+    def get_trainruns_dict(self) -> TrainrunDict:
         """Get train runs for all agents: waypoints and entry times."""
         return {agent_id: self.get_trainrun_for_agent(agent_id) for agent_id in range(len(self._env.agents))}

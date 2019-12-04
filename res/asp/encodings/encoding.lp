@@ -1,5 +1,5 @@
 % copied from https://github.com/potassco/train-scheduling-with-clingo-dl/blob/master/encodings/encoding.lp
-% TODO SIM-136 include as git submodule
+% TODO SIM-159 include as git submodule
 % paper: https://www.cs.uni-potsdam.de/wv/publications/DBLP_conf/lpnmr/AbelsJOSTW19.pdf
 
 

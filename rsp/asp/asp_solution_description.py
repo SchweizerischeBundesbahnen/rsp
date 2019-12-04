@@ -13,7 +13,7 @@ class ASPSolutionDescription(AbstractSolutionDescription):
     def __init__(self, env: RailEnv, asp_solution: FluxHelperResult):
         super(self.__class__, self).__init__(env)
         self.asp_solution: FluxHelperResult = asp_solution
-        self.answer_set: Set[str] = list(self.asp_solution.answer_sets)[0]
+        self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
 
     def _get_solver_variable_value(self, var_name) -> str:
         return list(filter(lambda s: s.startswith(str(var_name)), self.answer_set))[0]
@@ -41,7 +41,7 @@ class ASPSolutionDescription(AbstractSolutionDescription):
         return TrainrunWaypoint(scheduled_at=entry, waypoint=Waypoint(position=(r, c), direction=d))
 
     def get_entry_time(self, agent_id: int, v: Waypoint) -> int:
-        # TODO SIM asp_solver should use proper data structures instead of strings to represent answer sets
+        # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
         # hack since Python's tuple representations has spaces, but ASP gives us them without.
         position_part = str(tuple(v)).replace(" ", "")
         var_prefix = "dl((t{},{}),".format(agent_id, position_part)
@@ -88,3 +88,6 @@ class ASPSolutionDescription(AbstractSolutionDescription):
             solution_trainrun = self.get_trainrun_for_agent(agent_id)
             costs += solution_trainrun[-1].scheduled_at - solution_trainrun[0].scheduled_at
         return costs
+
+    def get_objective_value(self) -> float:
+        return self.asp_solution.stats['summary']['costs'][0]
