@@ -112,8 +112,8 @@ def run_experiment(solver: AbstractSolver,
         time_full_after_m = current_results.time_full_after_malfunction
         experiment_result_dict = {'experiment_id': experiment_parameters.experiment_id,
                                   'time_full': current_results.time_full,
-                                  'time_full_after_malfunction': time_delta_after_m,
-                                  'time_delta_after_malfunction': time_full_after_m,
+                                  'time_full_after_malfunction': time_full_after_m,
+                                  'time_delta_after_malfunction': time_delta_after_m,
                                   'solution_full': current_results.solution_full,
                                   'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
                                   'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
@@ -200,9 +200,9 @@ def _analyze_times(current_results: ExperimentResults):
         f"**** full re-schedule -> delta re-schedule: "
         f"same {full_delta_same_percentage}% ({full_delta_same_counts})"
         f"(+{full_delta_new_counts}, -{full_delta_stale_counts}) waypoints")
-    time_rescheduling_improve_perc = 100 * (time_delta_after_m - time_full_after_m) / time_full_after_m
+    time_rescheduling_speedup_factor = time_full_after_m / time_delta_after_m
     print(f"**** full re-schedule -> delta re-schedule: "
-          f"time {time_rescheduling_improve_perc:+2.1f}% "
+          f"time {time_rescheduling_speedup_factor:+4.1f}% "
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
@@ -357,7 +357,6 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
     for param_id, parameter_set in enumerate(full_param_set):
-        # TODO can we use named structure in pandas?
         current_experiment = ExperimentParameters(experiment_id=param_id,
                                                   trials_in_experiment=trials_per_experiment,
                                                   number_of_agents=parameter_set[1],

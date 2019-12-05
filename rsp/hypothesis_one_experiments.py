@@ -26,5 +26,5 @@ if __name__ == '__main__':
     save_experiment_results_to_file(experiment_results, "./experiment_data/test_setup.json")
 
     # Re-run desired experiments
-    few_experiment_results = run_specific_experiments_from_research_agenda(solver, experiment_agenda, range(2, 4),
+    few_experiment_results = run_specific_experiments_from_research_agenda(solver, experiment_agenda, range(17, 18),
                                                                            verbose=True)
