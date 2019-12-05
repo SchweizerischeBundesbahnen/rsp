@@ -74,7 +74,6 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-schedule Full
         # --------------------------------------------------------------------------------------
 
-        # TODO SIM-146 unify reschedule_full_after_malfunction and reschedule_delta_after_malfunction
         # TODO SIM-146 add verification that ExperimentFreeze is respected!
         full_reschedule_result = reschedule_full_after_malfunction(
             malfunction=malfunction,
@@ -112,8 +111,6 @@ class ASPExperimentSolver(AbstractSolver):
         if verbose:
             print(f"  **** delta re-schedule solution")
             print(delta_reschedule_solution.get_trainruns_dict())
-
-        # TODO SIM-146 ASP performance analyse running times (grounding vs solving - etc.)
 
         # --------------------------------------------------------------------------------------
         # Result

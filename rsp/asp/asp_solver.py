@@ -82,7 +82,7 @@ def flux_helper(
 
     if asp_heurisics:
         for asp_heurisic in asp_heurisics:
-            # TODO SIM-146 why does seq fail?
+            # TODO SIM-176 switch on heuristics
             if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ,
                                 ASPHeuristics.HEURISTIC_DELAY,
                                 ASPHeuristics.HEURISIC_ROUTES]:

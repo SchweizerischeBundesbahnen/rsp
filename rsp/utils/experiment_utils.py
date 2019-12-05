@@ -1,6 +1,6 @@
 """Solve a problem a."""
 import pprint
-from typing import Optional, NamedTuple, Set, Callable
+from typing import Optional, NamedTuple, Set, Callable, Dict
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
@@ -104,7 +104,11 @@ def solve_problem(env: RailEnv,
     # --------------------------------------------------------------------------------------
     # Replay and verifiy the solution
     # --------------------------------------------------------------------------------------
-    verify_trainruns_dict(env, trainruns_dict)
+    verify_trainruns_dict(env=env,
+                          trainruns_dict=trainruns_dict,
+                          expected_malfunction=expected_malfunction,
+                          expected_experiment_freeze=problem.experiment_freeze_dict
+                          )
     total_reward = replay(env=env, loop_index=loop_index,
                           expected_malfunction=expected_malfunction,
                           problem=problem,
@@ -133,7 +137,12 @@ def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_di
         for agent_id in trainruns_dict_reschedule])
 
 
-def verify_trainruns_dict(env, trainruns_dict):
+# TODO SIM-146 docstring
+def verify_trainruns_dict(env: RailEnv,
+                          trainruns_dict: TrainrunDict,
+                          expected_malfunction: Optional[ExperimentMalfunction] = None,
+                          expected_experiment_freeze: Optional[ExperimentFreezeDict] = None
+                          ):
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     _verify_trainruns_1_path_consistency(env, trainruns_dict)
     # 2. verify mutual exclusion
@@ -142,8 +151,58 @@ def verify_trainruns_dict(env, trainruns_dict):
     _verify_trainruns_3_source_target(env, trainruns_dict)
     # 4. check that the transitions are valid FLATland transitions according to the grid
     _verify_trainruns_4_consistency_with_flatland_moves(env, trainruns_dict)
-    # 5. verify costs are correct
-    # TODO SIM-146 verify costs are correct
+    # 5. verify expected malfunction
+    if expected_malfunction:
+        _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict)
+    # 6. verfy freezes are respected
+    if expected_experiment_freeze:
+        _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict)
+
+
+def _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict):
+    malfunction_agent_path = trainruns_dict[expected_malfunction.agent_id]
+    # malfunction must not start before the agent is in the grid
+    assert malfunction_agent_path[0].scheduled_at + 1 <= expected_malfunction.time_step
+    previous_time = malfunction_agent_path[0].scheduled_at + 1
+    agent_minimum_running_time = int(1 / env.agents[expected_malfunction.agent_id].speed_data['speed'])
+    for trainrun_waypoint_freeze in malfunction_agent_path:
+        if trainrun_waypoint_freeze.scheduled_at > expected_malfunction.time_step:
+            assert trainrun_waypoint_freeze.scheduled_at >= previous_time + agent_minimum_running_time + expected_malfunction.malfunction_duration
+            break
+
+
+def _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict):
+    for agent_id, experiment_freeze in expected_experiment_freeze.items():
+        waypoint_dict: Dict[Waypoint, int] = {
+            trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+            for trainrun_waypoint in trainruns_dict[agent_id]
+        }
+
+        # freeze_time_and_visit
+        for trainrun_waypoint_freeze in experiment_freeze.freeze_time_and_visit:
+            assert trainrun_waypoint_freeze.waypoint in waypoint_dict
+            assert waypoint_dict[trainrun_waypoint_freeze.waypoint] >= trainrun_waypoint_freeze.scheduled_at
+
+        # freeze_earliest_and_visit
+        for trainrun_waypoint_freeze in experiment_freeze.freeze_earliest_and_visit:
+            assert trainrun_waypoint_freeze.waypoint in waypoint_dict
+            assert waypoint_dict[trainrun_waypoint_freeze.waypoint] >= trainrun_waypoint_freeze.scheduled_at
+
+        # freeze_earliest_only
+        for trainrun_waypoint_freeze in experiment_freeze.freeze_earliest_only:
+            if trainrun_waypoint_freeze.waypoint in waypoint_dict:
+                actual_scheduled_at = waypoint_dict[trainrun_waypoint_freeze.waypoint]
+                assert actual_scheduled_at >= trainrun_waypoint_freeze.scheduled_at, \
+                    f"expected {actual_scheduled_at} <= {trainrun_waypoint_freeze.scheduled_at} " + \
+                    f"for {trainrun_waypoint_freeze} of agent {agent_id}"
+
+        # freeze_visit_only
+        for waypoint in experiment_freeze.freeze_visit_only:
+            assert waypoint in waypoint_dict
+
+        # freeze_banned
+        for waypoint in experiment_freeze.freeze_banned:
+            assert waypoint not in waypoint_dict
 
 
 def _verify_trainruns_4_consistency_with_flatland_moves(env, trainruns_dict):

@@ -189,7 +189,7 @@ class ASPProblemDescription(AbstractProblemDescription):
             env,
             agents_path_dict=self.agents_path_dict,
             asp_objective=ASPObjective.MINIMIZE_DELAY,
-            # TODO SIM-146 no effect yet!
+            # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
         )
         freezed_copy.asp_program = self.asp_program.copy()

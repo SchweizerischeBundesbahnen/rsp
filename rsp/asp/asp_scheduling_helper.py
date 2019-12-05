@@ -265,7 +265,8 @@ def reschedule_delta_after_malfunction(
         problem=delta_reschedule_problem,
         rendering_call_back=rendering_call_back,
         debug=debug,
-        expected_malfunction=malfunction)
+        expected_malfunction=malfunction
+    )
     cleanup_renderer_for_env(renderer)
 
     if debug:

@@ -17,10 +17,6 @@ from rsp.utils.data_types import ExperimentParameters, ExperimentMalfunction
 from rsp.utils.experiment_utils import verify_trainruns_dict, get_delay_trainruns_dict
 from rsp.utils.experiments import create_env_pair_for_experiment
 
-# TODO SIM-146 verify action plan: should end with STOP_MOVING, should start with,
-#  ...,  no two agents in the same cell at the same time
-# TODO SIM-146 verify Trainrun for ASP no two agents in the same cell at the same time,
-#  should be ascending, distances at least minimum running time, verify costs
 _pp = pprint.PrettyPrinter(indent=4)
 
 
