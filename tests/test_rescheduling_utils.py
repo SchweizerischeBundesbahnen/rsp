@@ -3,9 +3,11 @@ import pprint
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.rescheduling.rescheduling_utils import _get_freeze_for_malfunction_per_train, get_freeze_for_delta
+from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling, \
+    _generic_experiment_freeze_for_rescheduling_agent, _get_delayed_trainrun_waypoint_after_malfunction, \
+    get_freeze_for_full_rescheduling
 from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreeze, experimentFreezeDictPrettyPrint, \
-    ExperimentFreezeDict
+    ExperimentFreezeDict, experimentFreezePrettyPrint
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -505,7 +507,6 @@ def test():
             TrainrunWaypoint(scheduled_at=43 + 20, waypoint=Waypoint(position=(24, 3), direction=1)),
 
         ],
-        freeze_visit_only=[],
         freeze_banned=[
             Waypoint(position=(7, 19), direction=3),
             Waypoint(position=(7, 18), direction=3),
@@ -527,27 +528,25 @@ def test():
             Waypoint(position=(8, 4), direction=2)
 
         ])
-    experiment_freeze: ExperimentFreeze = _get_freeze_for_malfunction_per_train(
-        minimum_travel_time=1,
-        agent_id=2,
-        schedule_trainruns=train_run,
+    experiment_freeze: ExperimentFreeze = get_freeze_for_full_rescheduling(
+        speed_dict={2: 1.0},
+        agents_path_dict={2: agent_paths},
         malfunction=malfunction,
-        agent_paths=agent_paths
-    )
+        schedule_trainruns={2: train_run}
+    )[2]
     print(f"freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
     print(f"freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
     print(f"freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
-    print(f"freeze_visit_only={_pp.pformat(experiment_freeze.freeze_visit_only)}")
     print(f"freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
 
     assert experiment_freeze.freeze_time_and_visit == expected_experiment_freeze.freeze_time_and_visit
     assert experiment_freeze.freeze_earliest_and_visit == expected_experiment_freeze.freeze_earliest_and_visit
     assert experiment_freeze.freeze_earliest_only == expected_experiment_freeze.freeze_earliest_only
-    assert experiment_freeze.freeze_visit_only == expected_experiment_freeze.freeze_visit_only
     assert experiment_freeze.freeze_banned == expected_experiment_freeze.freeze_banned
 
 
 def test_get_freeze_for_malfunction_per_train_agent_not_yet_started():
+    """If agent in malfunction has not started yet, delay its start after the end of malfunciton."""
     agent_paths, _ = _get_data()
     train_run = [TrainrunWaypoint(scheduled_at=0 + 20, waypoint=Waypoint(position=(6, 23), direction=3)),
                  TrainrunWaypoint(scheduled_at=2 + 20, waypoint=Waypoint(position=(6, 22), direction=3)),
@@ -614,21 +613,21 @@ def test_get_freeze_for_malfunction_per_train_agent_not_yet_started():
                  TrainrunWaypoint(scheduled_at=63 + 20, waypoint=Waypoint(position=(24, 23), direction=1))]
 
     malfunction = ExperimentMalfunction(time_step=10, agent_id=2, malfunction_duration=20)
-    experiment_freeze: ExperimentFreeze = _get_freeze_for_malfunction_per_train(
-        minimum_travel_time=1,
-        agent_id=2,
-        schedule_trainruns=train_run,
+    experiment_freeze: ExperimentFreeze = get_freeze_for_full_rescheduling(
+        speed_dict={2: 1.0},
+        agents_path_dict={2: agent_paths},
         malfunction=malfunction,
-        agent_paths=agent_paths
-    )
+        schedule_trainruns={2: train_run}
+    )[2]
+
     print(f"freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
     print(f"freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
     print(f"freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
-    print(f"freeze_visit_only={_pp.pformat(experiment_freeze.freeze_visit_only)}")
     print(f"freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
 
-    assert experiment_freeze.freeze_time_and_visit == []
-    assert experiment_freeze.freeze_earliest_and_visit == []
+    assert experiment_freeze.freeze_time_and_visit == [], f"found {experiment_freeze.freeze_time_and_visit}"
+    assert experiment_freeze.freeze_earliest_and_visit == [], f"found {experiment_freeze.freeze_earliest_and_visit}"
+    # delayed after the end of the malfunction
     assert experiment_freeze.freeze_earliest_only == [
         TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(6, 23), direction=3)),
         TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(6, 22), direction=3)),
@@ -732,8 +731,6 @@ def test_get_freeze_for_malfunction_per_train_agent_not_yet_started():
         TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 5), direction=3)),
         TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(7, 4), direction=3)),
         TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 4), direction=2))]
-    assert experiment_freeze.freeze_visit_only == []
-    assert experiment_freeze.freeze_banned == []
 
 
 def test_get_freeze_for_malfunction_per_train():
@@ -903,17 +900,17 @@ def test_get_freeze_for_malfunction_per_train():
                  TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 25), direction=3)),
                  TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
                  TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))]
-    experiment_freeze: ExperimentFreeze = _get_freeze_for_malfunction_per_train(
-        minimum_travel_time=1,
-        agent_id=0,
-        schedule_trainruns=train_run,
+
+    experiment_freeze: ExperimentFreeze = get_freeze_for_full_rescheduling(
+        speed_dict={0: 1.0},
+        agents_path_dict={0: agent_paths},
         malfunction=malfunction,
-        agent_paths=agent_paths
-    )
+        schedule_trainruns={0: train_run}
+    )[0]
+
     print(f"freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
     print(f"freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
     print(f"freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
-    print(f"freeze_visit_only={_pp.pformat(experiment_freeze.freeze_visit_only)}")
     print(f"freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
 
     assert experiment_freeze.freeze_time_and_visit == []
@@ -961,7 +958,6 @@ def test_get_freeze_for_malfunction_per_train():
         TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(16, 28), direction=2)),
         TrainrunWaypoint(scheduled_at=34, waypoint=Waypoint(position=(17, 28), direction=2)),
         TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(17, 29), direction=1))]
-    assert experiment_freeze.freeze_visit_only == []
     assert experiment_freeze.freeze_banned == []
 
 
@@ -1598,67 +1594,6 @@ def test_get_freeze_for_delta():
                               TrainrunWaypoint(scheduled_at=31, waypoint=Waypoint(position=(7, 25), direction=3)),
                               TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(7, 24), direction=3)),
                               TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(7, 23), direction=3))]}
-    full_reschedule_trainruns = {
-        0: [TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(8, 23), direction=1)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(8, 24), direction=1)),
-            TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(8, 25), direction=1)),
-            TrainrunWaypoint(scheduled_at=31, waypoint=Waypoint(position=(8, 26), direction=1)),
-            TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(8, 27), direction=1)),
-            TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(8, 28), direction=1)),
-            TrainrunWaypoint(scheduled_at=34, waypoint=Waypoint(position=(8, 29), direction=1)),
-            TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(9, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=36, waypoint=Waypoint(position=(10, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=37, waypoint=Waypoint(position=(11, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=38, waypoint=Waypoint(position=(12, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=39, waypoint=Waypoint(position=(13, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(13, 28), direction=3)),
-            TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(14, 28), direction=2)),
-            TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(15, 28), direction=2)),
-            TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(16, 28), direction=2)),
-            TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(17, 28), direction=2)),
-            TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(17, 29), direction=1)),
-            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(18, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(19, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(20, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(21, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(22, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(23, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(23, 28), direction=3)),
-            TrainrunWaypoint(scheduled_at=53, waypoint=Waypoint(position=(23, 27), direction=3)),
-            TrainrunWaypoint(scheduled_at=54, waypoint=Waypoint(position=(24, 27), direction=2)),
-            TrainrunWaypoint(scheduled_at=55, waypoint=Waypoint(position=(24, 26), direction=3)),
-            TrainrunWaypoint(scheduled_at=56, waypoint=Waypoint(position=(24, 25), direction=3)),
-            TrainrunWaypoint(scheduled_at=57, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=58, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 23), direction=1)),
-            TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(23, 24), direction=1)),
-            TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(23, 25), direction=1)),
-            TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(23, 26), direction=1)),
-            TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(23, 27), direction=1)),
-            TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(23, 28), direction=1)),
-            TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(23, 29), direction=1)),
-            TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(22, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(21, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(20, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(19, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(18, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(17, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(16, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(15, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(14, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(13, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(12, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(11, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(10, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(9, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(8, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(7, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(7, 28), direction=3)),
-            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 27), direction=3)),
-            TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 26), direction=3)),
-            TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(7, 25), direction=3)),
-            TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=53, waypoint=Waypoint(position=(7, 23), direction=3))]}
     force_freeze = {0: [TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(8, 23), direction=1)),
                         TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(8, 24), direction=1)),
                         TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -1733,7 +1668,6 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(16, 28), direction=2)),
                 TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(17, 28), direction=2)),
                 TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(17, 29), direction=1))],
-            freeze_visit_only=[],
             freeze_banned=[Waypoint(position=(7, 27), direction=0), Waypoint(position=(7, 28), direction=1),
                            Waypoint(position=(7, 29), direction=1), Waypoint(position=(8, 29), direction=2)]),
         1: ExperimentFreeze(
@@ -1775,7 +1709,6 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(8, 26), direction=3)),
                 TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 26), direction=0)),
                 TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(8, 27), direction=2))],
-            freeze_visit_only=[],
             freeze_banned=[
                 Waypoint(position=(17, 28), direction=3), Waypoint(position=(16, 28), direction=0),
                 Waypoint(position=(15, 28), direction=0), Waypoint(position=(14, 28), direction=0),
@@ -1784,9 +1717,8 @@ def test_get_freeze_for_delta():
                 Waypoint(position=(23, 27), direction=0), Waypoint(position=(24, 28), direction=1),
                 Waypoint(position=(24, 29), direction=1), Waypoint(position=(23, 29), direction=0)
             ])}
-    freeze_dict: ExperimentFreezeDict = get_freeze_for_delta(
+    freeze_dict: ExperimentFreezeDict = generic_experiment_freeze_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
-        full_reschedule_trainruns=full_reschedule_trainruns,
         speed_dict={0: 1, 1: 1},
         agents_path_dict=agents_path_dict,
         force_freeze=force_freeze,
@@ -1794,5 +1726,383 @@ def test_get_freeze_for_delta():
     )
     print("####freeze_dict")
     experimentFreezeDictPrettyPrint(freeze_dict)
+    assert freeze_dict.keys() == expected_freeze_dict.keys()
+    for agent_id in expected_freeze_dict:
+        assert freeze_dict[agent_id] == expected_freeze_dict[agent_id], f"difference for agent {agent_id}"
 
-    assert freeze_dict == expected_freeze_dict
+
+def test_bugfix_sim_172():
+    agent_paths = [(Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(23, 27), direction=0),
+                    Waypoint(position=(23, 28), direction=1),
+                    Waypoint(position=(23, 29), direction=1),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(16, 29), direction=0),
+                    Waypoint(position=(15, 29), direction=0),
+                    Waypoint(position=(14, 29), direction=0),
+                    Waypoint(position=(13, 29), direction=0),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(8, 28), direction=3),
+                    Waypoint(position=(8, 27), direction=3),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3)),
+                   (Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(24, 28), direction=1),
+                    Waypoint(position=(24, 29), direction=1),
+                    Waypoint(position=(23, 29), direction=0),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(16, 29), direction=0),
+                    Waypoint(position=(15, 29), direction=0),
+                    Waypoint(position=(14, 29), direction=0),
+                    Waypoint(position=(13, 29), direction=0),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(8, 28), direction=3),
+                    Waypoint(position=(8, 27), direction=3),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3)),
+                   (Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(23, 27), direction=0),
+                    Waypoint(position=(23, 28), direction=1),
+                    Waypoint(position=(23, 29), direction=1),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(16, 29), direction=0),
+                    Waypoint(position=(15, 29), direction=0),
+                    Waypoint(position=(14, 29), direction=0),
+                    Waypoint(position=(13, 29), direction=0),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(7, 29), direction=0),
+                    Waypoint(position=(7, 28), direction=3),
+                    Waypoint(position=(7, 27), direction=3),
+                    Waypoint(position=(8, 27), direction=2),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3)),
+                   (Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(23, 27), direction=0),
+                    Waypoint(position=(23, 28), direction=1),
+                    Waypoint(position=(23, 29), direction=1),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(17, 28), direction=3),
+                    Waypoint(position=(16, 28), direction=0),
+                    Waypoint(position=(15, 28), direction=0),
+                    Waypoint(position=(14, 28), direction=0),
+                    Waypoint(position=(13, 28), direction=0),
+                    Waypoint(position=(13, 29), direction=1),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(8, 28), direction=3),
+                    Waypoint(position=(8, 27), direction=3),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3)),
+                   (Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(24, 28), direction=1),
+                    Waypoint(position=(24, 29), direction=1),
+                    Waypoint(position=(23, 29), direction=0),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(16, 29), direction=0),
+                    Waypoint(position=(15, 29), direction=0),
+                    Waypoint(position=(14, 29), direction=0),
+                    Waypoint(position=(13, 29), direction=0),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(7, 29), direction=0),
+                    Waypoint(position=(7, 28), direction=3),
+                    Waypoint(position=(7, 27), direction=3),
+                    Waypoint(position=(8, 27), direction=2),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3)),
+                   (Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(24, 28), direction=1),
+                    Waypoint(position=(24, 29), direction=1),
+                    Waypoint(position=(23, 29), direction=0),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(17, 28), direction=3),
+                    Waypoint(position=(16, 28), direction=0),
+                    Waypoint(position=(15, 28), direction=0),
+                    Waypoint(position=(14, 28), direction=0),
+                    Waypoint(position=(13, 28), direction=0),
+                    Waypoint(position=(13, 29), direction=1),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(8, 28), direction=3),
+                    Waypoint(position=(8, 27), direction=3),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3)),
+                   (Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(23, 27), direction=0),
+                    Waypoint(position=(23, 28), direction=1),
+                    Waypoint(position=(23, 29), direction=1),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(17, 28), direction=3),
+                    Waypoint(position=(16, 28), direction=0),
+                    Waypoint(position=(15, 28), direction=0),
+                    Waypoint(position=(14, 28), direction=0),
+                    Waypoint(position=(13, 28), direction=0),
+                    Waypoint(position=(13, 29), direction=1),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(7, 29), direction=0),
+                    Waypoint(position=(7, 28), direction=3),
+                    Waypoint(position=(7, 27), direction=3),
+                    Waypoint(position=(8, 27), direction=2),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3)),
+                   (Waypoint(position=(25, 23), direction=1),
+                    Waypoint(position=(25, 24), direction=1),
+                    Waypoint(position=(25, 25), direction=1),
+                    Waypoint(position=(24, 25), direction=0),
+                    Waypoint(position=(24, 26), direction=1),
+                    Waypoint(position=(24, 27), direction=1),
+                    Waypoint(position=(24, 28), direction=1),
+                    Waypoint(position=(24, 29), direction=1),
+                    Waypoint(position=(23, 29), direction=0),
+                    Waypoint(position=(22, 29), direction=0),
+                    Waypoint(position=(21, 29), direction=0),
+                    Waypoint(position=(20, 29), direction=0),
+                    Waypoint(position=(19, 29), direction=0),
+                    Waypoint(position=(18, 29), direction=0),
+                    Waypoint(position=(17, 29), direction=0),
+                    Waypoint(position=(17, 28), direction=3),
+                    Waypoint(position=(16, 28), direction=0),
+                    Waypoint(position=(15, 28), direction=0),
+                    Waypoint(position=(14, 28), direction=0),
+                    Waypoint(position=(13, 28), direction=0),
+                    Waypoint(position=(13, 29), direction=1),
+                    Waypoint(position=(12, 29), direction=0),
+                    Waypoint(position=(11, 29), direction=0),
+                    Waypoint(position=(10, 29), direction=0),
+                    Waypoint(position=(9, 29), direction=0),
+                    Waypoint(position=(8, 29), direction=0),
+                    Waypoint(position=(7, 29), direction=0),
+                    Waypoint(position=(7, 28), direction=3),
+                    Waypoint(position=(7, 27), direction=3),
+                    Waypoint(position=(8, 27), direction=2),
+                    Waypoint(position=(8, 26), direction=3),
+                    Waypoint(position=(8, 25), direction=3),
+                    Waypoint(position=(9, 25), direction=2),
+                    Waypoint(position=(9, 24), direction=3),
+                    Waypoint(position=(9, 23), direction=3))]
+    schedule_trainrun = [TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(25, 23), direction=1)),
+                         TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(25, 24), direction=1)),
+                         TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(25, 25), direction=1)),
+                         TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(24, 25), direction=0)),
+                         TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(24, 26), direction=1)),
+                         TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(24, 27), direction=1)),
+                         TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(24, 28), direction=1)),
+                         TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(24, 29), direction=1)),
+                         TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(23, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(22, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(21, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(20, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(19, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(18, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(17, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(16, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(15, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=22, waypoint=Waypoint(position=(14, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=23, waypoint=Waypoint(position=(13, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=24, waypoint=Waypoint(position=(12, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=25, waypoint=Waypoint(position=(11, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(10, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(9, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(8, 29), direction=0)),
+                         TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(8, 28), direction=3)),
+                         TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(8, 27), direction=3)),
+                         TrainrunWaypoint(scheduled_at=31, waypoint=Waypoint(position=(8, 26), direction=3)),
+                         TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(8, 25), direction=3)),
+                         TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(9, 25), direction=2)),
+                         TrainrunWaypoint(scheduled_at=34, waypoint=Waypoint(position=(9, 24), direction=3)),
+                         TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(9, 23), direction=3))]
+    malfunction = ExperimentMalfunction(time_step=19, agent_id=4, malfunction_duration=20)
+    force_freeze = [TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(25, 23), direction=1)),
+                    TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(25, 24), direction=1)),
+                    TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(25, 25), direction=1)),
+                    TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(24, 25), direction=0)),
+                    TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(24, 26), direction=1)),
+                    TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(24, 27), direction=1)),
+                    TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(24, 28), direction=1)),
+                    TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(24, 29), direction=1)),
+                    TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(23, 29), direction=0)),
+                    TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(22, 29), direction=0)),
+                    TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(21, 29), direction=0)),
+                    TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(20, 29), direction=0)),
+                    TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(19, 29), direction=0)),
+                    TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(18, 29), direction=0)),
+                    TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(17, 29), direction=0))]
+
+    actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent(
+        minimum_travel_time=1,
+        agent_paths=agent_paths,
+        force_freeze=force_freeze,
+        trainrun_waypoint_after_malfunction=_get_delayed_trainrun_waypoint_after_malfunction(
+            agent_id=malfunction.agent_id,
+            trainrun=schedule_trainrun,
+            malfunction=malfunction
+        )
+
+    )
+
+    experimentFreezePrettyPrint(actual_experiment_freeze)
+
+    assert actual_experiment_freeze.freeze_time_and_visit == [
+        TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(25, 23), direction=1)),
+        TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(25, 24), direction=1)),
+        TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(25, 25), direction=1)),
+        TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(24, 25), direction=0)),
+        TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(24, 26), direction=1)),
+        TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(24, 27), direction=1)),
+        TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(24, 28), direction=1)),
+        TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(24, 29), direction=1)),
+        TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(23, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(22, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(21, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(20, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(19, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(18, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(17, 29), direction=0))]
+    assert actual_experiment_freeze.freeze_earliest_and_visit == [
+        TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(16, 29), direction=0))]
+    assert actual_experiment_freeze.freeze_earliest_only == [
+        TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(15, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(14, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(13, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(12, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(11, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(10, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(9, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(8, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(8, 28), direction=3)),
+        TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(8, 27), direction=3)),
+        TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(8, 26), direction=3)),
+        TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 25), direction=3)),
+        TrainrunWaypoint(scheduled_at=53, waypoint=Waypoint(position=(9, 25), direction=2)),
+        TrainrunWaypoint(scheduled_at=54, waypoint=Waypoint(position=(9, 24), direction=3)),
+        TrainrunWaypoint(scheduled_at=55, waypoint=Waypoint(position=(9, 23), direction=3)),
+        TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 29), direction=0)),
+        TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 28), direction=3)),
+        TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(7, 27), direction=3)),
+        TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 27), direction=2))]
+    assert actual_experiment_freeze.freeze_banned == [
+        Waypoint(position=(23, 27), direction=0),
+        Waypoint(position=(23, 28), direction=1),
+        Waypoint(position=(23, 29), direction=1),
+        Waypoint(position=(17, 28), direction=3),
+        Waypoint(position=(16, 28), direction=0),
+        Waypoint(position=(15, 28), direction=0),
+        Waypoint(position=(14, 28), direction=0),
+        Waypoint(position=(13, 28), direction=0),
+        Waypoint(position=(13, 29), direction=1)]

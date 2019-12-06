@@ -28,6 +28,7 @@ class AbstractSolver:
             k: int = 10,
             disable_verification_by_replay: bool = False,
             verbose: bool = False,
+            debug: bool = False,
             rendering: bool = False
     ) -> ExperimentResults:
         """
@@ -66,6 +67,7 @@ class DummySolver(AbstractSolver):
             k: int = 10,
             disable_verification_by_replay: bool = False,
             verbose: bool = False,
+            debug: bool = False,
             rendering: bool = False,
             init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None,
             render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,

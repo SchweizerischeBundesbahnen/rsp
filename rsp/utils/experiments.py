@@ -65,8 +65,10 @@ COLUMNS = ['experiment_id',
 
 def run_experiment(solver: AbstractSolver,
                    experiment_parameters: ExperimentParameters,
-                   verbose=False,
-                   force_only_one_trial=True) -> Series:
+                   show_results_without_details: bool = True,
+                   verbose: bool = False,
+                   debug: bool = False,
+                   force_only_one_trial: bool = True) -> Series:
     """
 
     Run a single experiment with a given solver and ExperimentParameters
@@ -87,7 +89,7 @@ def run_experiment(solver: AbstractSolver,
     # Run the sequence of experiment
     for trial in range(experiment_parameters.trials_in_experiment if not force_only_one_trial else 1):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
-        if verbose:
+        if show_results_without_details:
             print("*** experiment parameters of trial {} for experiment {}".format(trial + 1,
                                                                                    experiment_parameters.experiment_id))
             _pp.pprint(experiment_parameters)
@@ -106,7 +108,10 @@ def run_experiment(solver: AbstractSolver,
         # TODO pass k (number of routing alternatives) explicitly
         current_results: ExperimentResults = solver.run_experiment_trial(static_rail_env=static_rail_env,
                                                                          malfunction_rail_env=malfunction_rail_env,
-                                                                         malfunction_env_reset=malfunction_env_reset)
+                                                                         malfunction_env_reset=malfunction_env_reset,
+                                                                         verbose=verbose,
+                                                                         debug=debug
+                                                                         )
         # Store results
         time_delta_after_m = current_results.time_delta_after_malfunction
         time_full_after_m = current_results.time_full_after_malfunction
@@ -129,7 +134,7 @@ def run_experiment(solver: AbstractSolver,
                                   'max_rail_in_city': experiment_parameters.max_rail_in_city,
                                   }
         experiment_results = experiment_results.append(experiment_result_dict, ignore_index=True)
-        if verbose:
+        if show_results_without_details:
             print("*** experiment result of trial {} for experiment {}".format(trial + 1,
                                                                                experiment_parameters.experiment_id))
 
@@ -202,7 +207,7 @@ def _analyze_times(current_results: ExperimentResults):
         f"(+{full_delta_new_counts}, -{full_delta_stale_counts}) waypoints")
     time_rescheduling_speedup_factor = time_full_after_m / time_delta_after_m
     print(f"**** full re-schedule -> delta re-schedule: "
-          f"time {time_rescheduling_speedup_factor:+4.1f}% "
+          f"time speed-up factor {time_rescheduling_speedup_factor:+4.1f} "
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
@@ -263,7 +268,9 @@ def _analyze_agent_path(agent_id, agents_path_dict, env, malfunction, schedule_t
           f"({nb_paths}/{len(agents_path_dict[agent_id])}) paths open after malfunction")
 
 
-def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda,
+def run_experiment_agenda(solver: AbstractSolver,
+                          experiment_agenda: ExperimentAgenda,
+                          show_results_without_details: bool = True,
                           verbose: bool = False) -> DataFrame:
     """
      Run a given experiment_agenda with a suitable solver, return the results as a DataFrame
@@ -286,7 +293,10 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
         experiment_results = experiment_results.append(
-            run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=verbose),
+            run_experiment(solver=solver,
+                           experiment_parameters=current_experiment_parameters,
+                           verbose=verbose,
+                           show_results_without_details=show_results_without_details),
             ignore_index=True)
     return experiment_results
 
@@ -294,6 +304,7 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                   experiment_agenda: ExperimentAgenda,
                                                   experiment_ids: List[int],
+                                                  show_results_without_details: bool = True,
                                                   verbose: bool = False) -> DataFrame:
     """
 
@@ -322,6 +333,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
         if current_experiment_parameters.experiment_id in experiment_ids:
             experiment_result = run_experiment(solver=solver,
                                                experiment_parameters=current_experiment_parameters,
+                                               show_results_without_details=show_results_without_details,
                                                verbose=verbose)
             experiment_results = experiment_results.append(experiment_result, ignore_index=True)
     return experiment_results

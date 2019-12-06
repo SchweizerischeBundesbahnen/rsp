@@ -31,6 +31,7 @@ class ASPExperimentSolver(AbstractSolver):
             k: int = 10,
             disable_verification_by_replay: bool = False,
             verbose: bool = False,
+            debug: bool = False,
             rendering: bool = False
     ) -> ExperimentResults:
         """
@@ -47,7 +48,7 @@ class ASPExperimentSolver(AbstractSolver):
         -------
         ExperimentResults
         """
-        schedule_problem, schedule_result = schedule_full(k, static_rail_env, rendering=rendering, debug=False)
+        schedule_problem, schedule_result = schedule_full(k, static_rail_env, rendering=rendering, debug=debug)
         schedule_solution = schedule_result.solution
 
         schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
@@ -74,14 +75,12 @@ class ASPExperimentSolver(AbstractSolver):
         # Re-schedule Full
         # --------------------------------------------------------------------------------------
 
-        # TODO SIM-146 add verification that ExperimentFreeze is respected!
         full_reschedule_result = reschedule_full_after_malfunction(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
             malfunction_rail_env=malfunction_rail_env,
             schedule_problem=schedule_problem,
             schedule_trainruns=schedule_trainruns,
-            static_rail_env=static_rail_env,
             rendering=rendering,
             debug=verbose
         )

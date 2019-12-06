@@ -199,7 +199,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
         asp_program = freezed_copy.asp_program
 
-        # TODO SIM-146 is this correct????? this seems like a dirty hack. move to where earliest are produces
+        # TODO SIM-173 is this correct????? this seems like a dirty hack. move to where earliest are produces
         # add constraints for dummy target nodes
         for agent_id, dummy_target_waypoints in self.dummy_target_vertices.items():
             train = "t{}".format(agent_id)
@@ -211,7 +211,7 @@ class ASPProblemDescription(AbstractProblemDescription):
 
         # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
         # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
-        # TODO SIM-146 ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up
+        # TODO SIM-171 ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up
         asp_program.append("#const upper_bound_linear_penalty = 60.")
         asp_program.append("#const penalty_after_linear = 5000000.")
         asp_program.append("linear_range(1..upper_bound_linear_penalty).")
@@ -221,10 +221,11 @@ class ASPProblemDescription(AbstractProblemDescription):
 
         return freezed_copy
 
-    # TODO SIM-146 update docstring
-    def _translate_experiment_freeze_to_ASP(self, agent_id: int, freeze: ExperimentFreeze):
+    def _translate_experiment_freeze_to_ASP(self,
+                                            agent_id: int,
+                                            freeze: ExperimentFreeze):
         """
-        The model is freezed by adding constraints in the following way:
+        The model is freezed by translating the ExperimentFreeze into ASP:
         - for all schedule_time_(train,vertex) <= malfunction.time_step:
            - freeze visit(train,vertex) == True
            - dl(train,vertex) == schedule_time_(train,vertex)
@@ -235,6 +236,11 @@ class ASPProblemDescription(AbstractProblemDescription):
         - for all trains and all their vertices s.t. schedule_time_(train,vertex) > malfunction.time_step or schedule_time_(train,vertex) == None
            -  dl(train,vertex) >= malfunction.time_step
            (in particular, if a train has not entered yet, it must not enter in the re-scheduling before the malfunction)
+
+        Parameters
+        ----------
+        agent_id
+        freeze
         """
         frozen: List[TrainrunWaypoint] = []
         train = "t{}".format(agent_id)
@@ -276,12 +282,6 @@ class ASPProblemDescription(AbstractProblemDescription):
             # add earliest constraint
             # e(t1,1,2).
             frozen.append(f"e({train},{vertex},{time}).")
-
-        for waypoint in freeze.freeze_visit_only:
-            vertex = tuple(waypoint)
-            # add visit constraint
-            # visit(t1,1).
-            frozen.append(f"visit({train},{vertex}).")
 
         for waypoint in freeze.freeze_banned:
             vertex = tuple(waypoint)

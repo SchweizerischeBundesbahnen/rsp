@@ -34,6 +34,8 @@ _pp = pprint.PrettyPrinter(indent=4)
 # --------------------------------------------------------------------------------------
 # Solve an `AbstractProblemDescription`
 # --------------------------------------------------------------------------------------
+# TODO discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
+#  Then, we could get rid of this intermediate layer and move solve_problem to AbstractProblemDescription
 def solve_problem(env: RailEnv,
                   problem: AbstractProblemDescription,
                   rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
@@ -137,23 +139,49 @@ def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_di
         for agent_id in trainruns_dict_reschedule])
 
 
-# TODO SIM-146 docstring
 def verify_trainruns_dict(env: RailEnv,
                           trainruns_dict: TrainrunDict,
                           expected_malfunction: Optional[ExperimentMalfunction] = None,
                           expected_experiment_freeze: Optional[ExperimentFreezeDict] = None
                           ):
+    """
+    Verify the consistency of a train run.
+
+    1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
+    2. verify mutual exclusion
+    3. check that the paths lead from the desired start and goal
+    4. check that the transitions are valid FLATland transitions according to the grid
+    5. verify expected malfunction (if given)
+    6. verfy freezes are respected (if given)
+
+
+    Parameters
+    ----------
+    env
+    trainruns_dict
+    expected_malfunction
+    expected_experiment_freeze
+
+    Returns
+    -------
+
+    """
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     _verify_trainruns_1_path_consistency(env, trainruns_dict)
+
     # 2. verify mutual exclusion
     _verify_trainruns_2_mutual_exclusion(trainruns_dict)
+
     # 3. check that the paths lead from the desired start and goal
     _verify_trainruns_3_source_target(env, trainruns_dict)
+
     # 4. check that the transitions are valid FLATland transitions according to the grid
     _verify_trainruns_4_consistency_with_flatland_moves(env, trainruns_dict)
+
     # 5. verify expected malfunction
     if expected_malfunction:
         _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict)
+
     # 6. verfy freezes are respected
     if expected_experiment_freeze:
         _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict)
@@ -165,9 +193,12 @@ def _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict):
     assert malfunction_agent_path[0].scheduled_at + 1 <= expected_malfunction.time_step
     previous_time = malfunction_agent_path[0].scheduled_at + 1
     agent_minimum_running_time = int(1 / env.agents[expected_malfunction.agent_id].speed_data['speed'])
-    for trainrun_waypoint_freeze in malfunction_agent_path:
-        if trainrun_waypoint_freeze.scheduled_at > expected_malfunction.time_step:
-            assert trainrun_waypoint_freeze.scheduled_at >= previous_time + agent_minimum_running_time + expected_malfunction.malfunction_duration
+    for waypoint_index, trainrun_waypoint in enumerate(malfunction_agent_path):
+        if trainrun_waypoint.scheduled_at > expected_malfunction.time_step:
+            lower_bound_for_scheduled_at = previous_time + agent_minimum_running_time + expected_malfunction.malfunction_duration
+            assert trainrun_waypoint.scheduled_at >= lower_bound_for_scheduled_at, \
+                f"malfunction={expected_malfunction}, " + \
+                f"but found {malfunction_agent_path[max(0, waypoint_index - 1)]}{trainrun_waypoint}"
             break
 
 
@@ -195,10 +226,6 @@ def _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict):
                 assert actual_scheduled_at >= trainrun_waypoint_freeze.scheduled_at, \
                     f"expected {actual_scheduled_at} <= {trainrun_waypoint_freeze.scheduled_at} " + \
                     f"for {trainrun_waypoint_freeze} of agent {agent_id}"
-
-        # freeze_visit_only
-        for waypoint in experiment_freeze.freeze_visit_only:
-            assert waypoint in waypoint_dict
 
         # freeze_banned
         for waypoint in experiment_freeze.freeze_banned:

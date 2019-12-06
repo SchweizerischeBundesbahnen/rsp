@@ -237,7 +237,8 @@ class AbstractProblemDescription:
                                                                                    current_direction)
 
             # add time window [waypoint_index * minimum_running_time_p_cell+1,max_agents_steps_allowed] for entry event
-            # TODO SIM-146 documentation by k-shortest path, is it ensured that the first path is the earliest at that node?! I think so
+            # TODO SIM-173 documentation by k-shortest path, is it ensured that the first path is the earliest at that node?! I think so
+            # would be solve by SIM-173 (use Generic Freeze interface for Scheduling as we)
             agent_entry = (agent_id, entry_waypoint)
             if agent_entry not in already_added:
                 self._implement_agent_earliest(

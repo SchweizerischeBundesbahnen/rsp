@@ -11,7 +11,7 @@ from numpy.random.mtrand import RandomState
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, reschedule_delta_after_malfunction
 from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_malfunction, verify_experiment_freeze_for_agent, \
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling, verify_experiment_freeze_for_agent, \
     ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentParameters, ExperimentMalfunction
 from rsp.utils.experiment_utils import verify_trainruns_dict, get_delay_trainruns_dict
@@ -156,10 +156,11 @@ def test_rescheduling_no_bottleneck():
     schedule_problem = ASPProblemDescription(env=static_env,
                                              agents_path_dict=agents_paths_dict)
 
-    freeze_dict = get_freeze_for_malfunction(malfunction=fake_malfunction,
-                                             schedule_trainruns=fake_schedule,
-                                             env=static_env,
-                                             agents_path_dict=agents_paths_dict)
+    freeze_dict = get_freeze_for_full_rescheduling(malfunction=fake_malfunction,
+                                                   schedule_trainruns=fake_schedule,
+                                                   speed_dict={agent.handle: agent.speed_data['speed']
+                                                               for agent in static_env.agents},
+                                                   agents_path_dict=agents_paths_dict)
     for agent_id, experiment_freeze in freeze_dict.items():
         verify_experiment_freeze_for_agent(freeze_dict[agent_id], agents_paths_dict[agent_id])
 
@@ -171,7 +172,6 @@ def test_rescheduling_no_bottleneck():
         malfunction_rail_env=dynamic_env,
         schedule_problem=schedule_problem,
         schedule_trainruns=fake_schedule,
-        static_rail_env=static_env,
         rendering=False,
         debug=False,
         malfunction_env_reset=lambda *args, **kwargs: None
@@ -382,10 +382,10 @@ def test_rescheduling_bottleneck():
     schedule_problem = ASPProblemDescription(env=static_env,
                                              agents_path_dict=agents_paths_dict)
 
-    freeze_dict: ExperimentFreezeDict = get_freeze_for_malfunction(
+    freeze_dict: ExperimentFreezeDict = get_freeze_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
-        env=static_env,
+        speed_dict={agent.handle: agent.speed_data['speed'] for agent in static_env.agents},
         agents_path_dict=agents_paths_dict
     )
 
@@ -408,7 +408,8 @@ def test_rescheduling_bottleneck():
     ], f"found {freeze_dict[1].freeze_time_and_visit}"
 
     print(_pp.pformat(freeze_dict[0].freeze_earliest_and_visit))
-    assert freeze_dict[0].freeze_earliest_and_visit == [], format(f"found {freeze_dict[0].freeze_earliest_and_visit}")
+    assert freeze_dict[0].freeze_earliest_and_visit == [
+    ], format(f"found {freeze_dict[0].freeze_earliest_and_visit}")
 
     assert freeze_dict[1].freeze_earliest_and_visit == [
         TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]
@@ -429,7 +430,6 @@ def test_rescheduling_bottleneck():
         malfunction_rail_env=dynamic_env,
         schedule_problem=schedule_problem,
         schedule_trainruns=fake_schedule,
-        static_rail_env=static_env,
     )
     full_reschedule_solution = full_reschedule_result.solution
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_solution.get_trainruns_dict()
@@ -750,7 +750,7 @@ def _verify_rescheduling_delta(fake_malfunction: Malfunction,
     assert delay_in_full_reschedule == expected_delay, f"found {delay_in_full_reschedule}, expected {expected_delay}"
     asp_costs = delta_reschedule_solution.asp_solution.stats['summary']['costs'][0]
 
-    # TODO SIM-146 ?????? what do we fix?
+    # TODO SIM-174 semantics of costs in ASP differ in full vs. Delta re-scheduling: analyse and streamline
     expected_asp_costs = expected_delay - delay_in_full_reschedule
     assert asp_costs == expected_asp_costs, f"found asp_costs={asp_costs}, expected={expected_asp_costs}"
 
