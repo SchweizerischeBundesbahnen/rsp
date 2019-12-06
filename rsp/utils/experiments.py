@@ -29,7 +29,7 @@ load_experiment_results_to_file
 import errno
 import os
 import pprint
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 import pandas as pd
@@ -83,6 +83,7 @@ def run_experiment(solver: AbstractSolver,
 
     # DataFrame to store all results of experiments
     experiment_results = pd.DataFrame(columns=COLUMNS)
+
     # Run the sequence of experiment
     for trial in range(experiment_parameters.trials_in_experiment if not force_only_one_trial else 1):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
@@ -251,7 +252,8 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
     return experiment_results
 
 
-def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_experiment: int = 10) -> ExperimentAgenda:
+def create_experiment_agenda(parameter_ranges: ParameterRanges, speed_data: Dict[float],
+                             trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
 
@@ -261,10 +263,12 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
         Ranges of all the parameters we want to vary in our experiments
     trials_per_experiment: int
         Number of trials per parameter set we want to run
-
+    speed_data
+        Dictionary containing all the desired speeds in the environment
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges
+    :param speed_data:
     """
     # TODO Check that parameters are correctly filled into ExperimentParameters
     # TODO add malfunction parameters correctly to ExperimentParameters
@@ -285,6 +289,7 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
         current_experiment = ExperimentParameters(experiment_id=param_id,
                                                   trials_in_experiment=trials_per_experiment,
                                                   number_of_agents=parameter_set[1],
+                                                  speed_data=speed_data,
                                                   width=parameter_set[0],
                                                   height=parameter_set[0],
                                                   seed_value=12,
@@ -350,6 +355,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
     max_rails_in_city = params.max_rail_in_city
     earliest_malfunction = params.earliest_malfunction
     malfunction_duration = params.malfunction_duration
+    speed_data = params.speed_data
 
     # Generate static environment for initial schedule generation
     env_static = create_flatland_environment(number_of_agents, width, height, seed_value, max_num_cities, grid_mode,

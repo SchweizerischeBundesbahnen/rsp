@@ -14,8 +14,14 @@ if __name__ == '__main__':
                                        earliest_malfunction=[20, 20, 1],
                                        malfunction_duration=[20, 20, 1])
 
+    # Define the desired speed profiles
+    speed_data = {1.: 0.25,  # Fast passenger train
+                        1. / 2.: 0.25,  # Fast freight train
+                        1. / 3.: 0.25,  # Slow commuter train
+                        1. / 4.: 0.25}  # Slow freight train
     # Create an experiment agenda out of the parameter ranges
-    experiment_agenda = create_experiment_agenda(parameter_ranges, trials_per_experiment=10)
+
+    experiment_agenda = create_experiment_agenda(parameter_ranges, speed_data=speed_data, trials_per_experiment=10)
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
