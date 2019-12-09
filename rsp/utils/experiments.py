@@ -252,7 +252,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
     return experiment_results
 
 
-def create_experiment_agenda(parameter_ranges: ParameterRanges, speed_data: Dict[float],
+def create_experiment_agenda(parameter_ranges: ParameterRanges, speed_data: Dict,
                              trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
@@ -358,15 +358,29 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
     speed_data = params.speed_data
 
     # Generate static environment for initial schedule generation
-    env_static = create_flatland_environment(number_of_agents, width, height, seed_value, max_num_cities, grid_mode,
-                                             max_rails_between_cities, max_rails_in_city)
+    env_static = create_flatland_environment(number_of_agents=number_of_agents,
+                                             width=width,
+                                             height=height,
+                                             seed_value=seed_value,
+                                             max_num_cities=max_num_cities,
+                                             grid_mode=grid_mode,
+                                             max_rails_between_cities=max_rails_between_cities,
+                                             max_rails_in_city=max_rails_in_city,
+                                             speed_data=speed_data)
     env_static.reset(random_seed=seed_value)
 
     # Generate dynamic environment with single malfunction
-    env_malfunction = create_flatland_environment_with_malfunction(number_of_agents, width, height, seed_value,
-                                                                   max_num_cities, grid_mode, max_rails_between_cities,
-                                                                   max_rails_in_city, earliest_malfunction,
-                                                                   malfunction_duration)
+    env_malfunction = create_flatland_environment_with_malfunction(number_of_agents=number_of_agents,
+                                                                   width=width,
+                                                                   height=height,
+                                                                   seed_value=seed_value,
+                                                                   max_num_cities=max_num_cities,
+                                                                   grid_mode=grid_mode,
+                                                                   max_rails_between_cities=max_rails_between_cities,
+                                                                   max_rails_in_city=max_rails_in_city,
+                                                                   malfunction_duration=malfunction_duration,
+                                                                   earliest_malfunction=earliest_malfunction,
+                                                                   speed_data=speed_data)
     env_malfunction.reset(random_seed=seed_value)
     return env_static, env_malfunction
 
