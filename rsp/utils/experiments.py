@@ -29,7 +29,7 @@ load_experiment_results_to_file
 import errno
 import os
 import pprint
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Mapping
 
 import numpy as np
 import pandas as pd
@@ -201,6 +201,7 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
     ----------
     solver: AbstractSolver
         Solver from the class AbstractSolver that should be solving the experiments
+
     experiment_agenda: ExperimentAgenda
         List of ExperimentParameters
 
@@ -252,7 +253,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
     return experiment_results
 
 
-def create_experiment_agenda(parameter_ranges: ParameterRanges, speed_data: Dict,
+def create_experiment_agenda(parameter_ranges: ParameterRanges, speed_data:  Mapping[float, float],
                              trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
@@ -261,10 +262,13 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, speed_data: Dict
     ----------
     parameter_ranges: ParameterRanges
         Ranges of all the parameters we want to vary in our experiments
+
     trials_per_experiment: int
         Number of trials per parameter set we want to run
+
     speed_data
         Dictionary containing all the desired speeds in the environment
+
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges

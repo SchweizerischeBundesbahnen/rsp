@@ -2,7 +2,7 @@
 Data types used in the experiment for the real time rescheduling research project
 
 """
-from typing import NamedTuple, List, Dict
+from typing import NamedTuple, List, Dict, Mapping
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict
 
@@ -10,7 +10,7 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
                                    ('trials_in_experiment', int),
                                    ('number_of_agents', int),
-                                   ('speed_data', Dict),
+                                   ('speed_data', Mapping[float, float]),
                                    ('width', int),
                                    ('height', int),
                                    ('seed_value', int),
