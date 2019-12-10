@@ -13,7 +13,7 @@ create_flatland_environment_with_malfunction:
 
 # ----------------------------- Flatland ------------------------------------
 
-from typing import Dict
+from typing import Mapping
 
 from flatland.envs.malfunction_generators import single_malfunction_generator
 from flatland.envs.rail_env import RailEnv
@@ -29,7 +29,7 @@ def create_flatland_environment(number_of_agents: int,
                                 grid_mode: bool,
                                 max_rails_between_cities: int,
                                 max_rails_in_city: int,
-                                speed_data: Dict
+                                speed_data: Mapping[float, float]
                                 ) -> (RailEnv, int):
     """
     Generates sparse envs WITHOUT malfunctions for our research experiments
@@ -80,7 +80,7 @@ def create_flatland_environment_with_malfunction(number_of_agents: int,
                                                  max_rails_in_city: int,
                                                  earliest_malfunction: int,
                                                  malfunction_duration: int,
-                                                 speed_data: Dict
+                                                 speed_data: Mapping[float, float]
                                                  ) -> (RailEnv, int):
     """
     Generates sparse envs WITH malfunctions for our research experiments

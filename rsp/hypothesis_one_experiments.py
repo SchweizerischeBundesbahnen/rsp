@@ -15,10 +15,10 @@ if __name__ == '__main__':
                                        malfunction_duration=[20, 20, 1])
 
     # Define the desired speed profiles
-    speed_data = {1.: 1.,  # Fast passenger train
-                  1. / 2.: 0.,  # Fast freight train
+    speed_data = {1.: 1./3.,  # Fast passenger train
+                  1. / 2.: 1./3.,  # Fast freight train
                   1. / 3.: 0.,  # Slow commuter train
-                  1. / 4.: 0.}  # Slow freight train
+                  1. / 4.: 1./3.}  # Slow freight train
 
     # Create an experiment agenda out of the parameter ranges
 
