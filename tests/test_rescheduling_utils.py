@@ -1,4 +1,5 @@
 import pprint
+from collections import OrderedDict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
@@ -7,7 +8,7 @@ from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_re
     _generic_experiment_freeze_for_rescheduling_agent, _get_delayed_trainrun_waypoint_after_malfunction, \
     get_freeze_for_full_rescheduling
 from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreeze, experimentFreezeDictPrettyPrint, \
-    ExperimentFreezeDict, experimentFreezePrettyPrint
+    ExperimentFreezeDict, experimentFreezePrettyPrint, experiment_freeze_dict_from_list_of_train_run_waypoint
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -410,11 +411,34 @@ def _get_data():
     return agent_paths, train_run
 
 
-def test():
+def test_experiment_freeze():
     agent_paths, train_run = _get_data()
     malfunction = ExperimentMalfunction(time_step=19, agent_id=2, malfunction_duration=20)
     expected_experiment_freeze = ExperimentFreeze(
-        freeze_time_and_visit=[
+
+        freeze_visit=[
+            Waypoint(position=(6, 23), direction=3),
+            Waypoint(position=(6, 22), direction=3),
+            Waypoint(position=(6, 21), direction=3),
+            Waypoint(position=(7, 21), direction=2),
+            Waypoint(position=(7, 20), direction=3),
+            Waypoint(position=(8, 20), direction=2),
+            Waypoint(position=(8, 19), direction=3),
+            Waypoint(position=(8, 18), direction=3),
+            Waypoint(position=(8, 17), direction=3),
+            Waypoint(position=(8, 16), direction=3),
+            Waypoint(position=(8, 15), direction=3),
+            Waypoint(position=(8, 14), direction=3),
+            Waypoint(position=(8, 13), direction=3),
+            Waypoint(position=(8, 12), direction=3),
+            Waypoint(position=(8, 11), direction=3),
+            Waypoint(position=(8, 10), direction=3),
+            Waypoint(position=(8, 9), direction=3),
+            Waypoint(position=(8, 8), direction=3),
+            Waypoint(position=(8, 7), direction=3),
+            Waypoint(position=(8, 6), direction=3)
+        ],
+        freeze_earliest=experiment_freeze_dict_from_list_of_train_run_waypoint([
             TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(6, 23), direction=3)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(6, 22), direction=3)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(6, 21), direction=3)),
@@ -433,11 +457,8 @@ def test():
             TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(8, 10), direction=3)),
             TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 9), direction=3)),
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 8), direction=3)),
-            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 7), direction=3))],
-        freeze_earliest_and_visit=[
-            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(8, 6), direction=3))
-        ],
-        freeze_earliest_only=[
+            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 7), direction=3)),
+            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(8, 6), direction=3)),
             TrainrunWaypoint(scheduled_at=21 + 20, waypoint=Waypoint(position=(8, 5), direction=3)),
             TrainrunWaypoint(scheduled_at=22 + 20, waypoint=Waypoint(position=(8, 4), direction=3)),
             TrainrunWaypoint(scheduled_at=23 + 20, waypoint=Waypoint(position=(8, 3), direction=3)),
@@ -506,7 +527,8 @@ def test():
             TrainrunWaypoint(scheduled_at=42 + 20, waypoint=Waypoint(position=(24, 2), direction=1)),
             TrainrunWaypoint(scheduled_at=43 + 20, waypoint=Waypoint(position=(24, 3), direction=1)),
 
-        ],
+        ]),
+        freeze_latest=[],
         freeze_banned=[
             Waypoint(position=(7, 19), direction=3),
             Waypoint(position=(7, 18), direction=3),
@@ -532,17 +554,17 @@ def test():
         speed_dict={2: 1.0},
         agents_path_dict={2: agent_paths},
         malfunction=malfunction,
-        schedule_trainruns={2: train_run}
+        schedule_trainruns={2: train_run},
+        latest_arrival=333
     )[2]
-    print(f"freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
-    print(f"freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
-    print(f"freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
+    print(f"freeze_visit={_pp.pformat(experiment_freeze.freeze_visit)}")
+    print(f"freeze_earliest={_pp.pformat(experiment_freeze.freeze_earliest)}")
+    print(f"freeze_latest={_pp.pformat(experiment_freeze.freeze_latest)}")
     print(f"freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
 
-    assert experiment_freeze.freeze_time_and_visit == expected_experiment_freeze.freeze_time_and_visit
-    assert experiment_freeze.freeze_earliest_and_visit == expected_experiment_freeze.freeze_earliest_and_visit
-    assert experiment_freeze.freeze_earliest_only == expected_experiment_freeze.freeze_earliest_only
-    assert experiment_freeze.freeze_banned == expected_experiment_freeze.freeze_banned
+    assert set(experiment_freeze.freeze_visit) == set(expected_experiment_freeze.freeze_visit)
+    assert experiment_freeze.freeze_earliest == expected_experiment_freeze.freeze_earliest
+    assert set(experiment_freeze.freeze_banned) == set(expected_experiment_freeze.freeze_banned)
 
 
 def test_get_freeze_for_malfunction_per_train_agent_not_yet_started():
@@ -617,18 +639,18 @@ def test_get_freeze_for_malfunction_per_train_agent_not_yet_started():
         speed_dict={2: 1.0},
         agents_path_dict={2: agent_paths},
         malfunction=malfunction,
-        schedule_trainruns={2: train_run}
+        schedule_trainruns={2: train_run},
+        latest_arrival=333
     )[2]
 
-    print(f"freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
-    print(f"freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
-    print(f"freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
+    print(f"freeze_visit={_pp.pformat(experiment_freeze.freeze_visit)}")
+    print(f"freeze_earliest={_pp.pformat(experiment_freeze.freeze_earliest)}")
+    print(f"freeze_latest={_pp.pformat(experiment_freeze.freeze_latest)}")
     print(f"freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
 
-    assert experiment_freeze.freeze_time_and_visit == [], f"found {experiment_freeze.freeze_time_and_visit}"
-    assert experiment_freeze.freeze_earliest_and_visit == [], f"found {experiment_freeze.freeze_earliest_and_visit}"
+    assert experiment_freeze.freeze_visit == [], f"found {experiment_freeze.freeze_visit}"
     # delayed after the end of the malfunction
-    assert experiment_freeze.freeze_earliest_only == [
+    assert experiment_freeze.freeze_earliest == experiment_freeze_dict_from_list_of_train_run_waypoint([
         TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(6, 23), direction=3)),
         TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(6, 22), direction=3)),
         TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(6, 21), direction=3)),
@@ -730,7 +752,7 @@ def test_get_freeze_for_malfunction_per_train_agent_not_yet_started():
         TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 6), direction=3)),
         TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 5), direction=3)),
         TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(7, 4), direction=3)),
-        TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 4), direction=2))]
+        TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 4), direction=2))])
 
 
 def test_get_freeze_for_malfunction_per_train():
@@ -905,17 +927,17 @@ def test_get_freeze_for_malfunction_per_train():
         speed_dict={0: 1.0},
         agents_path_dict={0: agent_paths},
         malfunction=malfunction,
-        schedule_trainruns={0: train_run}
+        schedule_trainruns={0: train_run},
+        latest_arrival=333
     )[0]
 
-    print(f"freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
-    print(f"freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
-    print(f"freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
+    print(f"freeze_visit={_pp.pformat(experiment_freeze.freeze_visit)}")
+    print(f"freeze_earliest={_pp.pformat(experiment_freeze.freeze_earliest)}")
+    print(f"freeze_latest={_pp.pformat(experiment_freeze.freeze_latest)}")
     print(f"freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
 
-    assert experiment_freeze.freeze_time_and_visit == []
-    assert experiment_freeze.freeze_earliest_and_visit == []
-    assert experiment_freeze.freeze_earliest_only == [
+    assert experiment_freeze.freeze_visit == []
+    assert experiment_freeze.freeze_earliest == experiment_freeze_dict_from_list_of_train_run_waypoint([
         TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=1)),
         TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
         TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -957,7 +979,7 @@ def test_get_freeze_for_malfunction_per_train():
         TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(15, 28), direction=2)),
         TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(16, 28), direction=2)),
         TrainrunWaypoint(scheduled_at=34, waypoint=Waypoint(position=(17, 28), direction=2)),
-        TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(17, 29), direction=1))]
+        TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(17, 29), direction=1))])
     assert experiment_freeze.freeze_banned == []
 
 
@@ -1626,7 +1648,21 @@ def test_get_freeze_for_delta():
 
     expected_freeze_dict = {
         0: ExperimentFreeze(
-            freeze_time_and_visit=[
+            freeze_visit=[
+                Waypoint(position=(8, 23), direction=1),
+                Waypoint(position=(8, 24), direction=1),
+                Waypoint(position=(8, 25), direction=1),
+                Waypoint(position=(8, 26), direction=1),
+                Waypoint(position=(8, 27), direction=1),
+                Waypoint(position=(8, 28), direction=1),
+                Waypoint(position=(8, 29), direction=1),
+                Waypoint(position=(9, 29), direction=2),
+                Waypoint(position=(10, 29), direction=2),
+                Waypoint(position=(11, 29), direction=2),
+                Waypoint(position=(12, 29), direction=2),
+                Waypoint(position=(13, 29), direction=2)
+            ],
+            freeze_earliest=experiment_freeze_dict_from_list_of_train_run_waypoint([
                 TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(8, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(8, 24), direction=1)),
                 TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -1638,10 +1674,7 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=36, waypoint=Waypoint(position=(10, 29), direction=2)),
                 TrainrunWaypoint(scheduled_at=37, waypoint=Waypoint(position=(11, 29), direction=2)),
                 TrainrunWaypoint(scheduled_at=38, waypoint=Waypoint(position=(12, 29), direction=2)),
-                TrainrunWaypoint(scheduled_at=39, waypoint=Waypoint(position=(13, 29), direction=2))
-            ],
-            freeze_earliest_and_visit=[],
-            freeze_earliest_only=[
+                TrainrunWaypoint(scheduled_at=39, waypoint=Waypoint(position=(13, 29), direction=2)),
                 TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(14, 29), direction=2)),
                 TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(15, 29), direction=2)),
                 TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(16, 29), direction=2)),
@@ -1667,11 +1700,68 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(15, 28), direction=2)),
                 TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(16, 28), direction=2)),
                 TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(17, 28), direction=2)),
-                TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(17, 29), direction=1))],
+                TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(17, 29), direction=1))]),
+            freeze_latest=OrderedDict([(
+                Waypoint(position=(24, 23), direction=3), 332),
+                (Waypoint(position=(8, 23), direction=1), 27),
+                (Waypoint(position=(8, 24), direction=1), 29),
+                (Waypoint(position=(8, 25), direction=1), 30),
+                (Waypoint(position=(8, 26), direction=1), 31),
+                (Waypoint(position=(8, 27), direction=1), 32),
+                (Waypoint(position=(8, 28), direction=1), 33),
+                (Waypoint(position=(8, 29), direction=1), 34),
+                (Waypoint(position=(9, 29), direction=2), 35),
+                (Waypoint(position=(10, 29), direction=2), 36),
+                (Waypoint(position=(11, 29), direction=2), 37),
+                (Waypoint(position=(12, 29), direction=2), 38),
+                (Waypoint(position=(13, 29), direction=2), 39),
+                (Waypoint(position=(24, 24), direction=3), 331),
+                (Waypoint(position=(24, 25), direction=3), 330),
+                (Waypoint(position=(24, 26), direction=3), 329),
+                (Waypoint(position=(24, 27), direction=3), 328),
+                (Waypoint(position=(24, 28), direction=3), 327),
+                (Waypoint(position=(24, 29), direction=2), 326),
+                (Waypoint(position=(23, 29), direction=2), 325),
+                (Waypoint(position=(22, 29), direction=2), 324),
+                (Waypoint(position=(21, 29), direction=2), 323),
+                (Waypoint(position=(20, 29), direction=2), 322),
+                (Waypoint(position=(19, 29), direction=2), 321),
+                (Waypoint(position=(18, 29), direction=2), 320),
+                (Waypoint(position=(17, 29), direction=2), 319),
+                (Waypoint(position=(16, 29), direction=2), 318),
+                (Waypoint(position=(15, 29), direction=2), 317),
+                (Waypoint(position=(14, 29), direction=2), 316),
+                (Waypoint(position=(24, 27), direction=2), 328),
+                (Waypoint(position=(23, 27), direction=3), 327),
+                (Waypoint(position=(23, 28), direction=3), 326),
+                (Waypoint(position=(17, 29), direction=1), 319),
+                (Waypoint(position=(17, 28), direction=2), 318),
+                (Waypoint(position=(16, 28), direction=2), 317),
+                (Waypoint(position=(15, 28), direction=2), 316),
+                (Waypoint(position=(14, 28), direction=2), 315),
+                (Waypoint(position=(13, 28), direction=3), 314)]),
             freeze_banned=[Waypoint(position=(7, 27), direction=0), Waypoint(position=(7, 28), direction=1),
                            Waypoint(position=(7, 29), direction=1), Waypoint(position=(8, 29), direction=2)]),
         1: ExperimentFreeze(
-            freeze_time_and_visit=[
+            freeze_visit=[
+                Waypoint(position=(23, 23), direction=1),
+                Waypoint(position=(23, 24), direction=1),
+                Waypoint(position=(23, 25), direction=1),
+                Waypoint(position=(23, 26), direction=1),
+                Waypoint(position=(23, 27), direction=1),
+                Waypoint(position=(23, 28), direction=1),
+                Waypoint(position=(23, 29), direction=1),
+                Waypoint(position=(22, 29), direction=0),
+                Waypoint(position=(21, 29), direction=0),
+                Waypoint(position=(20, 29), direction=0),
+                Waypoint(position=(19, 29), direction=0),
+                Waypoint(position=(18, 29), direction=0),
+                Waypoint(position=(17, 29), direction=0),
+                Waypoint(position=(16, 29), direction=0),
+                Waypoint(position=(15, 29), direction=0),
+                Waypoint(position=(14, 29), direction=0)
+            ],
+            freeze_earliest=experiment_freeze_dict_from_list_of_train_run_waypoint([
                 TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(23, 24), direction=1)),
                 TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -1686,11 +1776,8 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(18, 29), direction=0)),
                 TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(17, 29), direction=0)),
                 TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(16, 29), direction=0)),
-                TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(15, 29), direction=0))],
-            freeze_earliest_and_visit=[
-                TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(14, 29), direction=0))
-            ],
-            freeze_earliest_only=[
+                TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(15, 29), direction=0)),
+                TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(14, 29), direction=0)),
                 TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(13, 29), direction=0)),
                 TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(12, 29), direction=0)),
                 TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(11, 29), direction=0)),
@@ -1708,7 +1795,42 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(8, 27), direction=3)),
                 TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(8, 26), direction=3)),
                 TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 26), direction=0)),
-                TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(8, 27), direction=2))],
+                TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(8, 27), direction=2))]),
+            freeze_latest=OrderedDict([(
+                Waypoint(position=(7, 23), direction=3), 332),
+                (Waypoint(position=(23, 23), direction=1), 4),
+                (Waypoint(position=(23, 24), direction=1), 6),
+                (Waypoint(position=(23, 25), direction=1), 7),
+                (Waypoint(position=(23, 26), direction=1), 8),
+                (Waypoint(position=(23, 27), direction=1), 9),
+                (Waypoint(position=(23, 28), direction=1), 10),
+                (Waypoint(position=(23, 29), direction=1), 11),
+                (Waypoint(position=(22, 29), direction=0), 12),
+                (Waypoint(position=(21, 29), direction=0), 13),
+                (Waypoint(position=(20, 29), direction=0), 14),
+                (Waypoint(position=(19, 29), direction=0), 15),
+                (Waypoint(position=(18, 29), direction=0), 16),
+                (Waypoint(position=(17, 29), direction=0), 17),
+                (Waypoint(position=(16, 29), direction=0), 18),
+                (Waypoint(position=(15, 29), direction=0), 19),
+                (Waypoint(position=(7, 24), direction=3), 331),
+                (Waypoint(position=(7, 25), direction=3), 330),
+                (Waypoint(position=(7, 26), direction=3), 329),
+                (Waypoint(position=(7, 27), direction=3), 328),
+                (Waypoint(position=(7, 28), direction=3), 327),
+                (Waypoint(position=(7, 29), direction=0), 326),
+                (Waypoint(position=(8, 29), direction=0), 325),
+                (Waypoint(position=(9, 29), direction=0), 324),
+                (Waypoint(position=(10, 29), direction=0), 323),
+                (Waypoint(position=(11, 29), direction=0), 322),
+                (Waypoint(position=(12, 29), direction=0), 321),
+                (Waypoint(position=(13, 29), direction=0), 320),
+                (Waypoint(position=(14, 29), direction=0), 319),
+                (Waypoint(position=(7, 26), direction=0), 329),
+                (Waypoint(position=(8, 26), direction=3), 328),
+                (Waypoint(position=(8, 27), direction=3), 327),
+                (Waypoint(position=(8, 28), direction=3), 326),
+                (Waypoint(position=(8, 27), direction=2), 327)]),
             freeze_banned=[
                 Waypoint(position=(17, 28), direction=3), Waypoint(position=(16, 28), direction=0),
                 Waypoint(position=(15, 28), direction=0), Waypoint(position=(14, 28), direction=0),
@@ -1722,13 +1844,21 @@ def test_get_freeze_for_delta():
         speed_dict={0: 1, 1: 1},
         agents_path_dict=agents_path_dict,
         force_freeze=force_freeze,
-        malfunction=malfunction
+        malfunction=malfunction,
+        latest_arrival=333
     )
     print("####freeze_dict")
     experimentFreezeDictPrettyPrint(freeze_dict)
     assert freeze_dict.keys() == expected_freeze_dict.keys()
     for agent_id in expected_freeze_dict:
-        assert freeze_dict[agent_id] == expected_freeze_dict[agent_id], f"difference for agent {agent_id}"
+        assert freeze_dict[agent_id].freeze_earliest == expected_freeze_dict[agent_id].freeze_earliest, \
+            f"difference for agent {agent_id}"
+        assert freeze_dict[agent_id].freeze_latest == expected_freeze_dict[agent_id].freeze_latest, \
+            f"difference for agent {agent_id}"
+        assert set(freeze_dict[agent_id].freeze_visit) == set(expected_freeze_dict[agent_id].freeze_visit), \
+            f"difference for agent {agent_id}"
+        assert set(freeze_dict[agent_id].freeze_banned) == set(expected_freeze_dict[agent_id].freeze_banned), \
+            f"difference for agent {agent_id}"
 
 
 def test_bugfix_sim_172():
@@ -2048,55 +2178,122 @@ def test_bugfix_sim_172():
         minimum_travel_time=1,
         agent_paths=agent_paths,
         force_freeze=force_freeze,
-        trainrun_waypoint_after_malfunction=_get_delayed_trainrun_waypoint_after_malfunction(
+        subdag_source=_get_delayed_trainrun_waypoint_after_malfunction(
             agent_id=malfunction.agent_id,
             trainrun=schedule_trainrun,
             malfunction=malfunction
-        )
-
-    )
+        ),
+        latest_arrival=6667)
 
     experimentFreezePrettyPrint(actual_experiment_freeze)
 
-    assert actual_experiment_freeze.freeze_time_and_visit == [
-        TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(25, 23), direction=1)),
-        TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(25, 24), direction=1)),
-        TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(25, 25), direction=1)),
-        TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(24, 25), direction=0)),
-        TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(24, 26), direction=1)),
-        TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(24, 27), direction=1)),
-        TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(24, 28), direction=1)),
-        TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(24, 29), direction=1)),
-        TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(23, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(22, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(21, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(20, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(19, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(18, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(17, 29), direction=0))]
-    assert actual_experiment_freeze.freeze_earliest_and_visit == [
-        TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(16, 29), direction=0))]
-    assert actual_experiment_freeze.freeze_earliest_only == [
-        TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(15, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(14, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(13, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(12, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(11, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(10, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(9, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(8, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(8, 28), direction=3)),
-        TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(8, 27), direction=3)),
-        TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(8, 26), direction=3)),
-        TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 25), direction=3)),
-        TrainrunWaypoint(scheduled_at=53, waypoint=Waypoint(position=(9, 25), direction=2)),
-        TrainrunWaypoint(scheduled_at=54, waypoint=Waypoint(position=(9, 24), direction=3)),
-        TrainrunWaypoint(scheduled_at=55, waypoint=Waypoint(position=(9, 23), direction=3)),
-        TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 28), direction=3)),
-        TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(7, 27), direction=3)),
-        TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 27), direction=2))]
-    assert actual_experiment_freeze.freeze_banned == [
+    expected_freeze_latest = experiment_freeze_dict_from_list_of_train_run_waypoint(
+        [TrainrunWaypoint(waypoint=Waypoint(position=(9, 23), direction=3), scheduled_at=6666),
+         TrainrunWaypoint(waypoint=Waypoint(position=(25, 23), direction=1), scheduled_at=4),
+         TrainrunWaypoint(waypoint=Waypoint(position=(25, 24), direction=1), scheduled_at=6),
+         TrainrunWaypoint(waypoint=Waypoint(position=(25, 25), direction=1), scheduled_at=7),
+         TrainrunWaypoint(waypoint=Waypoint(position=(24, 25), direction=0), scheduled_at=8),
+         TrainrunWaypoint(waypoint=Waypoint(position=(24, 26), direction=1), scheduled_at=9),
+         TrainrunWaypoint(waypoint=Waypoint(position=(24, 27), direction=1), scheduled_at=10),
+         TrainrunWaypoint(waypoint=Waypoint(position=(24, 28), direction=1), scheduled_at=11),
+         TrainrunWaypoint(waypoint=Waypoint(position=(24, 29), direction=1), scheduled_at=12),
+         TrainrunWaypoint(waypoint=Waypoint(position=(23, 29), direction=0), scheduled_at=13),
+         TrainrunWaypoint(waypoint=Waypoint(position=(22, 29), direction=0), scheduled_at=14),
+         TrainrunWaypoint(waypoint=Waypoint(position=(21, 29), direction=0), scheduled_at=15),
+         TrainrunWaypoint(waypoint=Waypoint(position=(20, 29), direction=0), scheduled_at=16),
+         TrainrunWaypoint(waypoint=Waypoint(position=(19, 29), direction=0), scheduled_at=17),
+         TrainrunWaypoint(waypoint=Waypoint(position=(18, 29), direction=0), scheduled_at=18),
+         TrainrunWaypoint(waypoint=Waypoint(position=(17, 29), direction=0), scheduled_at=19),
+
+         TrainrunWaypoint(waypoint=Waypoint(position=(9, 24), direction=3), scheduled_at=6665),
+         TrainrunWaypoint(waypoint=Waypoint(position=(9, 25), direction=2), scheduled_at=6664),
+         TrainrunWaypoint(waypoint=Waypoint(position=(8, 25), direction=3), scheduled_at=6663),
+         TrainrunWaypoint(waypoint=Waypoint(position=(8, 26), direction=3), scheduled_at=6662),
+
+         # shorter alternative for which it suffices to enter later than the longer!
+         TrainrunWaypoint(waypoint=Waypoint(position=(8, 27), direction=3), scheduled_at=6661),
+         TrainrunWaypoint(waypoint=Waypoint(position=(8, 28), direction=3), scheduled_at=6660),
+
+         # longer alternative for which must be earlier to use at!
+         TrainrunWaypoint(waypoint=Waypoint(position=(8, 27), direction=2), scheduled_at=6661),
+         TrainrunWaypoint(waypoint=Waypoint(position=(7, 27), direction=3), scheduled_at=6660),
+         TrainrunWaypoint(waypoint=Waypoint(position=(7, 28), direction=3), scheduled_at=6659),
+         TrainrunWaypoint(waypoint=Waypoint(position=(7, 29), direction=0), scheduled_at=6658),
+
+         TrainrunWaypoint(waypoint=Waypoint(position=(8, 29), direction=0), scheduled_at=6659),
+         TrainrunWaypoint(waypoint=Waypoint(position=(9, 29), direction=0), scheduled_at=6658),
+         TrainrunWaypoint(waypoint=Waypoint(position=(10, 29), direction=0), scheduled_at=6657),
+         TrainrunWaypoint(waypoint=Waypoint(position=(11, 29), direction=0), scheduled_at=6656),
+         TrainrunWaypoint(waypoint=Waypoint(position=(12, 29), direction=0), scheduled_at=6655),
+         TrainrunWaypoint(waypoint=Waypoint(position=(13, 29), direction=0), scheduled_at=6654),
+         TrainrunWaypoint(waypoint=Waypoint(position=(14, 29), direction=0), scheduled_at=6653),
+         TrainrunWaypoint(waypoint=Waypoint(position=(15, 29), direction=0), scheduled_at=6652),
+         TrainrunWaypoint(waypoint=Waypoint(position=(16, 29), direction=0), scheduled_at=6651),
+
+         ])
+    experimentFreezePrettyPrint(actual_experiment_freeze)
+    actual_dict = actual_experiment_freeze.freeze_latest
+    expected_dict = expected_freeze_latest
+    compare_dicts(actual_dict, expected_dict)
+    assert set(actual_experiment_freeze.freeze_visit) == set([
+        Waypoint(position=(25, 23), direction=1),
+        Waypoint(position=(25, 24), direction=1),
+        Waypoint(position=(25, 25), direction=1),
+        Waypoint(position=(24, 25), direction=0),
+        Waypoint(position=(24, 26), direction=1),
+        Waypoint(position=(24, 27), direction=1),
+        Waypoint(position=(24, 28), direction=1),
+        Waypoint(position=(24, 29), direction=1),
+        Waypoint(position=(23, 29), direction=0),
+        Waypoint(position=(22, 29), direction=0),
+        Waypoint(position=(21, 29), direction=0),
+        Waypoint(position=(20, 29), direction=0),
+        Waypoint(position=(19, 29), direction=0),
+        Waypoint(position=(18, 29), direction=0),
+        Waypoint(position=(17, 29), direction=0),
+        Waypoint(position=(16, 29), direction=0)])
+    expected_freeze_earliest = experiment_freeze_dict_from_list_of_train_run_waypoint(
+        [TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(25, 23), direction=1)),
+         TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(25, 24), direction=1)),
+         TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(25, 25), direction=1)),
+         TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(24, 25), direction=0)),
+         TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(24, 26), direction=1)),
+         TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(24, 27), direction=1)),
+         TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(24, 28), direction=1)),
+         TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(24, 29), direction=1)),
+         TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(23, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(22, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(21, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(20, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(19, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(18, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(17, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(16, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(15, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(14, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(13, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(12, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(11, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(10, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(9, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(8, 29), direction=0)),
+
+         TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(8, 28), direction=3)),
+         TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(8, 27), direction=3)),
+
+         TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 29), direction=0)),
+         TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 28), direction=3)),
+         TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(7, 27), direction=3)),
+         TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 27), direction=2)),
+
+         TrainrunWaypoint(scheduled_at=51, waypoint=Waypoint(position=(8, 26), direction=3)),
+         TrainrunWaypoint(scheduled_at=52, waypoint=Waypoint(position=(8, 25), direction=3)),
+         TrainrunWaypoint(scheduled_at=53, waypoint=Waypoint(position=(9, 25), direction=2)),
+         TrainrunWaypoint(scheduled_at=54, waypoint=Waypoint(position=(9, 24), direction=3)),
+         TrainrunWaypoint(scheduled_at=55, waypoint=Waypoint(position=(9, 23), direction=3)),
+         ])
+    compare_dicts(actual_experiment_freeze.freeze_earliest, expected_freeze_earliest)
+    assert set(actual_experiment_freeze.freeze_banned) == set([
         Waypoint(position=(23, 27), direction=0),
         Waypoint(position=(23, 28), direction=1),
         Waypoint(position=(23, 29), direction=1),
@@ -2105,4 +2302,156 @@ def test_bugfix_sim_172():
         Waypoint(position=(15, 28), direction=0),
         Waypoint(position=(14, 28), direction=0),
         Waypoint(position=(13, 28), direction=0),
-        Waypoint(position=(13, 29), direction=1)]
+        Waypoint(position=(13, 29), direction=1)])
+
+
+def test_bugfix_sim_175_no_path_splitting_forward():
+    """No path splitting forward.
+
+       When the vertices marked by F are freezed, those marked by X must be banned!
+       F(1,0)
+          |
+       F(2,0) - F(2,1)
+          |       |
+       X(3,0)   (3,1)
+          |       |
+       X(4,0) - (4,1)
+
+    """
+
+    # N.B. the directions do not matter for this test!
+    agent_paths = [(Waypoint(position=(1, 0), direction=0),
+                    Waypoint(position=(2, 0), direction=0),
+                    Waypoint(position=(2, 1), direction=0),
+                    Waypoint(position=(3, 1), direction=0),
+                    Waypoint(position=(4, 1), direction=0)),
+
+                   (Waypoint(position=(1, 0), direction=0),
+                    Waypoint(position=(2, 0), direction=0),
+                    Waypoint(position=(3, 0), direction=0),
+                    Waypoint(position=(4, 0), direction=0),
+                    Waypoint(position=(4, 1), direction=0)),
+
+                   ]
+    force_freeze = [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(1, 0), direction=0)),
+                    TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(2, 0), direction=0)),
+                    TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(2, 1), direction=0)),
+                    ]
+
+    actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent(
+        minimum_travel_time=1,
+        agent_paths=agent_paths,
+        force_freeze=force_freeze,
+        subdag_source=force_freeze[0],
+        latest_arrival=6667)
+
+    experimentFreezePrettyPrint(actual_experiment_freeze)
+    # (3,0) must be banned (forward) since the edge (2,0)->(3,1) is frozen and since (3,0) is a forward successor of (2,0)
+    assert Waypoint(position=(3, 0), direction=0) in actual_experiment_freeze.freeze_banned
+
+    # (4,0) must be banned since reachable forward only through (3,0) which is banned
+    assert Waypoint(position=(4, 0), direction=0) in actual_experiment_freeze.freeze_banned
+
+
+def test_bugfix_sim_175_no_path_splitting_backward():
+    """No path splitting backward.
+       When the vertices marked by F are freezed, those marked by X must be banned!
+        (1,0)
+          |
+        (2,0) -  (2,1)
+          |       |
+       X(3,0)   F(3,1)
+          |       |
+       X(4,0) - F(4,1)
+    """
+
+    # N.B. the directions do not matter for this test!
+    agent_paths = [(Waypoint(position=(1, 0), direction=0),
+                    Waypoint(position=(2, 0), direction=0),
+                    Waypoint(position=(2, 1), direction=0),
+                    Waypoint(position=(3, 1), direction=0),
+                    Waypoint(position=(4, 1), direction=0)),
+
+                   (Waypoint(position=(1, 0), direction=0),
+                    Waypoint(position=(2, 0), direction=0),
+                    Waypoint(position=(3, 0), direction=0),
+                    Waypoint(position=(4, 0), direction=0),
+                    Waypoint(position=(4, 1), direction=0)),
+
+                   ]
+    force_freeze = [
+        TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(3, 1), direction=0)),
+        TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(4, 1), direction=0)),
+    ]
+
+    actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent(
+        minimum_travel_time=1,
+        agent_paths=agent_paths,
+        force_freeze=force_freeze,
+        subdag_source=force_freeze[0],
+        latest_arrival=6667)
+
+    experimentFreezePrettyPrint(actual_experiment_freeze)
+    # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
+    assert Waypoint(position=(3, 0), direction=0) in actual_experiment_freeze.freeze_banned
+
+    # (3,0) must be since it cannot be reached backwards as (4,0) is banned.
+    assert Waypoint(position=(3, 0), direction=0) in actual_experiment_freeze.freeze_banned
+
+
+def test_bugfix_sim_175_no_path_splitting_notorious():
+    """No path splitting backward.
+       When the vertices marked by F are freezed, those marked by X must be banned!
+        (1,0)
+          |
+        (2,0) -  (2,1)
+          |       |
+       X(3,0)   F (3,1)
+          |       |
+       X(4,0) -  (4,1)
+
+      Here we cannot use any more banning neighbors of freezed vertices!
+    """
+
+    # N.B. the directions do not matter for this test!
+    agent_paths = [(Waypoint(position=(1, 0), direction=0),
+                    Waypoint(position=(2, 0), direction=0),
+                    Waypoint(position=(2, 1), direction=0),
+                    Waypoint(position=(3, 1), direction=0),
+                    Waypoint(position=(4, 1), direction=0)),
+
+                   (Waypoint(position=(1, 0), direction=0),
+                    Waypoint(position=(2, 0), direction=0),
+                    Waypoint(position=(3, 0), direction=0),
+                    Waypoint(position=(4, 0), direction=0),
+                    Waypoint(position=(4, 1), direction=0)),
+
+                   ]
+    force_freeze = [
+        TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(3, 1), direction=0)),
+    ]
+
+    actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent(
+        minimum_travel_time=1,
+        agent_paths=agent_paths,
+        force_freeze=force_freeze,
+        subdag_source=force_freeze[0],
+        latest_arrival=6667)
+
+    experimentFreezePrettyPrint(actual_experiment_freeze)
+    # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
+    assert Waypoint(position=(3, 0), direction=0) in actual_experiment_freeze.freeze_banned
+
+    # (3,0) must be since it cannot be reached backwards as (4,0) is banned.
+    assert Waypoint(position=(3, 0), direction=0) in actual_experiment_freeze.freeze_banned
+
+
+def compare_dicts(actual_dict, expected_dict):
+    assert set(actual_dict.keys()) == set(expected_dict.keys()), \
+        f"not same keys, " + \
+        f"only expected {set(expected_dict).difference(set(actual_dict))}" + \
+        f"only actual {set(actual_dict).difference(set(expected_dict))}"
+    for key in expected_dict:
+        expected_val = expected_dict[key]
+        actual_val = actual_dict[key]
+        assert actual_val == expected_val, f"{key}, actual={actual_val}, expected={expected_val}"

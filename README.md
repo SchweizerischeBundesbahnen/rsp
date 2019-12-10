@@ -73,11 +73,16 @@ conda install -c potassco clingo-dl=1.1.0
 # caveat: under Windows, the FLATland installation may fail, refer to http://flatland-rl-docs.s3-website.eu-central-1.amazonaws.com/01_readme.html#installation)
 python -m pip install -r requirements.txt
 
-# install rsp in virtual env (do this  after every code modification)
+# install rsp in virtual env
 python setup.py install
 
 # run pipeline
 python rsp/hypothesis_one_experiments.py
+
+# ..... do some development....
+
+# install new version and run tests
+python setup.py install && python -m pytest && python -m flake8 rsp tests
 ```
 
 
