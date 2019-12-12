@@ -215,14 +215,13 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
 
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
-        experiment_results = experiment_results.append(
-            run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=verbose),
-            ignore_index=True)
+        experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=verbose)
+        experiment_results = experiment_results.append(experiment_result, ignore_index=True)
 
         # Save experiment result in a file
         filename = "experiment_" + str(current_experiment_parameters.experiment_id) + ".json"
         complete_name = "./" + folder_name + "/" + filename
-        save_experiment_results_to_file(experiment_results, complete_name)
+        save_experiment_results_to_file(pd.DataFrame(columns=COLUMNS).append(experiment_result, ignore_index=True), complete_name)
 
     return experiment_results
 
@@ -256,13 +255,13 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
         if current_experiment_parameters.experiment_id in experiment_ids:
-            experiment_results = experiment_results.append(
-                run_experiment(solver=solver, experiment_parameters=current_experiment_parameters), ignore_index=True)
+            experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters)
+            experiment_results = experiment_results.append(experiment_result, ignore_index=True)
 
             # Save experiment result in a file
             filename = "experiment_" + str(current_experiment_parameters.experiment_id) + ".json"
             complete_name = "./" + folder_name + "/" + filename
-            save_experiment_results_to_file(experiment_results, complete_name)
+            save_experiment_results_to_file(pd.DataFrame(columns=COLUMNS).append(experiment_result, ignore_index=True), complete_name)
 
     return experiment_results
 
