@@ -20,7 +20,8 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
                                    ('earliest_malfunction', int),
                                    ('malfunction_duration', int)])
 
-ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiments', List[ExperimentParameters])])
+ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
+                                                   ('experiments', List[ExperimentParameters])])
 
 ExperimentResults = NamedTuple('ExperimentResults', [
     ('time_full', float),

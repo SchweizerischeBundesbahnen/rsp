@@ -15,7 +15,9 @@ if __name__ == '__main__':
                                        malfunction_duration=[20, 20, 1])
 
     # Create an experiment agenda out of the parameter ranges
-    experiment_agenda = create_experiment_agenda(parameter_ranges, trials_per_experiment=10)
+    experiment_agenda = create_experiment_agenda(experiment_name="exp_hypothesis_one",
+                                                 parameter_ranges=parameter_ranges,
+                                                 trials_per_experiment=10)
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
@@ -25,6 +27,3 @@ if __name__ == '__main__':
 
     # Re-run desired experiments
     few_experiment_results = run_specific_experiments_from_research_agenda(solver, experiment_agenda, range(7))
-
-    # Save experiment results in a file
-    save_experiment_results_to_file(experiment_results, "./experiment_data/test_setup.json")

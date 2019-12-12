@@ -25,7 +25,7 @@ save_experiment_results_to_file
 load_experiment_results_to_file
     Load the results form an experiment result file
 """
-
+import datetime
 import errno
 import os
 import pprint
@@ -211,11 +211,19 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
     # DataFrame to store all results of experiments
     experiment_results = pd.DataFrame(columns=COLUMNS)
 
+    folder_name = experiment_agenda.experiment_name + "_" + datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
         experiment_results = experiment_results.append(
             run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=verbose),
             ignore_index=True)
+
+        # Save experiment result in a file
+        filename = "experiment_" + str(current_experiment_parameters.experiment_id) + ".json"
+        complete_name = "./" + folder_name + "/" + filename
+        save_experiment_results_to_file(experiment_results, complete_name)
+
     return experiment_results
 
 
@@ -243,20 +251,30 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
     # DataFrame to store all results of experiments
     experiment_results = pd.DataFrame(columns=COLUMNS)
 
+    folder_name = experiment_agenda.experiment_name + "_" + datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+
     # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
         if current_experiment_parameters.experiment_id in experiment_ids:
             experiment_results = experiment_results.append(
                 run_experiment(solver=solver, experiment_parameters=current_experiment_parameters), ignore_index=True)
+
+            # Save experiment result in a file
+            filename = "experiment_" + str(current_experiment_parameters.experiment_id) + ".json"
+            complete_name = "./" + folder_name + "/" + filename
+            save_experiment_results_to_file(experiment_results, complete_name)
+
     return experiment_results
 
 
-def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_experiment: int = 10) -> ExperimentAgenda:
+def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges, trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
 
     Parameters
     ----------
+    experiment_name: str
+        Name of the experiment
     parameter_ranges: ParameterRanges
         Ranges of all the parameters we want to vary in our experiments
     trials_per_experiment: int
@@ -295,7 +313,7 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
                                                   earliest_malfunction=parameter_set[5],
                                                   malfunction_duration=parameter_set[6])
         experiment_list.append(current_experiment)
-    experiment_agenda = ExperimentAgenda(experiments=experiment_list)
+    experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))
     return experiment_agenda
 
