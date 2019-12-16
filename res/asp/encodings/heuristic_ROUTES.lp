@@ -5,7 +5,6 @@
 % Routing heuristic.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% WE DO NOT USE THIS SINCE WE DO NOT DEFINE PENALTIES.
 %
 % Akin to the straight-forward routing penalty minimization, the heuristic in Listing 1.7 merely tries
 % to avoid routes where there is a penalty. The higher the penalty, the more those routes are to be avoided.

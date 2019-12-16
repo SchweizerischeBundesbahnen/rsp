@@ -17,7 +17,7 @@ from rsp.googleortools.cp_sat_solver import CPSATSolver
 from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
 from rsp.utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env, render_env
 from rsp.utils.experiment_utils import solve_problem, current_milli_time
-from rsp.utils.general_utils import verification
+from rsp.utils.general_utils import verification_by_file
 
 HEADER = "test_id;fraction_done_agents;total_reward;build_model_time;solve_time;is_solution_optimal;is_solved;" \
          "max_path_len;steps;w;h;num_agents;Solver;model_latest_arrival_time;sum_running_times\n"
@@ -182,7 +182,7 @@ def test_helper(output_file_name, rendering, tests, debug=False):
             # --------------------------------------------------------------------------------------
             env, width, height, number_of_agents = create_environment_for_test_helper(loop_index)
 
-            verification("env_grid", env.rail.grid.tolist(), loop_index, solver_name)
+            verification_by_file("env_grid", env.rail.grid.tolist(), loop_index, solver_name)
 
             # --------------------------------------------------------------------------------------
             # Generate paths
@@ -201,7 +201,7 @@ def test_helper(output_file_name, rendering, tests, debug=False):
 
             shortest_path_time = (current_milli_time() - start_shortest_path) / 1000.0
 
-            verification("shortest_path_dict", agents_paths_dict, loop_index, solver_name)
+            verification_by_file("shortest_path_dict", agents_paths_dict, loop_index, solver_name)
 
             # --------------------------------------------------------------------------------------
             # Generate model
@@ -218,7 +218,7 @@ def test_helper(output_file_name, rendering, tests, debug=False):
                 raise Exception("Unexpected solver_name {}".format(solver_name))
 
             if isinstance(problem, ASPProblemDescription):
-                verification("asp_encoding", problem.asp_program, loop_index, solver_name)
+                verification_by_file("asp_encoding", problem.asp_program, loop_index, solver_name)
 
             # --------------------------------------------------------------------------------------
             # Solve

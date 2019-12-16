@@ -285,6 +285,13 @@ exponential increase.
 
 The whole program can be found in ````solve_test.py````
 
+# ffmpeg
+```
+sudo apt install ffmpeg
+cd rsp/rendering_output
+ffmpeg -r 5 -s 1920x1080 -i flatland_frame_0000_%04d_ASP_10.png  -vcodec libx264 -crf 15 -pix_fmt yuv420p out.mp4
+
+``` 
 
 # Disclaimer
 ## Authors: 
@@ -294,3 +301,4 @@ The whole program can be found in ````solve_test.py````
 
 ## Diagram Source
 Most of the diagrams are drawn using the draw.io plugin in confluence: [confluence.sbb.ch](https://confluence.sbb.ch/x/aIfBU)
+

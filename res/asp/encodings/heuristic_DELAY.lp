@@ -5,8 +5,6 @@
 % Delay heuristic.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% WE DO NOT USE THIS SINCE WE DO NOT DEFINE TIME WINDOWS.
-%
 % Listing 1.6 gives a heuristic aimed at avoiding delay at earlier nodes in the paths.
 % For that purpose, we first assign each node in the sub-graph of a train a natural number signifying their
 % relative position (lines 1–4). Start nodes receive position 0, and from there,

@@ -140,7 +140,7 @@ class ORToolsProblemDescription(AbstractProblemDescription):
         self._solver.build_objective_function(all_variables)
 
     @overrides
-    def solve(self) -> ORToolsSolutionDescription:
+    def solve(self, verbose: bool = False) -> ORToolsSolutionDescription:
         """See :class:`AbstractProblemDescription`."""
         self._status = self._solver.Solve()
         # TODO bad code smell: we should not pass the solver instance,
