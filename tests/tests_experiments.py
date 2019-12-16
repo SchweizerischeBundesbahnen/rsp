@@ -1,13 +1,15 @@
 """
 Run tests for different experiment methods
 """
+
 import pandas
+import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint
-from numpy import nan
 
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ExperimentParameters, ExperimentAgenda
-from rsp.utils.experiments import create_env_pair_for_experiment, run_experiment_agenda
+from rsp.utils.experiments import create_env_pair_for_experiment, run_experiment_agenda, \
+    load_experiment_results_from_folder, run_experiment, COLUMNS
 
 
 def test_created_env_tuple():
@@ -94,14 +96,17 @@ def test_created_env_tuple():
 
 def test_regression_experiment_agenda():
     """Run a simple agenda as regression test"""
-    agenda = ExperimentAgenda(experiments=[
+    agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
         ExperimentParameters(experiment_id=0, trials_in_experiment=1, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20)])
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
-    result = run_experiment_agenda(solver, agenda)
+    experiment_folder_name = run_experiment_agenda(solver, agenda)
+
+    # load results
+    result = load_experiment_results_from_folder(experiment_folder_name)
 
     with pandas.option_context('display.max_rows', None, 'display.max_columns',
                                None):  # more options can be specified also
@@ -144,7 +149,7 @@ def test_regression_experiment_agenda():
                           TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(7, 24), direction=3)),
                           TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3))]}},
         'experiment_id': {0: 0}, 'max_num_cities': {0: 20}, 'max_rail_between_cities': {0: 2},
-        'max_rail_in_city': {0: 6}, 'n_agents': {0: 2}, 'size': {0: 30}, 'solution_delta': {0: nan},
+        'max_rail_in_city': {0: 6}, 'n_agents': {0: 2}, 'size': {0: 30},
         'solution_delta_after_malfunction': {0: {
             0: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(8, 24), direction=1)),
@@ -328,3 +333,32 @@ def test_regression_experiment_agenda():
         if not key.startswith("time"):
             assert expected_result_dict[key] == result_dict[key], \
                 f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"
+
+
+def test_save_and_load_experiment_results():
+    """Run a simple agenda and save and load the results"""
+    agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
+        ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
+                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20)])
+
+    solver = ASPExperimentSolver()
+    experiment_folder_name = run_experiment_agenda(solver, agenda)
+
+    # load results
+    loaded_results = load_experiment_results_from_folder(experiment_folder_name)
+
+    experiment_results = pd.DataFrame(columns=COLUMNS)
+    for current_experiment_parameters in agenda.experiments:
+        single_experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=False)
+        experiment_results = experiment_results.append(single_experiment_result, ignore_index=True)
+
+    with pandas.option_context('display.max_rows', None, 'display.max_columns',
+                               None):  # more options can be specified also
+        loaded_result_dict = loaded_results.to_dict()
+        experiment_results_dict = experiment_results.to_dict()
+
+    for key in experiment_results_dict:
+        if not key.startswith("time"):
+            assert experiment_results_dict[key] == loaded_result_dict[key], \
+                f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
