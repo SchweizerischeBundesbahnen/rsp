@@ -249,35 +249,24 @@ class ASPProblemDescription(AbstractProblemDescription):
         # - no diff-constraints in addition to earliest/latest -> should be added immediately
         # - no route constraints in addition to visit -> should be added immediately
 
-        # constraint all times
-        for trainrun_waypoint in freeze.freeze_time_and_visit:
-            vertex = tuple(trainrun_waypoint.waypoint)
-            time = trainrun_waypoint.scheduled_at
-            # add earliest and latest constraints
-            # e(t1,1,2).
-            frozen.append(f"e({train},{vertex},{time}).")
+        for trainrun_waypoint in freeze.freeze_visit:
+            vertex = tuple(trainrun_waypoint)
+
+            # add visit constraint
+            # visit(t1,1).
+            frozen.append(f"visit({train},{vertex}).")
+
+        for waypoint, scheduled_at in freeze.freeze_latest.items():
+            vertex = tuple(waypoint)
+            time = scheduled_at
+
+            # add earliest constraint
             # l(t1,1,2).
             frozen.append(f"l({train},{vertex},{time}).")
 
-            # add visit constraint
-            # visit(t1,1).
-            frozen.append(f"visit({train},{vertex}).")
-
-        for trainrun_waypoint in freeze.freeze_earliest_and_visit:
-            vertex = tuple(trainrun_waypoint.waypoint)
-            time = trainrun_waypoint.scheduled_at
-
-            # add earliest constraint
-            # e(t1,1,2).
-            frozen.append(f"e({train},{vertex},{time}).")
-
-            # add visit constraint
-            # visit(t1,1).
-            frozen.append(f"visit({train},{vertex}).")
-
-        for trainrun_waypoint in freeze.freeze_earliest_only:
-            vertex = tuple(trainrun_waypoint.waypoint)
-            time = trainrun_waypoint.scheduled_at
+        for waypoint, scheduled_at in freeze.freeze_earliest.items():
+            vertex = tuple(waypoint)
+            time = scheduled_at
 
             # add earliest constraint
             # e(t1,1,2).
@@ -285,7 +274,7 @@ class ASPProblemDescription(AbstractProblemDescription):
 
         for waypoint in freeze.freeze_banned:
             vertex = tuple(waypoint)
-            # 3. vertex must be visited
+            #  vertex must not be visited
             # visit(t1,1).
             frozen.append(f":- visit({train},{vertex}).")
 

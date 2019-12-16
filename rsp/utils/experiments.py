@@ -264,9 +264,6 @@ def _analyze_agent_path(agent_id, agents_path_dict, env, malfunction, schedule_t
             print(f"   agent {agent_id}: at malfunction {malfunction}, schedule_remainder={scheduled_remainder}")
             print(f"   agent {agent_id}: path {path_index} is {agent_path}")
 
-    print(f"    * agent {agent_id}: {100 * nb_paths / len(agents_path_dict[agent_id]):3.1f}% "
-          f"({nb_paths}/{len(agents_path_dict[agent_id])}) paths open after malfunction")
-
 
 def run_experiment_agenda(solver: AbstractSolver,
                           experiment_agenda: ExperimentAgenda,
