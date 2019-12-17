@@ -25,9 +25,10 @@ save_experiment_results_to_file
 load_experiment_results_to_file
     Load the results form an experiment result file
 """
-
+import datetime
 import errno
 import os
+import pickle
 import pprint
 from typing import List, Tuple
 
@@ -35,7 +36,7 @@ import numpy as np
 import pandas as pd
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from pandas import DataFrame, Series
+from pandas import DataFrame
 
 from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults
 from rsp.utils.experiment_env_generators import create_flatland_environment, \
@@ -68,7 +69,7 @@ def run_experiment(solver: AbstractSolver,
                    show_results_without_details: bool = True,
                    verbose: bool = False,
                    debug: bool = False,
-                   force_only_one_trial: bool = True) -> Series:
+                   force_only_one_trial: bool = True) -> List:
     """
 
     Run a single experiment with a given solver and ExperimentParameters
@@ -85,7 +86,7 @@ def run_experiment(solver: AbstractSolver,
     """
 
     # DataFrame to store all results of experiments
-    experiment_results = pd.DataFrame(columns=COLUMNS)
+    experiment_results = []
     # Run the sequence of experiment
     for trial in range(experiment_parameters.trials_in_experiment if not force_only_one_trial else 1):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
@@ -115,30 +116,30 @@ def run_experiment(solver: AbstractSolver,
         # Store results
         time_delta_after_m = current_results.time_delta_after_malfunction
         time_full_after_m = current_results.time_full_after_malfunction
-        experiment_result_dict = {'experiment_id': experiment_parameters.experiment_id,
-                                  'time_full': current_results.time_full,
-                                  'time_full_after_malfunction': time_full_after_m,
-                                  'time_delta_after_malfunction': time_delta_after_m,
-                                  'solution_full': current_results.solution_full,
-                                  'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
-                                  'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
-                                  'costs_full': current_results.costs_full,
-                                  'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
-                                  'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
-                                  'experiment_freeze': current_results.experiment_freeze,
-                                  'malfunction': current_results.malfunction,
-                                  'size': experiment_parameters.width,
-                                  'n_agents': experiment_parameters.number_of_agents,
-                                  'max_num_cities': experiment_parameters.max_num_cities,
-                                  'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
-                                  'max_rail_in_city': experiment_parameters.max_rail_in_city,
-                                  }
-        experiment_results = experiment_results.append(experiment_result_dict, ignore_index=True)
+
+        experiment_results.append({'experiment_id': experiment_parameters.experiment_id,
+                                   'time_full': current_results.time_full,
+                                   'time_full_after_malfunction': time_delta_after_m,
+                                   'time_delta_after_malfunction': time_full_after_m,
+                                   'solution_full': current_results.solution_full,
+                                   'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
+                                   'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
+                                   'costs_full': current_results.costs_full,
+                                   'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
+                                   'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
+                                   'experiment_freeze': current_results.experiment_freeze,
+                                   'malfunction': current_results.malfunction,
+                                   'size': experiment_parameters.width,
+                                   'n_agents': experiment_parameters.number_of_agents,
+                                   'max_num_cities': experiment_parameters.max_num_cities,
+                                   'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
+                                   'max_rail_in_city': experiment_parameters.max_rail_in_city})
+
         if show_results_without_details:
             print("*** experiment result of trial {} for experiment {}".format(trial + 1,
                                                                                experiment_parameters.experiment_id))
 
-            _pp.pprint({key: experiment_result_dict[key] for key in COLUMNS
+            _pp.pprint({key: experiment_results[-1][key] for key in COLUMNS
                         if not key.startswith('solution_') and not key == 'experiment_freeze'
                         })
 
@@ -271,9 +272,9 @@ def _analyze_agent_path(agent_id, agents_path_dict, env, malfunction, schedule_t
 def run_experiment_agenda(solver: AbstractSolver,
                           experiment_agenda: ExperimentAgenda,
                           show_results_without_details: bool = True,
-                          verbose: bool = False) -> DataFrame:
+                          verbose: bool = False) -> str:
     """
-     Run a given experiment_agenda with a suitable solver, return the results as a DataFrame
+     Run a given experiment_agenda with a suitable solver, return the name of the experiment folder
 
     Parameters
     ----------
@@ -281,31 +282,31 @@ def run_experiment_agenda(solver: AbstractSolver,
         Solver from the class AbstractSolver that should be solving the experiments
     experiment_agenda: ExperimentAgenda
         List of ExperimentParameters
+    verbose: bool
+        Print additional information
 
     Returns
     -------
-    Returns a DataFrame with the results of all experiments in the agenda
+    Returns the name of the experiment folder
     """
+    experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
-    # DataFrame to store all results of experiments
-    experiment_results = pd.DataFrame(columns=COLUMNS)
-
-    # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
-        experiment_results = experiment_results.append(
-            run_experiment(solver=solver,
-                           experiment_parameters=current_experiment_parameters,
-                           verbose=verbose,
-                           show_results_without_details=show_results_without_details),
-            ignore_index=True)
-    return experiment_results
+        experiment_result = run_experiment(solver=solver,
+                                           experiment_parameters=current_experiment_parameters,
+                                           verbose=verbose,
+                                           show_results_without_details=show_results_without_details)
+        filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+        save_experiment_results_to_file(experiment_result, filename)
+
+    return experiment_folder_name
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                   experiment_agenda: ExperimentAgenda,
                                                   experiment_ids: List[int],
                                                   show_results_without_details: bool = True,
-                                                  verbose: bool = False) -> DataFrame:
+                                                  verbose: bool = False) -> str:
     """
 
     Run a subset of experiments of a given agenda. This is useful when trying to find bugs in code.
@@ -318,33 +319,36 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
         Full list of experiments
     experiment_ids: List[int]
         List of experiment IDs we want to run
+    verbose: bool
+        Print additional information
 
     Returns
     -------
-    Returns a DataFrame with the results the desired experiments we ran
+    Returns the name of the experiment folder
 
     """
+    experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
-    # DataFrame to store all results of experiments
-    experiment_results = pd.DataFrame(columns=COLUMNS)
-
-    # Run the sequence of experiment
     for current_experiment_parameters in experiment_agenda.experiments:
         if current_experiment_parameters.experiment_id in experiment_ids:
             experiment_result = run_experiment(solver=solver,
                                                experiment_parameters=current_experiment_parameters,
                                                show_results_without_details=show_results_without_details,
                                                verbose=verbose)
-            experiment_results = experiment_results.append(experiment_result, ignore_index=True)
-    return experiment_results
+            filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+            save_experiment_results_to_file(experiment_result, filename)
+
+    return experiment_folder_name
 
 
-def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_experiment: int = 10) -> ExperimentAgenda:
+def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges, trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
 
     Parameters
     ----------
+    experiment_name: str
+        Name of the experiment
     parameter_ranges: ParameterRanges
         Ranges of all the parameters we want to vary in our experiments
     trials_per_experiment: int
@@ -382,7 +386,7 @@ def create_experiment_agenda(parameter_ranges: ParameterRanges, trials_per_exper
                                                   earliest_malfunction=parameter_set[5],
                                                   malfunction_duration=parameter_set[6])
         experiment_list.append(current_experiment)
-    experiment_agenda = ExperimentAgenda(experiments=experiment_list)
+    experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))
     return experiment_agenda
 
@@ -484,14 +488,24 @@ def load_experiment_agenda_from_file(file_name: str) -> ExperimentAgenda:
     pass
 
 
-def save_experiment_results_to_file(experiment_results: DataFrame, file_name: str):
+def create_experiment_folder_name(experiment_name: str) -> str:
+    datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+    return"{}_{}".format(experiment_name, datetime_string)
+
+
+def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
+    filename = "experiment_{}.json".format(experiment_id)
+    return os.path.join(experiment_folder_name, filename)
+
+
+def save_experiment_results_to_file(experiment_results: List, file_name: str):
     """
     Save the data frame with all the result from an experiment into a given file
 
     Parameters
     ----------
-    experiment_results: DataFrame
-        Data Frame containing all the experiment results
+    experiment_results: List of experiment results
+       List containing all the experiment results
     file_name: str
         File name containing path and name of file we want to store the experiment results
 
@@ -505,12 +519,14 @@ def save_experiment_results_to_file(experiment_results: DataFrame, file_name: st
         except OSError as exc:  # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise exc
-    experiment_results.to_json(file_name)
+
+    with open(file_name, 'wb') as handle:
+        pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_experiment_results_to_file(file_name: str) -> DataFrame:
+def load_experiment_results_from_file(file_name: str) -> List:
     """
-    Load results as DataFrame to do further analysis
+    Load results as List to do further analysis
 
     Parameters
     ----------
@@ -519,7 +535,33 @@ def load_experiment_results_to_file(file_name: str) -> DataFrame:
 
     Returns
     -------
+    List containing the loaded experiment results
+    """
+    with open(file_name, 'rb') as handle:
+        experiment_results = pickle.load(handle)
+    return experiment_results
+
+
+def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFrame:
+    """
+    Load results as DataFrame to do further analysis
+
+    Parameters
+    ----------
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files are stored
+
+    Returns
+    -------
     DataFrame containing the loaded experiment results
     """
-    experiment_results = pd.read_json(file_name)
+
+    experiment_results = pd.DataFrame(columns=COLUMNS)
+
+    files = os.listdir(experiment_folder_name)
+    for file in files:
+        file_name = os.path.join(experiment_folder_name, file)
+        file_data = load_experiment_results_from_file(file_name)
+        experiment_results = experiment_results.append(file_data, ignore_index=True)
+
     return experiment_results

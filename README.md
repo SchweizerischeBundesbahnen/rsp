@@ -44,6 +44,7 @@ How big is the speed up if we know Delta?
 | Determine Delta w.r. to Full Schedule |
 | Re-Scheduling Delta                   |
 
+The results generated with the pipeline are saved as pickle files. Since the python dictionaries within the pickle files contain custom classes, the results are not backward compatible.
 
 
 ## Scheduling and Re-Scheduling on FLATland problem with Google OR Tools or ASP
