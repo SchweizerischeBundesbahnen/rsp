@@ -193,8 +193,7 @@ def run_experiment(solver: AbstractSolver,
     return experiment_results
 
 
-def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda,
-                          verbose: bool = False) -> str:
+def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda, verbose: bool = False) -> str:
     """
      Run a given experiment_agenda with a suitable solver, return the name of the experiment folder
 
@@ -204,26 +203,26 @@ def run_experiment_agenda(solver: AbstractSolver, experiment_agenda: ExperimentA
         Solver from the class AbstractSolver that should be solving the experiments
     experiment_agenda: ExperimentAgenda
         List of ExperimentParameters
+    verbose: bool
+        Print additional information
 
     Returns
     -------
     Returns the name of the experiment folder
     """
-
-    experiment_folder_name = experiment_agenda.experiment_name + "_" + datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+    experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
     for current_experiment_parameters in experiment_agenda.experiments:
-        experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=verbose)
-
-        filename = "experiment_" + str(current_experiment_parameters.experiment_id) + ".json"
-        complete_name = "./" + experiment_folder_name + "/" + filename
-        save_experiment_results_to_file(experiment_result, complete_name)
+        experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters,
+                                           verbose=verbose)
+        filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+        save_experiment_results_to_file(experiment_result, filename)
 
     return experiment_folder_name
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experiment_agenda: ExperimentAgenda,
-                                                  experiment_ids: List[int]) -> str:
+                                                  experiment_ids: List[int], verbose: bool = False) -> str:
     """
 
     Run a subset of experiments of a given agenda. This is useful when trying to find bugs in code.
@@ -236,22 +235,22 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver, experi
         Full list of experiments
     experiment_ids: List[int]
         List of experiment IDs we want to run
+    verbose: bool
+        Print additional information
 
     Returns
     -------
     Returns the name of the experiment folder
 
     """
-
-    experiment_folder_name = experiment_agenda.experiment_name + "_" + datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+    experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
     for current_experiment_parameters in experiment_agenda.experiments:
         if current_experiment_parameters.experiment_id in experiment_ids:
-            experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters)
-
-            filename = "experiment_" + str(current_experiment_parameters.experiment_id) + ".json"
-            complete_name = "./" + experiment_folder_name + "/" + filename
-            save_experiment_results_to_file(experiment_result, complete_name)
+            experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters,
+                                               verbose=verbose)
+            filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+            save_experiment_results_to_file(experiment_result, filename)
 
     return experiment_folder_name
 
@@ -402,6 +401,16 @@ def load_experiment_agenda_from_file(file_name: str) -> ExperimentAgenda:
     ExperimentAgenda loaded from file
     """
     pass
+
+
+def create_experiment_folder_name(experiment_name: str) -> str:
+    datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+    return"{}_{}".format(experiment_name, datetime_string)
+
+
+def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
+    filename = "experiment_{}.json".format(experiment_id)
+    return os.path.join(experiment_folder_name, filename)
 
 
 def save_experiment_results_to_file(experiment_results: List, file_name: str):

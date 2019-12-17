@@ -23,6 +23,3 @@ if __name__ == '__main__':
 
     # Run experiments
     run_experiment_agenda(solver, experiment_agenda, verbose=True)
-
-    # Re-run desired experiments
-    run_specific_experiments_from_research_agenda(solver, experiment_agenda, range(7))
