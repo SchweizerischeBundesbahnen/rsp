@@ -269,8 +269,8 @@ def _analyze_agent_path(agent_id, agents_path_dict, env, malfunction, schedule_t
           f"({nb_paths}/{len(agents_path_dict[agent_id])}) paths open after malfunction")
 
 
-def run_experiment_agenda(solver: AbstractSolver, 
-                          experiment_agenda: ExperimentAgenda, 
+def run_experiment_agenda(solver: AbstractSolver,
+                          experiment_agenda: ExperimentAgenda,
                           show_results_without_details: bool = True,
                           verbose: bool = False) -> str:
     """
@@ -292,7 +292,7 @@ def run_experiment_agenda(solver: AbstractSolver,
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
     for current_experiment_parameters in experiment_agenda.experiments:
-        experiment_result = run_experiment(solver=solver, 
+        experiment_result = run_experiment(solver=solver,
                                            experiment_parameters=current_experiment_parameters,
                                            verbose=verbose,
                                            show_results_without_details=show_results_without_details)
@@ -302,9 +302,9 @@ def run_experiment_agenda(solver: AbstractSolver,
     return experiment_folder_name
 
 
-def run_specific_experiments_from_research_agenda(solver: AbstractSolver, 
+def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                   experiment_agenda: ExperimentAgenda,
-                                                  experiment_ids: List[int], 
+                                                  experiment_ids: List[int],
                                                   show_results_without_details: bool = True,
                                                   verbose: bool = False) -> str:
     """
@@ -331,7 +331,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
 
     for current_experiment_parameters in experiment_agenda.experiments:
         if current_experiment_parameters.experiment_id in experiment_ids:
-            experiment_result = run_experiment(solver=solver, 
+            experiment_result = run_experiment(solver=solver,
                                                experiment_parameters=current_experiment_parameters,
                                                show_results_without_details=show_results_without_details,
                                                verbose=verbose)
