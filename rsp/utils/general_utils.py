@@ -9,11 +9,11 @@ def current_milli_time():
 VERIFICATION = False
 
 
-def verification(title, actual, loop_index, solver_name, generate: bool = False, debug: bool = False):
+def verification_by_file(title, actual, loop_index, solver_name, generate: bool = False, debug: bool = False):
     """
     Verifies that an actual against an expected object from a file.
     In generate mode, the value is written to file and re-read and verified to
-    ensure that the verification of works correctly for the expected itself.
+    ensure that the verification_by_file of works correctly for the expected itself.
 
     Parameters
     ----------

@@ -12,14 +12,32 @@ from rsp.asp import theory
 
 class ASPObjective(Enum):
     """
-    enum value (key arbitrary) must be the same as
-    - encoding to be included
-    - progam name to be activated (within the encoding)
-    - theory atom that represents the achieved value (within the encoding)
+    enum value (key arbitrary) must be the same as encoding to be included
     """
-    MINIMIZE_SUM_RUNNING_TIMES = "minimize_total_sum_of_running_times"  # minimize_total_sum_of_running_times.lp
-    MINIMIZE_LATEST_ARRIVAL = "bound_all_events"  # multi-shot + bound_all_events.lp
+
+    # minimize_total_sum_of_running_times.lp
+    MINIMIZE_SUM_RUNNING_TIMES = "minimize_total_sum_of_running_times"
+
+    # minimize delay with respect to earliest constraints
     MINIMIZE_DELAY = "minimize_delay"
+
+
+class ASPHeuristics(Enum):
+    """
+    enum value (key arbitrary) must be the same as encoding to be included
+    """
+
+    # avoiding delay at earlier nodes in the paths.
+    # NOT USED YET (we do not give the data in re-scheduling yet)
+    HEURISTIC_DELAY = "heuristic_DELAY"
+
+    # tries to avoid routes where there is a penalty.
+    # NOT USED YET (we do not give the data in re-scheduling yet)
+    HEURISIC_ROUTES = "heuristic_ROUTES"
+
+    # attempts to order conflicting trains by their possible arrival times at the edges where the conflict is located.
+    # NOT USED YET (we do not give the data in re-scheduling yet)
+    HEURISTIC_SEQ = "heuristic_SEQ"
 
 
 FluxHelperResult = NamedTuple('FluxHelperResult', [
@@ -35,8 +53,8 @@ FluxHelperResult = NamedTuple('FluxHelperResult', [
 def flux_helper(
         asp_data: List[str],
         bound_all_events: Optional[int] = None,
-        heuristic_routes: bool = False,
-        asp_objective: ASPObjective = ASPObjective.MINIMIZE_LATEST_ARRIVAL,
+        asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
+        asp_heurisics: List[ASPHeuristics] = None,
         verbose: bool = False
 ) -> FluxHelperResult:
     """
@@ -48,8 +66,8 @@ def flux_helper(
         data part
     bound_all_events
         upper bound on all arrival times
-    heuristic_routes
-        should the routes heuristic be used or not?
+    asp_heuristics
+        which heuristics to apply?
     asp_objective
         which asp objective should be applied if any
 
@@ -62,10 +80,15 @@ def flux_helper(
     with path('res.asp.encodings', 'encoding.lp') as encoding_path:
         paths = [encoding_path]
 
-    # TODO SIM-146 performance test with/without heuristics
-    if heuristic_routes:
-        with path('res.asp.encodings', 'heuristic_ROUTES.lp') as heuristic_routes_path:
-            paths.append(heuristic_routes_path)
+    if asp_heurisics:
+        for asp_heurisic in asp_heurisics:
+            # TODO SIM-176 switch on heuristics
+            if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ,
+                                ASPHeuristics.HEURISTIC_DELAY,
+                                ASPHeuristics.HEURISIC_ROUTES]:
+                continue
+            with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
+                paths.append(heuristic_routes_path)
     if asp_objective:
         with path('res.asp.encodings', f'{asp_objective.value}.lp') as bound_path:
             paths.append(bound_path)
@@ -73,7 +96,7 @@ def flux_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,
         plain_encoding=prg_text_joined,
-        verbose=verbose
+        verbose=False
     )
 
     return flux_result

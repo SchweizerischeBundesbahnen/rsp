@@ -22,4 +22,4 @@ if __name__ == '__main__':
     solver = ASPExperimentSolver()
 
     # Run experiments
-    run_experiment_agenda(solver, experiment_agenda, verbose=True)
+    run_experiment_agenda(solver, experiment_agenda, show_results_without_details=True, verbose=True)
