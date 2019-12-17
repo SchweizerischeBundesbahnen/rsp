@@ -27,9 +27,12 @@ load_experiment_results_to_file
 """
 import datetime
 import errno
+import multiprocessing
 import os
 import pickle
 import pprint
+import shutil
+from functools import partial
 from typing import List, Tuple
 
 import numpy as np
@@ -291,15 +294,23 @@ def run_experiment_agenda(solver: AbstractSolver,
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
-    for current_experiment_parameters in experiment_agenda.experiments:
-        experiment_result = run_experiment(solver=solver,
-                                           experiment_parameters=current_experiment_parameters,
-                                           verbose=verbose,
-                                           show_results_without_details=show_results_without_details)
-        filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
-        save_experiment_results_to_file(experiment_result, filename)
+    pool = multiprocessing.Pool()
+    pool.map(partial(run_and_save_one_experiment,
+                     solver=solver,
+                     verbose=verbose,
+                     show_results_without_details=show_results_without_details,
+                     experiment_folder_name=experiment_folder_name), experiment_agenda.experiments)
 
     return experiment_folder_name
+
+
+def run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details, experiment_folder_name):
+    experiment_result = run_experiment(solver=solver,
+                                       experiment_parameters=current_experiment_parameters,
+                                       verbose=verbose,
+                                       show_results_without_details=show_results_without_details)
+    filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+    save_experiment_results_to_file(experiment_result, filename)
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
@@ -331,12 +342,8 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
 
     for current_experiment_parameters in experiment_agenda.experiments:
         if current_experiment_parameters.experiment_id in experiment_ids:
-            experiment_result = run_experiment(solver=solver,
-                                               experiment_parameters=current_experiment_parameters,
-                                               show_results_without_details=show_results_without_details,
-                                               verbose=verbose)
-            filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
-            save_experiment_results_to_file(experiment_result, filename)
+            run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
+                                        experiment_folder_name)
 
     return experiment_folder_name
 
@@ -565,3 +572,18 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
         experiment_results = experiment_results.append(file_data, ignore_index=True)
 
     return experiment_results
+
+
+def delete_experiment_folder(experiment_folder_name: str):
+    """
+    Delete experiment folder
+
+    Parameters
+    ----------
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files are stored
+
+    Returns
+    -------
+    """
+    shutil.rmtree(experiment_folder_name)
