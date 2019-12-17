@@ -140,7 +140,7 @@ def run_experiment(solver: AbstractSolver,
             print("*** experiment result of trial {} for experiment {}".format(trial + 1,
                                                                                experiment_parameters.experiment_id))
 
-            _pp.pprint({key: experiment_result_dict[key] for key in COLUMNS
+            _pp.pprint({key: experiment_results[-1][key] for key in COLUMNS
                         if not key.startswith('solution_') and not key == 'experiment_freeze'
                         })
 

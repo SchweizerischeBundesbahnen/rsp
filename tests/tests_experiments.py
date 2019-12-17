@@ -115,7 +115,7 @@ def test_regression_experiment_agenda():
         print(result_dict)
 
     expected_result_dict = {
-        'costs_delta_after_malfunction': {0: 0.0}, 'costs_full': {0: 2.0}, 'costs_full_after_malfunction': {0: 40.0},
+        'costs_delta_after_malfunction': {0: 0.0}, 'costs_full': {0: 2.0}, 'costs_full_after_malfunction': {0: 22.0},
         'delta': {0: {0: [TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(21, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(22, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(23, 29), direction=2)),
