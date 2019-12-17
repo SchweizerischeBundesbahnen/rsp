@@ -9,7 +9,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoi
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ExperimentParameters, ExperimentAgenda
 from rsp.utils.experiments import create_env_pair_for_experiment, run_experiment_agenda, \
-    load_experiment_results_from_folder, run_experiment, COLUMNS
+    load_experiment_results_from_folder, run_experiment, COLUMNS, delete_experiment_folder
 
 
 def test_created_env_tuple():
@@ -105,10 +105,12 @@ def test_regression_experiment_agenda():
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, verbose=True)
+    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False, verbose=True)
 
     # load results
     result = load_experiment_results_from_folder(experiment_folder_name)
+
+    delete_experiment_folder(experiment_folder_name)
 
     with pandas.option_context('display.max_rows', None, 'display.max_columns',
                                None):  # more options can be specified also
@@ -347,10 +349,11 @@ def test_save_and_load_experiment_results():
                              speed_data={1: 1.0})])
 
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda)
+    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
 
     # load results
     loaded_results = load_experiment_results_from_folder(experiment_folder_name)
+    delete_experiment_folder(experiment_folder_name)
 
     experiment_results = pd.DataFrame(columns=COLUMNS)
     for current_experiment_parameters in agenda.experiments:

@@ -27,10 +27,14 @@ load_experiment_results_to_file
 """
 import datetime
 import errno
+import multiprocessing
 import os
 import pickle
 import pprint
 from typing import List, Tuple, Mapping
+import shutil
+from functools import partial
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -271,6 +275,7 @@ def _analyze_agent_path(agent_id, agents_path_dict, env, malfunction, schedule_t
 
 def run_experiment_agenda(solver: AbstractSolver,
                           experiment_agenda: ExperimentAgenda,
+                          run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           verbose: bool = False) -> str:
     """
@@ -283,6 +288,10 @@ def run_experiment_agenda(solver: AbstractSolver,
 
     experiment_agenda: ExperimentAgenda
         List of ExperimentParameters
+    run_experiments_parallel: bool
+        run experiments in parallel
+    show_results_without_details: bool
+        Print results
     verbose: bool
         Print additional information
 
@@ -292,20 +301,36 @@ def run_experiment_agenda(solver: AbstractSolver,
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
-    for current_experiment_parameters in experiment_agenda.experiments:
-        experiment_result = run_experiment(solver=solver,
-                                           experiment_parameters=current_experiment_parameters,
-                                           verbose=verbose,
-                                           show_results_without_details=show_results_without_details)
-        filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
-        save_experiment_results_to_file(experiment_result, filename)
+    if run_experiments_parallel:
+        pool = multiprocessing.Pool()
+        run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
+                                                      solver=solver,
+                                                      verbose=verbose,
+                                                      show_results_without_details=show_results_without_details,
+                                                      experiment_folder_name=experiment_folder_name)
+        pool.map(run_and_save_one_experiment_partial, experiment_agenda.experiments)
+    else:
+        for current_experiment_parameters in experiment_agenda.experiments:
+            run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
+                                        experiment_folder_name)
 
     return experiment_folder_name
+
+
+def run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
+                                experiment_folder_name):
+    experiment_result = run_experiment(solver=solver,
+                                       experiment_parameters=current_experiment_parameters,
+                                       verbose=verbose,
+                                       show_results_without_details=show_results_without_details)
+    filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+    save_experiment_results_to_file(experiment_result, filename)
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                   experiment_agenda: ExperimentAgenda,
                                                   experiment_ids: List[int],
+                                                  run_experiments_parallel: bool = True,
                                                   show_results_without_details: bool = True,
                                                   verbose: bool = False) -> str:
     """
@@ -320,6 +345,10 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
         Full list of experiments
     experiment_ids: List[int]
         List of experiment IDs we want to run
+    run_experiments_parallel: bool
+        run experiments in parallel
+    show_results_without_details: bool
+        Print results
     verbose: bool
         Print additional information
 
@@ -330,19 +359,31 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
-    for current_experiment_parameters in experiment_agenda.experiments:
-        if current_experiment_parameters.experiment_id in experiment_ids:
-            experiment_result = run_experiment(solver=solver,
-                                               experiment_parameters=current_experiment_parameters,
-                                               show_results_without_details=show_results_without_details,
-                                               verbose=verbose)
-            filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
-            save_experiment_results_to_file(experiment_result, filename)
+    filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
+    experiment_agenda_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+
+    if run_experiments_parallel:
+        pool = multiprocessing.Pool()
+        run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
+                                                      solver=solver,
+                                                      verbose=verbose,
+                                                      show_results_without_details=show_results_without_details,
+                                                      experiment_folder_name=experiment_folder_name)
+        pool.map(run_and_save_one_experiment_partial, experiment_agenda_filtered)
+    else:
+        for current_experiment_parameters in experiment_agenda_filtered:
+            run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
+                                        experiment_folder_name)
 
     return experiment_folder_name
 
 
-def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges, speed_data:  Mapping[float, float], trials_per_experiment: int = 10) -> ExperimentAgenda:
+def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
+    return current_experiment_parameters.experiment_id in experiment_ids
+
+
+def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges, speed_data: Mapping[float, float],
+                             trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
 
@@ -512,7 +553,7 @@ def load_experiment_agenda_from_file(file_name: str) -> ExperimentAgenda:
 
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
-    return"{}_{}".format(experiment_name, datetime_string)
+    return "{}_{}".format(experiment_name, datetime_string)
 
 
 def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
@@ -587,3 +628,18 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
         experiment_results = experiment_results.append(file_data, ignore_index=True)
 
     return experiment_results
+
+
+def delete_experiment_folder(experiment_folder_name: str):
+    """
+    Delete experiment folder
+
+    Parameters
+    ----------
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files are stored
+
+    Returns
+    -------
+    """
+    shutil.rmtree(experiment_folder_name)
