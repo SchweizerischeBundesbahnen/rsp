@@ -108,7 +108,6 @@ def test_regression_experiment_agenda():
     # load results
     result = load_experiment_results_from_folder(experiment_folder_name)
 
-
     with pandas.option_context('display.max_rows', None, 'display.max_columns',
                                None):  # more options can be specified also
         result_dict = result.to_dict()
@@ -352,7 +351,8 @@ def test_save_and_load_experiment_results():
 
     experiment_results = pd.DataFrame(columns=COLUMNS)
     for current_experiment_parameters in agenda.experiments:
-        single_experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters, verbose=False)
+        single_experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters,
+                                                  verbose=False)
         experiment_results = experiment_results.append(single_experiment_result, ignore_index=True)
 
     with pandas.option_context('display.max_rows', None, 'display.max_columns',
