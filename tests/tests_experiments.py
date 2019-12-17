@@ -103,7 +103,7 @@ def test_regression_experiment_agenda():
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, verbose=True)
+    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False, verbose=True)
 
     # load results
     result = load_experiment_results_from_folder(experiment_folder_name)
@@ -346,7 +346,7 @@ def test_save_and_load_experiment_results():
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20)])
 
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda)
+    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
 
     # load results
     loaded_results = load_experiment_results_from_folder(experiment_folder_name)
