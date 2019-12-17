@@ -3,7 +3,7 @@ Data types used in the experiment for the real time rescheduling research projec
 
 """
 import pprint
-from typing import NamedTuple, List, Dict
+from typing import NamedTuple, List, Dict, Mapping
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict, Waypoint
 
