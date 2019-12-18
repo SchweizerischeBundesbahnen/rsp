@@ -10,12 +10,12 @@ Hypothesis 3: If hypothesis 2 is true, in addition, machine learning can predict
 """
 
 from rsp.utils.analysis_tools import average_over_trials, three_dimensional_scatter_plot
-from rsp.utils.experiments import load_experiment_results_to_file
+from rsp.utils.experiments import load_experiment_results_from_folder
 
 if __name__ == '__main__':
     # Import the desired experiment results
-    data_source = './experiment_data/test_setup.json'
-    experiment_data = load_experiment_results_to_file(data_source)
+    data_folder = './experiment_data/'
+    experiment_data = load_experiment_results_from_folder(data_folder)
 
     # Average over the trials of each experiment
     averaged_data, std_data = average_over_trials(experiment_data)

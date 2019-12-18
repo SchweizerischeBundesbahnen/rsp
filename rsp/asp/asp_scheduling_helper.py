@@ -162,7 +162,8 @@ def reschedule_full_after_malfunction(
         rendering_call_back=rendering_call_back,
         debug=debug,
         expected_malfunction=malfunction,
-        disable_verification_in_replay=disable_verification_in_replay
+        # TODO SIM-155 temporarily disabled
+        disable_verification_in_replay=True
     )
     cleanup_renderer_for_env(renderer)
     malfunction_env_reset()
@@ -275,7 +276,9 @@ def reschedule_delta_after_malfunction(
         problem=delta_reschedule_problem,
         rendering_call_back=rendering_call_back,
         debug=debug,
-        expected_malfunction=malfunction
+        expected_malfunction=malfunction,
+        # TODO SIM-155 temporarily disabled
+        disable_verification_in_replay=True
     )
     cleanup_renderer_for_env(renderer)
 

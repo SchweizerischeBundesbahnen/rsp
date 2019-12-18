@@ -24,10 +24,19 @@ _pp = pprint.PrettyPrinter(indent=4)
 # Tests full re-scheduling
 # ---------------------------------------------------------------------------------------------------------------------
 def test_rescheduling_no_bottleneck():
-    test_parameters = ExperimentParameters(experiment_id=0, trials_in_experiment=10, number_of_agents=2, width=30,
-                                           height=30, seed_value=12, max_num_cities=20, grid_mode=True,
-                                           max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20)
+    test_parameters = ExperimentParameters(experiment_id=0,
+                                           trials_in_experiment=10,
+                                           number_of_agents=2, width=30,
+                                           height=30,
+                                           seed_value=12,
+                                           max_num_cities=20,
+                                           grid_mode=True,
+                                           max_rail_between_cities=2,
+                                           max_rail_in_city=6,
+                                           earliest_malfunction=20,
+                                           malfunction_duration=20,
+                                           speed_data={1: 1.0}
+                                           )
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -192,7 +201,7 @@ def test_rescheduling_bottleneck():
     test_parameters = ExperimentParameters(experiment_id=0, trials_in_experiment=10, number_of_agents=2, width=30,
                                            height=30, seed_value=12, max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20)
+                                           malfunction_duration=20, speed_data={1: 1.0})
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -811,7 +820,7 @@ def _dummy_test_case(fake_malfunction: Malfunction):
     test_parameters = ExperimentParameters(experiment_id=0, trials_in_experiment=10, number_of_agents=2, width=30,
                                            height=30, seed_value=12, max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20)
+                                           malfunction_duration=20, speed_data={1: 1.0})
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
     k = 10
     agents_paths_dict = {
