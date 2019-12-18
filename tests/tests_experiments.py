@@ -380,8 +380,7 @@ def test_parallel_experiment_execution():
                              max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15),
         ExperimentParameters(experiment_id=2, trials_in_experiment=3, number_of_agents=4, width=30, height=30,
                              seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10)
-            ])
+                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10)])
 
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=True)
