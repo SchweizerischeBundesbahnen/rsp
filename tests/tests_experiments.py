@@ -367,3 +367,41 @@ def test_save_and_load_experiment_results():
         if not key.startswith("time"):
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
+
+
+def test_parallel_experiment_execution():
+    """Run an parallel experiment agenda"""
+    agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
+        ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
+                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20),
+        ExperimentParameters(experiment_id=1, trials_in_experiment=3, number_of_agents=3, width=30, height=30,
+                             seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15),
+        ExperimentParameters(experiment_id=2, trials_in_experiment=3, number_of_agents=4, width=30, height=30,
+                             seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10)
+            ])
+
+    solver = ASPExperimentSolver()
+    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=True)
+
+    # load results
+    loaded_results = load_experiment_results_from_folder(experiment_folder_name)
+    delete_experiment_folder(experiment_folder_name)
+
+    experiment_results = pd.DataFrame(columns=COLUMNS)
+    for current_experiment_parameters in agenda.experiments:
+        single_experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters,
+                                                  verbose=False)
+        experiment_results = experiment_results.append(single_experiment_result, ignore_index=True)
+
+    with pandas.option_context('display.max_rows', None, 'display.max_columns',
+                               None):  # more options can be specified also
+        loaded_result_dict = loaded_results.to_dict()
+        experiment_results_dict = experiment_results.to_dict()
+
+    for key in experiment_results_dict:
+        if not key.startswith("time"):
+            assert experiment_results_dict[key] == loaded_result_dict[key], \
+                f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
