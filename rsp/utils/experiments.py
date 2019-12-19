@@ -599,8 +599,11 @@ def load_experiment_results_from_file(file_name: str) -> List:
     -------
     List containing the loaded experiment results
     """
+    experiment_results = pd.DataFrame(columns=COLUMNS)
+
     with open(file_name, 'rb') as handle:
-        experiment_results = pickle.load(handle)
+        file_data = pickle.load(handle)
+    experiment_results = experiment_results.append(file_data, ignore_index=True)
     return experiment_results
 
 
@@ -623,7 +626,8 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     files = os.listdir(experiment_folder_name)
     for file in files:
         file_name = os.path.join(experiment_folder_name, file)
-        file_data = load_experiment_results_from_file(file_name)
+        with open(file_name, 'rb') as handle:
+            file_data = pickle.load(handle)
         experiment_results = experiment_results.append(file_data, ignore_index=True)
 
     return experiment_results
