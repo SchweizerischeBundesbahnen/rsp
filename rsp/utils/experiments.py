@@ -72,7 +72,7 @@ def run_experiment(solver: AbstractSolver,
                    show_results_without_details: bool = True,
                    verbose: bool = False,
                    debug: bool = False,
-                   force_only_one_trial: bool = True) -> List:
+                   force_only_one_trial: bool = False) -> List:
     """
 
     Run a single experiment with a given solver and ExperimentParameters
@@ -99,7 +99,7 @@ def run_experiment(solver: AbstractSolver,
             _pp.pprint(experiment_parameters)
 
         # Create experiment environments
-        static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+        static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters, trial)
 
         env = malfunction_rail_env
         seed_value = experiment_parameters.seed_value
@@ -427,7 +427,7 @@ def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRa
                                                   height=parameter_set[0],
                                                   seed_value=12,
                                                   max_num_cities=parameter_set[4],
-                                                  grid_mode=True,
+                                                  grid_mode=False,
                                                   max_rail_between_cities=parameter_set[3],
                                                   max_rail_in_city=parameter_set[2],
                                                   earliest_malfunction=parameter_set[5],
@@ -464,7 +464,7 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
     return full_params
 
 
-def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEnv, RailEnv]:
+def create_env_pair_for_experiment(params: ExperimentParameters, trial: int) -> Tuple[RailEnv, RailEnv]:
     """
     Parameters
     ----------
@@ -494,7 +494,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
     env_static = create_flatland_environment(number_of_agents=number_of_agents,
                                              width=width,
                                              height=height,
-                                             seed_value=seed_value,
+                                             seed_value=seed_value + trial,
                                              max_num_cities=max_num_cities,
                                              grid_mode=grid_mode,
                                              max_rails_between_cities=max_rails_between_cities,
@@ -506,7 +506,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
     env_malfunction = create_flatland_environment_with_malfunction(number_of_agents=number_of_agents,
                                                                    width=width,
                                                                    height=height,
-                                                                   seed_value=seed_value,
+                                                                   seed_value=seed_value + trial,
                                                                    max_num_cities=max_num_cities,
                                                                    grid_mode=grid_mode,
                                                                    max_rails_between_cities=max_rails_between_cities,
