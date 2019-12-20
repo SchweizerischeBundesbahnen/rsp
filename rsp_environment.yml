@@ -1,14 +1,19 @@
 name: rsp
 channels:
   - potassco
+  - anaconda
   - defaults
 dependencies:
   - ca-certificates=2019.11.27=0
+  - cairo=1.14.12=hf171d8a_3
   - certifi=2019.11.28=py37_0
   - clingo=5.4.0=py37h33f27b4_0
   - clingo-dl=1.1.0=hb947a6d_0
-  - openssl=1.1.1d=he774522_3
+  - icu=58.2=vc14hc45fdbb_0
+  - libpng=1.6.37=h2a8f88b_0
+  - openssl=1.1.1=he774522_0
   - pip=19.3.1=py37_0
+  - pixman=0.38.0=he774522_0
   - python=3.7.5=h8c8aaf0_0
   - setuptools=42.0.2=py37_0
   - sqlite=3.30.1=he774522_0
@@ -16,6 +21,7 @@ dependencies:
   - vs2015_runtime=14.16.27012=hf0eaf9b_1
   - wheel=0.33.6=py37_0
   - wincertstore=0.2=py37_0
+  - zlib=1.2.11=vc14h1cdd9ab_1
   - pip:
     - atomicwrites==1.3.0
     - attrs==19.3.0

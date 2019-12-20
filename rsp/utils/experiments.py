@@ -39,6 +39,8 @@ import numpy as np
 import pandas as pd
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+
 from pandas import DataFrame
 
 from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults
@@ -102,6 +104,14 @@ def run_experiment(solver: AbstractSolver,
         static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters, trial)
 
         env = malfunction_rail_env
+        env_renderer = RenderTool(env, gl="PILSVG",
+                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
+                                  show_debug=False,
+                                  screen_height=600,  # Adjust these parameters to fit your resolution
+                                  screen_width=800)
+        env_renderer.reset()
+        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
+
         seed_value = experiment_parameters.seed_value
 
         # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
@@ -148,7 +158,7 @@ def run_experiment(solver: AbstractSolver,
 
             _analyze_times(current_results)
             _analyze_paths(current_results, env)
-
+        env_renderer.close_window()
     return experiment_results
 
 
