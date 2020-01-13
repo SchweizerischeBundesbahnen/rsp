@@ -105,3 +105,8 @@ venv.bak/
 
 # IntelliJ
 /.idea/
+/rsp/exp_hypothesis_one_*
+/rendering_output/
+/tests/rendering_output/
+/rsp/rendering_output/
+/rsp/experiment_data/
