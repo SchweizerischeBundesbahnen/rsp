@@ -162,7 +162,7 @@ def reschedule_full_after_malfunction(
         rendering_call_back=rendering_call_back,
         debug=debug,
         expected_malfunction=malfunction,
-        # TODO SIM-155 temporarily disabled
+        # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
         disable_verification_in_replay=True
     )
     cleanup_renderer_for_env(renderer)
@@ -277,7 +277,7 @@ def reschedule_delta_after_malfunction(
         rendering_call_back=rendering_call_back,
         debug=debug,
         expected_malfunction=malfunction,
-        # TODO SIM-155 temporarily disabled
+        # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
         disable_verification_in_replay=True
     )
     cleanup_renderer_for_env(renderer)
