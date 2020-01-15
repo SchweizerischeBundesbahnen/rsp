@@ -211,7 +211,7 @@ def _analyze_times(current_results: ExperimentResults):
         f"(+{full_delta_new_counts}, -{full_delta_stale_counts}) waypoints")
     time_rescheduling_speedup_factor = time_full_after_m / time_delta_after_m
     print(f"**** full re-schedule -> delta re-schedule: "
-          f"time speed-up factor {time_rescheduling_speedup_factor:+4.1f} "
+          f"time speed-up factor {time_rescheduling_speedup_factor:4.1f} "
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 

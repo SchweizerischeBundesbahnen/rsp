@@ -370,7 +370,7 @@ def test_save_and_load_experiment_results():
 
 
 def test_parallel_experiment_execution():
-    """Run an parallel experiment agenda"""
+    """Run a parallel experiment agenda"""
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
         ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,

@@ -235,9 +235,6 @@ def _get_reachable_given_frozen_set(agent_paths: List[List[Waypoint]],
         forward_reachable[waypoint].add(waypoint)
         backward_reachable[waypoint].add(waypoint)
 
-    assert forward_reachable[agent_paths[0][0]] == set(all_waypoints), f"{forward_reachable[agent_paths[0][0]]}"
-    assert backward_reachable[agent_paths[0][-1]] == set(all_waypoints), f"{backward_reachable[agent_paths[0][-1]]}"
-
     # reachable are only those that are either in the forward or backward "funnel" of all force freezes!
     reachable_set = set(all_waypoints)
     for trainrun_waypoint in force_freeze:
