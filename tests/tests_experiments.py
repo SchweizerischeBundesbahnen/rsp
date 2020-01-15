@@ -377,13 +377,13 @@ def test_parallel_experiment_execution():
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
         ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20),
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0}),
         ExperimentParameters(experiment_id=1, trials_in_experiment=3, number_of_agents=3, width=30, height=30,
                              seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15),
+                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0}),
         ExperimentParameters(experiment_id=2, trials_in_experiment=3, number_of_agents=4, width=30, height=30,
                              seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10)])
+                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0})])
 
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=True)

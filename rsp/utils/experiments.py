@@ -31,16 +31,15 @@ import multiprocessing
 import os
 import pickle
 import pprint
-from typing import List, Tuple, Mapping
 import shutil
 from functools import partial
+from typing import List, Tuple, Mapping
 
 import numpy as np
 import pandas as pd
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-
 from pandas import DataFrame
 
 from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults
@@ -471,7 +470,7 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
     return full_params
 
 
-def create_env_pair_for_experiment(params: ExperimentParameters, trial: int) -> Tuple[RailEnv, RailEnv]:
+def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0) -> Tuple[RailEnv, RailEnv]:
     """
     Parameters
     ----------

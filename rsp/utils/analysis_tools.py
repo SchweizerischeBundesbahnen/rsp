@@ -36,7 +36,7 @@ def average_over_trials(experimental_data: DataFrame) -> Tuple[DataFrame, DataFr
 
     averaged_data = experimental_data.groupby(['experiment_id']).mean().reset_index()
     standard_deviation_data = experimental_data.groupby(['experiment_id']).std().reset_index()
-    return  averaged_data, standard_deviation_data
+    return averaged_data, standard_deviation_data
 
 
 def three_dimensional_scatter_plot(data: DataFrame, error: DataFrame = None,
