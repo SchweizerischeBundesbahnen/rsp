@@ -169,7 +169,9 @@ def test_rescheduling_no_bottleneck():
                                                    schedule_trainruns=fake_schedule,
                                                    speed_dict={agent.handle: agent.speed_data['speed']
                                                                for agent in static_env.agents},
-                                                   agents_path_dict=agents_paths_dict)
+                                                   agents_path_dict=agents_paths_dict,
+                                                   latest_arrival=dynamic_env._max_episode_steps
+                                                   )
     for agent_id, experiment_freeze in freeze_dict.items():
         verify_experiment_freeze_for_agent(freeze_dict[agent_id], agents_paths_dict[agent_id])
 
@@ -395,11 +397,12 @@ def test_rescheduling_bottleneck():
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         speed_dict={agent.handle: agent.speed_data['speed'] for agent in static_env.agents},
-        agents_path_dict=agents_paths_dict
+        agents_path_dict=agents_paths_dict,
+        latest_arrival=dynamic_env._max_episode_steps
     )
 
-    assert freeze_dict[0].freeze_time_and_visit == []
-    assert freeze_dict[1].freeze_time_and_visit == [
+    assert freeze_dict[0].freeze_visit == []
+    for trainrun_waypoint in [
         TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
         TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
         TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -414,14 +417,18 @@ def test_rescheduling_bottleneck():
         TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(18, 29), direction=0)),
         TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(17, 29), direction=0)),
         TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0))
-    ], f"found {freeze_dict[1].freeze_time_and_visit}"
+    ]:
+        assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
+        assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
+        assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_latest[trainrun_waypoint.waypoint]
 
-    print(_pp.pformat(freeze_dict[0].freeze_earliest_and_visit))
-    assert freeze_dict[0].freeze_earliest_and_visit == [
-    ], format(f"found {freeze_dict[0].freeze_earliest_and_visit}")
+    print(_pp.pformat(freeze_dict[0].freeze_visit))
+    assert freeze_dict[0].freeze_visit == [
+    ], format(f"found {freeze_dict[0].freeze_visit}")
 
-    assert freeze_dict[1].freeze_earliest_and_visit == [
-        TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]
+    for trainrun_waypoint in [TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]:
+        assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
+        assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, experiment_freeze in freeze_dict.items():
         verify_experiment_freeze_for_agent(freeze_dict[agent_id], agents_paths_dict[agent_id])

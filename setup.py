@@ -5,13 +5,13 @@ from setuptools import setup, find_packages
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-def get_all_files_in_directory(directory:str):
+
+def get_all_files_in_directory(directory: str):
     ret = []
     for dirpath, subdirs, files in os.walk(directory):
         for f in files:
             ret.append(os.path.join(dirpath, f))
     return ret
-
 
 
 setup(

@@ -8,12 +8,17 @@ from typing import NamedTuple, List, Dict, Mapping
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict, Waypoint
 
 ExperimentFreeze = NamedTuple('ExperimentFreeze', [
-    ('freeze_time_and_visit', List[TrainrunWaypoint]),
-    ('freeze_earliest_and_visit', List[TrainrunWaypoint]),
-    ('freeze_earliest_only', List[TrainrunWaypoint]),
+    ('freeze_visit', List[TrainrunWaypoint]),
+    ('freeze_earliest', Dict[Waypoint, int]),
+    ('freeze_latest', Dict[Waypoint, int]),
     ('freeze_banned', List[Waypoint])
 ])
 ExperimentFreezeDict = Dict[int, ExperimentFreeze]
+
+
+def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]):
+    return {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in l}
+
 
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
@@ -74,7 +79,7 @@ def experimentFreezeDictPrettyPrint(d: ExperimentFreezeDict):
 
 
 def experimentFreezePrettyPrint(experiment_freeze: ExperimentFreeze, prefix: str = ""):
-    print(f"{prefix}freeze_time_and_visit={_pp.pformat(experiment_freeze.freeze_time_and_visit)}")
-    print(f"{prefix}freeze_earliest_and_visit={_pp.pformat(experiment_freeze.freeze_earliest_and_visit)}")
-    print(f"{prefix}freeze_earliest_only={_pp.pformat(experiment_freeze.freeze_earliest_only)}")
+    print(f"{prefix}freeze_visit={_pp.pformat(experiment_freeze.freeze_visit)}")
+    print(f"{prefix}freeze_earliest={_pp.pformat(experiment_freeze.freeze_earliest)}")
+    print(f"{prefix}freeze_latest={_pp.pformat(experiment_freeze.freeze_latest)}")
     print(f"{prefix}freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")

@@ -145,7 +145,9 @@ def reschedule_full_after_malfunction(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
         speed_dict={agent.handle: agent.speed_data['speed'] for agent in malfunction_rail_env.agents},
-        agents_path_dict=schedule_problem.agents_path_dict)
+        agents_path_dict=schedule_problem.agents_path_dict,
+        latest_arrival=malfunction_rail_env._max_episode_steps
+    )
 
     full_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
@@ -230,7 +232,7 @@ def reschedule_delta_after_malfunction(
                                           malfunction,
                                           schedule_trainruns,
                                           verbose=False)
-    # TODO analyse SIM-175
+    # uncomment the following lines for debugging purposes
     if False:
         print("####agents_path_dict[2]")
         print(_pp.pformat(schedule_problem.agents_path_dict[2]))
@@ -259,7 +261,8 @@ def reschedule_delta_after_malfunction(
         speed_dict=speed_dict,
         agents_path_dict=schedule_problem.agents_path_dict,
         force_freeze=force_freeze,
-        malfunction=malfunction
+        malfunction=malfunction,
+        latest_arrival=malfunction_rail_env._max_episode_steps
     )
     if debug:
         print("####freeze_dict")
