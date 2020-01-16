@@ -312,7 +312,8 @@ def run_experiment_agenda(solver: AbstractSolver,
     return experiment_folder_name
 
 
-def run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details, experiment_folder_name):
+def run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
+                                experiment_folder_name):
     experiment_result = run_experiment(solver=solver,
                                        experiment_parameters=current_experiment_parameters,
                                        verbose=verbose,
@@ -376,7 +377,8 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
     return current_experiment_parameters.experiment_id in experiment_ids
 
 
-def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges, trials_per_experiment: int = 10) -> ExperimentAgenda:
+def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges,
+                             trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
 
@@ -525,7 +527,7 @@ def load_experiment_agenda_from_file(file_name: str) -> ExperimentAgenda:
 
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
-    return"{}_{}".format(experiment_name, datetime_string)
+    return "{}_{}".format(experiment_name, datetime_string)
 
 
 def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
