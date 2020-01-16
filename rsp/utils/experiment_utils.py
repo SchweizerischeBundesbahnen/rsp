@@ -182,7 +182,7 @@ def verify_trainruns_dict(env: RailEnv,
     if expected_malfunction:
         _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict)
 
-    # 6. verfy freezes are respected
+    # 6. verify freezes are respected
     if expected_experiment_freeze:
         _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict)
 
@@ -209,25 +209,27 @@ def _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict):
             for trainrun_waypoint in trainruns_dict[agent_id]
         }
 
-        # freeze_time_and_visit
-        for trainrun_waypoint_freeze in experiment_freeze.freeze_time_and_visit:
-            assert trainrun_waypoint_freeze.waypoint in waypoint_dict
-            assert waypoint_dict[trainrun_waypoint_freeze.waypoint] >= trainrun_waypoint_freeze.scheduled_at
+        # is freeze_visit respected?
+        for waypoint in experiment_freeze.freeze_visit:
+            assert waypoint in waypoint_dict
 
-        # freeze_earliest_and_visit
-        for trainrun_waypoint_freeze in experiment_freeze.freeze_earliest_and_visit:
-            assert trainrun_waypoint_freeze.waypoint in waypoint_dict
-            assert waypoint_dict[trainrun_waypoint_freeze.waypoint] >= trainrun_waypoint_freeze.scheduled_at
+        # is freeze_earliest respected?
+        for waypoint, scheduled_at in experiment_freeze.freeze_earliest.items():
+            if waypoint in waypoint_dict:
+                actual_scheduled_at = waypoint_dict[waypoint]
+                assert actual_scheduled_at >= scheduled_at, \
+                    f"expected {actual_scheduled_at} <= {scheduled_at} " + \
+                    f"for {waypoint} of agent {agent_id}"
 
-        # freeze_earliest_only
-        for trainrun_waypoint_freeze in experiment_freeze.freeze_earliest_only:
-            if trainrun_waypoint_freeze.waypoint in waypoint_dict:
-                actual_scheduled_at = waypoint_dict[trainrun_waypoint_freeze.waypoint]
-                assert actual_scheduled_at >= trainrun_waypoint_freeze.scheduled_at, \
-                    f"expected {actual_scheduled_at} <= {trainrun_waypoint_freeze.scheduled_at} " + \
-                    f"for {trainrun_waypoint_freeze} of agent {agent_id}"
+        # is freeze_latest respected?
+        for waypoint, scheduled_at in experiment_freeze.freeze_latest.items():
+            if waypoint in waypoint_dict:
+                actual_scheduled_at = waypoint_dict[waypoint]
+                assert actual_scheduled_at <= scheduled_at, \
+                    f"expected {actual_scheduled_at} <= {scheduled_at} " + \
+                    f"for {waypoint} of agent {agent_id}"
 
-        # freeze_banned
+        # is freeze_banned respected?
         for waypoint in experiment_freeze.freeze_banned:
             assert waypoint not in waypoint_dict
 
