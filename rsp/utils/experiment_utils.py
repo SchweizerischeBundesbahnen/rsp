@@ -182,7 +182,7 @@ def verify_trainruns_dict(env: RailEnv,
     if expected_malfunction:
         _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict)
 
-    # 6. verfy freezes are respected
+    # 6. verify freezes are respected
     if expected_experiment_freeze:
         _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict)
 
@@ -202,7 +202,6 @@ def _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict):
             break
 
 
-# TODO???
 def _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict):
     for agent_id, experiment_freeze in expected_experiment_freeze.items():
         waypoint_dict: Dict[Waypoint, int] = {

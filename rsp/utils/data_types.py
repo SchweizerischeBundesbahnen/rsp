@@ -16,7 +16,18 @@ ExperimentFreeze = NamedTuple('ExperimentFreeze', [
 ExperimentFreezeDict = Dict[int, ExperimentFreeze]
 
 
-def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]):
+def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]) -> Dict[TrainrunWaypoint, int]:
+    """
+    Generate dictionary of scheduled time at waypoint.
+
+    Parameters
+    ----------
+    l train run waypoints
+
+    Returns
+    -------
+
+    """
     return {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in l}
 
 

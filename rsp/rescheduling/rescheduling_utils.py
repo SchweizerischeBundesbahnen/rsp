@@ -172,8 +172,11 @@ def _generic_experiment_freeze_for_rescheduling_agent(
     )
 
 
-def _collect_banned_as_not_reached(all_waypoints, force_freeze_waypoints_set, reachable_set):
-    """Bans all that are not either in the forward or backward funnel of the freezed ones"""
+def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
+                                   force_freeze_waypoints_set: Set[Waypoint],
+                                   reachable_set: Set[Waypoint]):
+    """Bans all that are not either in the forward or backward funnel of the freezed ones. Returns them as list for iteration and as set for containment test.
+    """
     banned: List[Waypoint] = []
     banned_set: Set[Waypoint] = set()
     for waypoint in all_waypoints:
@@ -194,8 +197,11 @@ def _get_reachable_given_frozen_set(agent_paths: List[List[Waypoint]],
     Parameters
     ----------
     agent_paths
+        paths that span the agent's route DAG
     all_waypoints
+        all waypoints in the route DAG
     force_freeze
+        the waypoints that must be visited
 
     Returns
     -------
@@ -485,14 +491,6 @@ def _get_latest_entries_for_full_route_dag(
     If a vertex can be reached backwards by multiple paths, take the latest time it can be reached according to
       latest(train,vertex) = minimum-number-of-hops-to-sink(train,vertex) * minimum_running_time
 
-    Parameters
-    ----------
-    minimum_travel_time
-    agent_paths
-
-    Returns
-    -------
-
     """
     latest_dict: Dict[Waypoint, int] = {}
     for agent_path in agent_paths:
@@ -557,7 +555,7 @@ def verify_experiment_freeze_for_agent(
     # verify that all points up to malfunction are forced to be visited
     if malfunction:
         for waypoint, earliest in experiment_freeze.freeze_earliest.items():
-            # everything before malfunction must be
+            # everything before malfunction must be the same
             if earliest <= malfunction.time_step:
                 assert experiment_freeze.freeze_latest[waypoint] == earliest
                 assert waypoint in experiment_freeze.freeze_visit

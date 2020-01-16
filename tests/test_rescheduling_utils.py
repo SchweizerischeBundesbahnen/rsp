@@ -1,5 +1,6 @@
 import pprint
 from collections import OrderedDict
+from typing import Any, Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
@@ -2446,7 +2447,7 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
     assert Waypoint(position=(3, 0), direction=0) in actual_experiment_freeze.freeze_banned
 
 
-def compare_dicts(actual_dict, expected_dict):
+def compare_dicts(actual_dict: Dict[Any, Any], expected_dict: Dict[Any, Any]):
     assert set(actual_dict.keys()) == set(expected_dict.keys()), \
         f"not same keys, " + \
         f"only expected {set(expected_dict).difference(set(actual_dict))}" + \
