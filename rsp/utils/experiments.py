@@ -71,9 +71,11 @@ COLUMNS = ['experiment_id',
 def run_experiment(solver: AbstractSolver,
                    experiment_parameters: ExperimentParameters,
                    show_results_without_details: bool = True,
+                   rendering: bool = False,
                    verbose: bool = False,
                    debug: bool = False,
-                   force_only_one_trial: bool = False) -> List:
+
+                   ) -> List:
     """
 
     Run a single experiment with a given solver and ExperimentParameters
@@ -86,13 +88,13 @@ def run_experiment(solver: AbstractSolver,
 
     Returns
     -------
-    Returns a DataFram with the experiment results
+    Returns a DataFrame with the experiment results
     """
 
     # DataFrame to store all results of experiments
     experiment_results = []
     # Run the sequence of experiment
-    for trial in range(experiment_parameters.trials_in_experiment if not force_only_one_trial else 1):
+    for trial in range(experiment_parameters.trials_in_experiment):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
         if show_results_without_details:
             print("*** experiment parameters of trial {} for experiment {}".format(trial + 1,
@@ -103,13 +105,14 @@ def run_experiment(solver: AbstractSolver,
         static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters, trial)
 
         env = malfunction_rail_env
-        env_renderer = RenderTool(env, gl="PILSVG",
-                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
-                                  show_debug=False,
-                                  screen_height=600,  # Adjust these parameters to fit your resolution
-                                  screen_width=800)
-        env_renderer.reset()
-        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
+        if rendering:
+            env_renderer = RenderTool(env, gl="PILSVG",
+                                      agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
+                                      show_debug=False,
+                                      screen_height=600,  # Adjust these parameters to fit your resolution
+                                      screen_width=800)
+            env_renderer.reset()
+            env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
 
         seed_value = experiment_parameters.seed_value
 
@@ -157,7 +160,8 @@ def run_experiment(solver: AbstractSolver,
 
             _analyze_times(current_results)
             _analyze_paths(current_results, env)
-        env_renderer.close_window()
+        if rendering:
+            env_renderer.close_window()
     return experiment_results
 
 
@@ -322,10 +326,15 @@ def run_experiment_agenda(solver: AbstractSolver,
     return experiment_folder_name
 
 
-def run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
-                                experiment_folder_name):
+def run_and_save_one_experiment(current_experiment_parameters,
+                                solver,
+                                verbose,
+                                show_results_without_details,
+                                experiment_folder_name,
+                                rendering: bool = False, ):
     experiment_result = run_experiment(solver=solver,
                                        experiment_parameters=current_experiment_parameters,
+                                       rendering=rendering,
                                        verbose=verbose,
                                        show_results_without_details=show_results_without_details)
     filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
@@ -337,6 +346,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                   experiment_ids: List[int],
                                                   run_experiments_parallel: bool = True,
                                                   show_results_without_details: bool = True,
+                                                  rendering: bool = False,
                                                   verbose: bool = False) -> str:
     """
 
@@ -373,12 +383,17 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                       solver=solver,
                                                       verbose=verbose,
                                                       show_results_without_details=show_results_without_details,
-                                                      experiment_folder_name=experiment_folder_name)
+                                                      experiment_folder_name=experiment_folder_name
+                                                      )
         pool.map(run_and_save_one_experiment_partial, experiment_agenda_filtered)
     else:
         for current_experiment_parameters in experiment_agenda_filtered:
-            run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
-                                        experiment_folder_name)
+            run_and_save_one_experiment(current_experiment_parameters,
+                                        solver,
+                                        verbose,
+                                        show_results_without_details,
+                                        experiment_folder_name,
+                                        rendering=rendering)
 
     return experiment_folder_name
 

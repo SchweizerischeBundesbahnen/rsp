@@ -45,7 +45,10 @@ def generic_experiment_freeze_for_rescheduling(
             latest_arrival=latest_arrival
 
         )
-        for agent_id, schedule_trainrun in schedule_trainruns.items()}
+        for agent_id, schedule_trainrun in schedule_trainruns.items()
+        # TODO SIM-208 do we not have to handle the special case of malfunction before scheduled start or after scheduled arrival of agent
+    }
+
     for agent_id in experiment_freeze_dict:
         verify_experiment_freeze_for_agent(
             agent_paths=agents_path_dict[agent_id],
@@ -82,8 +85,6 @@ def _generic_experiment_freeze_for_rescheduling_agent(
         vertices that need be visited and be visited at the given time
     subdag_source
         the entry point into the dag that needs to be visited (the vertex after malfunction that is delayed)
-    dag_sink
-        the target vertex
 
     Returns
     -------
@@ -110,6 +111,13 @@ def _generic_experiment_freeze_for_rescheduling_agent(
     reachable_earliest_dict: [Waypoint, int] = OrderedDict()
     reachable_latest_dict: [Waypoint, int] = OrderedDict()
 
+    def _remove_from_reachable(waypoint):
+        # design choice: we give no earliest/latest for banned!
+        if waypoint in reachable_earliest_dict:
+            reachable_earliest_dict.pop(waypoint)
+        if waypoint in reachable_latest_dict:
+            reachable_latest_dict.pop(waypoint)
+
     # sub dag source must be visited (point after malfunction)
     freeze_visit.append(subdag_source.waypoint)
     freeze_visit_waypoint_set.add(subdag_source.waypoint)
@@ -129,42 +137,42 @@ def _generic_experiment_freeze_for_rescheduling_agent(
     reachable_set = _get_reachable_given_frozen_set(agent_paths, all_waypoints, force_freeze)
 
     # ban all that are not either in the forward or backward funnel of the freezed ones
-    banned, banned_set = _collect_banned_as_not_reachaed(all_waypoints, force_freeze_waypoints_set, reachable_set)
+    banned, banned_set = _collect_banned_as_not_reached(all_waypoints, force_freeze_waypoints_set, reachable_set)
+    # design choice: we give no earliest/latest for banned!
+    for waypoint in banned_set:
+        _remove_from_reachable(waypoint)
 
     # collect earliest and latest in the sub-DAG
     for agent_path in agent_paths:
         # N.B. consider the path even if not all frozen element are in this path. We consider the DAG spanned by the paths under recombination.
-        _add_agent_path_for_get_freeze_for_delta(agent_path,
-                                                 reachable_earliest_dict,
-                                                 reachable_latest_dict,
-                                                 force_freeze_dict,
-                                                 banned_set,
-                                                 subdag_source,
-                                                 latest_arrival,
-                                                 minimum_travel_time,
-                                                 )
+        _add_agent_path_for_get_freeze_for_delta(
+            agent_path,
+            reachable_earliest_dict,
+            reachable_latest_dict,
+            force_freeze_dict,
+            banned_set,
+            subdag_source,
+            latest_arrival,
+            minimum_travel_time,
+        )
     # banned all waypoints not reachable from both source and sink or where earliest > latest
     for waypoint in all_waypoints:
-        if waypoint not in reachable_earliest_dict or waypoint not in reachable_latest_dict or \
-                reachable_earliest_dict[waypoint] > reachable_latest_dict[waypoint]:
-            if waypoint in banned_set:
-                continue
+        if (waypoint not in reachable_earliest_dict or waypoint not in reachable_latest_dict or  # noqa: W504
+            reachable_earliest_dict[waypoint] > reachable_latest_dict[waypoint]) \
+                and waypoint not in banned_set:
             banned.append(waypoint)
             banned_set.add(waypoint)
-            # design choice: we give no earliest/latest for banned!
-            if waypoint in reachable_earliest_dict:
-                reachable_earliest_dict.pop(waypoint)
-            if waypoint in reachable_latest_dict:
-                reachable_latest_dict.pop(waypoint)
+            _remove_from_reachable(waypoint)
 
-    return ExperimentFreeze(freeze_visit=freeze_visit,
-                            freeze_earliest=reachable_earliest_dict,
-                            freeze_banned=banned,
-                            freeze_latest=reachable_latest_dict,
-                            )
+    return ExperimentFreeze(
+        freeze_visit=freeze_visit,
+        freeze_earliest=reachable_earliest_dict,
+        freeze_banned=banned,
+        freeze_latest=reachable_latest_dict
+    )
 
 
-def _collect_banned_as_not_reachaed(all_waypoints, force_freeze_waypoints_set, reachable_set):
+def _collect_banned_as_not_reached(all_waypoints, force_freeze_waypoints_set, reachable_set):
     """Bans all that are not either in the forward or backward funnel of the freezed ones"""
     banned: List[Waypoint] = []
     banned_set: Set[Waypoint] = set()
@@ -173,6 +181,7 @@ def _collect_banned_as_not_reachaed(all_waypoints, force_freeze_waypoints_set, r
             banned.append(waypoint)
             banned_set.add(waypoint)
             assert waypoint not in force_freeze_waypoints_set, f"{waypoint}"
+
     return banned, banned_set
 
 
@@ -293,7 +302,6 @@ def _add_agent_path_for_get_freeze_for_delta(agent_path,
     earliest_dict
     force_freeze_dict
     minimum_travel_time
-    fully_freezed_until
 
     Returns
     -------
@@ -348,9 +356,7 @@ def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
     ----------
     malfunction
     schedule_trainruns
-    env
     agents_path_dict
-    force_freeze
 
     Returns
     -------
@@ -358,7 +364,7 @@ def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
     """
     experiment_freeze_dict = {
         agent_id: _generic_experiment_freeze_for_rescheduling_agent(
-            minimum_travel_time=(1 / speed_dict[agent_id]),
+            minimum_travel_time=int(1 / speed_dict[agent_id]),
             agent_paths=agents_path_dict[agent_id],
             force_freeze=[trainrun_waypoint
                           for trainrun_waypoint in schedule_trainrun
@@ -374,9 +380,10 @@ def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
 
         )
         for agent_id, schedule_trainrun in schedule_trainruns.items()
-        if malfunction.time_step >= schedule_trainrun[0].scheduled_at
+        if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
+            malfunction.time_step <= schedule_trainrun[-1].scheduled_at)
     }
-    # handle the special case of malfunction before scheduled start of agent
+    # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     for agent_id, schedule_trainrun in schedule_trainruns.items():
         if agent_id not in experiment_freeze_dict:
             if malfunction.agent_id != agent_id:
@@ -482,7 +489,6 @@ def _get_latest_entries_for_full_route_dag(
     ----------
     minimum_travel_time
     agent_paths
-    earliest
 
     Returns
     -------
@@ -500,7 +506,6 @@ def _get_latest_entries_for_full_route_dag(
     return latest_dict
 
 
-# TODO
 def verify_experiment_freeze_for_agent(
         experiment_freeze: ExperimentFreeze,
         agent_paths: List[List[Waypoint]],
@@ -538,7 +543,8 @@ def verify_experiment_freeze_for_agent(
             # waypoint must have earliest and latest s.t. earliest <= latest
             assert waypoint in experiment_freeze.freeze_earliest, f"{waypoint}"
             assert waypoint in experiment_freeze.freeze_latest, f"{waypoint}"
-            assert experiment_freeze.freeze_latest[waypoint] <= experiment_freeze.freeze_latest[waypoint], f"{waypoint}"
+            assert experiment_freeze.freeze_earliest[waypoint] <= experiment_freeze.freeze_latest[
+                waypoint], f"{waypoint}"
 
     # verify that force is implemented correctly
     if force_freeze:
