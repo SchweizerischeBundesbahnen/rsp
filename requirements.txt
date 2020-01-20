@@ -7,4 +7,4 @@ overrides==2.5
 networkx==2.4
 
 # TODO we should pin to FLATland version
-git+https://gitlab.aicrowd.com/flatland/flatland.git@bugfix-action-plan-malfunction#egg=flatland-rl
+git+https://gitlab.aicrowd.com/flatland/flatland.git@master#egg=flatland-rl
