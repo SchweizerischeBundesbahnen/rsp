@@ -39,7 +39,6 @@ import numpy as np
 import pandas as pd
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from flatland.utils.rendertools import RenderTool, AgentRenderVariant
 from pandas import DataFrame
 
 from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults
@@ -106,6 +105,7 @@ def run_experiment(solver: AbstractSolver,
 
         env = malfunction_rail_env
         if rendering:
+            from flatland.utils.rendertools import RenderTool, AgentRenderVariant
             env_renderer = RenderTool(env, gl="PILSVG",
                                       agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
                                       show_debug=False,
@@ -161,6 +161,7 @@ def run_experiment(solver: AbstractSolver,
             _analyze_times(current_results)
             _analyze_paths(current_results, env)
         if rendering:
+            from flatland.utils.rendertools import RenderTool, AgentRenderVariant
             env_renderer.close_window()
     return experiment_results
 

@@ -9,7 +9,8 @@ from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_re
     _generic_experiment_freeze_for_rescheduling_agent, _get_delayed_trainrun_waypoint_after_malfunction, \
     get_freeze_for_full_rescheduling
 from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreeze, experimentFreezeDictPrettyPrint, \
-    ExperimentFreezeDict, experimentFreezePrettyPrint, experiment_freeze_dict_from_list_of_train_run_waypoint
+    ExperimentFreezeDict, experimentFreezePrettyPrint, experiment_freeze_dict_from_list_of_train_run_waypoint, \
+    visualize_experiment_freeze
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -1848,18 +1849,29 @@ def test_get_freeze_for_delta():
         malfunction=malfunction,
         latest_arrival=333
     )
+    visualize_experiment_freeze(agents_path_dict[0], freeze_dict[0], file_name="test_get_freeze_for_delta_agent_0.png",
+                                title="Agent 0")
+
     print("####freeze_dict")
     experimentFreezeDictPrettyPrint(freeze_dict)
     assert freeze_dict.keys() == expected_freeze_dict.keys()
     for agent_id in expected_freeze_dict:
         assert freeze_dict[agent_id].freeze_earliest == expected_freeze_dict[agent_id].freeze_earliest, \
-            f"difference for agent {agent_id}"
+            f"difference earliest for agent {agent_id}: " \
+            f"expected {expected_freeze_dict[agent_id].freeze_earliest}, " \
+            f"found {freeze_dict[agent_id].freeze_earliest}"
         assert freeze_dict[agent_id].freeze_latest == expected_freeze_dict[agent_id].freeze_latest, \
-            f"difference for agent {agent_id}"
+            f"difference latest for agent {agent_id}: " \
+            f"expected {expected_freeze_dict[agent_id].freeze_latest}, " \
+            f"found {freeze_dict[agent_id].freeze_latest}"
         assert set(freeze_dict[agent_id].freeze_visit) == set(expected_freeze_dict[agent_id].freeze_visit), \
-            f"difference for agent {agent_id}"
+            f"difference visit for agent {agent_id}: " \
+            f"expected {expected_freeze_dict[agent_id].freeze_visit}, " \
+            f"found {freeze_dict[agent_id].freeze_visit}"
         assert set(freeze_dict[agent_id].freeze_banned) == set(expected_freeze_dict[agent_id].freeze_banned), \
-            f"difference for agent {agent_id}"
+            f"difference banned for agent {agent_id}: " \
+            f"expected {expected_freeze_dict[agent_id].freeze_banned}, " \
+            f"found {freeze_dict[agent_id].freeze_banned}"
 
 
 def test_bugfix_sim_172():

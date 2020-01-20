@@ -7,8 +7,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 # TODO refactor: this could be easily generalized to general ProblemDescription if the freeze stuff is moved in the AbstractProblemDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling, ExperimentFreezeDict, \
+from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict, \
     generic_experiment_freeze_for_rescheduling
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling, verify_experiment_freeze_for_agent
 from rsp.utils.data_types import ExperimentMalfunction, experimentFreezeDictPrettyPrint
 from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
 from rsp.utils.experiment_utils import solve_problem, SchedulingExperimentResult
@@ -234,16 +235,15 @@ def reschedule_delta_after_malfunction(
                                           verbose=False)
     # uncomment the following lines for debugging purposes
     if False:
-        print("####agents_path_dict[2]")
-        print(_pp.pformat(schedule_problem.agents_path_dict[2]))
-        print("####schedule_trainruns[2]")
-        print(_pp.pformat(schedule_trainruns[2]))
-        print("####full_reschedule_trainruns[2]")
-        print(_pp.pformat(full_reschedule_trainruns[2]))
-        print("####malfunction")
+        culprit = 2
+        print(f"####schedule_trainruns[{culprit}]")
+        print(_pp.pformat(schedule_trainruns[culprit]))
+        print("f####full_reschedule_trainruns[{culprit}]")
+        print(_pp.pformat(full_reschedule_trainruns[culprit]))
+        print("f####malfunction")
         print(malfunction)
-        print("####force_freeze[2]")
-        print(_pp.pformat(force_freeze[2]))
+        print("f####force_freeze[{culprit}]")
+        print(_pp.pformat(force_freeze[culprit]))
     if debug:
         print("####agents_path_dict")
         print(_pp.pformat(schedule_problem.agents_path_dict))
@@ -264,9 +264,20 @@ def reschedule_delta_after_malfunction(
         malfunction=malfunction,
         latest_arrival=malfunction_rail_env._max_episode_steps
     )
+
     if debug:
-        print("####freeze_dict")
+        print("####freeze_dict delta rescheduling")
         experimentFreezeDictPrettyPrint(freeze_dict)
+
+    # verify that full reschedule solution is still a solution in the constrained solution space
+    for agent_id in freeze_dict:
+        verify_experiment_freeze_for_agent(
+            agent_id=agent_id,
+            agent_paths=schedule_problem.agents_path_dict[agent_id],
+            experiment_freeze=freeze_dict[agent_id],
+            force_freeze=[],
+            scheduled_trainrun=full_reschedule_trainruns[agent_id]
+        )
 
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,

@@ -32,6 +32,7 @@ def generic_experiment_freeze_for_rescheduling(
 
     """
     experiment_freeze_dict = {
+        # TODO SIM-208 generalize this function to support the two edge cases
         agent_id: _generic_experiment_freeze_for_rescheduling_agent(
             minimum_travel_time=int(1 / speed_dict[agent_id]),
             agent_paths=agents_path_dict[agent_id],
@@ -45,26 +46,22 @@ def generic_experiment_freeze_for_rescheduling(
 
         )
         for agent_id, schedule_trainrun in schedule_trainruns.items()
+        # consider only case where malfunction happens during schedule
+        # ---> handle them special, maybe put into the funciton
+        #  - if not started -> everything open
+        #  - if already done -> everything remains the same
+        # TODO SIM-208 refactor
         if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
-            malfunction.time_step < schedule_trainrun[-1].scheduled_at)
+            malfunction.time_step < schedule_trainrun[-1].scheduled_at) or force_freeze[agent_id]
+
     }
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     # TODO SIM-208 do we need the same at the other place too where special case is handled? Refactor code duplication?
     for agent_id, schedule_trainrun in schedule_trainruns.items():
         if agent_id not in experiment_freeze_dict:
             if malfunction.agent_id != agent_id:
-                if malfunction.time_step >= schedule_trainrun[0].scheduled_at:
-                    print(f" special case of malfunction before scheduled start agent {agent_id} ")
-                    experiment_freeze_dict[agent_id] = ExperimentFreeze(
-                        freeze_visit=[trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun],
-                        freeze_earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                                         for trainrun_waypoint in schedule_trainrun},
-                        freeze_latest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                                       for trainrun_waypoint in schedule_trainrun},
-                        freeze_banned=[],
-                    )
-                elif malfunction.time_step < schedule_trainrun[-1].scheduled_at:
-                    print(f" special case of malfunction after scheduled arrival agent {agent_id} ")
+                if malfunction.time_step < schedule_trainrun[0].scheduled_at:
+                    print(f" special case of malfunction before scheduled start agent {agent_id} -> everything open")
                     experiment_freeze_dict[agent_id] = ExperimentFreeze(
                         freeze_visit=[],
                         freeze_earliest=_get_earliest_entries_for_full_route_dag(
@@ -79,12 +76,46 @@ def generic_experiment_freeze_for_rescheduling(
                         ),
                         freeze_banned=[],
                     )
-                else:
-                    raise ("must no happen")
+                    print(f"XXXXexperimentFreezePrettyPrint(experiment_freeze_dict[{agent_id}]) generic rsp")
+                    experimentFreezePrettyPrint(experiment_freeze_dict[agent_id])
+                elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
+                    print(f" special case of malfunction after scheduled arrival agent {agent_id} -> everything fixed")
+                    visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
+                    all_waypoints = [
+                        waypoint
+                        for agent_path in agents_path_dict[agent_id]
+                        for waypoint in agent_path
+                    ]
+                    experiment_freeze_dict[agent_id] = ExperimentFreeze(
+                        freeze_visit=[trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun],
+                        freeze_earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+                                         for trainrun_waypoint in schedule_trainrun},
+                        freeze_latest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+                                       for trainrun_waypoint in schedule_trainrun},
+                        freeze_banned=[waypoint
+                                       for waypoint in all_waypoints
+                                       if waypoint not in visited],
+                    )
             else:
-                raise (f"agent {agent_id} has malfunction {malfunction} "
-                       f"before scheduled start {schedule_trainrun}. "
-                       f"Imposing to start at {malfunction.time_step + malfunction.malfunction_duration}")
+                # TODO SIM-208 cleanup
+                raise Exception(f"agent {agent_id} has malfunction {malfunction} "
+                                f"before scheduled start {schedule_trainrun}. "
+                                f"Imposing to start at {malfunction.time_step + malfunction.malfunction_duration}")
+
+                experiment_freeze_dict[agent_id] = ExperimentFreeze(
+                    freeze_visit=[],
+                    freeze_earliest=_get_earliest_entries_for_full_route_dag(
+                        minimum_travel_time=int(1 / speed_dict[agent_id]),
+                        agent_paths=agents_path_dict[agent_id],
+                        earliest=malfunction.time_step + malfunction.malfunction_duration
+                    ),
+                    freeze_latest=_get_latest_entries_for_full_route_dag(
+                        minimum_travel_time=int(1 / speed_dict[agent_id]),
+                        agent_paths=agents_path_dict[agent_id],
+                        latest=latest_arrival
+                    ),
+                    freeze_banned=[],
+                )
 
     for agent_id in experiment_freeze_dict:
         verify_experiment_freeze_for_agent(
@@ -92,12 +123,15 @@ def generic_experiment_freeze_for_rescheduling(
             agent_paths=agents_path_dict[agent_id],
             experiment_freeze=experiment_freeze_dict[agent_id],
             force_freeze=force_freeze[agent_id],
-            malfunction=malfunction if malfunction.agent_id == agent_id else None
+            malfunction=malfunction if malfunction.agent_id == agent_id else None,
+            scheduled_trainrun=list(
+                filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
+                       schedule_trainruns[agent_id]))
         )
-    # uncomment the following lines for debugging purposes
-    if False:
-        print("experimentFreezePrettyPrint(experiment_freeze_dict[2]) generic rsp")
-        experimentFreezePrettyPrint(experiment_freeze_dict[2])
+        # uncomment the following lines for debugging purposes
+        if False:
+            print("experimentFreezePrettyPrint(experiment_freeze_dict[2]) generic rsp")
+            experimentFreezePrettyPrint(experiment_freeze_dict[2])
 
     return experiment_freeze_dict
 
@@ -376,7 +410,7 @@ def _add_agent_path_for_get_freeze_for_delta(agent_path,
 def _get_delayed_trainrun_waypoint_after_malfunction(
         agent_id: int,
         trainrun: Trainrun,
-        malfunction: ExperimentMalfunction):
+        malfunction: ExperimentMalfunction) -> TrainrunWaypoint:
     for trainrun_waypoint in trainrun:
         if trainrun_waypoint.scheduled_at > malfunction.time_step:
             if agent_id == malfunction.agent_id:
@@ -385,7 +419,7 @@ def _get_delayed_trainrun_waypoint_after_malfunction(
                     scheduled_at=trainrun_waypoint.scheduled_at + malfunction.malfunction_duration)
             else:
                 return trainrun_waypoint
-    assert False
+    return trainrun[-1]
 
 
 def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
@@ -395,7 +429,8 @@ def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
                                      latest_arrival: int
                                      ) -> ExperimentFreezeDict:
     """
-    Returns the experiment freeze for the full re-scheduling problem. Wraps the generic freeze
+    Returns the experiment freeze for the full re-scheduling problem.
+    Wraps the generic freeze by freezing everything up to and including the malfunction.
 
     Parameters
     ----------
@@ -407,65 +442,19 @@ def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
     -------
 
     """
-    experiment_freeze_dict = {
-        agent_id: _generic_experiment_freeze_for_rescheduling_agent(
-            minimum_travel_time=int(1 / speed_dict[agent_id]),
-            agent_paths=agents_path_dict[agent_id],
-            force_freeze=[trainrun_waypoint
-                          for trainrun_waypoint in schedule_trainrun
-                          if trainrun_waypoint.scheduled_at <= malfunction.time_step],
-            # N.B. if the agent has not yet entered the grid, we fix the scheduled
-            # this would not work if we had multiple start points for an agent!
-            subdag_source=_get_delayed_trainrun_waypoint_after_malfunction(
-                agent_id=agent_id,
-                trainrun=schedule_trainrun,
-                malfunction=malfunction
-            ),
-            latest_arrival=latest_arrival
-
-        )
-        for agent_id, schedule_trainrun in schedule_trainruns.items()
-        if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
-            malfunction.time_step < schedule_trainrun[-1].scheduled_at)
-    }
-    # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
-    for agent_id, schedule_trainrun in schedule_trainruns.items():
-        if agent_id not in experiment_freeze_dict:
-            if malfunction.agent_id != agent_id:
-                experiment_freeze_dict[agent_id] = ExperimentFreeze(
-                    freeze_visit=[],
-                    freeze_earliest=_get_earliest_entries_for_full_route_dag(
-                        minimum_travel_time=int(1 / speed_dict[agent_id]),
-                        agent_paths=agents_path_dict[agent_id],
-                        earliest=schedule_trainrun[0].scheduled_at
-                    ),
-
-                    freeze_latest=_get_latest_entries_for_full_route_dag(
-                        minimum_travel_time=int(1 / speed_dict[agent_id]),
-                        agent_paths=agents_path_dict[agent_id],
-                        latest=latest_arrival
-                    ),
-                    freeze_banned=[],
-                )
-            else:
-                raise (f"agent {agent_id} has malfunction {malfunction} "
-                       f"before scheduled start {schedule_trainrun}. "
-                       f"Imposing to start at {malfunction.time_step + malfunction.malfunction_duration}")
-
-    # uncomment the following lines for debugging purposes
-    if False:
-        print("experimentFreezePrettyPrint(experiment_freeze_dict[2]) full rsp")
-        experimentFreezePrettyPrint(experiment_freeze_dict[2])
-    for agent_id in experiment_freeze_dict:
-        verify_experiment_freeze_for_agent(
-            agent_id=agent_id,
-            agent_paths=agents_path_dict[agent_id],
-            experiment_freeze=experiment_freeze_dict[agent_id],
-            force_freeze=[],
-            malfunction=malfunction if malfunction.agent_id == agent_id else None
-        )
-
-    return experiment_freeze_dict
+    return generic_experiment_freeze_for_rescheduling(
+        malfunction=malfunction,
+        schedule_trainruns=schedule_trainruns,
+        speed_dict=speed_dict,
+        force_freeze={agent_id: [trainrun_waypoint
+                                 for trainrun_waypoint in schedule_trainrun
+                                 if trainrun_waypoint.scheduled_at <= malfunction.time_step
+                                 ]
+                      for agent_id, schedule_trainrun in schedule_trainruns.items()
+                      },
+        agents_path_dict=agents_path_dict,
+        latest_arrival=latest_arrival
+    )
 
 
 # TODO SIM-173 use this for scheduling together with generic entry point!
@@ -534,7 +523,8 @@ def verify_experiment_freeze_for_agent(
         experiment_freeze: ExperimentFreeze,
         agent_paths: List[List[Waypoint]],
         force_freeze: Optional[List[TrainrunWaypoint]] = None,
-        malfunction: Optional[ExperimentMalfunction] = None
+        malfunction: Optional[ExperimentMalfunction] = None,
+        scheduled_trainrun: Optional[Trainrun] = None
 ):
     """
     Does the experiment_freeze reflect the force freeze, route DAG and malfunctions correctly?
@@ -542,6 +532,7 @@ def verify_experiment_freeze_for_agent(
 
     Parameters
     ----------
+    scheduled_trainrun
     experiment_freeze
         the experiment freeze to be verified.
     agent_paths
@@ -550,6 +541,9 @@ def verify_experiment_freeze_for_agent(
         the trainrun waypoints that must as given (consistency is not checked!)
     malfunction
         if it's the agent in malfunction, the experiment freeze should put a visit and earliest constraint
+    scheduled_trainrun
+        verify that this whole train run is part of the solution space.
+        With malfunctions, caller must ensure that only relevant part is passed to be verified!
 
     Returns
     -------
@@ -560,15 +554,21 @@ def verify_experiment_freeze_for_agent(
     for waypoint in all_waypoints:
         # if waypoint is banned -> must not earliest/latest/visit
         if waypoint in experiment_freeze.freeze_banned:
-            assert waypoint not in experiment_freeze.freeze_earliest, f"{waypoint}"
-            assert waypoint not in experiment_freeze.freeze_latest, f"{waypoint}"
-            assert waypoint not in experiment_freeze.freeze_visit, f"{waypoint}"
+            assert waypoint not in experiment_freeze.freeze_earliest, \
+                f"{agent_id}: {waypoint} banned, should have no earliest"
+            assert waypoint not in experiment_freeze.freeze_latest, \
+                f"{agent_id}: {waypoint} banned, should have no latest"
+            assert waypoint not in experiment_freeze.freeze_visit, \
+                f"{agent_id}: {waypoint} banned, should have no visit"
         else:
             # waypoint must have earliest and latest s.t. earliest <= latest
-            assert waypoint in experiment_freeze.freeze_earliest, f"{waypoint}"
-            assert waypoint in experiment_freeze.freeze_latest, f"{waypoint}"
-            assert experiment_freeze.freeze_earliest[waypoint] <= experiment_freeze.freeze_latest[
-                waypoint], f"{waypoint}"
+            assert waypoint in experiment_freeze.freeze_earliest, \
+                f"{agent_id} has no earliest for {waypoint}"
+            assert waypoint in experiment_freeze.freeze_latest, \
+                f"{agent_id} has no latest for {waypoint}"
+            assert experiment_freeze.freeze_earliest[waypoint] <= experiment_freeze.freeze_latest[waypoint], \
+                f"{agent_id} at {waypoint}: earliest should be less or equal to latest, " + \
+                f"found {experiment_freeze.freeze_earliest[waypoint]} <= {experiment_freeze.freeze_latest[waypoint]}"
 
     # verify that force is implemented correctly
     if force_freeze:
@@ -596,4 +596,31 @@ def verify_experiment_freeze_for_agent(
                 assert experiment_freeze.freeze_latest[waypoint] == earliest
                 assert waypoint in experiment_freeze.freeze_visit
             else:
-                assert earliest >= malfunction.time_step + malfunction.malfunction_duration
+                assert earliest >= malfunction.time_step + malfunction.malfunction_duration, f"{agent_id} {malfunction}"
+
+    # verify that scheduled train run is in the solution space
+    if scheduled_trainrun:
+        scheduled_dict = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+                          for trainrun_waypoint in scheduled_trainrun}
+        for waypoint, scheduled_at in scheduled_dict.items():
+            assert waypoint not in experiment_freeze.freeze_banned, \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but banned constraint"
+            assert waypoint in experiment_freeze.freeze_earliest, \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but no earliest constraint"
+            assert scheduled_at >= experiment_freeze.freeze_earliest[waypoint], \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but found earliest {experiment_freeze.freeze_latest[waypoint]}"
+            assert waypoint in experiment_freeze.freeze_latest, \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but no latest constraint"
+            assert scheduled_at <= experiment_freeze.freeze_latest[waypoint], \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but found latest {experiment_freeze.freeze_latest[waypoint]}"
+            assert waypoint not in experiment_freeze.freeze_banned

@@ -173,7 +173,7 @@ def test_rescheduling_no_bottleneck():
                                                    latest_arrival=dynamic_env._max_episode_steps
                                                    )
     for agent_id, experiment_freeze in freeze_dict.items():
-        verify_experiment_freeze_for_agent(freeze_dict[agent_id], agents_paths_dict[agent_id])
+        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id])
 
     schedule_problem.get_copy_for_experiment_freeze(experiment_freeze_dict=freeze_dict,
                                                     schedule_trainruns=fake_schedule)
@@ -423,15 +423,14 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_latest[trainrun_waypoint.waypoint]
 
     print(_pp.pformat(freeze_dict[0].freeze_visit))
-    assert freeze_dict[0].freeze_visit == [
-    ], format(f"found {freeze_dict[0].freeze_visit}")
+    assert freeze_dict[0].freeze_visit == [], format(f"found {freeze_dict[0].freeze_visit}")
 
     for trainrun_waypoint in [TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]:
         assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, experiment_freeze in freeze_dict.items():
-        verify_experiment_freeze_for_agent(freeze_dict[agent_id], agents_paths_dict[agent_id])
+        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id], )
 
     schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,

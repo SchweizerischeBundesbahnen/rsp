@@ -4,6 +4,7 @@ pytest>=3.8.2
 pytest-runner>=4.2
 ortools>=7.3
 overrides==2.5
+networkx==2.4
 
 # TODO we should pin to FLATland version
 git+https://gitlab.aicrowd.com/flatland/flatland.git@bugfix-action-plan-malfunction#egg=flatland-rl

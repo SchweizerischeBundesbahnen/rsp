@@ -18,7 +18,7 @@ if __name__ == '__main__':
     run_specific_experiments_from_research_agenda(
         solver=solver,
         experiment_agenda=experiment_agenda,
-        experiment_ids=list(range(14, 15)),
+        experiment_ids=list(range(300)),
         run_experiments_parallel=False,
         show_results_without_details=False,
         verbose=False)
