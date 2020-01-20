@@ -75,7 +75,16 @@ def generic_experiment_freeze_for_rescheduling(
                             latest=latest_arrival
                         ),
                         freeze_banned=[],
+
                     )
+                    freeze: ExperimentFreeze = experiment_freeze_dict[agent_id]
+                    # N.B. copy keys into new list (cannot delete keys while looping concurrently looping over them)
+                    waypoints: List[Waypoint] = list(freeze.freeze_earliest.keys())
+                    for waypoint in waypoints:
+                        if freeze.freeze_earliest[waypoint] > freeze.freeze_latest[waypoint]:
+                            del freeze.freeze_latest[waypoint]
+                            del freeze.freeze_earliest[waypoint]
+                            freeze.freeze_banned.append(waypoint)
                     print(f"XXXXexperimentFreezePrettyPrint(experiment_freeze_dict[{agent_id}]) generic rsp")
                     experimentFreezePrettyPrint(experiment_freeze_dict[agent_id])
                 elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
