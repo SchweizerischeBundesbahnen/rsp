@@ -34,7 +34,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 # --------------------------------------------------------------------------------------
 # Solve an `AbstractProblemDescription`
 # --------------------------------------------------------------------------------------
-# TODO discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
+# TODO SIM-220 discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
 #  Then, we could get rid of this intermediate layer and move solve_problem to AbstractProblemDescription
 def solve_problem(env: RailEnv,
                   problem: AbstractProblemDescription,

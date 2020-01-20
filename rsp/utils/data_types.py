@@ -19,6 +19,9 @@ ExperimentFreeze = NamedTuple('ExperimentFreeze', [
 ])
 ExperimentFreezeDict = Dict[int, ExperimentFreeze]
 
+AgentPaths = List[List[Waypoint]]
+AgentsPathsDict = Dict[int, AgentPaths]
+
 
 def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]) -> Dict[TrainrunWaypoint, int]:
     """
@@ -71,8 +74,7 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
     ('experiment_freeze', ExperimentFreezeDict),
     ('malfunction', ExperimentMalfunction),
-    # TODO SIM-146 rename TrainPath = List[Waypoint] and TrainPathDict = Dict[int,TrainPath]
-    ('agent_paths_dict', Dict[int, List[Waypoint]])
+    ('agent_paths_dict', AgentsPathsDict)
 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
@@ -100,7 +102,7 @@ def experimentFreezePrettyPrint(experiment_freeze: ExperimentFreeze, prefix: str
     print(f"{prefix}freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
 
 
-def visualize_experiment_freeze(agent_paths: List[List[Waypoint]],
+def visualize_experiment_freeze(agent_paths: AgentPaths,
                                 f: ExperimentFreeze,
                                 file_name: str,
                                 title: Optional[str] = None,

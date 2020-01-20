@@ -1,6 +1,7 @@
 import pprint
 from typing import Dict, List, Optional
 
+import numpy as np
 from flatland.envs.agent_utils import EnvAgent
 from flatland.envs.malfunction_generators import Malfunction as FLMalfunction, Malfunction
 from flatland.envs.malfunction_generators import MalfunctionProcessData
@@ -165,13 +166,15 @@ def test_rescheduling_no_bottleneck():
     schedule_problem = ASPProblemDescription(env=static_env,
                                              agents_path_dict=agents_paths_dict)
 
-    freeze_dict = get_freeze_for_full_rescheduling(malfunction=fake_malfunction,
-                                                   schedule_trainruns=fake_schedule,
-                                                   speed_dict={agent.handle: agent.speed_data['speed']
-                                                               for agent in static_env.agents},
-                                                   agents_path_dict=agents_paths_dict,
-                                                   latest_arrival=dynamic_env._max_episode_steps
-                                                   )
+    freeze_dict = get_freeze_for_full_rescheduling(
+        malfunction=fake_malfunction,
+        schedule_trainruns=fake_schedule,
+        minimum_travel_time_dict={
+            agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+            for agent in static_env.agents},
+        agents_path_dict=agents_paths_dict,
+        latest_arrival=dynamic_env._max_episode_steps
+    )
     for agent_id, experiment_freeze in freeze_dict.items():
         verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id])
 
@@ -396,7 +399,8 @@ def test_rescheduling_bottleneck():
     freeze_dict: ExperimentFreezeDict = get_freeze_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
-        speed_dict={agent.handle: agent.speed_data['speed'] for agent in static_env.agents},
+        minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+                                  for agent in static_env.agents},
         agents_path_dict=agents_paths_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )

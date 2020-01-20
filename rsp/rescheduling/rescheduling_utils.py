@@ -5,14 +5,14 @@ import numpy
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint, Trainrun, TrainrunDict
 
 from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreezeDict, ExperimentFreeze, \
-    experimentFreezePrettyPrint
+    experimentFreezePrettyPrint, AgentsPathsDict, AgentPaths
 
 
 def generic_experiment_freeze_for_rescheduling(
         schedule_trainruns: TrainrunDict,
-        speed_dict: Dict[int, float],
-        agents_path_dict: Dict[int, List[List[Waypoint]]],
-        force_freeze: Dict[int, List[List[Waypoint]]],
+        minimum_travel_time_dict: Dict[int, int],
+        agents_path_dict: AgentsPathsDict,
+        force_freeze: Dict[int, List[TrainrunWaypoint]],
         malfunction: ExperimentMalfunction,
         latest_arrival: int
 ) -> ExperimentFreezeDict:
@@ -21,11 +21,18 @@ def generic_experiment_freeze_for_rescheduling(
 
     Parameters
     ----------
-    malfunction
     schedule_trainruns
-    env
+        the schedule before the malfunction
+    minimum_travel_time_dict
+        the agent's speed (constant for every agent, different among agents)
     agents_path_dict
+        the paths spanning the agents' route DAG
     force_freeze
+        waypoints the oracle told to pass by
+    malfunction
+        malfunction
+    latest_arrival
+        end of the global time window
 
     Returns
     -------
@@ -33,7 +40,7 @@ def generic_experiment_freeze_for_rescheduling(
     """
     experiment_freeze_dict = {
         agent_id: _generic_experiment_freeze_for_rescheduling_agent_while_running(
-            minimum_travel_time=int(1 / speed_dict[agent_id]),
+            minimum_travel_time=minimum_travel_time_dict[agent_id],
             agent_paths=agents_path_dict[agent_id],
             force_freeze=force_freeze[agent_id],
             subdag_source=_get_delayed_trainrun_waypoint_after_malfunction(
@@ -65,12 +72,12 @@ def generic_experiment_freeze_for_rescheduling(
                 experiment_freeze_dict[agent_id] = ExperimentFreeze(
                     freeze_visit=[],
                     freeze_earliest=_get_earliest_entries_for_full_route_dag(
-                        minimum_travel_time=int(1 / speed_dict[agent_id]),
+                        minimum_travel_time=minimum_travel_time_dict[agent_id],
                         agent_paths=agents_path_dict[agent_id],
                         earliest=schedule_trainrun[0].scheduled_at
                     ),
                     freeze_latest=_get_latest_entries_for_full_route_dag(
-                        minimum_travel_time=int(1 / speed_dict[agent_id]),
+                        minimum_travel_time=minimum_travel_time_dict[agent_id],
                         agent_paths=agents_path_dict[agent_id],
                         latest=latest_arrival
                     ),
@@ -127,7 +134,7 @@ def generic_experiment_freeze_for_rescheduling(
 
 def _generic_experiment_freeze_for_rescheduling_agent_while_running(
         minimum_travel_time: int,
-        agent_paths: List[List[Waypoint]],
+        agent_paths: AgentPaths,
         force_freeze: List[TrainrunWaypoint],
         subdag_source: TrainrunWaypoint,
         latest_arrival: int
@@ -197,9 +204,14 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
         freeze_visit.append(trainrun_waypoint.waypoint)
         freeze_visit_waypoint_set.add(trainrun_waypoint.waypoint)
 
+    # forward and backward funnels
+    # We take all funnels forward and backward from these points and then the intersection of those.
+    # A source and sink node only have a forward and backward funnel, respectively.
+    # In FLATland, the source node is always unique, the sink node is made unique by a dummy node at the end
+    # (the agent may enter from more than one direction ino the target cell.)
     reachable_set = _get_reachable_given_frozen_set(agent_paths, all_waypoints, force_freeze)
 
-    # ban all that are not either in the forward or backward funnel of the freezed ones
+    # ban all that are not reachable
     banned, banned_set = _collect_banned_as_not_reached(all_waypoints, force_freeze_waypoints_set, reachable_set)
     # design choice: we give no earliest/latest for banned!
     for waypoint in banned_set:
@@ -238,7 +250,8 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
 def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
                                    force_freeze_waypoints_set: Set[Waypoint],
                                    reachable_set: Set[Waypoint]):
-    """Bans all that are not either in the forward or backward funnel of the freezed ones. Returns them as list for iteration and as set for containment test.
+    """Bans all that are not either in the forward or backward funnel of the freezed ones.
+    Returns them as list for iteration and as set for containment test.
     """
     banned: List[Waypoint] = []
     banned_set: Set[Waypoint] = set()
@@ -251,9 +264,9 @@ def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
     return banned, banned_set
 
 
-def _get_reachable_given_frozen_set(agent_paths: List[List[Waypoint]],
+def _get_reachable_given_frozen_set(agent_paths: AgentPaths,
                                     all_waypoints: List[Waypoint],
-                                    force_freeze: List[TrainrunWaypoint]):
+                                    force_freeze: List[TrainrunWaypoint]) -> Set[Waypoint]:
     """
     Determines which vertices can still be reached given the frozen set.
 
@@ -281,6 +294,7 @@ def _get_reachable_given_frozen_set(agent_paths: List[List[Waypoint]],
             backward_reachable[second].add(first)
 
     # transitive closure of forward and backward neighbors
+    # i.e. iteratively add the neighbors, then neighbors' neighbors, then the neighbors' neighbors' neighbors...
     done = False
     forward_neighbors_count: Dict[Waypoint, int] = {waypoint: len(forward_reachable[waypoint]) for agent_path in
                                                     agent_paths for waypoint in agent_path}
@@ -323,7 +337,7 @@ def _get_reachable_given_frozen_set(agent_paths: List[List[Waypoint]],
 
 
 def _search_last_contiguously_freezed_from_start(
-        agent_paths: List[List[Waypoint]],
+        agent_paths: AgentPaths,
         force_freeze: List[TrainrunWaypoint],
         force_freeze_waypoints_set: Set[TrainrunWaypoint],
 ) -> Optional[TrainrunWaypoint]:
@@ -363,35 +377,53 @@ def _add_agent_path_for_get_freeze_for_delta(agent_path,
                                              latest_arrival: int,
                                              minimum_travel_time):
     """
-    Travese the sub-DAG and find earliest and latest.
+    Traverse the sub-DAG along one of the paths generating the route DAG and update earliest and latest times.
+    Used within _generic_experiment_freeze_for_rescheduling_agent_while_running.
 
     Parameters
     ----------
     agent_path
+        agent_path for traversing the route DAG, one of the paths generating the DAG.
     earliest_dict
+        earliest time for the agent to reach this vertex given the freezed times
+    latest_dict
+        latest time for the agent to pass here in order to reach the target in time
     force_freeze_dict
+        vertices that must be visited at the given time
     minimum_travel_time
+        constant travel time per edge for the agent (may be different for other agents)
+    banned_set
+        waypoints that the agent must not visit (as told by the oracle)
+    subdag_source
+        the waypoint after the malfunction and when it can be there at the earliest
+        (everything before this point must be in the force_freeze)
+    latest_arrival
+        latest arrival at the sink
 
     Returns
     -------
-
+        updates earliest_dict and latest_dict
     """
 
+    # we consider edges agent_path[waypoint_index] -> waypoint and update earliest[waypoint] forward
+    # i.e. waypoint == agent_path[waypoint_index+1] (forward!)
     for waypoint_index, waypoint in enumerate(agent_path[1:]):
         if waypoint in force_freeze_dict or waypoint in banned_set:
             continue
         else:
-            # waypoint_index points to the previous!!!!
+
             path_earliest = earliest_dict.get(agent_path[waypoint_index], numpy.inf) + minimum_travel_time
             earliest = min(path_earliest, earliest_dict.get(waypoint, numpy.inf))
             if earliest > subdag_source.scheduled_at and earliest < numpy.inf:
                 earliest_dict[waypoint] = int(earliest)
+
+    # we consider waypoint -> reversed_agent_path[waypoint_index] and update latest_dict[waypoint] backwards
+    # i.e. waypoint == reversed_agent_path[waypoint_index+1] (backwards!)
     reversed_agent_path = list(reversed(list(agent_path)))
     for waypoint_index, waypoint in enumerate(reversed_agent_path[1:]):
         if waypoint in force_freeze_dict or waypoint in banned_set:
             continue
         else:
-            # waypoint_index points to the next (in train direction)!!!!
             path_latest = latest_dict.get(reversed_agent_path[waypoint_index], -numpy.inf) - minimum_travel_time
             latest = max(path_latest, latest_dict.get(waypoint, -numpy.inf))
             if latest < latest_arrival and latest > -numpy.inf:
@@ -415,28 +447,22 @@ def _get_delayed_trainrun_waypoint_after_malfunction(
 
 def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
                                      schedule_trainruns: TrainrunDict,
-                                     speed_dict: Dict[int, float],
-                                     agents_path_dict: Dict[int, List[List[Waypoint]]],
+                                     minimum_travel_time_dict: Dict[int, int],
+                                     agents_path_dict: AgentsPathsDict,
                                      latest_arrival: int
                                      ) -> ExperimentFreezeDict:
     """
     Returns the experiment freeze for the full re-scheduling problem.
     Wraps the generic freeze by freezing everything up to and including the malfunction.
 
-    Parameters
-    ----------
-    malfunction
-    schedule_trainruns
-    agents_path_dict
+    See param description there.
 
-    Returns
-    -------
 
     """
     return generic_experiment_freeze_for_rescheduling(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
-        speed_dict=speed_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
         force_freeze={agent_id: [trainrun_waypoint
                                  for trainrun_waypoint in schedule_trainrun
                                  if trainrun_waypoint.scheduled_at <= malfunction.time_step
@@ -451,7 +477,7 @@ def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
 # TODO SIM-173 use this for scheduling together with generic entry point!
 def _get_earliest_entries_for_full_route_dag(
         minimum_travel_time: int,
-        agent_paths: List[List[Waypoint]],
+        agent_paths: AgentPaths,
         earliest: int
 ) -> Dict[Waypoint, int]:
     """
@@ -486,7 +512,7 @@ def _get_earliest_entries_for_full_route_dag(
 
 def _get_latest_entries_for_full_route_dag(
         minimum_travel_time: int,
-        agent_paths: List[List[Waypoint]],
+        agent_paths: AgentPaths,
         latest: int
 ) -> Dict[Waypoint, int]:
     """
@@ -512,7 +538,7 @@ def _get_latest_entries_for_full_route_dag(
 def verify_experiment_freeze_for_agent(
         agent_id: int,
         experiment_freeze: ExperimentFreeze,
-        agent_paths: List[List[Waypoint]],
+        agent_paths: AgentPaths,
         force_freeze: Optional[List[TrainrunWaypoint]] = None,
         malfunction: Optional[ExperimentMalfunction] = None,
         scheduled_trainrun: Optional[Trainrun] = None

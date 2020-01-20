@@ -553,7 +553,7 @@ def test_experiment_freeze():
 
         ])
     experiment_freeze: ExperimentFreeze = get_freeze_for_full_rescheduling(
-        speed_dict={2: 1.0},
+        minimum_travel_time_dict={2: 1},
         agents_path_dict={2: agent_paths},
         malfunction=malfunction,
         schedule_trainruns={2: train_run},
@@ -1427,7 +1427,7 @@ def test_get_freeze_for_delta():
             ])}
     freeze_dict: ExperimentFreezeDict = generic_experiment_freeze_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
-        speed_dict={0: 1, 1: 1},
+        minimum_travel_time_dict={0: 1, 1: 1},
         agents_path_dict=agents_path_dict,
         force_freeze=force_freeze,
         malfunction=malfunction,

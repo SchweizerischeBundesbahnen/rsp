@@ -1,11 +1,12 @@
 import pprint
 from typing import Callable, Tuple
 
+import numpy as np
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-# TODO refactor: this could be easily generalized to general ProblemDescription if the freeze stuff is moved in the AbstractProblemDescription
+# TODO SIM-239 refactor: this could be easily generalized to general ProblemDescription if the freeze stuff is moved in the AbstractProblemDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict, \
     generic_experiment_freeze_for_rescheduling
@@ -142,10 +143,12 @@ def reschedule_full_after_malfunction(
     # --------------------------------------------------------------------------------------
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
+                                malfunction_rail_env.agents}
     freeze_dict: ExperimentFreezeDict = get_freeze_for_full_rescheduling(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
-        speed_dict={agent.handle: agent.speed_data['speed'] for agent in malfunction_rail_env.agents},
+        minimum_travel_time_dict=minimum_travel_time_dict,
         agents_path_dict=schedule_problem.agents_path_dict,
         latest_arrival=malfunction_rail_env._max_episode_steps
     )
@@ -255,10 +258,11 @@ def reschedule_delta_after_malfunction(
         print(malfunction)
         print("####force_freeze")
         print(_pp.pformat(force_freeze))
-    speed_dict = {agent.handle: agent.speed_data['speed'] for agent in malfunction_rail_env.agents}
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+                                for agent in malfunction_rail_env.agents}
     freeze_dict: ExperimentFreezeDict = generic_experiment_freeze_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
-        speed_dict=speed_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
         agents_path_dict=schedule_problem.agents_path_dict,
         force_freeze=force_freeze,
         malfunction=malfunction,

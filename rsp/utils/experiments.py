@@ -150,6 +150,7 @@ def run_experiment(solver: AbstractSolver,
                                    'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
                                    'max_rail_in_city': experiment_parameters.max_rail_in_city})
 
+        # TODO SIM-239 move to analysis toolkit!
         if show_results_without_details:
             print("*** experiment result of trial {} for experiment {}".format(trial + 1,
                                                                                experiment_parameters.experiment_id))

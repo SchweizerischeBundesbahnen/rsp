@@ -1,4 +1,4 @@
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Waypoint, Trainrun, TrainrunWaypoint
@@ -6,15 +6,16 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint, Trainrun, Trai
 from rsp.abstract_solution_description import AbstractSolutionDescription
 from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
 from rsp.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
+from rsp.utils.data_types import AgentPaths
 
 
 class ORToolsSolutionDescription(AbstractSolutionDescription):
 
     def __init__(self, env: RailEnv, solver: AbstractORToolsSolver,
-                 agents_path: Dict[int, Optional[List[List[Waypoint]]]]):
+                 agents_path: Dict[int, Optional[AgentPaths]]):
         super(self.__class__, self).__init__(env)
         self._solver: AbstractORToolsSolver = solver
-        self._agents_path: Dict[int, Optional[List[List[Waypoint]]]] = agents_path
+        self._agents_path: Dict[int, Optional[AgentPaths]] = agents_path
 
     def _get_solver_variable_value(self, var_name) -> int:
         return self._solver.get_solver_variable_value(var_name)

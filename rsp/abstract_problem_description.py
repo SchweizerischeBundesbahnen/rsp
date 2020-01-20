@@ -9,6 +9,7 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.abstract_solution_description import AbstractSolutionDescription
+from rsp.utils.data_types import AgentsPathsDict
 
 
 class AbstractProblemDescription:
@@ -16,10 +17,10 @@ class AbstractProblemDescription:
 
     def __init__(self,
                  env: RailEnv,
-                 agents_path_dict: Optional[Dict[int, List[List[Waypoint]]]],
+                 agents_path_dict: Optional[AgentsPathsDict],
                  skip_mutual_exclusion: bool = False):
         self.env = env
-        self.agents_path_dict: Dict[int, Optional[List[Waypoint]]] = agents_path_dict
+        self.agents_path_dict: AgentsPathsDict = agents_path_dict
         self._create_along_paths(skip_mutual_exclusion)
 
     @abc.abstractmethod
@@ -188,6 +189,7 @@ class AbstractProblemDescription:
                 dummy_target_waypoint = self.convert_agent_target_to_dummy_target_waypoint(agent)
                 dummy_target_vertices.append(dummy_target_waypoint)
 
+                # add the train if we're at the path's beginning.
                 if path_index == 0:
                     self._implement_train(agent_id,
                                           [source_waypoint],
@@ -265,7 +267,6 @@ class AbstractProblemDescription:
                                               path_index)
 
             # TODO do we have to check that initial_position != target?
-
             if Vec2d.is_equal(agent.target, next_position):
                 agent_dummy_section = (agent_id, next_waypoint, dummy_target_waypoint)
                 if agent_dummy_section not in already_added:
