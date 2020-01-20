@@ -92,8 +92,6 @@ def generic_experiment_freeze_for_rescheduling(
                         del freeze.freeze_latest[waypoint]
                         del freeze.freeze_earliest[waypoint]
                         freeze.freeze_banned.append(waypoint)
-                print(f"XXXXexperimentFreezePrettyPrint(experiment_freeze_dict[{agent_id}]) generic rsp")
-                experimentFreezePrettyPrint(experiment_freeze_dict[agent_id])
             elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
                 print(f" special case of malfunction after scheduled arrival agent {agent_id} -> everything fixed")
                 visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
@@ -124,6 +122,7 @@ def generic_experiment_freeze_for_rescheduling(
                 filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
                        schedule_trainruns[agent_id]))
         )
+        # TODO remove tweaky debg snippet as soon as pipeline is stable
         # uncomment the following lines for debugging purposes
         if False:
             print("experimentFreezePrettyPrint(experiment_freeze_dict[2]) generic rsp")
