@@ -68,7 +68,6 @@ def generic_experiment_freeze_for_rescheduling(
     for agent_id, schedule_trainrun in schedule_trainruns.items():
         if agent_id not in experiment_freeze_dict:
             if malfunction.time_step < schedule_trainrun[0].scheduled_at:
-                print(f" special case of malfunction before scheduled start agent {agent_id} -> everything open")
                 experiment_freeze_dict[agent_id] = ExperimentFreeze(
                     freeze_visit=[],
                     freeze_earliest=_get_earliest_entries_for_full_route_dag(
@@ -93,7 +92,6 @@ def generic_experiment_freeze_for_rescheduling(
                         del freeze.freeze_earliest[waypoint]
                         freeze.freeze_banned.append(waypoint)
             elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
-                print(f" special case of malfunction after scheduled arrival agent {agent_id} -> everything fixed")
                 visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
                 all_waypoints = [
                     waypoint
