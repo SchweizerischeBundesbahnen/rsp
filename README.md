@@ -55,24 +55,16 @@ The following sections describe how solve a FLATland problem with
 
 
 ## Quick Start
-You need to have installed `conda`. Then,
-```shell
-python -m pip install tox tox-conda
-# alternatively: conda install tox tox-conda
-python -m tox .
-```
-This runs the unit tests in the Python virtual environment provided by the tox manager.
+You need to have installed `conda` and `git` (temporarily for FLATland). Then,
 
 In order to run the experiments,
 ```shell
-conda create -n rsp python=3.7
+
+# create conda environment rsp
+conda env create -f rsp_environment.yml
+
+# activate the conda env
 conda activate rsp
-
-# install requirements
-conda install -c potassco clingo-dl=1.1.0
-
-# caveat: under Windows, the FLATland installation may fail, refer to http://flatland-rl-docs.s3-website.eu-central-1.amazonaws.com/01_readme.html#installation)
-python -m pip install -r requirements.txt
 
 # install rsp in virtual env
 python setup.py install
@@ -81,6 +73,9 @@ python setup.py install
 python rsp/hypothesis_one_experiments.py
 
 # ..... do some development....
+
+# (optionally) update the conda env if rsp_environment.yml was modified 
+conda env update -f rsp_environment.yml
 
 # install new version and run tests
 python setup.py install && python -m pytest && python -m flake8 rsp tests
