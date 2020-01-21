@@ -48,7 +48,7 @@ python -m pip install pyyaml --user pyyaml
 export CONDA_CHANNELS=`python environment_yaml_extractor.py  "conda_channels" rsp_environment.yml`
 export CONDA_DEPS=`python environment_yaml_extractor.py  "conda_deps" rsp_environment.yml`
 export PIP_DEPS=`python environment_yaml_extractor.py  "pip_deps" rsp_environment.yml`
-python -m tox . --recreate
+python -m tox . --recreate -v
 """
                 })
             }
