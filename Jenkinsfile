@@ -44,9 +44,9 @@ curl --insecure -v --request POST -H "Authorization: token ${
             steps {
                 tox_conda_wrapper(WHAT: {
                     sh """
-
-hexdump -c tox.ini
+# TODO move environment_yaml_extractor into pipeline-helpers
 python -m pip install pyyaml --user pyyaml
+# use prefix TOX_* since the env variables interpreted by Miniconda though not documented, see https://github.com/conda/conda/issues/4579
 export TOX_CONDA_CHANNELS=`python environment_yaml_extractor.py  "conda_channels" rsp_environment.yml`
 export TOX_CONDA_DEPS=`python environment_yaml_extractor.py  "conda_deps" rsp_environment.yml`
 export TOX_PIP_DEPS=`python environment_yaml_extractor.py  "pip_deps" rsp_environment.yml`
