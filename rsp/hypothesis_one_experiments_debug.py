@@ -11,7 +11,7 @@ if __name__ == '__main__':
     experiment_agenda = create_experiment_agenda(experiment_name="exp_hypothesis_one",
                                                  speed_data=speed_data,
                                                  parameter_ranges=parameter_ranges,
-                                                 trials_per_experiment=1)
+                                                 trials_per_experiment=60)
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     run_specific_experiments_from_research_agenda(
         solver=solver,
         experiment_agenda=experiment_agenda,
-        experiment_ids=list(range(123, 301)),
+        experiment_ids=list(range(88, 89)),
         run_experiments_parallel=False,
         show_results_without_details=False,
         verbose=False)

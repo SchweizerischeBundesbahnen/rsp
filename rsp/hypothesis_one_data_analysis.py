@@ -26,7 +26,8 @@ if __name__ == '__main__':
 
     experiment_data['speed_up'] = \
         experiment_data['time_full_after_malfunction'] / experiment_data['time_delta_after_malfunction']
-    # TOOD SIM-151 invert and check range, color code
+    # TODO SIM-151 invert and check range, color code
+
 
     # Average over the trials of each experiment
     averaged_data, std_data = average_over_trials(experiment_data)
@@ -39,6 +40,7 @@ if __name__ == '__main__':
     print(experiment_data.loc[experiment_data['experiment_id'] == 58].to_json())
     # \ TODO SIM-151 remove explorative code
 
+    # TODO SIM-151 can we display all 4 at the same time and save
     three_dimensional_scatter_plot(data=averaged_data, error=std_data, columns=['n_agents', 'size', 'speed_up'])
 
     # Initially plot the computation time vs the level size and the number of agent
