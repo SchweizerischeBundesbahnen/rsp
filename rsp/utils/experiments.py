@@ -168,7 +168,7 @@ def run_experiment(solver: AbstractSolver,
             env_renderer.close_window()
         trial_time = (time.time() - start_trial)
         print("Running trial {} for experiment {}: took {:5.3f}ms"
-              .format(trial, experiment_parameters.experiment_id, trial_time))
+              .format(trial + 1, experiment_parameters.experiment_id, trial_time))
     return experiment_results
 
 
