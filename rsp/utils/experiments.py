@@ -26,7 +26,6 @@ load_experiment_results_to_file
     Load the results form an experiment result file
 """
 import datetime
-import errno
 import multiprocessing
 import os
 import pickle
@@ -35,6 +34,7 @@ import shutil
 from functools import partial
 from typing import List, Tuple, Mapping
 
+import errno
 import numpy as np
 import pandas as pd
 from flatland.envs.rail_env import RailEnv
@@ -311,6 +311,7 @@ def run_experiment_agenda(solver: AbstractSolver,
     Returns the name of the experiment folder
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
+    save_experiment_agenda_to_file(experiment_folder_name, experiment_agenda)
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
@@ -378,6 +379,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
 
     filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
     experiment_agenda_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+    save_experiment_agenda_to_file(experiment_folder_name, experiment_agenda_filtered)
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
@@ -541,36 +543,37 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     return env_static, env_malfunction
 
 
-def save_experiment_agenda_to_file(experiment_agenda: ExperimentAgenda, file_name: str):
+def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agenda: ExperimentAgenda):
     """
-    Save a generated experiment agenda into a file for later use
+    Save experiment agenda to the folder with the experiments.
 
     Parameters
     ----------
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files and agenda are stored
     experiment_agenda: ExperimentAgenda
-        The experiment agenda we want to save
-    file_name: str
-        File name containing path and name of file we want to store the experiment agenda
-    Returns
-    -------
-
+        The experiment agenda to save
     """
-    pass
+    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    with open(file_name, 'wb') as handle:
+        pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_experiment_agenda_from_file(file_name: str) -> ExperimentAgenda:
+def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
     """
-    Load agenda from file in order to rerun experiments.
+    Save experiment agenda to the folder with the experiments.
 
     Parameters
     ----------
-    file_name: str
-        File name containing path to file that we want to load
-    Returns
-    -------
-    ExperimentAgenda loaded from file
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files and agenda are stored
+    experiment_agenda: ExperimentAgenda
+        The experiment agenda to save
     """
-    pass
+    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    with open(file_name, 'wb') as handle:
+        file_data: ExperimentAgenda = pickle.load(handle)
+        return file_data
 
 
 def create_experiment_folder_name(experiment_name: str) -> str:
@@ -579,7 +582,7 @@ def create_experiment_folder_name(experiment_name: str) -> str:
 
 
 def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
-    filename = "experiment_{}.json".format(experiment_id)
+    filename = "experiment_{}.pkl".format(experiment_id)
     return os.path.join(experiment_folder_name, filename)
 
 
