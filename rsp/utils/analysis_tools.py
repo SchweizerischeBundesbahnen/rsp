@@ -21,6 +21,12 @@ matplotlib.use('Qt5Agg')
 # Dummy import currently because otherwise the import is removed all the time but used by 3d scatter plot
 axes3d = Axes3D
 
+# https://stackoverflow.com/questions/25649429/how-to-swap-two-dataframe-columns
+def swap_columns(df, c1, c2):
+    df['temp'] = df[c1]
+    df[c1] = df[c2]
+    df[c2] = df['temp']
+    df.drop(columns=['temp'], inplace=True)
 
 def average_over_trials(experimental_data: DataFrame) -> Tuple[DataFrame, DataFrame]:
     """

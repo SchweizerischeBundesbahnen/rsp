@@ -26,7 +26,6 @@ load_experiment_results_to_file
     Load the results form an experiment result file
 """
 import datetime
-import errno
 import multiprocessing
 import os
 import pickle
@@ -35,8 +34,10 @@ import shutil
 from functools import partial
 from typing import List, Tuple, Mapping
 
+import errno
 import numpy as np
 import pandas as pd
+import time
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
@@ -95,6 +96,7 @@ def run_experiment(solver: AbstractSolver,
     # Run the sequence of experiment
     for trial in range(experiment_parameters.trials_in_experiment):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
+        start_trial = time.time()
         if show_results_without_details:
             print("*** experiment parameters of trial {} for experiment {}".format(trial + 1,
                                                                                    experiment_parameters.experiment_id))
@@ -134,8 +136,8 @@ def run_experiment(solver: AbstractSolver,
 
         experiment_results.append({'experiment_id': experiment_parameters.experiment_id,
                                    'time_full': current_results.time_full,
-                                   'time_full_after_malfunction': time_delta_after_m,
-                                   'time_delta_after_malfunction': time_full_after_m,
+                                   'time_full_after_malfunction': time_full_after_m,
+                                   'time_delta_after_malfunction': time_delta_after_m,
                                    'solution_full': current_results.solution_full,
                                    'solution_full_after_malfunction': current_results.solution_full_after_malfunction,
                                    'solution_delta_after_malfunction': current_results.solution_delta_after_malfunction,
@@ -164,6 +166,9 @@ def run_experiment(solver: AbstractSolver,
         if rendering:
             from flatland.utils.rendertools import RenderTool, AgentRenderVariant
             env_renderer.close_window()
+        trial_time = (time.time() - start_trial)
+        print("Running trial {} for experiment {}: took {:5.3f}ms"
+              .format(trial, experiment_parameters.experiment_id, trial_time))
     return experiment_results
 
 
