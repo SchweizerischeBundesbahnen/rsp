@@ -44,11 +44,13 @@ curl --insecure -v --request POST -H "Authorization: token ${
             steps {
                 tox_conda_wrapper(WHAT: {
                     sh """
+
 hexdump -c tox.ini
 python -m pip install pyyaml --user pyyaml
-export CONDA_CHANNELS=`python environment_yaml_extractor.py  "conda_channels" rsp_environment.yml`
-export CONDA_DEPS=`python environment_yaml_extractor.py  "conda_deps" rsp_environment.yml`
-export PIP_DEPS=`python environment_yaml_extractor.py  "pip_deps" rsp_environment.yml`
+export TOX_CONDA_CHANNELS=`python environment_yaml_extractor.py  "conda_channels" rsp_environment.yml`
+export TOX_CONDA_DEPS=`python environment_yaml_extractor.py  "conda_deps" rsp_environment.yml`
+export TOX_PIP_DEPS=`python environment_yaml_extractor.py  "pip_deps" rsp_environment.yml`
+conda config --show channels
 python -m tox . --recreate -v
 """
                 })
