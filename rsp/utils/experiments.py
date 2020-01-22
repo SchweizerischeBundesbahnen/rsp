@@ -555,6 +555,12 @@ def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agend
         The experiment agenda to save
     """
     file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    if not os.path.exists(os.path.dirname(file_name)):
+        try:
+            os.makedirs(os.path.dirname(file_name))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise exc
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
