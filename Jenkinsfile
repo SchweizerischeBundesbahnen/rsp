@@ -1,11 +1,11 @@
 // ESTA-Community-Helper for Python (https://issues.sbb.ch/browse/ESTA-3822): Status alpha!
 // https://code.sbb.ch/projects/KD_ESTA_BLUEPRINTS/repos/esta-python-helper/browse
 // https://code.sbb.ch/projects/KD_ESTA_BLUEPRINTS/repos/esta-python-lib/browse/Jenkinsfile
-library identifier: 'python-helper@master',
+library identifier: 'python-helper@feature/conda-env-yaml-extractor',
         retriever: modernSCM(
                 [$class       : 'GitSCMSource',
                  credentialsId: 'fsosebuild',
-                 remote       : 'https://code.sbb.ch/scm/KD_ESTA_BLUEPRINTS/esta-python-helper.git@feature/conda-env-yaml-extractor'])
+                 remote       : 'https://code.sbb.ch/scm/KD_ESTA_BLUEPRINTS/esta-python-helper.git'])
 
 pipeline {
     // aws label required, no access to internet from default vias nodes: https://issues.sbb.ch/servicedesk/customer/portal/1/CLEW-895
