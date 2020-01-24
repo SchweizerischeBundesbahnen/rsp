@@ -1,7 +1,7 @@
 // ESTA-Community-Helper for Python (https://issues.sbb.ch/browse/ESTA-3822): Status alpha!
 // https://code.sbb.ch/projects/KD_ESTA_BLUEPRINTS/repos/esta-python-helper/browse
 // https://code.sbb.ch/projects/KD_ESTA_BLUEPRINTS/repos/esta-python-lib/browse/Jenkinsfile
-library identifier: 'python-helper@feature/conda-env-yaml-extractor',
+library identifier: 'python-helper@master',
         retriever: modernSCM(
                 [$class       : 'GitSCMSource',
                  credentialsId: 'fsosebuild',
