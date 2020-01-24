@@ -5,7 +5,7 @@ library identifier: 'python-helper@master',
         retriever: modernSCM(
                 [$class       : 'GitSCMSource',
                  credentialsId: 'fsosebuild',
-                 remote       : 'https://code.sbb.ch/scm/KD_ESTA_BLUEPRINTS/esta-python-helper.git'])
+                 remote       : 'https://code.sbb.ch/scm/KD_ESTA_BLUEPRINTS/esta-python-helper.git@feature/conda-env-yaml-extractor'])
 
 pipeline {
     // aws label required, no access to internet from default vias nodes: https://issues.sbb.ch/servicedesk/customer/portal/1/CLEW-895
