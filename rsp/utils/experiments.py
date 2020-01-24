@@ -229,7 +229,7 @@ def _analyze_times(current_results: ExperimentResults):
         f"**** full re-schedule -> delta re-schedule: "
         f"same {full_delta_same_percentage}% ({full_delta_same_counts})"
         f"(+{full_delta_new_counts}, -{full_delta_stale_counts}) waypoints")
-    time_rescheduling_speedup_factor = time_full_after_m / time_delta_after_m
+    time_rescheduling_speedup_factor = time_delta_after_m / time_full_after_m
     print(f"**** full re-schedule -> delta re-schedule: "
           f"time speed-up factor {time_rescheduling_speedup_factor:4.1f} "
           f"{time_full_after_m}s -> {time_delta_after_m}s")
@@ -652,7 +652,7 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     experiment_results = pd.DataFrame(columns=COLUMNS)
 
     files = os.listdir(experiment_folder_name)
-    for file in files:
+    for file in [file for file in files if 'agenda' not in file]:
         file_name = os.path.join(experiment_folder_name, file)
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)

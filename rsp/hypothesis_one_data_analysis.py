@@ -8,9 +8,73 @@ Hypothesis 2: Machine learning can predict services that are affected by disrupt
 Hypothesis 3: If hypothesis 2 is true, in addition, machine learning can predict the state of the system in
               the next time period after re-scheduling.
 """
+from matplotlib import gridspec
+from networkx.drawing.tests.test_pylab import plt
 
-from rsp.utils.analysis_tools import average_over_trials, three_dimensional_scatter_plot, swap_columns
+from rsp.utils.analysis_tools import average_over_trials, three_dimensional_scatter_plot, swap_columns, \
+    two_dimensional_scatter_plot
 from rsp.utils.experiments import load_experiment_results_from_folder
+
+
+def _2d_analysis():
+    fig = plt.figure(constrained_layout=True)
+    spec2 = gridspec.GridSpec(ncols=2, nrows=2, figure=fig)
+    two_dimensional_scatter_plot(data=averaged_data,
+                                 error=std_data,
+                                 columns=['n_agents', 'speed_up'],
+                                 fig=fig,
+                                 subplot_pos=spec2[0, 0],
+                                 colors=['black' if z_value < 1 else 'red' for z_value in averaged_data['speed_up']],
+                                 title='speed up delta-rescheduling against re-scheduling'
+                                 )
+    two_dimensional_scatter_plot(data=averaged_data,
+                                 error=std_data,
+                                 columns=['n_agents', 'time_full'],
+                                 fig=fig,
+                                 subplot_pos=spec2[0, 1],
+                                 title='scheduling baseline',
+                                 )
+    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                 columns=['n_agents', 'time_full_after_malfunction'],
+                                 fig=fig,
+                                 subplot_pos=spec2[1, 0],
+                                 title='re-scheduling'
+                                 )
+    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                 columns=['n_agents', 'time_delta_after_malfunction'],
+                                 baseline=averaged_data['time_full_after_malfunction'],
+                                 fig=fig,
+                                 subplot_pos=spec2[1, 1],
+                                 # TODO which malfunction?
+                                 title='delta re-scheduling with re-scheduling as baseline'
+                                 )
+    fig.set_size_inches(15, 15)
+    plt.savefig('2d.png')
+    plt.show()
+
+
+def _3d_analysis():
+    fig = plt.figure()
+    three_dimensional_scatter_plot(data=averaged_data,
+                                   error=std_data,
+                                   columns=['n_agents', 'size', 'speed_up'],
+                                   fig=fig,
+                                   subplot_pos='111',
+                                   colors=['black' if z_value < 1 else 'red' for z_value in averaged_data['speed_up']])
+    three_dimensional_scatter_plot(data=averaged_data, error=std_data, columns=['n_agents', 'size', 'time_full'],
+                                   fig=fig,
+                                   subplot_pos='121')
+    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                   columns=['n_agents', 'size', 'time_full_after_malfunction'],
+                                   fig=fig,
+                                   subplot_pos='211')
+    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                   columns=['n_agents', 'size', 'time_delta_after_malfunction'],
+                                   fig=fig,
+                                   subplot_pos='221', )
+    fig.set_size_inches(15, 15)
+    plt.show()
+
 
 if __name__ == '__main__':
     # Import the desired experiment results
@@ -25,9 +89,7 @@ if __name__ == '__main__':
     # \ TODO SIM-151 re-generate data with bugfix, for the time being swap the wrong values
 
     experiment_data['speed_up'] = \
-        experiment_data['time_full_after_malfunction'] / experiment_data['time_delta_after_malfunction']
-    # TODO SIM-151 invert and check range, color code
-
+        experiment_data['time_delta_after_malfunction'] / experiment_data['time_full_after_malfunction']
 
     # Average over the trials of each experiment
     averaged_data, std_data = average_over_trials(experiment_data)
@@ -40,13 +102,5 @@ if __name__ == '__main__':
     print(experiment_data.loc[experiment_data['experiment_id'] == 58].to_json())
     # \ TODO SIM-151 remove explorative code
 
-    # TODO SIM-151 can we display all 4 at the same time and save
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data, columns=['n_agents', 'size', 'speed_up'])
-
-    # Initially plot the computation time vs the level size and the number of agent
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data, columns=['n_agents', 'size', 'time_full'])
-
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                   columns=['n_agents', 'size', 'time_full_after_malfunction'])
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                   columns=['n_agents', 'size', 'time_delta_after_malfunction'])
+    _2d_analysis()
+    _3d_analysis()
