@@ -61,9 +61,9 @@ In order to run the experiments,
 ```shell
 
 # create conda environment rsp
-conda env create -f rsp_environment.yml
+conda env create -f rsp_environment.yml 
 
-# activate the conda env
+# activate the conda env (if you want to use a different env name, run conda env create -f rsp_environment.yml --name other-env-name)
 conda activate rsp
 
 # install rsp in virtual env
