@@ -1,10 +1,12 @@
+from typing import Dict, Tuple
+
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import run_experiment_agenda
 
 
-def get_pipeline_params():
+def get_pipeline_params() -> Tuple[ParameterRanges, Dict[float, float]]:
     # Define the parameter ranges we would like to test
     parameter_ranges = ParameterRanges(agent_range=[2, 50, 30],
                                        size_range=[30, 50, 10],

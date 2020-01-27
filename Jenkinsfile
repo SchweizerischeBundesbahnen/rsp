@@ -48,10 +48,10 @@ curl --insecure -v --request POST -H "Authorization: token ${
                             sh """
 python -m tox . --recreate -v
 """
-                })
+                        }
+                )
             }
         }
-
     }
     post {
         failure {
