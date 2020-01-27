@@ -343,8 +343,8 @@ def run_and_save_one_experiment(current_experiment_parameters,
                                            verbose=verbose,
                                            show_results_without_details=show_results_without_details)
         save_experiment_results_to_file(experiment_result, filename)
-    except:
-        print("XXX failed "+filename)
+    except Exception as e:
+        print("XXX failed " + filename + " " + str(e))
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
