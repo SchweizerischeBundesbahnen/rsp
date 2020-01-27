@@ -172,7 +172,7 @@ def run_experiment(solver: AbstractSolver,
     return experiment_results
 
 
-# TODO print only or add to experiment results?
+# TODO SIM-151 print only or add to experiment results?
 def _analyze_times(current_results: ExperimentResults):
     time_delta_after_m = current_results.time_delta_after_malfunction
     time_full_after_m = current_results.time_full_after_malfunction
@@ -437,8 +437,6 @@ def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRa
     ExperimentAgenda built from the ParameterRanges
     :param speed_data:
     """
-    # TODO Check that parameters are correctly filled into ExperimentParameters
-    # TODO add malfunction parameters correctly to ExperimentParameters
     number_of_dimensions = len(parameter_ranges)
     parameter_values = [[] for i in range(number_of_dimensions)]
 

@@ -19,7 +19,9 @@ from rsp.utils.experiments import load_experiment_results_from_folder, load_expe
 
 def _2d_analysis():
     fig = plt.figure(constrained_layout=True)
-    spec2 = gridspec.GridSpec(ncols=2, nrows=2, figure=fig)
+    ncols = 2
+    nrows = 5
+    spec2 = gridspec.GridSpec(ncols=ncols, nrows=nrows, figure=fig)
     two_dimensional_scatter_plot(data=averaged_data,
                                  error=std_data,
                                  columns=['n_agents', 'speed_up'],
@@ -33,7 +35,7 @@ def _2d_analysis():
                                  columns=['n_agents', 'time_full'],
                                  fig=fig,
                                  subplot_pos=spec2[0, 1],
-                                 title='scheduling baseline',
+                                 title='scheduling for comparison',
                                  )
     two_dimensional_scatter_plot(data=averaged_data, error=std_data,
                                  columns=['n_agents', 'time_full_after_malfunction'],
@@ -46,10 +48,34 @@ def _2d_analysis():
                                  baseline=averaged_data['time_full_after_malfunction'],
                                  fig=fig,
                                  subplot_pos=spec2[1, 1],
-                                 # TODO which malfunction?
                                  title='delta re-scheduling with re-scheduling as baseline'
                                  )
-    fig.set_size_inches(15, 15)
+    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                 columns=['n_agents', 'time_delta_after_malfunction'],
+                                 fig=fig,
+                                 subplot_pos=spec2[2, 0],
+                                 title='delta re-scheduling'
+                                 )
+    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                 columns=['size', 'time_full_after_malfunction'],
+                                 fig=fig,
+                                 subplot_pos=spec2[3, 0],
+                                 title='re-scheduling'
+                                 )
+    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                 columns=['size', 'time_delta_after_malfunction'],
+                                 baseline=averaged_data['time_full_after_malfunction'],
+                                 fig=fig,
+                                 subplot_pos=spec2[3, 1],
+                                 title='delta re-scheduling with re-scheduling as baseline'
+                                 )
+    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                 columns=['size', 'time_delta_after_malfunction'],
+                                 fig=fig,
+                                 subplot_pos=spec2[4, 0],
+                                 title='delta re-scheduling'
+                                 )
+    fig.set_size_inches(w=ncols * 8,h=nrows * 8)
     plt.savefig('2d.png')
     plt.show()
 
@@ -82,6 +108,7 @@ if __name__ == '__main__':
     data_folder = './exp_hypothesis_one_2020_01_24T09_19_03'
     experiment_data = load_experiment_results_from_folder(data_folder)
     experiment_agenda = load_experiment_agenda_from_file(data_folder)
+    print(experiment_agenda)
 
     for key in ['size', 'n_agents', 'max_num_cities', 'max_rail_between_cities', 'max_rail_in_city']:
         experiment_data[key] = experiment_data[key].astype(float)
