@@ -7,6 +7,7 @@ from typing import Mapping
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -108,7 +109,7 @@ def experimentFreezePrettyPrint(experiment_freeze: ExperimentFreeze, prefix: str
 
 def visualize_experiment_freeze(agent_paths: AgentPaths,
                                 f: ExperimentFreeze,
-                                file_name: str,
+                                file_name: Optional[str] = None,
                                 title: Optional[str] = None,
                                 scale: int = 2,
                                 ):
@@ -130,13 +131,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
 
     # nx directed graph
-    topo = nx.DiGraph()
-    all_waypoints: Set[Waypoint] = OrderedSet()
-    for path in agent_paths:
-        for wp1, wp2 in zip(path, path[1:]):
-            topo.add_edge(wp1, wp2)
-            all_waypoints.add(wp1)
-            all_waypoints.add(wp2)
+    all_waypoints, topo = _extract_all_waypoints_and_digraph_from_spanning_paths(agent_paths)
 
     # figsize
     flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
@@ -198,4 +193,30 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
             node_color=plt_color_map,
             alpha=0.9)
     plt.gca().invert_yaxis()
-    plt.savefig(file_name)
+    if file_name:
+        plt.savefig(file_name)
+    else:
+        plt.show()
+
+
+def _extract_all_waypoints_and_digraph_from_spanning_paths(
+        agent_paths: AgentPaths) -> Tuple[Set[Waypoint], nx.DiGraph()]:
+    """Extract  the agent's route DAG and all waypoints in it.
+
+    Parameters
+    ----------
+    agent_paths: AgentPaths
+
+    Returns
+    -------
+    Set[Waypoint], nx.DiGraph()
+        the waypoints and the directed graph
+    """
+    topo = nx.DiGraph()
+    all_waypoints: Set[Waypoint] = OrderedSet()
+    for path in agent_paths:
+        for wp1, wp2 in zip(path, path[1:]):
+            topo.add_edge(wp1, wp2)
+            all_waypoints.add(wp1)
+            all_waypoints.add(wp2)
+    return all_waypoints, topo
