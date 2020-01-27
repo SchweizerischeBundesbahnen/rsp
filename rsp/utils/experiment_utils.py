@@ -22,6 +22,7 @@ from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
 from rsp.utils.general_utils import verification_by_file
+# TODO SIM-239 should we have dependency to ASP etc. here???
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
@@ -42,6 +43,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 # --------------------------------------------------------------------------------------
 # Solve an `AbstractProblemDescription`
 # --------------------------------------------------------------------------------------
+# TODO SIM-239 de-couple solver parts with constraint description part; move solver-dependent parts to other module!
 # TODO SIM-220 discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
 #  Then, we could get rid of this intermediate layer and move solve_problem to AbstractProblemDescription
 def solve_problem(env: RailEnv,
@@ -331,7 +333,6 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
             previous_waypoints.add(trainrun_waypoint.waypoint)
 
 
-# TODO SIM-239 should have nothing to do with AbstractProblem/AbstractSolutionDescription!
 def replay(env: RailEnv,
            solver_name: str,
            controller_from_train_runs: ControllerFromTrainruns,
