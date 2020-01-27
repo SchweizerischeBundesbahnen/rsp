@@ -75,7 +75,7 @@ def _2d_analysis():
                                  subplot_pos=spec2[4, 0],
                                  title='delta re-scheduling'
                                  )
-    fig.set_size_inches(w=ncols * 8,h=nrows * 8)
+    fig.set_size_inches(w=ncols * 8, h=nrows * 8)
     plt.savefig('2d.png')
     plt.show()
 

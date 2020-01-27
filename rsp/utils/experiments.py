@@ -447,7 +447,8 @@ def create_experiment_agenda(experiment_name: str,
 
     vary_malfunction_step
         Deprecated. Use malfunction range instead.
-        If the same experiment is run multiple times (`vary_malfunction > 1`), the earliest malfunction is set to `parameter_set[5] + i * vary_malfunction_step` at the `i`th iteration.
+        If the same experiment is run multiple times (`vary_malfunction > 1`), the earliest malfunction is set to
+        `parameter_set[5] + i * vary_malfunction_step` at the `i`th iteration.
 
     Returns
     -------
