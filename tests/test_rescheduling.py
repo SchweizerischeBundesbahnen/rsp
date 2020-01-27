@@ -1,6 +1,7 @@
 import pprint
 from typing import Dict, List, Optional
 
+import numpy as np
 from flatland.envs.agent_utils import EnvAgent
 from flatland.envs.malfunction_generators import Malfunction as FLMalfunction, Malfunction
 from flatland.envs.malfunction_generators import MalfunctionProcessData
@@ -24,10 +25,19 @@ _pp = pprint.PrettyPrinter(indent=4)
 # Tests full re-scheduling
 # ---------------------------------------------------------------------------------------------------------------------
 def test_rescheduling_no_bottleneck():
-    test_parameters = ExperimentParameters(experiment_id=0, trials_in_experiment=10, number_of_agents=2, width=30,
-                                           height=30, seed_value=12, max_num_cities=20, grid_mode=True,
-                                           max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20)
+    test_parameters = ExperimentParameters(experiment_id=0,
+                                           trials_in_experiment=10,
+                                           number_of_agents=2, width=30,
+                                           height=30,
+                                           seed_value=12,
+                                           max_num_cities=20,
+                                           grid_mode=True,
+                                           max_rail_between_cities=2,
+                                           max_rail_in_city=6,
+                                           earliest_malfunction=20,
+                                           malfunction_duration=20,
+                                           speed_data={1: 1.0}
+                                           )
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -156,15 +166,17 @@ def test_rescheduling_no_bottleneck():
     schedule_problem = ASPProblemDescription(env=static_env,
                                              agents_path_dict=agents_paths_dict)
 
-    freeze_dict = get_freeze_for_full_rescheduling(malfunction=fake_malfunction,
-                                                   schedule_trainruns=fake_schedule,
-                                                   speed_dict={agent.handle: agent.speed_data['speed']
-                                                               for agent in static_env.agents},
-                                                   agents_path_dict=agents_paths_dict,
-                                                   latest_arrival=dynamic_env._max_episode_steps
-                                                   )
+    freeze_dict = get_freeze_for_full_rescheduling(
+        malfunction=fake_malfunction,
+        schedule_trainruns=fake_schedule,
+        minimum_travel_time_dict={
+            agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+            for agent in static_env.agents},
+        agents_path_dict=agents_paths_dict,
+        latest_arrival=dynamic_env._max_episode_steps
+    )
     for agent_id, experiment_freeze in freeze_dict.items():
-        verify_experiment_freeze_for_agent(freeze_dict[agent_id], agents_paths_dict[agent_id])
+        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id])
 
     schedule_problem.get_copy_for_experiment_freeze(experiment_freeze_dict=freeze_dict,
                                                     schedule_trainruns=fake_schedule)
@@ -194,7 +206,7 @@ def test_rescheduling_bottleneck():
     test_parameters = ExperimentParameters(experiment_id=0, trials_in_experiment=10, number_of_agents=2, width=30,
                                            height=30, seed_value=12, max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20)
+                                           malfunction_duration=20, speed_data={1: 1.0})
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -387,7 +399,8 @@ def test_rescheduling_bottleneck():
     freeze_dict: ExperimentFreezeDict = get_freeze_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
-        speed_dict={agent.handle: agent.speed_data['speed'] for agent in static_env.agents},
+        minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+                                  for agent in static_env.agents},
         agents_path_dict=agents_paths_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )
@@ -414,15 +427,14 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_latest[trainrun_waypoint.waypoint]
 
     print(_pp.pformat(freeze_dict[0].freeze_visit))
-    assert freeze_dict[0].freeze_visit == [
-    ], format(f"found {freeze_dict[0].freeze_visit}")
+    assert freeze_dict[0].freeze_visit == [], format(f"found {freeze_dict[0].freeze_visit}")
 
     for trainrun_waypoint in [TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]:
         assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, experiment_freeze in freeze_dict.items():
-        verify_experiment_freeze_for_agent(freeze_dict[agent_id], agents_paths_dict[agent_id])
+        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id], )
 
     schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
@@ -818,7 +830,7 @@ def _dummy_test_case(fake_malfunction: Malfunction):
     test_parameters = ExperimentParameters(experiment_id=0, trials_in_experiment=10, number_of_agents=2, width=30,
                                            height=30, seed_value=12, max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20)
+                                           malfunction_duration=20, speed_data={1: 1.0})
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
     k = 10
     agents_paths_dict = {

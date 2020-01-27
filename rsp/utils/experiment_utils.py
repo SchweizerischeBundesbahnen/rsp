@@ -34,7 +34,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 # --------------------------------------------------------------------------------------
 # Solve an `AbstractProblemDescription`
 # --------------------------------------------------------------------------------------
-# TODO discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
+# TODO SIM-220 discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
 #  Then, we could get rid of this intermediate layer and move solve_problem to AbstractProblemDescription
 def solve_problem(env: RailEnv,
                   problem: AbstractProblemDescription,
@@ -416,7 +416,7 @@ def _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, pro
                 print(
                     f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
                     f"in direction={agent.direction} "
-                    f"(initial_position={agent.initial_position}, initial_direction={agent.initial_direction}, target={agent.target}"
+                    f"(initial_position={agent.initial_position}, initial_direction={agent.initial_direction}, target={agent.target} "
                     f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we} "
 
                 )

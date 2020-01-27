@@ -33,8 +33,9 @@ def average_over_trials(experimental_data: DataFrame) -> Tuple[DataFrame, DataFr
     -------
     DataFrame of mean data and DataFram of standard deviations
     """
-    averaged_data = experimental_data.groupby(['experiment_id']).mean()
-    standard_deviation_data = experimental_data.groupby(['experiment_id']).std()
+
+    averaged_data = experimental_data.groupby(['experiment_id']).mean().reset_index()
+    standard_deviation_data = experimental_data.groupby(['experiment_id']).std().reset_index()
     return averaged_data, standard_deviation_data
 
 
@@ -60,6 +61,7 @@ def three_dimensional_scatter_plot(data: DataFrame, error: DataFrame = None,
     x_values = data[columns[0]].values
     y_values = data[columns[1]].values
     z_values = data[columns[2]].values
+    experiment_ids = data['experiment_id'].values
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -68,6 +70,8 @@ def three_dimensional_scatter_plot(data: DataFrame, error: DataFrame = None,
     ax.set_zlabel(columns[2])
 
     ax.scatter(x_values, y_values, z_values)
+    for i in np.arange(0, len(z_values)):
+        ax.text(x_values[i], y_values[i], z_values[i], "{}".format(experiment_ids[i]))
     if error is not None:
         # plot errorbars
         z_error = error[columns[2]].values

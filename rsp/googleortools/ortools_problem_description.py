@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, List, Tuple
 
 from flatland.envs.rail_env import RailEnv
 from overrides import overrides
@@ -11,6 +11,7 @@ from rsp.googleortools.cp_sat_solver import CPSATSolver
 from rsp.googleortools.mip_solver import MIPSolver
 from rsp.googleortools.ortools_solution_description import ORToolsSolutionDescription
 from rsp.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
+from rsp.utils.data_types import AgentsPathsDict
 
 
 class ORToolsProblemDescription(AbstractProblemDescription):
@@ -22,7 +23,7 @@ class ORToolsProblemDescription(AbstractProblemDescription):
     def __init__(self,
                  env: RailEnv,
                  solver: AbstractORToolsSolver,
-                 agents_path_dict: Dict[int, Optional[List[List[Waypoint]]]]):
+                 agents_path_dict: AgentsPathsDict):
         self._solver = solver
         super().__init__(env, agents_path_dict)
         self._solver = solver
