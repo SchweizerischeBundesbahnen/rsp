@@ -11,9 +11,10 @@ Hypothesis 3: If hypothesis 2 is true, in addition, machine learning can predict
 from matplotlib import gridspec
 from networkx.drawing.tests.test_pylab import plt
 
-from rsp.utils.analysis_tools import average_over_trials, three_dimensional_scatter_plot, swap_columns, \
+from rsp.utils.analysis_tools import average_over_trials, three_dimensional_scatter_plot
+from rsp.utils.analysis_tools import swap_columns, \
     two_dimensional_scatter_plot
-from rsp.utils.experiments import load_experiment_results_from_folder
+from rsp.utils.experiments import load_experiment_results_from_folder, load_experiment_agenda_from_file
 
 
 def _2d_analysis():
@@ -80,6 +81,7 @@ if __name__ == '__main__':
     # Import the desired experiment results
     data_folder = './exp_hypothesis_one_2020_01_24T09_19_03'
     experiment_data = load_experiment_results_from_folder(data_folder)
+    experiment_agenda = load_experiment_agenda_from_file(data_folder)
 
     for key in ['size', 'n_agents', 'max_num_cities', 'max_rail_between_cities', 'max_rail_in_city']:
         experiment_data[key] = experiment_data[key].astype(float)
