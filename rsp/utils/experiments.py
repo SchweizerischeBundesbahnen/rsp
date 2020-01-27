@@ -311,6 +311,7 @@ def run_experiment_agenda(solver: AbstractSolver,
     Returns the name of the experiment folder
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
+    save_experiment_agenda_to_file(experiment_folder_name, experiment_agenda)
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
@@ -334,13 +335,16 @@ def run_and_save_one_experiment(current_experiment_parameters,
                                 show_results_without_details,
                                 experiment_folder_name,
                                 rendering: bool = False, ):
-    experiment_result = run_experiment(solver=solver,
-                                       experiment_parameters=current_experiment_parameters,
-                                       rendering=rendering,
-                                       verbose=verbose,
-                                       show_results_without_details=show_results_without_details)
-    filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
-    save_experiment_results_to_file(experiment_result, filename)
+    try:
+        filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+        experiment_result = run_experiment(solver=solver,
+                                           experiment_parameters=current_experiment_parameters,
+                                           rendering=rendering,
+                                           verbose=verbose,
+                                           show_results_without_details=show_results_without_details)
+        save_experiment_results_to_file(experiment_result, filename)
+    except Exception as e:
+        print("XXX failed " + filename + " " + str(e))
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
@@ -378,6 +382,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
 
     filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
     experiment_agenda_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+    save_experiment_agenda_to_file(experiment_folder_name, experiment_agenda_filtered)
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
@@ -543,36 +548,43 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     return env_static, env_malfunction
 
 
-def save_experiment_agenda_to_file(experiment_agenda: ExperimentAgenda, file_name: str):
+def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agenda: ExperimentAgenda):
     """
-    Save a generated experiment agenda into a file for later use
+    Save experiment agenda to the folder with the experiments.
 
     Parameters
     ----------
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files and agenda are stored
     experiment_agenda: ExperimentAgenda
-        The experiment agenda we want to save
-    file_name: str
-        File name containing path and name of file we want to store the experiment agenda
-    Returns
-    -------
-
+        The experiment agenda to save
     """
-    pass
+    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    if not os.path.exists(os.path.dirname(file_name)):
+        try:
+            os.makedirs(os.path.dirname(file_name))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise exc
+    with open(file_name, 'wb') as handle:
+        pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_experiment_agenda_from_file(file_name: str) -> ExperimentAgenda:
+def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
     """
-    Load agenda from file in order to rerun experiments.
+    Save experiment agenda to the folder with the experiments.
 
     Parameters
     ----------
-    file_name: str
-        File name containing path to file that we want to load
-    Returns
-    -------
-    ExperimentAgenda loaded from file
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files and agenda are stored
+    experiment_agenda: ExperimentAgenda
+        The experiment agenda to save
     """
-    pass
+    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    with open(file_name, 'rb') as handle:
+        file_data: ExperimentAgenda = pickle.load(handle)
+        return file_data
 
 
 def create_experiment_folder_name(experiment_name: str) -> str:
@@ -581,7 +593,7 @@ def create_experiment_folder_name(experiment_name: str) -> str:
 
 
 def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
-    filename = "experiment_{}.json".format(experiment_id)
+    filename = "experiment_{}.pkl".format(experiment_id)
     return os.path.join(experiment_folder_name, filename)
 
 
