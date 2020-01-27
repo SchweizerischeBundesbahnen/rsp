@@ -5,7 +5,9 @@ Methods
 average_over_trials
     Average over all the experiment trials
 """
-from typing import Tuple, Optional, List
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -21,8 +23,7 @@ axes3d = Axes3D
 
 # https://stackoverflow.com/questions/25649429/how-to-swap-two-dataframe-columns
 def swap_columns(df: DataFrame, c1: int, c2: int):
-    """
-    Swap columns in a data frame.
+    """Swap columns in a data frame.
 
     Parameters
     ----------
@@ -63,8 +64,7 @@ def three_dimensional_scatter_plot(data: DataFrame,
                                    fig: Optional[matplotlib.figure.Figure] = None,
                                    subplot_pos: str = '111',
                                    colors: Optional[List[str]] = None):
-    """
-    Adds a 3d-scatterplot as a subplot to a figure
+    """Adds a 3d-scatterplot as a subplot to a figure.
 
     Parameters
     ----------
@@ -85,7 +85,6 @@ def three_dimensional_scatter_plot(data: DataFrame,
 
     Returns
     -------
-
     """
     x_values = data[columns[0]].values
     y_values = data[columns[1]].values
@@ -127,8 +126,7 @@ def two_dimensional_scatter_plot(data: DataFrame,
                                  subplot_pos: str = '111',
                                  title: str = None,
                                  colors: Optional[List[str]] = None):
-    """
-    Adds a 2d-scatterplot as a subplot to a figure
+    """Adds a 2d-scatterplot as a subplot to a figure.
 
     Parameters
     ----------
@@ -149,7 +147,6 @@ def two_dimensional_scatter_plot(data: DataFrame,
 
     Returns
     -------
-
     """
     x_values = data[columns[0]].values
     y_values = data[columns[1]].values

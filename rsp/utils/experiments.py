@@ -32,13 +32,13 @@ import os
 import pickle
 import pprint
 import shutil
+import time
 from functools import partial
 from typing import List
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import time
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
@@ -427,8 +427,8 @@ def create_experiment_agenda(experiment_name: str,
                              vary_malfunction: int = 1,
                              vary_malfunction_step: int = 20
                              ) -> ExperimentAgenda:
-    """
-    Create an experiment agenda given a range of parameters defined as ParameterRanges
+    """Create an experiment agenda given a range of parameters defined as
+    ParameterRanges.
 
     Parameters
     ----------
@@ -456,7 +456,6 @@ def create_experiment_agenda(experiment_name: str,
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges
-
     """
     number_of_dimensions = len(parameter_ranges)
     parameter_values = [[] for i in range(number_of_dimensions)]

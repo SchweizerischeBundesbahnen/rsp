@@ -15,9 +15,9 @@ from matplotlib import gridspec
 from networkx.drawing.tests.test_pylab import plt
 
 from rsp.utils.analysis_tools import average_over_trials
-from rsp.utils.analysis_tools import swap_columns, \
-    two_dimensional_scatter_plot
+from rsp.utils.analysis_tools import swap_columns
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
+from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 
