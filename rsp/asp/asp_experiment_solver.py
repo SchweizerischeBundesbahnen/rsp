@@ -64,9 +64,9 @@ class ASPExperimentSolver(AbstractSolver):
         malfunction = replay(solution=schedule_solution, env=malfunction_rail_env, stop_on_malfunction=True,
                              problem=schedule_problem,
                              disable_verification_in_replay=True)
+        if malfunction is None:
+            return None
         malfunction_env_reset()
-        if not malfunction:
-            raise Exception("Could not produce a malfunction")
 
         if verbose:
             print(f"  **** malfunction={malfunction}")
