@@ -1,5 +1,7 @@
 import abc
-from typing import List, Optional, Dict
+from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
@@ -52,8 +54,7 @@ class AbstractProblemDescription:
     @abc.abstractmethod
     def _implement_train(self, agent_id: int, start_vertices: List[Waypoint], target_vertices: List[Waypoint],
                          minimum_running_time: int):
-        """
-        Rule 2 each train is scheduled.
+        """Rule 2 each train is scheduled.
 
         Parameters
         ----------
@@ -65,45 +66,43 @@ class AbstractProblemDescription:
 
     @abc.abstractmethod
     def _implement_agent_latest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """
-        Rule 101 Time windows for latest-requirements.
-                 If a section_requirement specifies a entry_latest and/or exit_latest time then the event times for the
-                 entry_event and/or exit_event on the corresponding trainrun_section SHOULD be <= the specified time.
-                 If the scheduled time is later than required, the solution will still be accepted,
-                 but it will be penalized by the objective function, see below.
-                 Important Remark: Among the 12 business rules, this is the only 'soft' constraint,
-                 i.e. a rule that may be violated and the solution still accepted.
+        """Rule 101 Time windows for latest-requirements. If a
+        section_requirement specifies a entry_latest and/or exit_latest time
+        then the event times for the entry_event and/or exit_event on the
+        corresponding trainrun_section SHOULD be <= the specified time. If the
+        scheduled time is later than required, the solution will still be
+        accepted, but it will be penalized by the objective function, see
+        below. Important Remark: Among the 12 business rules, this is the only
+        'soft' constraint, i.e. a rule that may be violated and the solution
+        still accepted.
 
         Parameters
         ----------
         agent_id
         waypoint
         time
-
         """
 
     @abc.abstractmethod
     def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time):
-        """
-        Rule 102 Time windows for earliest-requirements.
-                 If a section_requirement specifies an entry_earliest and/or exit_earliest time,
-                 then the event times for the entry_event and/or exit_event on the corresponding trainrun_section
-                 MUST be >= the specified time
+        """Rule 102 Time windows for earliest-requirements. If a
+        section_requirement specifies an entry_earliest and/or exit_earliest
+        time, then the event times for the entry_event and/or exit_event on the
+        corresponding trainrun_section MUST be >= the specified time.
 
         Parameters
         ----------
         agent_id
         waypoint
         time
-
         """
 
     @abc.abstractmethod
     def _implement_route_section(self, agent_id: int, entry_waypoint: Waypoint, exit_waypoint: Waypoint,
                                  resource_id: Tuple[int, int], minimum_travel_time: int = 1, penalty=0):
-        """
-        Rule 103 Minimum section time
-                 For each trainrun_section the following holds:
+        """Rule 103 Minimum section time For each trainrun_section the
+        following holds:
+
                  texit - tentry >= minimum_running_time + min_stopping_time, where
                  tentry, texit are the entry and exit times into this trainrun_section,
                  minimum_running_time is given by the route_section corresponding to this trainrun_section and
@@ -122,7 +121,6 @@ class AbstractProblemDescription:
         ----------
         penalty
         penalty
-
         """
 
     @abc.abstractmethod
@@ -135,11 +133,10 @@ class AbstractProblemDescription:
                                              agent_2_exit_waypoint: Waypoint,
                                              resource_id: Tuple[int, int]
                                              ):
-        """
-        Rule 104 Resource Occupations
-                 In prose, this means that if a train T1 starts occupying a resource R before train T2,
-                 then T2 has to wait until T1 releases it (plus the release time of the resource)
-                 before it can start to occupy it.
+        """Rule 104 Resource Occupations In prose, this means that if a train
+        T1 starts occupying a resource R before train T2, then T2 has to wait
+        until T1 releases it (plus the release time of the resource) before it
+        can start to occupy it.
 
                  This rule explicitly need not hold between trainrun_sections of the same train.
                  The problem instances are infeasible if you require this separation of occupations
@@ -154,13 +151,11 @@ class AbstractProblemDescription:
         agent_2_entry_waypoint
         agent_2_exit_waypoint
         resource_id
-
         """
 
     @abc.abstractmethod
     def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
-        """
-        Add the objective to our model
+        """Add the objective to our model.
 
         Parameters
         ----------
@@ -170,7 +165,6 @@ class AbstractProblemDescription:
 
         Returns
         -------
-
         """
 
     def _create_along_paths(self, skip_mutual_exclusion=False):
@@ -208,7 +202,7 @@ class AbstractProblemDescription:
 
     @staticmethod
     def get_agent_minimum_running_time(agent: EnvAgent, agent_paths: List[Waypoint]):
-        """Get minimum number of steps taken in FLATland """
+        """Get minimum number of steps taken in FLATland."""
 
         # agent paths do not last dummy synchronization segment
         # number of steps is number of vertices minus 1!
@@ -344,7 +338,5 @@ class AbstractProblemDescription:
 
     @abc.abstractmethod
     def solve(self, verbose: bool = False) -> AbstractSolutionDescription:
-        """
-        Used in `AbstractSolutionDescription.solve_problem()` to trigger the solver and
-        wrap the problem description in a solution description.
-        """
+        """Used in `AbstractSolutionDescription.solve_problem()` to trigger the
+        solver and wrap the problem description in a solution description."""

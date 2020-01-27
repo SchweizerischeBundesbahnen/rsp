@@ -1,12 +1,18 @@
 """Solve a problem a."""
 import pprint
-from typing import Optional, NamedTuple, Set, Callable, Dict
+from typing import Callable
+from typing import Dict
+from typing import NamedTuple
+from typing import Optional
+from typing import Set
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_valid_move_actions_
-from flatland.envs.rail_trainrun_data_structures import Waypoint, TrainrunDict, TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
@@ -14,7 +20,8 @@ from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
-from rsp.utils.general_utils import current_milli_time, verification_by_file
+from rsp.utils.general_utils import current_milli_time
+from rsp.utils.general_utils import verification_by_file
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
@@ -44,8 +51,8 @@ def solve_problem(env: RailEnv,
                   disable_verification_in_replay: bool = False,
                   expected_malfunction: Optional[ExperimentMalfunction] = None
                   ) -> SchedulingExperimentResult:
-    """
-    Solves an :class:`AbstractProblemDescription` and optionally verifies it againts the provided :class:`RailEnv`.
+    """Solves an :class:`AbstractProblemDescription` and optionally verifies it
+    againts the provided :class:`RailEnv`.
 
     Parameters
     ----------
@@ -67,7 +74,6 @@ def solve_problem(env: RailEnv,
     Returns
     -------
     SchedulingExperimentResult
-
     """
     # --------------------------------------------------------------------------------------
     # Preparations
@@ -144,8 +150,7 @@ def verify_trainruns_dict(env: RailEnv,
                           expected_malfunction: Optional[ExperimentMalfunction] = None,
                           expected_experiment_freeze: Optional[ExperimentFreezeDict] = None
                           ):
-    """
-    Verify the consistency of a train run.
+    """Verify the consistency of a train run.
 
     1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     2. verify mutual exclusion
@@ -164,7 +169,6 @@ def verify_trainruns_dict(env: RailEnv,
 
     Returns
     -------
-
     """
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     _verify_trainruns_1_path_consistency(env, trainruns_dict)
@@ -324,9 +328,9 @@ def replay(env: RailEnv,
            loop_index: int = 0,
            stop_on_malfunction: bool = False,
            disable_verification_in_replay: bool = False) -> Optional[ExperimentMalfunction]:
-    """
-    Replay the solution an check whether the actions againts FLATland env can be performed as against.
-    Verifies that the solution is indeed a solution in the FLATland sense.
+    """Replay the solution an check whether the actions againts FLATland env
+    can be performed as against. Verifies that the solution is indeed a
+    solution in the FLATland sense.
 
     Parameters
     ----------
@@ -353,7 +357,6 @@ def replay(env: RailEnv,
     -------
     Optional[Malfunction]
         The malfunction in `stop_on_malfunction` mode, `None` else.
-
     """
     total_reward = 0
     time_step = 0

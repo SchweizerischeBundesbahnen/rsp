@@ -1,5 +1,5 @@
-"""
-This library contains all utility functions to help you run your experiments.
+"""This library contains all utility functions to help you run your
+experiments.
 
 Methods
 -------
@@ -26,15 +26,16 @@ load_experiment_results_to_file
     Load the results form an experiment result file
 """
 import datetime
+import errno
 import multiprocessing
 import os
 import pickle
 import pprint
 import shutil
 from functools import partial
-from typing import List, Tuple
+from typing import List
+from typing import Tuple
 
-import errno
 import numpy as np
 import pandas as pd
 import time
@@ -42,9 +43,13 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
-from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults, SpeedData
-from rsp.utils.experiment_env_generators import create_flatland_environment, \
-    create_flatland_environment_with_malfunction
+from rsp.utils.data_types import ExperimentAgenda
+from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ParameterRanges
+from rsp.utils.data_types import SpeedData
+from rsp.utils.experiment_env_generators import create_flatland_environment
+from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.experiment_solver import AbstractSolver
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -297,8 +302,8 @@ def run_experiment_agenda(solver: AbstractSolver,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           verbose: bool = False) -> str:
-    """
-     Run a given experiment_agenda with a suitable solver, return the name of the experiment folder
+    """Run a given experiment_agenda with a suitable solver, return the name of
+    the experiment folder.
 
     Parameters
     ----------
@@ -362,9 +367,8 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                   show_results_without_details: bool = True,
                                                   rendering: bool = False,
                                                   verbose: bool = False) -> str:
-    """
-
-    Run a subset of experiments of a given agenda. This is useful when trying to find bugs in code.
+    """Run a subset of experiments of a given agenda. This is useful when
+    trying to find bugs in code.
 
     Parameters
     ----------
@@ -384,7 +388,6 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
     Returns
     -------
     Returns the name of the experiment folder
-
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
@@ -493,8 +496,8 @@ def create_experiment_agenda(experiment_name: str,
 
 
 def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
-    """
-    Recursive function to generate all combinations of parameters given the open_dimensions
+    """Recursive function to generate all combinations of parameters given the
+    open_dimensions.
 
     Parameters
     ----------
@@ -506,7 +509,6 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
     Returns
     -------
     list of parameter sets for ExperimentAgenda
-
     """
     full_params = []
     if len(open_dimensions) == 0:
@@ -573,8 +575,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
 
 
 def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agenda: ExperimentAgenda):
-    """
-    Save experiment agenda to the folder with the experiments.
+    """Save experiment agenda to the folder with the experiments.
 
     Parameters
     ----------
@@ -595,8 +596,7 @@ def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agend
 
 
 def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
-    """
-    Save experiment agenda to the folder with the experiments.
+    """Save experiment agenda to the folder with the experiments.
 
     Parameters
     ----------
@@ -622,8 +622,8 @@ def create_experiment_filename(experiment_folder_name: str, experiment_id: int) 
 
 
 def save_experiment_results_to_file(experiment_results: List, file_name: str):
-    """
-    Save the data frame with all the result from an experiment into a given file
+    """Save the data frame with all the result from an experiment into a given
+    file.
 
     Parameters
     ----------
@@ -634,7 +634,6 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
 
     Returns
     -------
-
     """
     if not os.path.exists(os.path.dirname(file_name)):
         try:
@@ -648,8 +647,7 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
 
 
 def load_experiment_results_from_file(file_name: str) -> List:
-    """
-    Load results as List to do further analysis
+    """Load results as List to do further analysis.
 
     Parameters
     ----------
@@ -669,8 +667,7 @@ def load_experiment_results_from_file(file_name: str) -> List:
 
 
 def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFrame:
-    """
-    Load results as DataFrame to do further analysis
+    """Load results as DataFrame to do further analysis.
 
     Parameters
     ----------
@@ -695,8 +692,7 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
 
 
 def delete_experiment_folder(experiment_folder_name: str):
-    """
-    Delete experiment folder
+    """Delete experiment folder.
 
     Parameters
     ----------

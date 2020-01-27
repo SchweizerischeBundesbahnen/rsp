@@ -76,6 +76,3 @@ curl --insecure -v --request POST -H "Authorization: token ${
         }
     }
 }
-
-
-

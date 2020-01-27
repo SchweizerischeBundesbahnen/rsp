@@ -1,14 +1,19 @@
-"""
-Data types used in the experiment for the real time rescheduling research project
-
-"""
+"""Data types used in the experiment for the real time rescheduling research
+project."""
 import pprint
-from typing import NamedTuple, List, Dict, Mapping, Set, Optional
+from typing import Dict
+from typing import List
+from typing import Mapping
+from typing import NamedTuple
+from typing import Optional
+from typing import Set
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, TrainrunDict, Waypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.utils.ordered_set import OrderedSet
 
 ExperimentFreeze = NamedTuple('ExperimentFreeze', [
@@ -24,8 +29,7 @@ AgentsPathsDict = Dict[int, AgentPaths]
 
 
 def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]) -> Dict[TrainrunWaypoint, int]:
-    """
-    Generate dictionary of scheduled time at waypoint.
+    """Generate dictionary of scheduled time at waypoint.
 
     Parameters
     ----------
@@ -33,7 +37,6 @@ def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypo
 
     Returns
     -------
-
     """
     return {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in l}
 
@@ -109,8 +112,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
                                 title: Optional[str] = None,
                                 scale: int = 2,
                                 ):
-    """
-    Draws an agent's route graph with constraints into a file.
+    """Draws an agent's route graph with constraints into a file.
 
     Parameters
     ----------
@@ -124,7 +126,6 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
         title in the picture
     scale
         scale in or out
-
     """
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
 

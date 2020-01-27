@@ -13,7 +13,8 @@ from importlib_resources import path
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.asp.asp_solver import _asp_helper, flux_helper
+from rsp.asp.asp_solver import _asp_helper
+from rsp.asp.asp_solver import flux_helper
 
 
 def test_asp_helper():
@@ -145,7 +146,8 @@ def test_asp_helper_forcing():
 
 
 def test_minimize_sum_of_running_times_scheduling():
-    """Case Study how to model minimizing sum of running times in a non optimal way."""
+    """Case Study how to model minimizing sum of running times in a non optimal
+    way."""
     encodings = []
     with path('tests.data.asp.instances', 'dummy_two_agents_minimize_sum_of_running_times.lp') as instance_in:
         encodings.append(instance_in)
@@ -176,7 +178,8 @@ def test_minimize_sum_of_running_times_scheduling():
 
 
 def test_minimize_delay_rescheduling():
-    """Case Study how to model minimizing delay with respect to given schedule and a malfunction delay."""
+    """Case Study how to model minimizing delay with respect to given schedule
+    and a malfunction delay."""
     encodings = []
     with path('tests.data.asp.instances', 'dummy_two_agents_rescheduling.lp') as instance_in:
         encodings.append(instance_in)

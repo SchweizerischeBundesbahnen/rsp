@@ -1,15 +1,23 @@
 from __future__ import print_function
 
-from typing import Dict, Optional, List, Tuple, Set
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from overrides import overrides
 
-from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
+from rsp.abstract_problem_description import AbstractProblemDescription
+from rsp.abstract_problem_description import Waypoint
 from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.asp.asp_solver import flux_helper, ASPObjective, ASPHeuristics
-from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict, ExperimentFreeze
+from rsp.asp.asp_solver import ASPHeuristics
+from rsp.asp.asp_solver import ASPObjective
+from rsp.asp.asp_solver import flux_helper
+from rsp.rescheduling.rescheduling_utils import ExperimentFreeze
+from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 
 
 class ASPProblemDescription(AbstractProblemDescription):
@@ -151,8 +159,8 @@ class ASPProblemDescription(AbstractProblemDescription):
                                        experiment_freeze_dict: ExperimentFreezeDict,
                                        schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
                                        verbose: bool = False) -> 'ASPProblemDescription':
-        """
-        Returns a problem description with additional constraints to freeze all the variables up to malfunction.
+        """Returns a problem description with additional constraints to freeze
+        all the variables up to malfunction.
 
         The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_malfunction_per_train`.
 
@@ -171,7 +179,6 @@ class ASPProblemDescription(AbstractProblemDescription):
         Returns
         -------
         ASPProblemDescription
-
         """
 
         freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
@@ -224,8 +231,8 @@ class ASPProblemDescription(AbstractProblemDescription):
     def _translate_experiment_freeze_to_ASP(self,
                                             agent_id: int,
                                             freeze: ExperimentFreeze):
-        """
-        The model is freezed by translating the ExperimentFreeze into ASP:
+        """The model is freezed by translating the ExperimentFreeze into ASP:
+
         - for all schedule_time_(train,vertex) <= malfunction.time_step:
            - freeze visit(train,vertex) == True
            - dl(train,vertex) == schedule_time_(train,vertex)

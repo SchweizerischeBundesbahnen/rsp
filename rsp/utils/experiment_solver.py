@@ -1,15 +1,17 @@
-"""
-Abstract class for solvers. These are used to solve the experiments surrounding the real time rescheduling research project.
+"""Abstract class for solvers.
 
+These are used to solve the experiments surrounding the real time
+rescheduling research project.
 """
-
 import abc
-from typing import Callable, Any
+from typing import Any
+from typing import Callable
 
 import numpy as np
 from flatland.envs.rail_env import RailEnv
 
-from rsp.utils.data_types import ExperimentResults, ExperimentMalfunction
+from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import ExperimentResults
 
 # abstract from rendering to have unit tests without dependendance on FLATland rendering
 RendererForEnvInit = Callable[[RailEnv, bool], Any]
@@ -31,8 +33,7 @@ class AbstractSolver:
             debug: bool = False,
             rendering: bool = False
     ) -> ExperimentResults:
-        """
-        Runs the experiment.
+        """Runs the experiment.
 
         Parameters
         ----------
@@ -45,13 +46,11 @@ class AbstractSolver:
 
         Returns
         -------
-
         """
 
 
 class DummySolver(AbstractSolver):
-    """
-    Dummy solver used to run experiment pipeline
+    """Dummy solver used to run experiment pipeline.
 
     Methods
     -------
@@ -73,8 +72,7 @@ class DummySolver(AbstractSolver):
             render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None,
             cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None,
     ) -> ExperimentResults:
-        """
-        Runs the experiment.
+        """Runs the experiment.
 
         Parameters
         ----------

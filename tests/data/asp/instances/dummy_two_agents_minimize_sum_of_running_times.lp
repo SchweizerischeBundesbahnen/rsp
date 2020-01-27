@@ -79,5 +79,3 @@ edge(0,0,0,0).
 relevant(0,0,0).
 connection(0,(0,0),0,(0,0),0).
 penalty(0,0).
-
-

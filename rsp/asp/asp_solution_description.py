@@ -2,9 +2,11 @@ import re
 from typing import Set
 
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Trainrun
+from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
-from rsp.abstract_problem_description import Waypoint, AbstractProblemDescription
+from rsp.abstract_problem_description import AbstractProblemDescription
+from rsp.abstract_problem_description import Waypoint
 from rsp.abstract_solution_description import AbstractSolutionDescription
 from rsp.asp.asp_solver import FluxHelperResult
 
@@ -75,14 +77,17 @@ class ASPSolutionDescription(AbstractSolutionDescription):
         return path
 
     def get_model_latest_arrival_time(self) -> int:
-        """Get latest entry time for an agent at a waypoint over all agents and all their non-dummy waypoints."""
+        """Get latest entry time for an agent at a waypoint over all agents and
+        all their non-dummy waypoints."""
         latest_entry = 0
         for agent_id in range(len(self._env.agents)):
             latest_entry = max(latest_entry, self.get_trainrun_for_agent(agent_id)[-1].scheduled_at)
         return latest_entry
 
     def get_sum_running_times(self) -> int:
-        """Get the model's cost of the solution with to its minimization objective (which might be slightly different from the FLATland rewards)."""
+        """Get the model's cost of the solution with to its minimization
+        objective (which might be slightly different from the FLATland
+        rewards)."""
         costs = 0
         for agent_id in range(len(self._env.agents)):
             solution_trainrun = self.get_trainrun_for_agent(agent_id)

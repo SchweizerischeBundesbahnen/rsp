@@ -1,23 +1,27 @@
 """Utils used both in solve_envs.py and solve_tests.py."""
-
 import os
 
 import numpy as np
-# ----------------------------- Flatland -----------------------------------------------------------
 from flatland.core.env_observation_builder import DummyObservationBuilder
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
-from flatland.envs.rail_generators import rail_from_file, sparse_rail_generator
-from flatland.envs.schedule_generators import schedule_from_file, sparse_schedule_generator
-# ----------------------------- Helpers -----------------------------------------------------------
+from flatland.envs.rail_generators import rail_from_file
+from flatland.envs.rail_generators import sparse_rail_generator
+from flatland.envs.schedule_generators import schedule_from_file
+from flatland.envs.schedule_generators import sparse_schedule_generator
 from numpy.random.mtrand import RandomState
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.googleortools.cp_sat_solver import CPSATSolver
 from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
-from rsp.utils.experiment_render_utils import init_renderer_for_env, cleanup_renderer_for_env, render_env
-from rsp.utils.experiment_utils import solve_problem, current_milli_time
+from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
+from rsp.utils.experiment_render_utils import init_renderer_for_env
+from rsp.utils.experiment_render_utils import render_env
+from rsp.utils.experiment_utils import current_milli_time
+from rsp.utils.experiment_utils import solve_problem
 from rsp.utils.general_utils import verification_by_file
+# ----------------------------- Flatland -----------------------------------------------------------
+# ----------------------------- Helpers -----------------------------------------------------------
 
 HEADER = "test_id;fraction_done_agents;total_reward;build_model_time;solve_time;is_solution_optimal;is_solved;" \
          "max_path_len;steps;w;h;num_agents;Solver;model_latest_arrival_time;sum_running_times\n"
@@ -116,7 +120,7 @@ def get_slowest_agent_steps_per_cell(env: RailEnv):
 
 def list_files(directory_name):
     r = []
-    for root, dirs, files in os.walk(directory_name):
+    for root, _, files in os.walk(directory_name):
 
         for name in files:
             if name.endswith(".pkl"):
