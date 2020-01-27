@@ -11,8 +11,12 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
+from flatland.action_plan.action_plan import ControllerFromTrainruns
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
+from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 
@@ -38,3 +42,7 @@ if __name__ == '__main__':
                                    columns=['n_agents', 'size', 'time_full_after_malfunction'])
     three_dimensional_scatter_plot(data=averaged_data, error=std_data,
                                    columns=['n_agents', 'size', 'time_delta_after_malfunction'])
+    for experiment in experiment_agenda.experiments:
+        static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment)
+        train_runs: TrainrunDict = None
+        action_plan = ControllerFromTrainruns(malfunction_rail_env, train_runs)

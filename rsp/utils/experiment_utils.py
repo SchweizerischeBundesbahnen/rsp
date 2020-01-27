@@ -28,6 +28,7 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solve_time', float),
                                          ('optimization_costs', float),
                                          ('build_problem_time', float),
+                                         # TODO SIM-239 we should not need this! get rid of all solver dependent stuff here.
                                          ('solution', AbstractSolutionDescription),
                                          ('experiment_freeze', Optional[ExperimentFreezeDict])
                                          ])
@@ -318,7 +319,7 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
             previous_trainrun_waypoint = trainrun_waypoint
             previous_waypoints.add(trainrun_waypoint.waypoint)
 
-
+# TODO SIM-239 should have nothing to do with AbstractProblem/AbstractSolutionDescription!
 def replay(env: RailEnv,
            problem: AbstractProblemDescription,
            solution: AbstractSolutionDescription,
