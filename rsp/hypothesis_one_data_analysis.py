@@ -78,7 +78,7 @@ def _3d_analysis():
 
 if __name__ == '__main__':
     # Import the desired experiment results
-    data_folder = './exp_hypothesis_one_gathered'
+    data_folder = './exp_hypothesis_one_2020_01_24T09_19_03'
     experiment_data = load_experiment_results_from_folder(data_folder)
 
     for key in ['size', 'n_agents', 'max_num_cities', 'max_rail_between_cities', 'max_rail_in_city']:
