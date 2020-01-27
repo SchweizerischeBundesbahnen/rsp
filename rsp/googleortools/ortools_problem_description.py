@@ -1,11 +1,14 @@
 from __future__ import print_function
 
-from typing import Dict, List, Tuple
+from typing import Dict
+from typing import List
+from typing import Tuple
 
 from flatland.envs.rail_env import RailEnv
 from overrides import overrides
 
-from rsp.abstract_problem_description import AbstractProblemDescription, Waypoint
+from rsp.abstract_problem_description import AbstractProblemDescription
+from rsp.abstract_problem_description import Waypoint
 from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
 from rsp.googleortools.cp_sat_solver import CPSATSolver
 from rsp.googleortools.mip_solver import MIPSolver

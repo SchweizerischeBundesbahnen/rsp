@@ -1,9 +1,18 @@
 # copy from https://github.com/potassco/tefoli/blob/master/theory.py
 # TODO SIM-159 include as git submodule
-import ctypes
 import ctypes.util
-from ctypes import c_bool, c_void_p, c_int, c_double, c_uint, c_uint64, c_size_t, c_char_p, Union, Structure, POINTER, \
-    byref
+from ctypes import byref
+from ctypes import c_bool
+from ctypes import c_char_p
+from ctypes import c_double
+from ctypes import c_int
+from ctypes import c_size_t
+from ctypes import c_uint
+from ctypes import c_uint64
+from ctypes import c_void_p
+from ctypes import POINTER
+from ctypes import Structure
+from ctypes import Union
 
 import clingo
 

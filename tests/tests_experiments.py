@@ -1,21 +1,22 @@
-"""
-Run tests for different experiment methods
-"""
-
+"""Run tests for different experiment methods."""
 import pandas
 import pandas as pd
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
-from rsp.utils.data_types import ExperimentParameters, ExperimentAgenda
-from rsp.utils.experiments import create_env_pair_for_experiment, run_experiment_agenda, \
-    load_experiment_results_from_folder, run_experiment, COLUMNS, delete_experiment_folder
+from rsp.utils.data_types import ExperimentAgenda
+from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.experiments import COLUMNS
+from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiments import delete_experiment_folder
+from rsp.utils.experiments import load_experiment_results_from_folder
+from rsp.utils.experiments import run_experiment
+from rsp.utils.experiments import run_experiment_agenda
 
 
 def test_created_env_tuple():
-    """
-    Test that the tuple of created envs are identical
-    """
+    """Test that the tuple of created envs are identical."""
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -96,7 +97,7 @@ def test_created_env_tuple():
 
 
 def test_regression_experiment_agenda():
-    """Run a simple agenda as regression test"""
+    """Run a simple agenda as regression test."""
     agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
         ExperimentParameters(experiment_id=0, trials_in_experiment=1, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
@@ -341,7 +342,7 @@ def test_regression_experiment_agenda():
 
 
 def test_save_and_load_experiment_results():
-    """Run a simple agenda and save and load the results"""
+    """Run a simple agenda and save and load the results."""
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
         ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
@@ -373,7 +374,7 @@ def test_save_and_load_experiment_results():
 
 
 def test_parallel_experiment_execution():
-    """Run a parallel experiment agenda"""
+    """Run a parallel experiment agenda."""
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
         ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,

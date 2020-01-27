@@ -11,4 +11,3 @@
 % In our example (Figure 1), this amounts to t1 and t2 equally shunning (2,4) and (9,11).
 
 #heuristic route(T,E) : train(T), penalty(E,P). [P,false]
-

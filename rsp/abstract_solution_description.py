@@ -3,9 +3,12 @@ from __future__ import print_function
 import abc
 from typing import Any
 
-from flatland.action_plan.action_plan import ActionPlanDict, ControllerFromTrainruns
+from flatland.action_plan.action_plan import ActionPlanDict
+from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import Waypoint, Trainrun, TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 
 class AbstractSolutionDescription:
@@ -16,8 +19,8 @@ class AbstractSolutionDescription:
         self._action_plan: ActionPlanDict = None
 
     def create_action_plan(self) -> ControllerFromTrainruns:
-        """
-        Creates an action plan (fix schedule, when an action has which positions and when it has to take which actions).
+        """Creates an action plan (fix schedule, when an action has which
+        positions and when it has to take which actions).
 
         Returns
         -------
@@ -37,8 +40,11 @@ class AbstractSolutionDescription:
 
     @abc.abstractmethod
     def _get_solver_variable_value(self, var_name: str) -> Any:
-        """Get value by variable name. Return type is implmentation specific
-           (strings might need to be converted to numbers)."""
+        """Get value by variable name.
+
+        Return type is implmentation specific (strings might need to be
+        converted to numbers).
+        """
 
     @abc.abstractmethod
     def is_solved(self):
@@ -54,12 +60,14 @@ class AbstractSolutionDescription:
 
     @abc.abstractmethod
     def get_model_latest_arrival_time(self) -> int:
-        """Get latest entry time for an agent at a waypoint over all agents and all their non-dummy waypoints."""
+        """Get latest entry time for an agent at a waypoint over all agents and
+        all their non-dummy waypoints."""
 
     @abc.abstractmethod
     def get_sum_running_times(self) -> int:
-        """Get the model's cost of the solution with to its minimization objective
-        (which might be slightly different from the FLATland rewards)."""
+        """Get the model's cost of the solution with to its minimization
+        objective (which might be slightly different from the FLATland
+        rewards)."""
 
     @abc.abstractmethod
     def get_trainrun_for_agent(self, agent_id: int) -> Trainrun:

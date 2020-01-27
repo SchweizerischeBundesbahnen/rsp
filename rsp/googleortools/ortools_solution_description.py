@@ -1,7 +1,10 @@
-from typing import Dict, Optional
+from typing import Dict
+from typing import Optional
 
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import Waypoint, Trainrun, TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.abstract_solution_description import AbstractSolutionDescription
 from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
@@ -44,11 +47,14 @@ class ORToolsSolutionDescription(AbstractSolutionDescription):
         return path
 
     def get_model_latest_arrival_time(self) -> int:
-        """Get latest entry time for an agent at a waypoint over all agents and all their non-dummy waypoints."""
+        """Get latest entry time for an agent at a waypoint over all agents and
+        all their non-dummy waypoints."""
         # TODO implement for ortools
         return -1
 
     def get_sum_running_times(self) -> int:
-        """Get the model's cost of the solution with to its minimization objective (which might be slightly different from the FLATland rewards)."""
+        """Get the model's cost of the solution with to its minimization
+        objective (which might be slightly different from the FLATland
+        rewards)."""
         # TODO implement for ortools
         return -1

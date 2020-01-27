@@ -1,5 +1,4 @@
-"""
-Create flatland environment for specific experiments
+"""Create flatland environment for specific experiments.
 
 Methods
 -------
@@ -8,11 +7,8 @@ create_flatland_environment:
 
 create_flatland_environment_with_malfunction:
     Create a Flatland environment with one single malfunction.
-
 """
-
 # ----------------------------- Flatland ------------------------------------
-
 from flatland.envs.malfunction_generators import single_malfunction_generator
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_generators import sparse_rail_generator
@@ -31,8 +27,7 @@ def create_flatland_environment(number_of_agents: int,
                                 max_rails_in_city: int,
                                 speed_data: SpeedData
                                 ) -> (RailEnv, int):
-    """
-    Generates sparse envs WITHOUT malfunctions for our research experiments
+    """Generates sparse envs WITHOUT malfunctions for our research experiments.
 
     Parameters
     ----------
@@ -48,7 +43,6 @@ def create_flatland_environment(number_of_agents: int,
 
     Returns
     -------
-
     """
     rail_generator = sparse_rail_generator(max_num_cities=max_num_cities,
                                            grid_mode=grid_mode,
@@ -82,8 +76,7 @@ def create_flatland_environment_with_malfunction(number_of_agents: int,
                                                  malfunction_duration: int,
                                                  speed_data: SpeedData
                                                  ) -> (RailEnv, int):
-    """
-    Generates sparse envs WITH malfunctions for our research experiments
+    """Generates sparse envs WITH malfunctions for our research experiments.
 
     Parameters
     ----------
@@ -101,7 +94,6 @@ def create_flatland_environment_with_malfunction(number_of_agents: int,
 
     Returns
     -------
-
     """
     rail_generator = sparse_rail_generator(max_num_cities=max_num_cities,
                                            grid_mode=grid_mode,

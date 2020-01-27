@@ -1,7 +1,11 @@
 import json
 import time
 from enum import Enum
-from typing import List, Optional, Set, NamedTuple, Dict
+from typing import Dict
+from typing import List
+from typing import NamedTuple
+from typing import Optional
+from typing import Set
 
 import clingo
 import numpy as np
@@ -11,9 +15,8 @@ from rsp.asp import theory
 
 
 class ASPObjective(Enum):
-    """
-    enum value (key arbitrary) must be the same as encoding to be included
-    """
+    """enum value (key arbitrary) must be the same as encoding to be
+    included."""
 
     # minimize_total_sum_of_running_times.lp
     MINIMIZE_SUM_RUNNING_TIMES = "minimize_total_sum_of_running_times"
@@ -23,9 +26,8 @@ class ASPObjective(Enum):
 
 
 class ASPHeuristics(Enum):
-    """
-    enum value (key arbitrary) must be the same as encoding to be included
-    """
+    """enum value (key arbitrary) must be the same as encoding to be
+    included."""
 
     # avoiding delay at earlier nodes in the paths.
     # NOT USED YET (we do not give the data in re-scheduling yet)
@@ -57,8 +59,7 @@ def flux_helper(
         asp_heurisics: List[ASPHeuristics] = None,
         verbose: bool = False
 ) -> FluxHelperResult:
-    """
-    Includes the necessary encodings and calls `_asp_helper` with them.
+    """Includes the necessary encodings and calls `_asp_helper` with them.
 
     Parameters
     ----------
@@ -73,7 +74,6 @@ def flux_helper(
 
     Returns
     -------
-
     """
     prg_text_joined = "\n".join(asp_data)
 
@@ -108,8 +108,7 @@ def _asp_helper(encoding_files: List[str],
                 verbose: bool = False,
                 bound_all_events: Optional[int] = None,
                 deterministic_mode: bool = True) -> FluxHelperResult:
-    """
-    Runs clingo-dl with in the desired mode.
+    """Runs clingo-dl with in the desired mode.
 
     Parameters
     ----------
@@ -247,7 +246,7 @@ def _print_configuration(ctl):
     print("=================================================================================")
     print("= CONFIGRUATION                                                                 =")
     print("=================================================================================")
-    for i, k in enumerate(ctl.configuration.solve.keys):
+    for _, k in enumerate(ctl.configuration.solve.keys):
         print("{}={}\n  {}: {}"
               .format(k,
                       getattr(ctl.configuration.solve, k), k,

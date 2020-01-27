@@ -52,8 +52,8 @@ conflict(T,E,T',E') :- shared(T,E,T',E'), T < T',
                        route(T,E), route(T',E').
 { seq(T,E,T',E') } :-  conflict(T,E,T',E').
   seq(T',E',T,E)   :-  conflict(T,E,T',E'), not seq(T,E,T',E').
-:- seq(T,(V,V'),T',(U,U')),  
-   route(T,(V',V'')), route(T',(U',U'')), 
+:- seq(T,(V,V'),T',(U,U')),
+   route(T,(V',V'')), route(T',(U',U'')),
    shared(T,(V',V''),T',(U',U'')), not seq(T,(V',V''),T',(U',U'')).
 :- seq(T,(V,V'),T',E),   route(T,(V',V'')),
    shared(T,(V',V''),T',E), not seq(T,(V',V''),T',E).
@@ -95,7 +95,7 @@ conflict(T,E,T',E') :- shared(T,E,T',E'), T < T',
 %  has left (v,v’) (Condition (6)). Note that if several resources induce a conflict for two
 %  trains on the same edges, only one difference constraint with the maximum blocked time
 %  suffices since x+k  y implies x+k0  y for k  k0.
-&diff{ (T,V')-(T',U) } <= -M :- seq(T,(V,V'),T',(U,U')), 
+&diff{ (T,V')-(T',U) } <= -M :- seq(T,(V,V'),T',(U,U')),
                                 M = #max{ B : resource(R,(V,V')), resource(R,(U,U')), b(R,B) }.
 
 % Finally, Line 19 handles connections

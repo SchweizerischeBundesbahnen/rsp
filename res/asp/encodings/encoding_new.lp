@@ -5,7 +5,7 @@
 % a resource, as well as, handles timing constraints.
 %
 % Remark: We assume that preprocessing rules out
-% all routes where a connection cannot be 
+% all routes where a connection cannot be
 % realised. We do not check this constraint
 % explicitly.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -19,7 +19,7 @@ visit(T,V) :- train(T), start(T,V), { start(T,V') } 1.
 route(T,(V,V')) :- visit(T,V), edge(T,V,V'), { edge(T,V,V'') } 1.
 visit(T,V') :- route(T,(V,V')).
 route(T,(V,V')) :- bridge(T,(V,V')), edge(T,V,V'), train(T).
- 
+
 %%% connections
 % at least one resource is the same
 :- collision_free_connection(T,ID,T',ID'),
@@ -33,7 +33,7 @@ route(T,(V,V')) :- bridge(T,(V,V')), edge(T,V,V'), train(T).
 %%% seq(T,T',R,C,C')              - train T enters resource_chunk (R,C) before train T' enters resource_chunk (R,C')
 %%% transition(T,V,T',V',B)       - train T arrives at node V at least B seconds before train T' arrives at node V'
 enter_resource_chunk(T,R,C,V)  :- resource_chunk(T,R,C,(V,V')), route(T,(V,V')), 1 #sum {1 : edge(T,V'',V), not resource_chunk(T,R,C,(V'',V)); 1 : start(T,V)},
-                                  not route(T,(VP,V)) : resource_chunk(T,R,C,(VP,V)). 
+                                  not route(T,(VP,V)) : resource_chunk(T,R,C,(VP,V)).
 leave_resource_chunk(T,R,C,V') :- resource_chunk(T,R,C,(V,V')), route(T,(V,V')), 1 #sum {1 : edge(T,V',V''), not resource_chunk(T,R,C,(V',V'')); 1 : end(T,V')},
                                   not route(T,(V',VN)) : resource_chunk(T,R,C,(V',VN)).
 
@@ -43,7 +43,7 @@ leave_resource_chunk(T,R,C,V') :- resource_chunk(T,R,C,(V,V')), route(T,(V,V')),
 transition(T,V',T',U,B) :- seq(T,T',R,C,C'), shared(T,T',R,C,C'), leave_resource_chunk(T,R,C,V'), enter_resource_chunk(T',R,C',U), b(R,B).
 transition(T',U',T,V,B) :- shared(T,T',R,C,C'), not seq(T,T',R,C,C'), enter_resource_chunk(T,R,C,V), leave_resource_chunk(T',R,C',U'), b(R,B).
 
-&diff{ (T,N')-(T',M)  } <= -B :- transition(T,V',T',U,B), node_pos(T,V',N'), node_pos(T',U,M). 
+&diff{ (T,N')-(T',M)  } <= -B :- transition(T,V',T',U,B), node_pos(T,V',N'), node_pos(T',U,M).
 
 %%% constraints for earliest and latest arrival
 
@@ -69,7 +69,7 @@ max_l(T,N,M) :- node_pos(T,_,N), M != #inf, M = #max {L : node_pos(T,V,N), l(T,V
 
 %%% constraints for minimal travel time
 node_bridge(T,(N,N')) :- edge(T,V,V'), node_pos(T,V,N), node_pos(T,V',N'),
-                                not edge(T,U,U') : node_pos(T,U,N), node_pos(T,U',M), M != N'; 
+                                not edge(T,U,U') : node_pos(T,U,N), node_pos(T,U',M), M != N';
                                 not edge(T,U,U') : node_pos(T,U,M), node_pos(T,U',N'), M != N.
 travel_time(T,(V,V'),(N,N'),D) :- edge(T,V,V'), node_pos(T,V,N), node_pos(T,V',N'),
                                D=#sum{ M,m : m(T,(V,V'),M); W,w : w(T,(V,V'),W) }.
