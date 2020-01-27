@@ -42,14 +42,16 @@ curl --insecure -v --request POST -H "Authorization: token ${
         }
         stage('test') {
             steps {
-                tox_conda_wrapper(WHAT: {
-                    sh """
-python -m tox . --recreate
+                tox_conda_wrapper(
+                        ENVIRONMENT_YAML: 'rsp_environment.yml',
+                        WHAT: {
+                            sh """
+conda config --show channels
+python -m tox . --recreate -v
 """
-                })
+                        })
             }
         }
-
     }
     post {
         failure {
