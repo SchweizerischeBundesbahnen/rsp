@@ -1,11 +1,21 @@
 from collections import OrderedDict
-from typing import Set, List, Dict, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
 
 import numpy
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint, Trainrun, TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreezeDict, ExperimentFreeze, \
-    experimentFreezePrettyPrint, AgentsPathsDict, AgentPaths
+from rsp.utils.data_types import AgentPaths
+from rsp.utils.data_types import AgentsPathsDict
+from rsp.utils.data_types import ExperimentFreeze
+from rsp.utils.data_types import ExperimentFreezeDict
+from rsp.utils.data_types import experimentFreezePrettyPrint
+from rsp.utils.data_types import ExperimentMalfunction
 
 
 def generic_experiment_freeze_for_rescheduling(
@@ -16,8 +26,8 @@ def generic_experiment_freeze_for_rescheduling(
         malfunction: ExperimentMalfunction,
         latest_arrival: int
 ) -> ExperimentFreezeDict:
-    """
-    Derives the experiment freeze given the malfunction and optionally a force freeze from an Oracle.
+    """Derives the experiment freeze given the malfunction and optionally a
+    force freeze from an Oracle.
 
     Parameters
     ----------
@@ -36,7 +46,6 @@ def generic_experiment_freeze_for_rescheduling(
 
     Returns
     -------
-
     """
     experiment_freeze_dict = {
         agent_id: _generic_experiment_freeze_for_rescheduling_agent_while_running(
@@ -137,9 +146,9 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
         latest_arrival: int
 
 ) -> ExperimentFreeze:
-    """
-    Construct route DAG constraints for this agent.
-    Consider only case where malfunction happens during schedule or if there is a (force freeze from the oracle).
+    """Construct route DAG constraints for this agent. Consider only case where
+    malfunction happens during schedule or if there is a (force freeze from the
+    oracle).
 
     Parameters
     ----------
@@ -155,7 +164,6 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
 
     Returns
     -------
-
     """
 
     # force freeze in Delta re-scheduling
@@ -247,7 +255,9 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
 def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
                                    force_freeze_waypoints_set: Set[Waypoint],
                                    reachable_set: Set[Waypoint]):
-    """Bans all that are not either in the forward or backward funnel of the freezed ones.
+    """Bans all that are not either in the forward or backward funnel of the
+    freezed ones.
+
     Returns them as list for iteration and as set for containment test.
     """
     banned: List[Waypoint] = []
@@ -264,8 +274,7 @@ def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
 def _get_reachable_given_frozen_set(agent_paths: AgentPaths,
                                     all_waypoints: List[Waypoint],
                                     force_freeze: List[TrainrunWaypoint]) -> Set[Waypoint]:
-    """
-    Determines which vertices can still be reached given the frozen set.
+    """Determines which vertices can still be reached given the frozen set.
 
     Parameters
     ----------
@@ -278,7 +287,6 @@ def _get_reachable_given_frozen_set(agent_paths: AgentPaths,
 
     Returns
     -------
-
     """
     # collect all direct neighbors
     forward_reachable: Dict[Waypoint, Set[Waypoint]] = {waypoint: set() for agent_path in agent_paths for waypoint in
@@ -338,8 +346,8 @@ def _search_last_contiguously_freezed_from_start(
         force_freeze: List[TrainrunWaypoint],
         force_freeze_waypoints_set: Set[TrainrunWaypoint],
 ) -> Optional[TrainrunWaypoint]:
-    """
-    Searches the last freezed waypoint such that all waypoints leading there are all freezed.
+    """Searches the last freezed waypoint such that all waypoints leading there
+    are all freezed.
 
     Parameters
     ----------
@@ -349,7 +357,6 @@ def _search_last_contiguously_freezed_from_start(
 
     Returns
     -------
-
     """
     last_forced_from_start: Optional[TrainrunWaypoint] = None
     for agent_path in agent_paths:
@@ -373,9 +380,9 @@ def _add_agent_path_for_get_freeze_for_delta(agent_path,
                                              subdag_source: TrainrunWaypoint,
                                              latest_arrival: int,
                                              minimum_travel_time):
-    """
-    Traverse the sub-DAG along one of the paths generating the route DAG and update earliest and latest times.
-    Used within _generic_experiment_freeze_for_rescheduling_agent_while_running.
+    """Traverse the sub-DAG along one of the paths generating the route DAG and
+    update earliest and latest times. Used within
+    _generic_experiment_freeze_for_rescheduling_agent_while_running.
 
     Parameters
     ----------
@@ -448,13 +455,11 @@ def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
                                      agents_path_dict: AgentsPathsDict,
                                      latest_arrival: int
                                      ) -> ExperimentFreezeDict:
-    """
-    Returns the experiment freeze for the full re-scheduling problem.
-    Wraps the generic freeze by freezing everything up to and including the malfunction.
+    """Returns the experiment freeze for the full re-scheduling problem. Wraps
+    the generic freeze by freezing everything up to and including the
+    malfunction.
 
     See param description there.
-
-
     """
     return generic_experiment_freeze_for_rescheduling(
         malfunction=malfunction,
@@ -477,9 +482,8 @@ def _get_earliest_entries_for_full_route_dag(
         agent_paths: AgentPaths,
         earliest: int
 ) -> Dict[Waypoint, int]:
-    """
-    Given the minimum travel time per cell (constant per agent), derive
-    the earliest times in the route DAG spanned by the k shortest paths.
+    """Given the minimum travel time per cell (constant per agent), derive the
+    earliest times in the route DAG spanned by the k shortest paths.
 
     If a vertex can be reached by multiple paths, take the earliest time it can be reached according to
       earliest(train,vertex) = minimum-number-of-hops-from-source(train,vertex) * minimum_running_time + 1
@@ -494,7 +498,6 @@ def _get_earliest_entries_for_full_route_dag(
 
     Returns
     -------
-
     """
     earliest_dict: Dict[Waypoint, int] = {}
     for agent_path in agent_paths:
@@ -512,13 +515,11 @@ def _get_latest_entries_for_full_route_dag(
         agent_paths: AgentPaths,
         latest: int
 ) -> Dict[Waypoint, int]:
-    """
-    Given the minimum travel time per cell (constant per agent), derive
-    the latest times in the route DAG spanned by the k shortest paths.
+    """Given the minimum travel time per cell (constant per agent), derive the
+    latest times in the route DAG spanned by the k shortest paths.
 
     If a vertex can be reached backwards by multiple paths, take the latest time it can be reached according to
       latest(train,vertex) = minimum-number-of-hops-to-sink(train,vertex) * minimum_running_time
-
     """
     latest_dict: Dict[Waypoint, int] = {}
     for agent_path in agent_paths:
@@ -540,9 +541,8 @@ def verify_experiment_freeze_for_agent(
         malfunction: Optional[ExperimentMalfunction] = None,
         scheduled_trainrun: Optional[Trainrun] = None
 ):
-    """
-    Does the experiment_freeze reflect the force freeze, route DAG and malfunctions correctly?
-
+    """Does the experiment_freeze reflect the force freeze, route DAG and
+    malfunctions correctly?
 
     Parameters
     ----------
@@ -561,7 +561,6 @@ def verify_experiment_freeze_for_agent(
 
     Returns
     -------
-
     """
 
     all_waypoints = {waypoint for agent_path in agent_paths for waypoint in agent_path}

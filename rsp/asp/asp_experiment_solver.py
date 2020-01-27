@@ -1,11 +1,13 @@
 import pprint
-from typing import Dict, List
+from typing import Dict
+from typing import List
 
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
-from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, schedule_full, \
-    reschedule_delta_after_malfunction
+from rsp.asp.asp_scheduling_helper import reschedule_delta_after_malfunction
+from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction
+from rsp.asp.asp_scheduling_helper import schedule_full
 from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.experiment_solver import AbstractSolver
@@ -13,8 +15,7 @@ from rsp.utils.experiment_utils import replay
 
 
 class ASPExperimentSolver(AbstractSolver):
-    """
-    Implements `AbstractSolver` for ASP.
+    """Implements `AbstractSolver` for ASP.
 
     Methods
     -------
@@ -34,8 +35,7 @@ class ASPExperimentSolver(AbstractSolver):
             debug: bool = False,
             rendering: bool = False
     ) -> ExperimentResults:
-        """
-        Runs the experiment.
+        """Runs the experiment.
 
         Parameters
         ----------

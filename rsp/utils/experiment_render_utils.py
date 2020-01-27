@@ -3,7 +3,8 @@ from typing import Optional
 
 from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayerRenderCallback
 from flatland.envs.rail_env import RailEnv
-from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+from flatland.utils.rendertools import AgentRenderVariant
+from flatland.utils.rendertools import RenderTool
 
 
 # --------------------------------------------------------------------------------------

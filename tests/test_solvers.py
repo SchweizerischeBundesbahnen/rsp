@@ -1,17 +1,24 @@
 import time
-from typing import Dict, Optional, List, Callable
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
 
-from flatland.action_plan.action_plan import ActionPlanElement, ControllerFromTrainruns
+from flatland.action_plan.action_plan import ActionPlanElement
+from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayer
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.observations import TreeObsForRailEnv
-from flatland.envs.predictions import ShortestPathPredictorForRailEnv, DummyPredictorForRailEnv
-from flatland.envs.rail_env import RailEnv, RailEnvActions
+from flatland.envs.predictions import DummyPredictorForRailEnv
+from flatland.envs.predictions import ShortestPathPredictorForRailEnv
+from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_env import RailEnvActions
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_generators import rail_from_grid_transition_map
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import random_schedule_generator
-from flatland.utils.simple_rail import make_simple_rail, make_simple_rail_with_alternatives
+from flatland.utils.simple_rail import make_simple_rail
+from flatland.utils.simple_rail import make_simple_rail_with_alternatives
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription

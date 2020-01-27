@@ -1,5 +1,7 @@
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
-from rsp.utils.data_types import ParameterRanges, ExperimentAgenda, ExperimentParameters
+from rsp.utils.data_types import ExperimentAgenda
+from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import run_experiment_agenda
 
 if __name__ == '__main__':

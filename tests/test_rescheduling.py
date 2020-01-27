@@ -1,21 +1,30 @@
 import pprint
-from typing import Dict, List, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
 
 import numpy as np
 from flatland.envs.agent_utils import EnvAgent
-from flatland.envs.malfunction_generators import Malfunction as FLMalfunction, Malfunction
+from flatland.envs.malfunction_generators import Malfunction
+from flatland.envs.malfunction_generators import Malfunction as FLMalfunction
 from flatland.envs.malfunction_generators import MalfunctionProcessData
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint, TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 from numpy.random.mtrand import RandomState
 
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction, reschedule_delta_after_malfunction
+from rsp.asp.asp_scheduling_helper import reschedule_delta_after_malfunction
+from rsp.asp.asp_scheduling_helper import reschedule_full_after_malfunction
 from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling, verify_experiment_freeze_for_agent, \
-    ExperimentFreezeDict
-from rsp.utils.data_types import ExperimentParameters, ExperimentMalfunction
-from rsp.utils.experiment_utils import verify_trainruns_dict, get_delay_trainruns_dict
+from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
+from rsp.rescheduling.rescheduling_utils import verify_experiment_freeze_for_agent
+from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.experiment_utils import get_delay_trainruns_dict
+from rsp.utils.experiment_utils import verify_trainruns_dict
 from rsp.utils.experiments import create_env_pair_for_experiment
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -175,7 +184,7 @@ def test_rescheduling_no_bottleneck():
         agents_path_dict=agents_paths_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )
-    for agent_id, experiment_freeze in freeze_dict.items():
+    for agent_id, _ in freeze_dict.items():
         verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id])
 
     schedule_problem.get_copy_for_experiment_freeze(experiment_freeze_dict=freeze_dict,
@@ -433,7 +442,7 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
-    for agent_id, experiment_freeze in freeze_dict.items():
+    for agent_id, _ in freeze_dict.items():
         verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id], )
 
     schedule_problem.get_copy_for_experiment_freeze(
@@ -474,9 +483,8 @@ def test_rescheduling_bottleneck():
 # ---------------------------------------------------------------------------------------------------------------------
 
 def test_rescheduling_delta_no_bottleneck():
-    """
-    Train 1 has already passed the bottlneck when train 0 gets stuck in malfunction.
-    """
+    """Train 1 has already passed the bottlneck when train 0 gets stuck in
+    malfunction."""
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
 
     fake_schedule = {
@@ -609,8 +617,8 @@ def test_rescheduling_delta_no_bottleneck():
 
 
 def test_rescheduling_delta_bottleneck():
-    """
-    Train 0 get's stuck in a bottlneck.
+    """Train 0 get's stuck in a bottlneck.
+
     Train 1 runs in opposite direction -> has to wait.
     """
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)

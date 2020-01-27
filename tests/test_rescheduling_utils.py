@@ -1,16 +1,22 @@
 import pprint
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Any
+from typing import Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling, \
-    _generic_experiment_freeze_for_rescheduling_agent_while_running, _get_delayed_trainrun_waypoint_after_malfunction, \
-    get_freeze_for_full_rescheduling
-from rsp.utils.data_types import ExperimentMalfunction, ExperimentFreeze, experimentFreezeDictPrettyPrint, \
-    ExperimentFreezeDict, experimentFreezePrettyPrint, experiment_freeze_dict_from_list_of_train_run_waypoint, \
-    visualize_experiment_freeze
+from rsp.rescheduling.rescheduling_utils import _generic_experiment_freeze_for_rescheduling_agent_while_running
+from rsp.rescheduling.rescheduling_utils import _get_delayed_trainrun_waypoint_after_malfunction
+from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
+from rsp.utils.data_types import experiment_freeze_dict_from_list_of_train_run_waypoint
+from rsp.utils.data_types import ExperimentFreeze
+from rsp.utils.data_types import ExperimentFreezeDict
+from rsp.utils.data_types import experimentFreezeDictPrettyPrint
+from rsp.utils.data_types import experimentFreezePrettyPrint
+from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import visualize_experiment_freeze
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -1905,15 +1911,14 @@ def test_bugfix_sim_172():
 def test_bugfix_sim_175_no_path_splitting_forward():
     """No path splitting forward.
 
-       When the vertices marked by F are freezed, those marked by X must be banned!
-       F(1,0)
-          |
-       F(2,0) - F(2,1)
-          |       |
-       X(3,0)   (3,1)
-          |       |
-       X(4,0) - (4,1)
-
+    When the vertices marked by F are freezed, those marked by X must be banned!
+    F(1,0)
+       |
+    F(2,0) - F(2,1)
+       |       |
+    X(3,0)   (3,1)
+       |       |
+    X(4,0) - (4,1)
     """
 
     # N.B. the directions do not matter for this test!

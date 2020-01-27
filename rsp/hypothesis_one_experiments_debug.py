@@ -1,8 +1,9 @@
-"""Run experiments not in parallel, only one trial and only a subset of them in order to allow for debugging."""
-
+"""Run experiments not in parallel, only one trial and only a subset of them in
+order to allow for debugging."""
 from rsp.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_experiments import get_pipeline_params
-from rsp.utils.experiments import create_experiment_agenda, run_specific_experiments_from_research_agenda
+from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import run_specific_experiments_from_research_agenda
 
 if __name__ == '__main__':
     parameter_ranges, speed_data = get_pipeline_params()

@@ -1,6 +1,7 @@
 import os
 
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -8,7 +9,7 @@ with open('README.md') as readme_file:
 
 def get_all_files_in_directory(directory: str):
     ret = []
-    for dirpath, subdirs, files in os.walk(directory):
+    for dirpath, _, files in os.walk(directory):
         for f in files:
             ret.append(os.path.join(dirpath, f))
     return ret

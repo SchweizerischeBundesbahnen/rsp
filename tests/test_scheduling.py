@@ -1,6 +1,8 @@
-from typing import Dict, List
+from typing import Dict
+from typing import List
 
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint, Waypoint
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.asp.asp_scheduling_helper import schedule_full

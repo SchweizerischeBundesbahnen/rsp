@@ -1,19 +1,26 @@
 import pprint
-from typing import Callable, Tuple
+from typing import Callable
+from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-# TODO SIM-239 refactor: this could be easily generalized to general ProblemDescription if the freeze stuff is moved in the AbstractProblemDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict, \
-    generic_experiment_freeze_for_rescheduling
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling, verify_experiment_freeze_for_agent
-from rsp.utils.data_types import ExperimentMalfunction, experimentFreezeDictPrettyPrint
-from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
-from rsp.utils.experiment_utils import solve_problem, SchedulingExperimentResult
+from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
+from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
+from rsp.rescheduling.rescheduling_utils import verify_experiment_freeze_for_agent
+from rsp.utils.data_types import experimentFreezeDictPrettyPrint
+from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.experiment_solver import RendererForEnvCleanup
+from rsp.utils.experiment_solver import RendererForEnvInit
+from rsp.utils.experiment_solver import RendererForEnvRender
+from rsp.utils.experiment_utils import SchedulingExperimentResult
+from rsp.utils.experiment_utils import solve_problem
+
+# TODO SIM-239 refactor: this could be easily generalized to general ProblemDescription if the freeze stuff is moved in the AbstractProblemDescription
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -23,8 +30,8 @@ def schedule_full(k: int,
                   rendering: bool = False,
                   debug: bool = False,
                   ) -> Tuple[ASPProblemDescription, SchedulingExperimentResult]:
-    """
-    Solves the Full Scheduling Problem for static rail env (i.e. without malfunctions).
+    """Solves the Full Scheduling Problem for static rail env (i.e. without
+    malfunctions).
 
     Parameters
     ----------
@@ -38,7 +45,6 @@ def schedule_full(k: int,
     -------
     Tuple[ASPProblemDescription, SchedulingExperimentResult]
         the problem description and the results
-
     """
     # --------------------------------------------------------------------------------------
     # Generate k shortest paths
@@ -100,8 +106,8 @@ def reschedule_full_after_malfunction(
         disable_verification_in_replay: bool = False,
         rendering: bool = False,
 ) -> SchedulingExperimentResult:
-    """
-    Solve the Full Re-Scheduling Problem for static rail env (i.e. without malfunctions).
+    """Solve the Full Re-Scheduling Problem for static rail env (i.e. without
+    malfunctions).
 
     Parameters
     ----------
@@ -312,8 +318,9 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
                     malfunction: ExperimentMalfunction,
                     schedule_trainrunwaypoints: TrainrunDict,
                     verbose: bool = False) -> Tuple[TrainrunDict, TrainrunDict]:
-    """
-    Delta contains the information about what is changed by the malfunction with respect to the malfunction
+    """Delta contains the information about what is changed by the malfunction
+    with respect to the malfunction.
+
     - all train run way points in the re-schedule that are different from the initial schedule.
     - this includes the run way point after the malfunction which is delayed!
 
@@ -326,7 +333,6 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
     malfunction
     schedule_trainrunwaypoints
     verbose
-
     """
     if verbose:
         print(f"  **** full re-schedule")
@@ -355,10 +361,10 @@ def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
     for agent_id, delta_waypoints in delta.items():
         for delta_waypoint in delta_waypoints:
             assert delta_waypoint.scheduled_at >= malfunction.time_step, f"found \n\n"
-            "  **** delta_waypoint {delta_waypoint} of agent {agent_id},\n\n"
-            "  **** malfunction is {malfunction}.\n\n"
-            "  **** schedule={schedule_trainruns[agent_id]}.\n\n"
-            "  **** full re-schedule={full_reschedule_trainruns[agent_id]}"
+            f"  **** delta_waypoint {delta_waypoint} of agent {agent_id},\n\n"
+            f"  **** malfunction is {malfunction}.\n\n"
+            f"  **** schedule={schedule_trainrunwaypoints[agent_id]}.\n\n"
+            f"  **** full re-schedule={full_reschedule_trainrunwaypoints_dict[agent_id]}"
     # Freeze are all train run way points in the re-schedule that not in the delta
     if verbose:
         print(f"  **** freeze ={_pp.pformat(freeze)}")
