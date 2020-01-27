@@ -22,5 +22,5 @@ if __name__ == '__main__':
         experiment_agenda=experiment_agenda,
         experiment_ids=list(range(123, 301)),
         run_experiments_parallel=False,
-        show_results_without_details=False,
+        show_results_without_details=True,
         verbose=False)
