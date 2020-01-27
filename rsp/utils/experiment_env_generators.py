@@ -13,8 +13,6 @@ create_flatland_environment_with_malfunction:
 
 # ----------------------------- Flatland ------------------------------------
 
-from typing import Mapping
-
 from flatland.envs.malfunction_generators import single_malfunction_generator
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_generators import sparse_rail_generator
