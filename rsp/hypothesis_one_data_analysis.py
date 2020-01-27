@@ -14,11 +14,22 @@ from rsp.utils.experiments import load_experiment_results_from_folder
 
 if __name__ == '__main__':
     # Import the desired experiment results
-    data_folder = './experiment_data/'
+    data_folder = './exp_hypothesis_one_2019_12_19T09_58_07'
+    data_folder = './results/early_alpha'
+    data_file = './results/early_alpha/experiment_1.json'
     experiment_data = load_experiment_results_from_folder(data_folder)
+
+    for key in ['size', 'n_agents', 'max_num_cities', 'max_rail_between_cities', 'max_rail_in_city']:
+        experiment_data[key] = experiment_data[key].astype(float)
 
     # Average over the trials of each experiment
     averaged_data, std_data = average_over_trials(experiment_data)
+    print(experiment_data.keys())
 
     # Initially plot the computation time vs the level size and the number of agent
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data, columns=['size', 'n_agents', 'time_full'])
+    three_dimensional_scatter_plot(data=averaged_data, error=std_data, columns=['n_agents', 'size', 'time_full'])
+
+    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                   columns=['n_agents', 'size', 'time_full_after_malfunction'])
+    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                   columns=['n_agents', 'size', 'time_delta_after_malfunction'])

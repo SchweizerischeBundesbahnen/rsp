@@ -1,14 +1,16 @@
 import pprint
 from typing import Callable, Tuple
 
+import numpy as np
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-# TODO refactor: this could be easily generalized to general ProblemDescription if the freeze stuff is moved in the AbstractProblemDescription
+# TODO SIM-239 refactor: this could be easily generalized to general ProblemDescription if the freeze stuff is moved in the AbstractProblemDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling, ExperimentFreezeDict, \
+from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict, \
     generic_experiment_freeze_for_rescheduling
+from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling, verify_experiment_freeze_for_agent
 from rsp.utils.data_types import ExperimentMalfunction, experimentFreezeDictPrettyPrint
 from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup, RendererForEnvRender
 from rsp.utils.experiment_utils import solve_problem, SchedulingExperimentResult
@@ -141,10 +143,12 @@ def reschedule_full_after_malfunction(
     # --------------------------------------------------------------------------------------
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
+                                malfunction_rail_env.agents}
     freeze_dict: ExperimentFreezeDict = get_freeze_for_full_rescheduling(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
-        speed_dict={agent.handle: agent.speed_data['speed'] for agent in malfunction_rail_env.agents},
+        minimum_travel_time_dict=minimum_travel_time_dict,
         agents_path_dict=schedule_problem.agents_path_dict,
         latest_arrival=malfunction_rail_env._max_episode_steps
     )
@@ -164,7 +168,8 @@ def reschedule_full_after_malfunction(
         rendering_call_back=rendering_call_back,
         debug=debug,
         expected_malfunction=malfunction,
-        disable_verification_in_replay=disable_verification_in_replay
+        # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
+        disable_verification_in_replay=True
     )
     cleanup_renderer_for_env(renderer)
     malfunction_env_reset()
@@ -231,18 +236,18 @@ def reschedule_delta_after_malfunction(
                                           malfunction,
                                           schedule_trainruns,
                                           verbose=False)
+    # TODO SIM-241 remove tweaky debg snippet as soon as pipeline is stable
     # uncomment the following lines for debugging purposes
     if False:
-        print("####agents_path_dict[2]")
-        print(_pp.pformat(schedule_problem.agents_path_dict[2]))
-        print("####schedule_trainruns[2]")
-        print(_pp.pformat(schedule_trainruns[2]))
-        print("####full_reschedule_trainruns[2]")
-        print(_pp.pformat(full_reschedule_trainruns[2]))
-        print("####malfunction")
+        culprit = 2
+        print(f"####schedule_trainruns[{culprit}]")
+        print(_pp.pformat(schedule_trainruns[culprit]))
+        print("f####full_reschedule_trainruns[{culprit}]")
+        print(_pp.pformat(full_reschedule_trainruns[culprit]))
+        print("f####malfunction")
         print(malfunction)
-        print("####force_freeze[2]")
-        print(_pp.pformat(force_freeze[2]))
+        print("f####force_freeze[{culprit}]")
+        print(_pp.pformat(force_freeze[culprit]))
     if debug:
         print("####agents_path_dict")
         print(_pp.pformat(schedule_problem.agents_path_dict))
@@ -254,18 +259,30 @@ def reschedule_delta_after_malfunction(
         print(malfunction)
         print("####force_freeze")
         print(_pp.pformat(force_freeze))
-    speed_dict = {agent.handle: agent.speed_data['speed'] for agent in malfunction_rail_env.agents}
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+                                for agent in malfunction_rail_env.agents}
     freeze_dict: ExperimentFreezeDict = generic_experiment_freeze_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
-        speed_dict=speed_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
         agents_path_dict=schedule_problem.agents_path_dict,
         force_freeze=force_freeze,
         malfunction=malfunction,
         latest_arrival=malfunction_rail_env._max_episode_steps
     )
+
     if debug:
-        print("####freeze_dict")
+        print("####freeze_dict delta rescheduling")
         experimentFreezeDictPrettyPrint(freeze_dict)
+
+    # verify that full reschedule solution is still a solution in the constrained solution space
+    for agent_id in freeze_dict:
+        verify_experiment_freeze_for_agent(
+            agent_id=agent_id,
+            agent_paths=schedule_problem.agents_path_dict[agent_id],
+            experiment_freeze=freeze_dict[agent_id],
+            force_freeze=[],
+            scheduled_trainrun=full_reschedule_trainruns[agent_id]
+        )
 
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
@@ -278,7 +295,9 @@ def reschedule_delta_after_malfunction(
         problem=delta_reschedule_problem,
         rendering_call_back=rendering_call_back,
         debug=debug,
-        expected_malfunction=malfunction
+        expected_malfunction=malfunction,
+        # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
+        disable_verification_in_replay=True
     )
     cleanup_renderer_for_env(renderer)
 

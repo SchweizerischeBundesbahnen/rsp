@@ -17,6 +17,7 @@ from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.googleortools.cp_sat_solver import CPSATSolver
 from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
+from rsp.utils.data_types import AgentsPathsDict
 
 
 def generate_ortools_cpsat_problem_description(env: RailEnv,
@@ -431,7 +432,7 @@ def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(problem_desc
 
 # ----- HELPER ------------------------------------------------
 ProblemDescriptionConstructor = Callable[
-    [RailEnv, Optional[Dict[int, List[List[Waypoint]]]], int, bool], AbstractProblemDescription]
+    [RailEnv, Optional[AgentsPathsDict], int, bool], AbstractProblemDescription]
 
 
 def _extract_action_plan_replayer(env: RailEnv, problem_description_constructor,
