@@ -32,7 +32,7 @@ import pickle
 import pprint
 import shutil
 from functools import partial
-from typing import List, Tuple, Mapping
+from typing import List, Tuple
 
 import errno
 import numpy as np
@@ -41,7 +41,7 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
-from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults
+from rsp.utils.data_types import ExperimentAgenda, ExperimentParameters, ParameterRanges, ExperimentResults, SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment, \
     create_flatland_environment_with_malfunction
 from rsp.utils.experiment_solver import AbstractSolver
@@ -409,7 +409,9 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
     return current_experiment_parameters.experiment_id in experiment_ids
 
 
-def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges, speed_data: Mapping[float, float],
+def create_experiment_agenda(experiment_name: str,
+                             parameter_ranges: ParameterRanges,
+                             speed_data: SpeedData,
                              trials_per_experiment: int = 10) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges

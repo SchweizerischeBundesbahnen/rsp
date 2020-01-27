@@ -236,7 +236,7 @@ def reschedule_delta_after_malfunction(
                                           malfunction,
                                           schedule_trainruns,
                                           verbose=False)
-    # TODO remove tweaky debg snippet as soon as pipeline is stable
+    # TODO SIM-241 remove tweaky debg snippet as soon as pipeline is stable
     # uncomment the following lines for debugging purposes
     if False:
         culprit = 2
