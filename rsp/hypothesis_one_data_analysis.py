@@ -1,7 +1,6 @@
 """Analysis of the experiment data for hypothesis one.
 
 Hypothesis 1:
-
     We can compute good recourse actions, i.e., an adapted plan within the time budget,
     if all the variables are fixed, except those related to services that are affected by the
     disruptions implicitly or explicitly.
