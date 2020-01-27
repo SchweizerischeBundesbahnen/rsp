@@ -16,6 +16,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
+from rsp.utils.experiment_utils import replay
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
@@ -46,3 +47,4 @@ if __name__ == '__main__':
         static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment)
         train_runs: TrainrunDict = None
         action_plan = ControllerFromTrainruns(malfunction_rail_env, train_runs)
+        replay()

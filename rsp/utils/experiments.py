@@ -660,6 +660,8 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     files = os.listdir(experiment_folder_name)
     for file in files:
         file_name = os.path.join(experiment_folder_name, file)
+        if file_name.endswith('experiment_agenda.pkl'):
+            continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
         experiment_results = experiment_results.append(file_data, ignore_index=True)

@@ -2,6 +2,7 @@ import pprint
 from typing import Dict
 from typing import List
 
+from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
@@ -61,9 +62,14 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
 
         malfunction_env_reset()
-        malfunction = replay(solution=schedule_solution, env=malfunction_rail_env, stop_on_malfunction=True,
-                             problem=schedule_problem,
-                             disable_verification_in_replay=True)
+        controller_from_train_runs: ControllerFromTrainruns = schedule_solution.create_action_plan()
+
+        malfunction = replay(
+            controller_from_train_runs=controller_from_train_runs,
+            env=malfunction_rail_env,
+            stop_on_malfunction=True,
+            solver_name=schedule_problem.get_solver_name(),
+            disable_verification_in_replay=True)
         malfunction_env_reset()
         if not malfunction:
             raise Exception("Could not produce a malfunction")

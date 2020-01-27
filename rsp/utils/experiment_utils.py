@@ -118,10 +118,21 @@ def solve_problem(env: RailEnv,
                           expected_malfunction=expected_malfunction,
                           expected_experiment_freeze=problem.experiment_freeze_dict
                           )
-    total_reward = replay(env=env, loop_index=loop_index,
+    controller_from_train_runs: ControllerFromTrainruns = solution.create_action_plan()
+    if debug:
+        print("  **** solution to replay:")
+        print(_pp.pformat(solution.get_trainruns_dict()))
+        print("  **** action plan to replay:")
+        controller_from_train_runs.print_action_plan()
+        print("  **** expected_malfunction to replay:")
+        print(_pp.pformat(expected_malfunction))
+
+    total_reward = replay(env=env,
+                          loop_index=loop_index,
                           expected_malfunction=expected_malfunction,
-                          problem=problem,
-                          rendering_call_back=rendering_call_back, solution=solution,
+                          solver_name=problem.get_solver_name(),
+                          rendering_call_back=rendering_call_back,
+                          controller_from_train_runs=controller_from_train_runs,
                           debug=debug,
                           disable_verification_in_replay=disable_verification_in_replay)
 
@@ -319,10 +330,11 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
             previous_trainrun_waypoint = trainrun_waypoint
             previous_waypoints.add(trainrun_waypoint.waypoint)
 
+
 # TODO SIM-239 should have nothing to do with AbstractProblem/AbstractSolutionDescription!
 def replay(env: RailEnv,
-           problem: AbstractProblemDescription,
-           solution: AbstractSolutionDescription,
+           solver_name: str,
+           controller_from_train_runs: ControllerFromTrainruns,
            expected_malfunction: Optional[ExperimentMalfunction] = None,
            rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
            debug: bool = False,
@@ -335,8 +347,8 @@ def replay(env: RailEnv,
 
     Parameters
     ----------
-
-    problem
+    solver_name: bool
+        The name of the solver for debugging purposes.
     disable_verification_in_replay
         Whether it is tested the replay corresponds to the problem's solution
         TODO SIM-105 Should there be option to disable replay completely? Profile experiments to test how much time replay takes in the experiments.
@@ -352,7 +364,8 @@ def replay(env: RailEnv,
         If provided and disable_verification_in_replay == False, it is checked that the malfunction happens as expected.
     stop_on_malfunction
         If true, stops and returns upon entering into malfunction; in this case returns the malfunction
-
+    controller_from_train_runs: ActionPlanDict
+        The action plan to replay
 
     Returns
     -------
@@ -361,23 +374,16 @@ def replay(env: RailEnv,
     """
     total_reward = 0
     time_step = 0
-    solver_name = problem.get_solver_name()
-    ap: ControllerFromTrainruns = solution.create_action_plan()
-    if debug:
-        print("  **** solution to replay:")
-        print(_pp.pformat(solution.get_trainruns_dict()))
-        print("  **** action plan to replay:")
-        ap.print_action_plan()
-        print("  **** expected_malfunction to replay:")
-        print(_pp.pformat(expected_malfunction))
-    actual_action_plan = [ap.act(time_step) for time_step in range(env._max_episode_steps)]
+    actual_action_plan = [controller_from_train_runs.act(time_step) for time_step in range(env._max_episode_steps)]
     verification_by_file("action_plan", actual_action_plan, loop_index, solver_name)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
-        fail = _check_fail(ap, debug, disable_verification_in_replay, env, expected_malfunction, problem, time_step)
+        fail = False
+        if disable_verification_in_replay:
+            fail = _check_fail(controller_from_train_runs, debug, env, expected_malfunction, time_step)
         if fail:
             raise Exception("Unexpected state. See above for !!=unexpected position, MM=unexpected malfuntion")
 
-        actions = ap.act(time_step)
+        actions = controller_from_train_runs.act(time_step)
 
         if debug:
             print(f"env._elapsed_steps={env._elapsed_steps}")
@@ -402,26 +408,29 @@ def replay(env: RailEnv,
     return total_reward
 
 
-def _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, problem, time_step):
+def _check_fail(ap, debug, env, malfunction, time_step):
+    """
+
+    Returns
+    -------
+    bool: is the replay still in harmony with action plan?
+    """
     fail = False
     for agent in env.agents:
         prefix = ""
-        # TODO ortools does not support multispeed yet, hence we cannot test whether the entry times are correct
-        if isinstance(problem, ASPProblemDescription) and not disable_verification_in_replay:
-            we: Waypoint = ap.get_waypoint_before_or_at_step(agent.handle, time_step)
-            if agent.position != we.position:
-                prefix = "!!"
-                fail = True
-            if agent.malfunction_data['malfunction'] > 0 and (
-                    malfunction is None or agent.handle != malfunction.agent_id):
-                prefix += "MM"
-                fail = True
-            if debug:
-                print(
-                    f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
-                    f"in direction={agent.direction} "
-                    f"(initial_position={agent.initial_position}, initial_direction={agent.initial_direction}, target={agent.target} "
-                    f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we} "
-
-                )
+        we: Waypoint = ap.get_waypoint_before_or_at_step(agent.handle, time_step)
+        if agent.position != we.position:
+            prefix = "!!"
+            fail = True
+        if agent.malfunction_data['malfunction'] > 0 and (
+                malfunction is None or agent.handle != malfunction.agent_id):
+            prefix += "MM"
+            fail = True
+        if debug:
+            print(
+                f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
+                f"in direction={agent.direction} "
+                f"(initial_position={agent.initial_position}, initial_direction={agent.initial_direction}, target={agent.target} "
+                f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we} "
+            )
     return fail
