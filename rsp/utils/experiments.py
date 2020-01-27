@@ -130,6 +130,9 @@ def run_experiment(solver: AbstractSolver,
                                                                          verbose=verbose,
                                                                          debug=debug
                                                                          )
+        if current_results is None:
+            print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
+            return []
         # Store results
         time_delta_after_m = current_results.time_delta_after_malfunction
         time_full_after_m = current_results.time_full_after_malfunction
@@ -348,8 +351,8 @@ def run_and_save_one_experiment(current_experiment_parameters,
                                            verbose=verbose,
                                            show_results_without_details=show_results_without_details)
         save_experiment_results_to_file(experiment_result, filename)
-    except:
-        print("XXX failed "+filename)
+    except Exception as e:
+        print(f"XXX experiment {current_experiment_parameters.experiment_id} failed: {e}")
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
@@ -414,13 +417,19 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
     return current_experiment_parameters.experiment_id in experiment_ids
 
 
-def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRanges, speed_data: Mapping[float, float],
-                             trials_per_experiment: int = 10) -> ExperimentAgenda:
+def create_experiment_agenda(experiment_name: str,
+                             parameter_ranges: ParameterRanges,
+                             speed_data: Mapping[float, float],
+                             trials_per_experiment: int = 10,
+                             vary_malfunction: int = 1,
+                             vary_malfunction_step: int = 20
+                             ) -> ExperimentAgenda:
     """
     Create an experiment agenda given a range of parameters defined as ParameterRanges
 
     Parameters
     ----------
+
     experiment_name: str
         Name of the experiment
     parameter_ranges: ParameterRanges
@@ -432,10 +441,18 @@ def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRa
     speed_data
         Dictionary containing all the desired speeds in the environment
 
+    vary_malfunction
+        Deprecated. Use malfunction range instead.
+        Run the same experiment `vary_malfunction` times with ids <experiment_id>_<0...var_malfunction-1>
+
+    vary_malfunction_step
+        Deprecated. Use malfunction range instead.
+        If the same experiment is run multiple times (`vary_malfunction > 1`), the earliest malfunction is set to `parameter_set[5] + i * vary_malfunction_step` at the `i`th iteration.
+
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges
-    :param speed_data:
+
     """
     number_of_dimensions = len(parameter_ranges)
     parameter_values = [[] for i in range(number_of_dimensions)]
@@ -450,20 +467,25 @@ def create_experiment_agenda(experiment_name: str, parameter_ranges: ParameterRa
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
     for param_id, parameter_set in enumerate(full_param_set):
-        current_experiment = ExperimentParameters(experiment_id=param_id,
-                                                  trials_in_experiment=trials_per_experiment,
-                                                  number_of_agents=parameter_set[1],
-                                                  speed_data=speed_data,
-                                                  width=parameter_set[0],
-                                                  height=parameter_set[0],
-                                                  seed_value=12,
-                                                  max_num_cities=parameter_set[4],
-                                                  grid_mode=False,
-                                                  max_rail_between_cities=parameter_set[3],
-                                                  max_rail_in_city=parameter_set[2],
-                                                  earliest_malfunction=parameter_set[5],
-                                                  malfunction_duration=parameter_set[6])
-        experiment_list.append(current_experiment)
+        for i in range(vary_malfunction):
+            earliest_malfunction = parameter_set[5] + i * vary_malfunction_step
+            experiment_id = param_id
+            if vary_malfunction > 1:
+                experiment_id = f"{param_id}_{earliest_malfunction}"
+            current_experiment = ExperimentParameters(experiment_id=experiment_id,
+                                                      trials_in_experiment=trials_per_experiment,
+                                                      number_of_agents=parameter_set[1],
+                                                      speed_data=speed_data,
+                                                      width=parameter_set[0],
+                                                      height=parameter_set[0],
+                                                      seed_value=12,
+                                                      max_num_cities=parameter_set[4],
+                                                      grid_mode=False,
+                                                      max_rail_between_cities=parameter_set[3],
+                                                      max_rail_in_city=parameter_set[2],
+                                                      earliest_malfunction=earliest_malfunction,
+                                                      malfunction_duration=parameter_set[6])
+            experiment_list.append(current_experiment)
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))
     return experiment_agenda

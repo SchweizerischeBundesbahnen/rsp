@@ -395,7 +395,10 @@ def replay(env: RailEnv,
             break
 
         time_step += 1
-    return total_reward
+    if stop_on_malfunction:
+        return None
+    else:
+        return total_reward
 
 
 def _check_fail(ap, debug, disable_verification_in_replay, env, malfunction, problem, time_step):

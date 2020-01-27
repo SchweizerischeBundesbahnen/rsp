@@ -39,7 +39,7 @@ def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypo
 
 
 ExperimentParameters = NamedTuple('ExperimentParameters',
-                                  [('experiment_id', int),
+                                  [('experiment_id', str),
                                    ('trials_in_experiment', int),
                                    ('number_of_agents', int),
                                    ('speed_data', Mapping[float, float]),
