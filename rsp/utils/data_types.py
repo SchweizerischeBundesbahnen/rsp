@@ -77,7 +77,10 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('experiment_freeze_full_after_malfunction', ExperimentFreezeDict),
     ('experiment_freeze_delta_after_malfunction', ExperimentFreezeDict),
     ('malfunction', ExperimentMalfunction),
-    ('agents_paths_dict', AgentsPathsDict)
+    ('agents_paths_dict', AgentsPathsDict),
+    ('nb_conflicts_full', int),
+    ('nb_conflicts_full_after_malfunction', int),
+    ('nb_conflicts_delta_after_malfunction', int)
 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
@@ -103,6 +106,9 @@ COLUMNS = ['experiment_id',
            'experiment_freeze_full',
            'experiment_freeze_full_after_malfunction',
            'experiment_freeze_delta_after_malfunction',
+           'nb_conflicts_full',
+           'nb_conflicts_full_after_malfunction',
+           'nb_conflicts_delta_after_malfunction',
            'malfunction',
            'agents_paths_dict',
            'size',
@@ -138,6 +144,9 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
             'experiment_freeze_full': experiment_results.experiment_freeze_full,
             'experiment_freeze_full_after_malfunction': experiment_results.experiment_freeze_full_after_malfunction,
             'experiment_freeze_delta_after_malfunction': experiment_results.experiment_freeze_delta_after_malfunction,
+            'nb_conflicts_full': experiment_results.nb_conflicts_full,
+            'nb_conflicts_full_after_malfunction': experiment_results.nb_conflicts_full_after_malfunction,
+            'nb_conflicts_delta_after_malfunction': experiment_results.nb_conflicts_delta_after_malfunction,
             'malfunction': experiment_results.malfunction,
             'agents_paths_dict': experiment_results.agents_paths_dict,
             'size': experiment_parameters.width,
@@ -171,6 +180,9 @@ def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentR
         experiment_freeze_full=rows['experiment_freeze_full'].iloc[0],
         experiment_freeze_full_after_malfunction=rows['experiment_freeze_full_after_malfunction'].iloc[0],
         experiment_freeze_delta_after_malfunction=rows['experiment_freeze_delta_after_malfunction'].iloc[0],
+        nb_conflicts_full=rows['nb_conflicts_full'].iloc[0],
+        nb_conflicts_full_after_malfunction=rows['nb_conflicts_full_after_malfunction'].iloc[0],
+        nb_conflicts_delta_after_malfunction=rows['nb_conflicts_delta_after_malfunction'].iloc[0],
         malfunction=rows['malfunction'].iloc[0],
         agents_paths_dict=rows['agents_paths_dict'].iloc[0],
     )

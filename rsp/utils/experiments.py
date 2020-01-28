@@ -32,6 +32,8 @@ import os
 import pickle
 import pprint
 import shutil
+import sys
+import traceback
 from functools import partial
 from typing import List
 from typing import Tuple
@@ -202,6 +204,7 @@ def run_and_save_one_experiment(current_experiment_parameters,
         save_experiment_results_to_file(experiment_result, filename)
     except Exception as e:
         print("XXX failed " + filename + " " + str(e))
+        traceback.print_exc(file=sys.stdout)
 
 
 def run_specific_experiments_from_research_agenda(solver: AbstractSolver,

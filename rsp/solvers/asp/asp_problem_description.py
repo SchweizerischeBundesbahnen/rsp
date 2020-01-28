@@ -12,12 +12,12 @@ from overrides import overrides
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_problem_description import Waypoint
-from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.asp.asp_solver import ASPHeuristics
-from rsp.asp.asp_solver import ASPObjective
-from rsp.asp.asp_solver import flux_helper
 from rsp.rescheduling.rescheduling_utils import ExperimentFreeze
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
+from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
+from rsp.solvers.asp.asp_solver import ASPHeuristics
+from rsp.solvers.asp.asp_solver import ASPObjective
+from rsp.solvers.asp.asp_solver import flux_helper
 
 
 class ASPProblemDescription(AbstractProblemDescription):
@@ -165,7 +165,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_malfunction_per_train`.
 
 
-        The ASP constraints are derived by :meth:`rsp.asp.asp_problem_description.ASPProblemDescription._translate_experiment_freeze_to_ASP`.
+        The ASP constraints are derived by :meth:`rsp.solvers.asp.asp_problem_description.ASPProblemDescription._translate_experiment_freeze_to_ASP`.
 
         Parameters
         ----------

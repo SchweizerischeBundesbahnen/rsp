@@ -14,10 +14,10 @@ Hypothesis 2:
 from pandas import DataFrame
 
 from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
+from rsp.solvers.solve_problem import render_experiment
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.experiment_utils import render_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 

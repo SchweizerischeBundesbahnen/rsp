@@ -11,7 +11,7 @@ import clingo
 import numpy as np
 from importlib_resources import path
 
-from rsp.asp import theory
+from rsp.solvers.asp import theory
 
 
 class ASPObjective(Enum):

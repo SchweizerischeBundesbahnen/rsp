@@ -11,10 +11,10 @@ from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail
 
 from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.googleortools.cp_sat_solver import CPSATSolver
-from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
-from rsp.googleortools.ortools_solution_description import ORToolsSolutionDescription
-from rsp.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
+from rsp.solvers.googleortools.cp_sat_solver import CPSATSolver
+from rsp.solvers.googleortools.ortools_problem_description import ORToolsProblemDescription
+from rsp.solvers.googleortools.ortools_solution_description import ORToolsSolutionDescription
+from rsp.solvers.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
 
 
 def test_simple_rail_CPSAT(rendering=False):

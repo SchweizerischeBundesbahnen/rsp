@@ -5,6 +5,7 @@ from typing import Dict
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
@@ -17,25 +18,24 @@ from pandas import DataFrame
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
-from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
+from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.general_utils import current_milli_time
 from rsp.utils.general_utils import verification_by_file
-
-# TODO SIM-239 we should not have dependency to ASP etc. here???
+# TODO SIM-239 bad code smell: generic file should not have dependency to submodule!
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
                                          ('solve_time', float),
                                          ('optimization_costs', float),
                                          ('build_problem_time', float),
-                                         # TODO SIM-239 we should not need this! get rid of all solver dependent stuff here.
-                                         ('solution', AbstractSolutionDescription),
+                                         ('trainruns_dict', TrainrunDict),
+                                         ('nb_conflicts', int),
                                          ('experiment_freeze', Optional[ExperimentFreezeDict])
                                          ])
 
@@ -58,7 +58,7 @@ def solve_problem(env: RailEnv,
                   loop_index: int = 0,
                   disable_verification_in_replay: bool = False,
                   expected_malfunction: Optional[ExperimentMalfunction] = None
-                  ) -> SchedulingExperimentResult:
+                  ) -> Tuple[SchedulingExperimentResult, ASPSolutionDescription]:
     """Solves an :class:`AbstractProblemDescription` and optionally verifies it
     againts the provided :class:`RailEnv`.
 
@@ -147,8 +147,10 @@ def solve_problem(env: RailEnv,
                                       solve_time=solve_time,
                                       optimization_costs=solution.get_objective_value(),
                                       build_problem_time=build_problem_time,
-                                      solution=solution,
-                                      experiment_freeze=problem.experiment_freeze_dict)
+                                      # TODO SIM-252
+                                      nb_conflicts=-1,
+                                      trainruns_dict=solution.get_trainruns_dict(),
+                                      experiment_freeze=problem.experiment_freeze_dict), solution
 
 
 def get_summ_running_times_trainruns_dict(trainruns_dict: TrainrunDict):

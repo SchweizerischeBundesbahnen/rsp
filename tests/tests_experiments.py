@@ -4,7 +4,7 @@ import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.asp.asp_experiment_solver import ASPExperimentSolver
+from rsp.solvers.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters

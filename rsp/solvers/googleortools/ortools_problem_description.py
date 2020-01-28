@@ -9,11 +9,11 @@ from overrides import overrides
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_problem_description import Waypoint
-from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
-from rsp.googleortools.cp_sat_solver import CPSATSolver
-from rsp.googleortools.mip_solver import MIPSolver
-from rsp.googleortools.ortools_solution_description import ORToolsSolutionDescription
-from rsp.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
+from rsp.solvers.googleortools.abstract_ortools_solver import AbstractORToolsSolver
+from rsp.solvers.googleortools.cp_sat_solver import CPSATSolver
+from rsp.solvers.googleortools.mip_solver import MIPSolver
+from rsp.solvers.googleortools.ortools_solution_description import ORToolsSolutionDescription
+from rsp.solvers.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
 from rsp.utils.data_types import AgentsPathsDict
 
 
