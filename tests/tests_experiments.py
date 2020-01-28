@@ -78,7 +78,8 @@ def test_created_env_tuple():
                                            max_rail_in_city=4,
                                            earliest_malfunction=10,
                                            malfunction_duration=20,
-                                           speed_data={1: 1.0})
+                                           speed_data={1: 1.0},
+                                           number_of_shortest_paths_per_agent=10)
 
     # Generate the tuple of environments
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
@@ -102,7 +103,7 @@ def test_regression_experiment_agenda():
         ExperimentParameters(experiment_id=0, trials_in_experiment=1, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0})])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
@@ -332,11 +333,16 @@ def test_regression_experiment_agenda():
                 TrainrunWaypoint(scheduled_at=64, waypoint=Waypoint(position=(7, 25), direction=3)),
                 TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(7, 24), direction=3)),
                 TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3))]}},
-        'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257}}
+        'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257},
+        'agents_paths_dict': {}}
 
     for key in expected_result_dict:
         # TODO remove keys in expected_result_dict instead
-        if not key.startswith("time") and not key.startswith("solution") and not key.startswith("delta"):
+        skip = key.startswith("time")
+        skip = skip or key.startswith("solution")
+        skip = skip or key.startswith("delta")
+        skip = skip or key == 'agents_paths_dict'
+        if not skip:
             assert expected_result_dict[key] == result_dict[key], \
                 f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"
 
@@ -347,7 +353,7 @@ def test_save_and_load_experiment_results():
         ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0})])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
 
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
@@ -358,7 +364,8 @@ def test_save_and_load_experiment_results():
 
     experiment_results = pd.DataFrame(columns=COLUMNS)
     for current_experiment_parameters in agenda.experiments:
-        single_experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters,
+        single_experiment_result = run_experiment(solver=solver,
+                                                  experiment_parameters=current_experiment_parameters,
                                                   verbose=False)
         experiment_results = experiment_results.append(single_experiment_result, ignore_index=True)
 
@@ -368,7 +375,7 @@ def test_save_and_load_experiment_results():
         experiment_results_dict = experiment_results.to_dict()
 
     for key in experiment_results_dict:
-        if not key.startswith("time"):
+        if not key.startswith("time") and key != 'agents_paths_dict':
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
 
@@ -378,13 +385,16 @@ def test_parallel_experiment_execution():
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
         ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0}),
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10),
         ExperimentParameters(experiment_id=1, trials_in_experiment=3, number_of_agents=3, width=30, height=30,
                              seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0}),
+                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10),
         ExperimentParameters(experiment_id=2, trials_in_experiment=3, number_of_agents=4, width=30, height=30,
                              seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0})])
+                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10)])
 
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=True)

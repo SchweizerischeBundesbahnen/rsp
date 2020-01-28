@@ -81,7 +81,7 @@ conda env update -f rsp_environment.yml
 python setup.py install && python -m pytest && python -m flake8 rsp tests
 ```
 
-###Pre-commit hook
+### Pre-commit hook
 In order to run pre-commit hooks when you run `git commit` on the command line
 ```
 conda activate rsp

@@ -16,7 +16,6 @@ from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import experimentFreezePrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
-from rsp.utils.data_types import visualize_experiment_freeze
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -1439,8 +1438,6 @@ def test_get_freeze_for_delta():
         malfunction=malfunction,
         latest_arrival=333
     )
-    visualize_experiment_freeze(agents_path_dict[0], freeze_dict[0], file_name="test_get_freeze_for_delta_agent_0.png",
-                                title="Agent 0")
 
     print("####freeze_dict")
     experimentFreezeDictPrettyPrint(freeze_dict)

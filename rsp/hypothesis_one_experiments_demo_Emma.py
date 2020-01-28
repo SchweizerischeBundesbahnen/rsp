@@ -26,7 +26,8 @@ if __name__ == '__main__':
                              max_rail_between_cities=2,
                              max_rail_in_city=4,
                              earliest_malfunction=20,
-                             malfunction_duration=20)
+                             malfunction_duration=20,
+                             number_of_shortest_paths_per_agent=10)
     ])
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
