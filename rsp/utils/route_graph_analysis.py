@@ -110,13 +110,23 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
 
 
 def _number_of_paths_in_route_dag(topo: nx.DiGraph) -> int:
+    """Get the number of all source nodes (no incoming edges) to all sink nodes
+    (no outgoing edges).
+
+    Parameters
+    ----------
+    topo: DiGraph
+
+    Returns
+    -------
+    int
+    """
     sources = (node for node, in_degree in topo.in_degree if in_degree == 0)
     sinks = (node for node, out_degree in topo.out_degree if out_degree == 0)
     all_paths = []
     for source in sources:
         for sink in sinks:
             source_sink_paths = list(nx.all_simple_paths(topo, source, sink))
-            print(f"{source}->{sink}: {len(source_sink_paths)}")
             all_paths += source_sink_paths
     return len(all_paths)
 

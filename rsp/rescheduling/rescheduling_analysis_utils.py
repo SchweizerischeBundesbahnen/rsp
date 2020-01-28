@@ -1,6 +1,8 @@
 import pprint
+from functools import reduce
+from operator import mul
+from typing import List
 
-import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
@@ -79,44 +81,58 @@ def _analyze_times(current_results: ExperimentResults):
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
-# TODO SIM-151: use in plots instead of only printing
-def _analyze_paths(experiment_results: ExperimentResults):
-    print("**** number of remaining route alternatives after malfunction")
+# numpy produces overflow -> python ints are unbounded, see stackoverflow
+def _prod(l: List[int]):
+    return reduce(mul, l, 1)
 
+
+# TODO SIM-151: use in plots instead of only printing
+def _analyze_paths(experiment_results: ExperimentResults, debug: bool = False):
     experiment_freeze_delta_afer_malfunction = experiment_results.experiment_freeze_delta_after_malfunction
     experiment_freeze_full_after_malfunction = experiment_results.experiment_freeze_full_after_malfunction
     all_nb_alternatives_schedule = []
     all_nb_alternatives_rsp_full = []
     all_nb_alternatives_rsp_delta = []
 
+    agents_paths_dict = experiment_results.agents_paths_dict
     for agent_id in experiment_freeze_delta_afer_malfunction:
-        agent_paths = experiment_results.agents_paths_dict[agent_id]
+        agent_paths = agents_paths_dict[agent_id]
         # TODO SIM-239 this is not correct, there may not be enough time for all paths; use experiment_freeze for scheduling
         nb_alternatives_schedule = get_number_of_paths_for_experiment_freeze(
             agent_paths,
             None
         )
-        nb_alternatives_rsp_delta = get_number_of_paths_for_experiment_freeze(
-            agent_paths,
-            experiment_freeze_delta_afer_malfunction[agent_id]
-        )
         nb_alternatives_rsp_full = get_number_of_paths_for_experiment_freeze(
             agent_paths,
             experiment_freeze_full_after_malfunction[agent_id]
         )
+        nb_alternatives_rsp_delta = get_number_of_paths_for_experiment_freeze(
+            agent_paths,
+            experiment_freeze_delta_afer_malfunction[agent_id]
+        )
+        assert nb_alternatives_schedule >= nb_alternatives_rsp_full
+        assert nb_alternatives_rsp_full >= nb_alternatives_rsp_delta
+
         all_nb_alternatives_schedule.append(nb_alternatives_schedule)
         all_nb_alternatives_rsp_full.append(nb_alternatives_rsp_full)
         all_nb_alternatives_rsp_delta.append(nb_alternatives_rsp_delta)
-        print(f"  agent {agent_id}: "
-              f"nb_alternatives_schedule={nb_alternatives_schedule}, "
-              f"nb_alternatives_rsp_full={nb_alternatives_rsp_full}",
-              f"nb_alternatives_rsp_delta={nb_alternatives_rsp_delta}, "
-              )
-    search_space_space_schedule = np.prod(all_nb_alternatives_schedule, dtype=np.uint64)
-    search_space_space_rsp_full = np.prod(all_nb_alternatives_rsp_full, dtype=np.uint64)
-    search_space_space_rsp_delta = np.prod(all_nb_alternatives_rsp_delta, dtype=np.uint64)
+        if debug:
+            print(f"  agent {agent_id}: "
+                  f"nb_alternatives_schedule={nb_alternatives_schedule}, "
+                  f"nb_alternatives_rsp_full={nb_alternatives_rsp_full}",
+                  f"nb_alternatives_rsp_delta={nb_alternatives_rsp_delta}, "
+                  )
+    assert len(all_nb_alternatives_schedule) == len(agents_paths_dict.keys())
+    assert len(all_nb_alternatives_rsp_full) == len(agents_paths_dict.keys())
+    assert len(all_nb_alternatives_rsp_delta) == len(agents_paths_dict.keys())
+    search_space_space_schedule = _prod(all_nb_alternatives_schedule)
+    search_space_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
+    search_space_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
+    assert search_space_space_schedule >= search_space_space_rsp_full
+    assert search_space_space_rsp_full >= search_space_space_rsp_delta
     # TODO SIM-252 plot analysis
-    print(f"search_space_space_schedule={search_space_space_schedule:.2E}, "
+    print("**** search space"
+          f"search_space_space_schedule={search_space_space_schedule:.2E}, "
           f"search_space_space_rsp_full={search_space_space_rsp_full:.2E}",
           f"search_space_space_rsp_delta={search_space_space_rsp_delta:.2E}, "
           )
