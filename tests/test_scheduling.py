@@ -5,7 +5,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.asp.asp_scheduling_helper import schedule_full
+from rsp.asp.asp_experiment_solver import schedule_full
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
 
@@ -14,7 +14,8 @@ def test_scheduling():
     test_parameters = ExperimentParameters(experiment_id=0, trials_in_experiment=10, number_of_agents=2, width=30,
                                            height=30, seed_value=12, max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20, speed_data={1: 1.0})
+                                           malfunction_duration=20, speed_data={1: 1.0},
+                                           number_of_shortest_paths_per_agent=10)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
