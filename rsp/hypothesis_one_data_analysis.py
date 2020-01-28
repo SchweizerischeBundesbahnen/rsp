@@ -50,9 +50,7 @@ def render_experiment(experiment: ExperimentParameters, data_frame: DataFrame):
 
     experiment_freeze_delta: ExperimentFreezeDict = rows['experiment_freeze_delta_after_malfunction'].iloc[0]
     malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
-    print(malfunction)
     n_agents: int = rows['n_agents'].iloc[0]
-    print(n_agents)
 
     agents_paths_dict = rows['agents_paths_dict'].iloc[0]
 
@@ -63,7 +61,7 @@ def render_experiment(experiment: ExperimentParameters, data_frame: DataFrame):
             train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
             train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
             f=experiment_freeze_delta[agent_id],
-            title=f"experiment {experiment.experiment_id}\nagent {agent_id}\n{malfunction} "
+            title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}"
         )
 
     controller_from_train_runs = ControllerFromTrainruns(malfunction_rail_env, train_runs_full_after_malfunction)
