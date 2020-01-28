@@ -13,17 +13,21 @@ from flatland.envs.rail_env_shortest_paths import get_valid_move_actions_
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+from pandas import DataFrame
 
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_solution_description import AbstractSolutionDescription
 from rsp.asp.asp_problem_description import ASPProblemDescription
 from rsp.asp.asp_solution_description import ASPSolutionDescription
+from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.general_utils import current_milli_time
 from rsp.utils.general_utils import verification_by_file
 
-# TODO SIM-239 should we have dependency to ASP etc. here???
+# TODO SIM-239 we should not have dependency to ASP etc. here???
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
@@ -381,7 +385,8 @@ def replay(env: RailEnv,
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
         if disable_verification_in_replay:
-            fail = _check_fail(controller_from_train_runs, debug, env, expected_malfunction, time_step)
+            fail = _check_expected_position_and_malfunction(
+                controller_from_train_runs, debug, env, expected_malfunction, time_step)
         if fail:
             raise Exception("Unexpected state. See above for !!=unexpected position, MM=unexpected malfuntion")
 
@@ -410,8 +415,23 @@ def replay(env: RailEnv,
     return total_reward
 
 
-def _check_fail(ap, debug, env, malfunction, time_step):
-    """
+def _check_expected_position_and_malfunction(ap: ControllerFromTrainruns,
+                                             debug: bool,
+                                             env: RailEnv,
+                                             malfunction: ExperimentMalfunction,
+                                             time_step: int):
+    """Checks whether the current position and malfunction are as expected from
+    the action plan controller.
+
+    Prints '!!=unexpected position' and 'MM=unexpected malfuntion'
+
+    Parameters
+    ----------
+    ap: ControllerFromTrainruns
+    debug: bool
+    env: RailEnv
+    malfunction: ExperimentMalfunction
+    time_step: int
 
     Returns
     -------
@@ -436,3 +456,55 @@ def _check_fail(ap, debug, env, malfunction, time_step):
                 f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we} "
             )
     return fail
+
+
+def render_experiment(experiment: ExperimentParameters,
+                      data_frame: DataFrame,
+                      rendering: bool = True):
+    """Render the experiment in the analysis.
+
+    Parameters
+    ----------
+    experiment: ExperimentParameters
+        experiment parameters for all trials
+    data_frame: DataFrame
+        Pandas data frame with one ore more trials of this experiment.
+    """
+    from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvRender, RendererForEnvCleanup
+
+    # find first row for this experiment (iloc[0]
+    rows = data_frame.loc[data_frame['experiment_id'] == experiment.experiment_id]
+
+    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment)
+    train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
+    analyze_experiment(experiment, rows)
+
+    controller_from_train_runs = ControllerFromTrainruns(malfunction_rail_env, train_runs_full_after_malfunction)
+
+    if rendering:
+        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
+        from rsp.utils.experiment_render_utils import render_env
+        from rsp.utils.experiment_render_utils import init_renderer_for_env
+
+        init_renderer_for_env = init_renderer_for_env
+        render_renderer_for_env = render_env
+        cleanup_renderer_for_env = cleanup_renderer_for_env
+    else:
+        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
+        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
+        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
+
+    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
+
+    def rendering_call_back(test_id: int, solver_name, i_step: int):
+        render_renderer_for_env(renderer, test_id, solver_name, i_step)
+
+    replay(
+        controller_from_train_runs=controller_from_train_runs,
+        env=malfunction_rail_env,
+        stop_on_malfunction=False,
+        solver_name='data_analysis',
+        disable_verification_in_replay=False,
+        rendering_call_back=rendering_call_back
+    )
+    cleanup_renderer_for_env(renderer)

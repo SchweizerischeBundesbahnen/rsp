@@ -89,6 +89,7 @@ class ASPExperimentSolver(AbstractSolver):
             solver_name=schedule_problem.get_solver_name(),
             disable_verification_in_replay=True)
         malfunction_env_reset()
+        # replay may return None (if the given malfunction does not happen during the agents time in the grid
         if not malfunction:
             raise Exception("Could not produce a malfunction")
 
@@ -173,11 +174,11 @@ def schedule_full(k: int,
 
     Parameters
     ----------
-    k
+    k:int
         number of routing alterantives to consider
-    static_rail_env
-    rendering
-    debug
+    static_rail_env: RailEnv
+    rendering: bool
+    debug: bool
 
     Returns
     -------
