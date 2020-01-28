@@ -200,7 +200,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
 
 
 def _extract_all_waypoints_and_digraph_from_spanning_paths(
-        agent_paths: AgentPaths) -> Tuple[Set[Waypoint], nx.DiGraph()]:
+        agent_paths: AgentPaths) -> Tuple[Set[Waypoint], nx.DiGraph]:
     """Extract  the agent's route DAG and all waypoints in it.
 
     Parameters
