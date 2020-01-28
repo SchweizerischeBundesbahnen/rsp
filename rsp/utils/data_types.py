@@ -12,6 +12,7 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
@@ -56,7 +57,9 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
                                    ('max_rail_between_cities', int),
                                    ('max_rail_in_city', int),
                                    ('earliest_malfunction', int),
-                                   ('malfunction_duration', int)])
+                                   ('malfunction_duration', int),
+                                   ('number_of_shortest_paths_per_agent', int)
+                                   ])
 
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
                                                    ('experiments', List[ExperimentParameters])])
@@ -77,9 +80,11 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
     ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
-    ('experiment_freeze', ExperimentFreezeDict),
+    ('experiment_freeze_full', ExperimentFreezeDict),
+    ('experiment_freeze_full_after_malfunction', ExperimentFreezeDict),
+    ('experiment_freeze_delta_after_malfunction', ExperimentFreezeDict),
     ('malfunction', ExperimentMalfunction),
-    ('agent_paths_dict', AgentsPathsDict)
+    ('agents_paths_dict', AgentsPathsDict)
 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
@@ -88,7 +93,8 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('out_city_rail_range', List[int]),
                                                  ('city_range', List[int]),
                                                  ('earliest_malfunction', List[int]),
-                                                 ('malfunction_duration', List[int])
+                                                 ('malfunction_duration', List[int]),
+                                                 ('number_of_shortest_paths_per_agent', List[int])
                                                  ])
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -109,6 +115,9 @@ def experimentFreezePrettyPrint(experiment_freeze: ExperimentFreeze, prefix: str
 
 def visualize_experiment_freeze(agent_paths: AgentPaths,
                                 f: ExperimentFreeze,
+                                train_run_input: Trainrun,
+                                train_run_full_after_malfunction: Trainrun,
+                                train_run_delta_after_malfunction: Trainrun,
                                 file_name: Optional[str] = None,
                                 title: Optional[str] = None,
                                 scale: int = 2,
@@ -159,31 +168,27 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
 
     plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
 
-    def constraint_for_waypoint(waypoint: Waypoint) -> str:
-        if waypoint in f.freeze_banned:
-            return "X"
-        s: str = "["
-        if waypoint in f.freeze_visit:
-            s = "! ["
-        s += str(f.freeze_earliest[waypoint])
-        s += ","
-        s += str(f.freeze_latest[waypoint])
-        s += "]"
-        return s
+    tr_input_d: Dict[Waypoint, int] = {
+        trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+        for trainrun_waypoint in train_run_input
+    }
+    tr_fam_d: Dict[Waypoint, int] = {
+        trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+        for trainrun_waypoint in train_run_full_after_malfunction
+    }
+    tr_dam_d: Dict[Waypoint, int] = {
+        trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+        for trainrun_waypoint in train_run_delta_after_malfunction
+    }
 
-    def color_for_node(n: Waypoint):
-        # https://matplotlib.org/examples/color/named_colors.html
-        if n in f.freeze_banned:
-            return 'salmon'
-        elif n in f.freeze_visit:
-            return 'orange'
-        else:
-            return 'lightgreen'
+    plt_color_map = [_color_for_node(node, f) for node in topo.nodes()]
 
-    plt_color_map = [color_for_node(node) for node in topo.nodes()]
-
-    plt_labels = {wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n{constraint_for_waypoint(wp)}" for wp in
-                  all_waypoints}
+    plt_labels = {
+        wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
+            f"{_constraint_for_waypoint(wp, f)}\n"
+            f"{_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}"
+        for wp in
+        all_waypoints}
     nx.draw(topo, plt_pos,
             labels=plt_labels,
             edge_color='black',
@@ -197,6 +202,45 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
         plt.savefig(file_name)
     else:
         plt.show()
+
+
+def _constraint_for_waypoint(waypoint: Waypoint, f: ExperimentFreeze) -> str:
+    if waypoint in f.freeze_banned:
+        return "X"
+    s: str = "["
+    if waypoint in f.freeze_visit:
+        s = "! ["
+    s += str(f.freeze_earliest[waypoint])
+    s += ","
+    s += str(f.freeze_latest[waypoint])
+    s += "]"
+    return s
+
+
+def _color_for_node(n: Waypoint, f: ExperimentFreeze):
+    # https://matplotlib.org/examples/color/named_colors.html
+    if n in f.freeze_banned:
+        return 'salmon'
+    elif n in f.freeze_visit:
+        return 'orange'
+    else:
+        return 'lightgreen'
+
+
+def _schedule_for_waypoint(
+        waypoint: Waypoint,
+        train_run_input_dict: Dict[Waypoint, int],
+        train_run_full_after_malfunction_dict: Dict[Waypoint, int],
+        train_run_delta_after_malfunction_dict: Dict[Waypoint, int]
+) -> str:
+    s = []
+    if waypoint in train_run_input_dict:
+        s.append(f"S0: {train_run_input_dict[waypoint]}")
+    if waypoint in train_run_full_after_malfunction_dict:
+        s.append(f"S: {train_run_full_after_malfunction_dict[waypoint]}")
+    if waypoint in train_run_delta_after_malfunction_dict:
+        s.append(f"S': {train_run_delta_after_malfunction_dict[waypoint]}")
+    return "\n".join(s)
 
 
 def _extract_all_waypoints_and_digraph_from_spanning_paths(

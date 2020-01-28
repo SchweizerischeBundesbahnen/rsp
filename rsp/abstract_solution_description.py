@@ -10,6 +10,7 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+
 # TODO SIM-239 remove action plan creation from solver stuff -> should be derived from constraints data structure direclty
 class AbstractSolutionDescription:
 

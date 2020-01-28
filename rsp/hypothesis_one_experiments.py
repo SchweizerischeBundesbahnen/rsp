@@ -15,7 +15,8 @@ def get_pipeline_params() -> Tuple[ParameterRanges, Dict[float, float]]:
                                        out_city_rail_range=[2, 2, 1],
                                        city_range=[20, 20, 1],
                                        earliest_malfunction=[20, 20, 1],
-                                       malfunction_duration=[20, 20, 1])
+                                       malfunction_duration=[20, 20, 1],
+                                       number_of_shortest_paths_per_agent=[10, 10, 1])
     # Define the desired speed profiles
     speed_data = {1.: 1.,  # Fast passenger train
                   1. / 2.: 0.,  # Fast freight train

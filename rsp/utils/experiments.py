@@ -63,8 +63,11 @@ COLUMNS = ['experiment_id',
            'costs_full',
            'costs_full_after_malfunction',
            'costs_delta_after_malfunction',
-           'experiment_freeze',
+           'experiment_freeze_full',
+           'experiment_freeze_full_after_malfunction',
+           'experiment_freeze_delta_after_malfunction',
            'malfunction',
+           'agents_paths_dict',
            'size',
            'n_agents',
            'max_num_cities',
@@ -146,8 +149,11 @@ def run_experiment(solver: AbstractSolver,
                            'costs_full': current_results.costs_full,
                            'costs_full_after_malfunction': current_results.costs_full_after_malfunction,
                            'costs_delta_after_malfunction': current_results.costs_delta_after_malfunction,
-                           'experiment_freeze': current_results.experiment_freeze,
+                           'experiment_freeze_full': current_results.experiment_freeze_full,
+                           'experiment_freeze_full_after_malfunction': current_results.experiment_freeze_full_after_malfunction,
+                           'experiment_freeze_delta_after_malfunction': current_results.experiment_freeze_delta_after_malfunction,
                            'malfunction': current_results.malfunction,
+                           'agents_paths_dict': current_results.agents_paths_dict,
                            'size': experiment_parameters.width,
                            'n_agents': experiment_parameters.number_of_agents,
                            'max_num_cities': experiment_parameters.max_num_cities,
@@ -160,7 +166,7 @@ def run_experiment(solver: AbstractSolver,
                                                                                experiment_parameters.experiment_id))
 
             _pp.pprint({key: data_frame[-1][key] for key in COLUMNS
-                        if not key.startswith('solution_') and not key == 'experiment_freeze'
+                        if not key.startswith('solution_') and 'experiment_freeze' not in key
                         })
 
             _analyze_times(current_results)
@@ -238,7 +244,7 @@ def _analyze_times(current_results: ExperimentResults):
 def _analyze_paths(experiment_results: ExperimentResults, env: RailEnv):
     schedule_trainruns = experiment_results.solution_full
     malfunction = experiment_results.malfunction
-    agents_path_dict = experiment_results.agent_paths_dict
+    agents_path_dict = experiment_results.agents_paths_dict
 
     print("**** number of remaining route alternatives after malfunction")
     for agent_id, schedule_trainrun in schedule_trainruns.items():
@@ -383,7 +389,11 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
 
     filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
-    experiment_agenda_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+    experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+    experiment_agenda_filtered = ExperimentAgenda(
+        experiment_name=experiment_agenda.experiment_name,
+        experiments=list(experiments_filtered)
+    )
     save_experiment_agenda_to_file(experiment_folder_name, experiment_agenda_filtered)
 
     if run_experiments_parallel:
@@ -394,9 +404,9 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
                                                       show_results_without_details=show_results_without_details,
                                                       experiment_folder_name=experiment_folder_name
                                                       )
-        pool.map(run_and_save_one_experiment_partial, experiment_agenda_filtered)
+        pool.map(run_and_save_one_experiment_partial, experiment_agenda_filtered.experiments)
     else:
-        for current_experiment_parameters in experiment_agenda_filtered:
+        for current_experiment_parameters in experiment_agenda_filtered.experiments:
             run_and_save_one_experiment(current_experiment_parameters,
                                         solver,
                                         verbose,
@@ -463,7 +473,8 @@ def create_experiment_agenda(experiment_name: str,
                                                   max_rail_between_cities=parameter_set[3],
                                                   max_rail_in_city=parameter_set[2],
                                                   earliest_malfunction=parameter_set[5],
-                                                  malfunction_duration=parameter_set[6])
+                                                  malfunction_duration=parameter_set[6],
+                                                  number_of_shortest_paths_per_agent=parameter_set[7])
         experiment_list.append(current_experiment)
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))
