@@ -125,17 +125,23 @@ def _analyze_paths(experiment_results: ExperimentResults, debug: bool = False):
     assert len(all_nb_alternatives_schedule) == len(agents_paths_dict.keys())
     assert len(all_nb_alternatives_rsp_full) == len(agents_paths_dict.keys())
     assert len(all_nb_alternatives_rsp_delta) == len(agents_paths_dict.keys())
-    search_space_space_schedule = _prod(all_nb_alternatives_schedule)
-    search_space_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
-    search_space_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
-    assert search_space_space_schedule >= search_space_space_rsp_full
-    assert search_space_space_rsp_full >= search_space_space_rsp_delta
+    path_search_space_schedule = _prod(all_nb_alternatives_schedule)
+    path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
+    path_search_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
+    assert path_search_space_schedule >= path_search_space_rsp_full
+    assert path_search_space_rsp_full >= path_search_space_rsp_delta
     # TODO SIM-252 plot analysis
-    print("**** search space"
-          f"search_space_space_schedule={search_space_space_schedule:.2E}, "
-          f"search_space_space_rsp_full={search_space_space_rsp_full:.2E}",
-          f"search_space_space_rsp_delta={search_space_space_rsp_delta:.2E}, "
-          )
+    print("**** path search space: "
+          f"path_search_space_schedule={path_search_space_schedule:.2E}, "
+          f"path_search_space_rsp_full={path_search_space_rsp_full:.2E}, "
+          f"path_search_space_rsp_delta={path_search_space_rsp_delta:.2E}")
+    resource_conflicts_search_space_schedule = 2 ^ experiment_results.nb_resource_conflicts_full
+    resource_conflicts_search_space_rsp_full = 2 ^ experiment_results.nb_resource_conflicts_full_after_malfunction
+    resource_conflicts_search_space_rsp_delta = 2 ^ experiment_results.nb_resource_conflicts_delta_after_malfunction
+    print("**** resource conflicts search space: "
+          f"resource_conflicts_search_space_schedule={resource_conflicts_search_space_schedule :.2E}, "
+          f"resource_conflicts_search_space_rsp_full={resource_conflicts_search_space_rsp_full :.2E}, "
+          f"resource_conflicts_search_space_rsp_delta={resource_conflicts_search_space_rsp_delta :.2E}")
 
 
 def analyze_experiment(experiment: ExperimentParameters,

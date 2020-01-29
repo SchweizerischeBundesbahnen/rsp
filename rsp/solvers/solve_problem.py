@@ -143,8 +143,7 @@ def solve_problem(env: RailEnv,
                                       solve_time=solve_time,
                                       optimization_costs=solution.get_objective_value(),
                                       build_problem_time=build_problem_time,
-                                      # TODO SIM-252
-                                      nb_conflicts=-1,
+                                      nb_conflicts=solution.extract_nb_resource_conflicts(),
                                       trainruns_dict=solution.get_trainruns_dict(),
                                       experiment_freeze=problem.experiment_freeze_dict), solution
 

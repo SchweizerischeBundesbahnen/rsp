@@ -154,9 +154,9 @@ class ASPExperimentSolver(AbstractSolver):
                                             experiment_freeze_delta_after_malfunction=delta_reschedule_result.experiment_freeze,
                                             malfunction=malfunction,
                                             agents_paths_dict=schedule_problem.agents_path_dict,
-                                            nb_conflicts_full=schedule_result.nb_conflicts,
-                                            nb_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
-                                            nb_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
+                                            nb_resource_conflicts_full=schedule_result.nb_conflicts,
+                                            nb_resource_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
+                                            nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
                                             )
         return current_results
 

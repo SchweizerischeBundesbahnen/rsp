@@ -12,6 +12,7 @@ from rsp.solvers.asp.asp_solver import FluxHelperResult
 
 
 class ASPSolutionDescription(AbstractSolutionDescription):
+
     def __init__(self, env: RailEnv, asp_solution: FluxHelperResult):
         super(self.__class__, self).__init__(env)
         self.asp_solution: FluxHelperResult = asp_solution
@@ -96,3 +97,6 @@ class ASPSolutionDescription(AbstractSolutionDescription):
 
     def get_objective_value(self) -> float:
         return self.asp_solution.stats['summary']['costs'][0]
+
+    def extract_nb_resource_conflicts(self) -> int:
+        return len(list(filter(lambda s: s.startswith('shared('), self.answer_set)))
