@@ -21,14 +21,7 @@ if __name__ == '__main__':
     run_specific_experiments_from_research_agenda(
         solver=solver,
         experiment_agenda=experiment_agenda,
-        experiment_ids=[32,
-                        60,
-                        93,
-                        183,
-                        184,
-                        212,
-                        241
-                        ],
-        run_experiments_parallel=False,
-        show_results_without_details=True,
+        experiment_ids=list(range(200,301)),
+        run_experiments_parallel=True,
+        show_results_without_details=False,
         verbose=False)
