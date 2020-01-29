@@ -26,13 +26,13 @@ load_experiment_results_to_file
     Load the results form an experiment result file
 """
 import datetime
-import errno
 import multiprocessing
 import os
 import pickle
 import pprint
 import shutil
 import sys
+import time
 import traceback
 from functools import partial
 from typing import List
@@ -55,6 +55,7 @@ from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.experiment_solver import AbstractSolver
+from rsp.utils.file_utils import check_create_folder
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -86,6 +87,7 @@ def run_experiment(solver: AbstractSolver,
     # Run the sequence of experiment
     for trial in range(experiment_parameters.trials_in_experiment):
         print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
+        start_trial = time.time()
         if show_results_without_details:
             print("*** experiment parameters of trial {} for experiment {}".format(trial + 1,
                                                                                    experiment_parameters.experiment_id))
@@ -119,6 +121,9 @@ def run_experiment(solver: AbstractSolver,
                                                                          verbose=verbose,
                                                                          debug=debug
                                                                          )
+        if current_results is None:
+            print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
+            return []
         # Store results
         data_frame.append(
             convert_experiment_results_to_data_frame(
@@ -131,8 +136,9 @@ def run_experiment(solver: AbstractSolver,
             print("*** experiment result of trial {} for experiment {}".format(trial + 1,
                                                                                experiment_parameters.experiment_id))
 
-            _pp.pprint({key: data_frame[-1][key] for key in COLUMNS
-                        if not key.startswith('solution_') and 'experiment_freeze' not in key
+            _pp.pprint({key: data_frame[-1][key]
+                        for key in COLUMNS
+                        if not key.startswith('solution_') and 'experiment_freeze' not in key and key != 'agents_paths_dict'
                         })
 
             _analyze_times(current_results)
@@ -140,6 +146,9 @@ def run_experiment(solver: AbstractSolver,
         if rendering:
             from flatland.utils.rendertools import RenderTool, AgentRenderVariant
             env_renderer.close_window()
+        trial_time = (time.time() - start_trial)
+        print("Running trial {} for experiment {}: took {:5.3f}ms"
+              .format(trial + 1, experiment_parameters.experiment_id, trial_time))
     return data_frame
 
 
@@ -274,12 +283,16 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 def create_experiment_agenda(experiment_name: str,
                              parameter_ranges: ParameterRanges,
                              speed_data: SpeedData,
-                             trials_per_experiment: int = 10) -> ExperimentAgenda:
+                             trials_per_experiment: int = 10,
+                             vary_malfunction: int = 1,
+                             vary_malfunction_step: int = 20
+                             ) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
 
     Parameters
     ----------
+
     experiment_name: str
         Name of the experiment
     parameter_ranges: ParameterRanges
@@ -291,13 +304,19 @@ def create_experiment_agenda(experiment_name: str,
     speed_data
         Dictionary containing all the desired speeds in the environment
 
+    vary_malfunction
+        Deprecated. Use malfunction range instead.
+        Run the same experiment `vary_malfunction` times with ids <experiment_id>_<0...var_malfunction-1>
+
+    vary_malfunction_step
+        Deprecated. Use malfunction range instead.
+        If the same experiment is run multiple times (`vary_malfunction > 1`), the earliest malfunction is set to
+        `parameter_set[5] + i * vary_malfunction_step` at the `i`th iteration.
+
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges
-    :param speed_data:
     """
-    # TODO Check that parameters are correctly filled into ExperimentParameters
-    # TODO add malfunction parameters correctly to ExperimentParameters
     number_of_dimensions = len(parameter_ranges)
     parameter_values = [[] for i in range(number_of_dimensions)]
 
@@ -311,21 +330,26 @@ def create_experiment_agenda(experiment_name: str,
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
     for param_id, parameter_set in enumerate(full_param_set):
-        current_experiment = ExperimentParameters(experiment_id=param_id,
-                                                  trials_in_experiment=trials_per_experiment,
-                                                  number_of_agents=parameter_set[1],
-                                                  speed_data=speed_data,
-                                                  width=parameter_set[0],
-                                                  height=parameter_set[0],
-                                                  seed_value=12,
-                                                  max_num_cities=parameter_set[4],
-                                                  grid_mode=False,
-                                                  max_rail_between_cities=parameter_set[3],
-                                                  max_rail_in_city=parameter_set[2],
-                                                  earliest_malfunction=parameter_set[5],
-                                                  malfunction_duration=parameter_set[6],
-                                                  number_of_shortest_paths_per_agent=parameter_set[7])
-        experiment_list.append(current_experiment)
+        for i in range(vary_malfunction):
+            earliest_malfunction = parameter_set[5] + i * vary_malfunction_step
+            experiment_id = param_id
+            if vary_malfunction > 1:
+                experiment_id = f"{param_id}_{earliest_malfunction}"
+            current_experiment = ExperimentParameters(experiment_id=experiment_id,
+                                                      trials_in_experiment=trials_per_experiment,
+                                                      number_of_agents=parameter_set[1],
+                                                      speed_data=speed_data,
+                                                      width=parameter_set[0],
+                                                      height=parameter_set[0],
+                                                      seed_value=12,
+                                                      max_num_cities=parameter_set[4],
+                                                      grid_mode=False,
+                                                      max_rail_between_cities=parameter_set[3],
+                                                      max_rail_in_city=parameter_set[2],
+                                                      earliest_malfunction=earliest_malfunction,
+                                                      malfunction_duration=parameter_set[6],
+                                                      number_of_shortest_paths_per_agent=parameter_set[7])
+            experiment_list.append(current_experiment)
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))
     return experiment_agenda
@@ -421,12 +445,7 @@ def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agend
         The experiment agenda to save
     """
     file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
-    if not os.path.exists(os.path.dirname(file_name)):
-        try:
-            os.makedirs(os.path.dirname(file_name))
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise exc
+    check_create_folder(experiment_folder_name)
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -471,12 +490,7 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
     Returns
     -------
     """
-    if not os.path.exists(os.path.dirname(file_name)):
-        try:
-            os.makedirs(os.path.dirname(file_name))
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise exc
+    check_create_folder(os.path.dirname(file_name))
 
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -518,13 +532,15 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     experiment_results = pd.DataFrame(columns=COLUMNS)
 
     files = os.listdir(experiment_folder_name)
-    for file in files:
+    for file in [file for file in files if 'agenda' not in file]:
         file_name = os.path.join(experiment_folder_name, file)
         if file_name.endswith('experiment_agenda.pkl'):
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
-        experiment_results = experiment_results.append(file_data, ignore_index=True)
+        # TODO SIM-250 malfunction data files may be empty
+        if len(file_data) > 0:
+            experiment_results = experiment_results.append(file_data, ignore_index=True)
 
     return experiment_results
 

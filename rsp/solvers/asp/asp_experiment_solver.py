@@ -85,9 +85,11 @@ class ASPExperimentSolver(AbstractSolver):
             stop_on_malfunction=True,
             solver_name=schedule_problem.get_solver_name(),
             disable_verification_in_replay=True)
+        if malfunction is None:
+            return None
         malfunction_env_reset()
         # replay may return None (if the given malfunction does not happen during the agents time in the grid
-        if not malfunction:
+        if malfunction is None:
             raise Exception("Could not produce a malfunction")
 
         if verbose:
@@ -152,9 +154,9 @@ class ASPExperimentSolver(AbstractSolver):
                                             experiment_freeze_delta_after_malfunction=delta_reschedule_result.experiment_freeze,
                                             malfunction=malfunction,
                                             agents_paths_dict=schedule_problem.agents_path_dict,
-                                            nb_conflicts_full=schedule_result.nb_conflicts,
-                                            nb_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
-                                            nb_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
+                                            nb_resource_conflicts_full=schedule_result.nb_conflicts,
+                                            nb_resource_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
+                                            nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
                                             )
         return current_results
 

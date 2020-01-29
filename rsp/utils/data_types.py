@@ -10,6 +10,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
+from pandas import Series
 
 ExperimentFreeze = NamedTuple('ExperimentFreeze', [
     ('freeze_visit', List[TrainrunWaypoint]),
@@ -38,7 +39,7 @@ def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypo
 
 SpeedData = Mapping[float, float]
 ExperimentParameters = NamedTuple('ExperimentParameters',
-                                  [('experiment_id', int),
+                                  [('experiment_id', str),
                                    ('trials_in_experiment', int),
                                    ('number_of_agents', int),
                                    ('speed_data', SpeedData),
@@ -78,9 +79,9 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('experiment_freeze_delta_after_malfunction', ExperimentFreezeDict),
     ('malfunction', ExperimentMalfunction),
     ('agents_paths_dict', AgentsPathsDict),
-    ('nb_conflicts_full', int),
-    ('nb_conflicts_full_after_malfunction', int),
-    ('nb_conflicts_delta_after_malfunction', int)
+    ('nb_resource_conflicts_full', int),
+    ('nb_resource_conflicts_full_after_malfunction', int),
+    ('nb_resource_conflicts_delta_after_malfunction', int)
 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
@@ -106,9 +107,9 @@ COLUMNS = ['experiment_id',
            'experiment_freeze_full',
            'experiment_freeze_full_after_malfunction',
            'experiment_freeze_delta_after_malfunction',
-           'nb_conflicts_full',
-           'nb_conflicts_full_after_malfunction',
-           'nb_conflicts_delta_after_malfunction',
+           'nb_resource_conflicts_full',
+           'nb_resource_conflicts_full_after_malfunction',
+           'nb_resource_conflicts_delta_after_malfunction',
            'malfunction',
            'agents_paths_dict',
            'size',
@@ -133,8 +134,8 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
     """
     return {'experiment_id': experiment_parameters.experiment_id,
             'time_full': experiment_results.time_full,
-            'time_full_after_malfunction': experiment_results.time_delta_after_malfunction,
-            'time_delta_after_malfunction': experiment_results.time_full_after_malfunction,
+            'time_full_after_malfunction': experiment_results.time_full_after_malfunction,
+            'time_delta_after_malfunction': experiment_results.time_delta_after_malfunction,
             'solution_full': experiment_results.solution_full,
             'solution_full_after_malfunction': experiment_results.solution_full_after_malfunction,
             'solution_delta_after_malfunction': experiment_results.solution_delta_after_malfunction,
@@ -144,9 +145,9 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
             'experiment_freeze_full': experiment_results.experiment_freeze_full,
             'experiment_freeze_full_after_malfunction': experiment_results.experiment_freeze_full_after_malfunction,
             'experiment_freeze_delta_after_malfunction': experiment_results.experiment_freeze_delta_after_malfunction,
-            'nb_conflicts_full': experiment_results.nb_conflicts_full,
-            'nb_conflicts_full_after_malfunction': experiment_results.nb_conflicts_full_after_malfunction,
-            'nb_conflicts_delta_after_malfunction': experiment_results.nb_conflicts_delta_after_malfunction,
+            'nb_resource_conflicts_full': experiment_results.nb_resource_conflicts_full,
+            'nb_resource_conflicts_full_after_malfunction': experiment_results.nb_resource_conflicts_full_after_malfunction,
+            'nb_resource_conflicts_delta_after_malfunction': experiment_results.nb_resource_conflicts_delta_after_malfunction,
             'malfunction': experiment_results.malfunction,
             'agents_paths_dict': experiment_results.agents_paths_dict,
             'size': experiment_parameters.width,
@@ -180,11 +181,43 @@ def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentR
         experiment_freeze_full=rows['experiment_freeze_full'].iloc[0],
         experiment_freeze_full_after_malfunction=rows['experiment_freeze_full_after_malfunction'].iloc[0],
         experiment_freeze_delta_after_malfunction=rows['experiment_freeze_delta_after_malfunction'].iloc[0],
-        nb_conflicts_full=rows['nb_conflicts_full'].iloc[0],
-        nb_conflicts_full_after_malfunction=rows['nb_conflicts_full_after_malfunction'].iloc[0],
-        nb_conflicts_delta_after_malfunction=rows['nb_conflicts_delta_after_malfunction'].iloc[0],
+        nb_resource_conflicts_full=rows['nb_resource_conflicts_full'].iloc[0],
+        nb_resource_conflicts_full_after_malfunction=rows['nb_resource_conflicts_full_after_malfunction'].iloc[0],
+        nb_resource_conflicts_delta_after_malfunction=rows['nb_resource_conflicts_delta_after_malfunction'].iloc[0],
         malfunction=rows['malfunction'].iloc[0],
         agents_paths_dict=rows['agents_paths_dict'].iloc[0],
+    )
+
+
+def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
+    """Converts data frame back to experiment results structure.
+
+    Parameters
+    ----------
+    rows: DataFrame
+
+    Returns
+    -------
+    ExperimentResults
+    """
+    return ExperimentResults(
+        time_full=row['time_full'],
+        time_full_after_malfunction=row['time_full_after_malfunction'],
+        time_delta_after_malfunction=row['time_delta_after_malfunction'],
+        solution_full=row['solution_full'],
+        solution_full_after_malfunction=row['solution_full_after_malfunction'],
+        solution_delta_after_malfunction=row['solution_delta_after_malfunction'],
+        costs_full=row['costs_full'],
+        costs_full_after_malfunction=row['costs_full_after_malfunction'],
+        costs_delta_after_malfunction=row['costs_delta_after_malfunction'],
+        experiment_freeze_full=row['experiment_freeze_full'],
+        experiment_freeze_full_after_malfunction=row['experiment_freeze_full_after_malfunction'],
+        experiment_freeze_delta_after_malfunction=row['experiment_freeze_delta_after_malfunction'],
+        nb_resource_conflicts_full=row['nb_resource_conflicts_full'],
+        nb_resource_conflicts_full_after_malfunction=row['nb_resource_conflicts_full_after_malfunction'],
+        nb_resource_conflicts_delta_after_malfunction=row['nb_resource_conflicts_delta_after_malfunction'],
+        malfunction=row['malfunction'],
+        agents_paths_dict=row['agents_paths_dict'],
     )
 
 

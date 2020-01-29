@@ -44,12 +44,12 @@ curl --insecure -v --request POST -H "Authorization: token ${
             steps {
                 tox_conda_wrapper(
                         ENVIRONMENT_YAML: 'rsp_environment.yml',
-                        WHAT: {
+                        JENKINS_CLOSURE: {
                             sh """
-conda config --show channels
 python -m tox . --recreate -v
 """
-                        })
+                        }
+                )
             }
         }
     }

@@ -81,7 +81,7 @@ def _analyze_times(current_results: ExperimentResults):
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
-# numpy produces overflow -> python ints are unbounded, see stackoverflow
+# numpy produces overflow -> python ints are unbounded, see https://stackoverflow.com/questions/2104782/returning-the-product-of-a-list
 def _prod(l: List[int]):
     return reduce(mul, l, 1)
 
@@ -125,34 +125,41 @@ def _analyze_paths(experiment_results: ExperimentResults, debug: bool = False):
     assert len(all_nb_alternatives_schedule) == len(agents_paths_dict.keys())
     assert len(all_nb_alternatives_rsp_full) == len(agents_paths_dict.keys())
     assert len(all_nb_alternatives_rsp_delta) == len(agents_paths_dict.keys())
-    search_space_space_schedule = _prod(all_nb_alternatives_schedule)
-    search_space_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
-    search_space_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
-    assert search_space_space_schedule >= search_space_space_rsp_full
-    assert search_space_space_rsp_full >= search_space_space_rsp_delta
+    path_search_space_schedule = _prod(all_nb_alternatives_schedule)
+    path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
+    path_search_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
+    assert path_search_space_schedule >= path_search_space_rsp_full
+    assert path_search_space_rsp_full >= path_search_space_rsp_delta
     # TODO SIM-252 plot analysis
-    print("**** search space"
-          f"search_space_space_schedule={search_space_space_schedule:.2E}, "
-          f"search_space_space_rsp_full={search_space_space_rsp_full:.2E}",
-          f"search_space_space_rsp_delta={search_space_space_rsp_delta:.2E}, "
-          )
+    print("**** path search space: "
+          f"path_search_space_schedule={path_search_space_schedule:.2E}, "
+          f"path_search_space_rsp_full={path_search_space_rsp_full:.2E}, "
+          f"path_search_space_rsp_delta={path_search_space_rsp_delta:.2E}")
+    resource_conflicts_search_space_schedule = 2 ^ experiment_results.nb_resource_conflicts_full
+    resource_conflicts_search_space_rsp_full = 2 ^ experiment_results.nb_resource_conflicts_full_after_malfunction
+    resource_conflicts_search_space_rsp_delta = 2 ^ experiment_results.nb_resource_conflicts_delta_after_malfunction
+    print("**** resource conflicts search space: "
+          f"resource_conflicts_search_space_schedule={resource_conflicts_search_space_schedule :.2E}, "
+          f"resource_conflicts_search_space_rsp_full={resource_conflicts_search_space_rsp_full :.2E}, "
+          f"resource_conflicts_search_space_rsp_delta={resource_conflicts_search_space_rsp_delta :.2E}")
 
 
 def analyze_experiment(experiment: ExperimentParameters,
                        data_frame: DataFrame):
     # find first row for this experiment (iloc[0]
     rows = data_frame.loc[data_frame['experiment_id'] == experiment.experiment_id]
-
-    train_runs_input: TrainrunDict = rows['solution_full'].iloc[0]
-    train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
-    train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
-    experiment_freeze_delta_afer_malfunction: ExperimentFreezeDict = \
-        rows['experiment_freeze_delta_after_malfunction'].iloc[0]
-    malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
+    print('malfunction_time_step')
+    print(rows['malfunction_time_step'].iloc[0])
     n_agents: int = int(rows['n_agents'].iloc[0])
-    agents_paths_dict: AgentsPathsDict = rows['agents_paths_dict'].iloc[0]
 
     experiment_results: ExperimentResults = convert_data_frame_row_to_experiment_results(rows)
+    train_runs_input: TrainrunDict = experiment_results.solution_full
+    train_runs_full_after_malfunction: TrainrunDict = experiment_results.solution_full_after_malfunction
+    train_runs_delta_after_malfunction: TrainrunDict = experiment_results.solution_delta_after_malfunction
+    experiment_freeze_delta_afer_malfunction: ExperimentFreezeDict = experiment_results.experiment_freeze_delta_after_malfunction
+    malfunction: ExperimentMalfunction = experiment_results.malfunction
+    agents_paths_dict: AgentsPathsDict = experiment_results.agents_paths_dict
+
     _analyze_times(experiment_results)
     _analyze_paths(experiment_results)
 
