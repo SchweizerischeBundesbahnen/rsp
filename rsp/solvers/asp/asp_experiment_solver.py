@@ -1,7 +1,5 @@
 import pprint
 from typing import Callable
-from typing import Dict
-from typing import List
 from typing import Tuple
 
 import numpy as np
@@ -9,15 +7,17 @@ from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
-from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_solution_description import ASPSolutionDescription
 from rsp.oracle.oracle import determine_delta
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
 from rsp.rescheduling.rescheduling_utils import verify_experiment_freeze_for_agent
+from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
+from rsp.solvers.solve_problem import replay
+from rsp.solvers.solve_problem import SchedulingExperimentResult
+from rsp.solvers.solve_problem import solve_problem
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentResults
@@ -25,9 +25,6 @@ from rsp.utils.experiment_solver import AbstractSolver
 from rsp.utils.experiment_solver import RendererForEnvCleanup
 from rsp.utils.experiment_solver import RendererForEnvInit
 from rsp.utils.experiment_solver import RendererForEnvRender
-from rsp.utils.experiment_utils import replay
-from rsp.utils.experiment_utils import SchedulingExperimentResult
-from rsp.utils.experiment_utils import solve_problem
 
 
 class ASPExperimentSolver(AbstractSolver):
@@ -67,10 +64,10 @@ class ASPExperimentSolver(AbstractSolver):
         ExperimentResults
         """
         # TODO SIM-239 pass experiment_freeze into this
-        schedule_problem, schedule_result = schedule_full(k, static_rail_env, rendering=rendering, debug=debug)
-        schedule_solution = schedule_result.solution
+        schedule_problem, schedule_result, schedule_solution = schedule_full(k, static_rail_env, rendering=rendering,
+                                                                             debug=debug)
 
-        schedule_trainruns: Dict[int, List[TrainrunWaypoint]] = schedule_solution.get_trainruns_dict()
+        schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
         if verbose:
             print(f"  **** schedule_solution={schedule_trainruns}")
@@ -91,6 +88,9 @@ class ASPExperimentSolver(AbstractSolver):
         if malfunction is None:
             return None
         malfunction_env_reset()
+        # replay may return None (if the given malfunction does not happen during the agents time in the grid
+        if malfunction is None:
+            raise Exception("Could not produce a malfunction")
 
         if verbose:
             print(f"  **** malfunction={malfunction}")
@@ -100,7 +100,7 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
 
         # TODO SIM-239 pass experiment_freeze into this
-        full_reschedule_result = reschedule_full_after_malfunction(
+        _, full_reschedule_result, _ = reschedule_full_after_malfunction(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
             malfunction_rail_env=malfunction_rail_env,
@@ -110,17 +110,17 @@ class ASPExperimentSolver(AbstractSolver):
             debug=debug
         )
         malfunction_env_reset()
-        full_reschedule_solution = full_reschedule_result.solution
+
+        full_reschedule_trainruns = full_reschedule_result.trainruns_dict
 
         if verbose:
-            print(f"  **** full re-schedule_solution=\n{full_reschedule_solution.get_trainruns_dict()}")
-        full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_solution.get_trainruns_dict()
+            print(f"  **** full re-schedule_solution=\n{full_reschedule_trainruns}")
 
         # --------------------------------------------------------------------------------------
         # Re-Schedule Delta
         # --------------------------------------------------------------------------------------
         # TODO SIM-239 pass experiment_freeze into this
-        delta_reschedule_result = reschedule_delta_after_malfunction(
+        _, delta_reschedule_result, _ = reschedule_delta_after_malfunction(
             full_reschedule_trainruns=full_reschedule_trainruns,
             schedule_trainruns=schedule_trainruns,
             malfunction=malfunction,
@@ -130,11 +130,10 @@ class ASPExperimentSolver(AbstractSolver):
             debug=debug
         )
         malfunction_env_reset()
-        delta_reschedule_solution: ASPSolutionDescription = delta_reschedule_result.solution
 
         if verbose:
             print(f"  **** delta re-schedule solution")
-            print(delta_reschedule_solution.get_trainruns_dict())
+            print(delta_reschedule_result.trainruns_dict)
 
         # --------------------------------------------------------------------------------------
         # Result
@@ -142,9 +141,9 @@ class ASPExperimentSolver(AbstractSolver):
         current_results = ExperimentResults(time_full=schedule_result.solve_time,
                                             time_full_after_malfunction=full_reschedule_result.solve_time,
                                             time_delta_after_malfunction=delta_reschedule_result.solve_time,
-                                            solution_full=schedule_solution.get_trainruns_dict(),
-                                            solution_full_after_malfunction=full_reschedule_solution.get_trainruns_dict(),
-                                            solution_delta_after_malfunction=delta_reschedule_solution.get_trainruns_dict(),
+                                            solution_full=schedule_result.trainruns_dict,
+                                            solution_full_after_malfunction=full_reschedule_result.trainruns_dict,
+                                            solution_delta_after_malfunction=delta_reschedule_result.trainruns_dict,
                                             costs_full=schedule_result.optimization_costs,
                                             costs_full_after_malfunction=full_reschedule_result.optimization_costs,
                                             costs_delta_after_malfunction=delta_reschedule_result.optimization_costs,
@@ -154,7 +153,10 @@ class ASPExperimentSolver(AbstractSolver):
                                             experiment_freeze_full_after_malfunction=full_reschedule_result.experiment_freeze,
                                             experiment_freeze_delta_after_malfunction=delta_reschedule_result.experiment_freeze,
                                             malfunction=malfunction,
-                                            agents_paths_dict=schedule_problem.agents_path_dict
+                                            agents_paths_dict=schedule_problem.agents_path_dict,
+                                            nb_conflicts_full=schedule_result.nb_conflicts,
+                                            nb_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
+                                            nb_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
                                             )
         return current_results
 
@@ -167,17 +169,17 @@ def schedule_full(k: int,
                   static_rail_env: RailEnv,
                   rendering: bool = False,
                   debug: bool = False,
-                  ) -> Tuple[ASPProblemDescription, SchedulingExperimentResult]:
+                  ) -> Tuple[ASPProblemDescription, SchedulingExperimentResult, ASPSolutionDescription]:
     """Solves the Full Scheduling Problem for static rail env (i.e. without
     malfunctions).
 
     Parameters
     ----------
-    k
+    k:int
         number of routing alterantives to consider
-    static_rail_env
-    rendering
-    debug
+    static_rail_env: RailEnv
+    rendering: bool
+    debug: bool
 
     Returns
     -------
@@ -224,7 +226,7 @@ def schedule_full(k: int,
     schedule_problem = ASPProblemDescription(env=static_rail_env,
                                              agents_path_dict=agents_paths_dict)
 
-    schedule_result = solve_problem(
+    schedule_result, schedule_solution = solve_problem(
         env=static_rail_env,
         problem=schedule_problem,
         rendering_call_back=rendering_call_back,
@@ -233,7 +235,7 @@ def schedule_full(k: int,
     # rendering hooks
     cleanup_renderer_for_env(renderer)
 
-    return schedule_problem, schedule_result
+    return schedule_problem, schedule_result, schedule_solution
 
 
 # TODO SIM-239 we should pass ExperimentFreeze as input
@@ -246,7 +248,7 @@ def reschedule_full_after_malfunction(
         debug: bool = False,
         disable_verification_in_replay: bool = False,
         rendering: bool = False,
-) -> SchedulingExperimentResult:
+) -> Tuple[ASPProblemDescription, SchedulingExperimentResult, ASPSolutionDescription]:
     """Solve the Full Re-Scheduling Problem for static rail env (i.e. without
     malfunctions).
 
@@ -309,7 +311,7 @@ def reschedule_full_after_malfunction(
         print("###reschedule_full freeze_dict")
         experimentFreezeDictPrettyPrint(freeze_dict)
 
-    full_reschedule_result = solve_problem(
+    full_reschedule_result, full_reschedule_solution = solve_problem(
         env=malfunction_rail_env,
         problem=full_reschedule_problem,
         rendering_call_back=rendering_call_back,
@@ -325,7 +327,7 @@ def reschedule_full_after_malfunction(
         print("###reschedule_full_after_malfunction")
         print(_pp.pformat(full_reschedule_result.solution.get_trainruns_dict()))
 
-    return full_reschedule_result
+    return full_reschedule_problem, full_reschedule_result, full_reschedule_solution
 
 
 # TODO SIM-239 we should pass ExperimentFreeze as input
@@ -337,7 +339,7 @@ def reschedule_delta_after_malfunction(
         malfunction_rail_env: RailEnv,
         rendering: bool = False,
         debug: bool = False,
-) -> SchedulingExperimentResult:
+) -> Tuple[ASPProblemDescription, SchedulingExperimentResult, ASPSolutionDescription]:
     """
 
     Parameters
@@ -438,7 +440,7 @@ def reschedule_delta_after_malfunction(
         schedule_trainruns=full_reschedule_trainruns
     )
 
-    delta_reschedule_result = solve_problem(
+    delta_reschedule_result, delta_reschedule_solution = solve_problem(
         env=malfunction_rail_env,
         problem=delta_reschedule_problem,
         rendering_call_back=rendering_call_back,
@@ -453,4 +455,4 @@ def reschedule_delta_after_malfunction(
         print("####delta train runs dict")
         print(_pp.pformat(delta_reschedule_result.solution.get_trainruns_dict()))
 
-    return delta_reschedule_result
+    return delta_reschedule_problem, delta_reschedule_result, delta_reschedule_solution

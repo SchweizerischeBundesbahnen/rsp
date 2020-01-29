@@ -1,6 +1,6 @@
 from ortools.sat.python import cp_model
 
-from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
+from rsp.solvers.googleortools.abstract_ortools_solver import AbstractORToolsSolver
 
 
 class CPSATSolver(AbstractORToolsSolver):

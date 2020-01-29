@@ -11,10 +11,10 @@ from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail
 from importlib_resources import path
 
-from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.asp.asp_solution_description import ASPSolutionDescription
-from rsp.asp.asp_solver import _asp_helper
-from rsp.asp.asp_solver import flux_helper
+from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
+from rsp.solvers.asp.asp_solver import _asp_helper
+from rsp.solvers.asp.asp_solver import flux_helper
 
 
 def test_asp_helper():

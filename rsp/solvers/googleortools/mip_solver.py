@@ -1,6 +1,6 @@
 from ortools.linear_solver import pywraplp
 
-from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
+from rsp.solvers.googleortools.abstract_ortools_solver import AbstractORToolsSolver
 
 
 class MIPSolver(AbstractORToolsSolver):
@@ -23,7 +23,6 @@ class MIPSolver(AbstractORToolsSolver):
 
     def SetTimeLimit(self, time_limit_milliseconds):
         self._solver.SetTimeLimit(time_limit_milliseconds)
-        pass
 
     def Add(self, ct):
         self._solver.Add(ct)

@@ -7,8 +7,8 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.abstract_solution_description import AbstractSolutionDescription
-from rsp.googleortools.abstract_ortools_solver import AbstractORToolsSolver
-from rsp.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
+from rsp.solvers.googleortools.abstract_ortools_solver import AbstractORToolsSolver
+from rsp.solvers.googleortools.ortools_utils import make_variable_name_agent_at_waypoint
 from rsp.utils.data_types import AgentPaths
 
 

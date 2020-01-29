@@ -17,6 +17,8 @@ from matplotlib import gridspec
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
+from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
+from rsp.solvers.solve_problem import replay
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import swap_columns
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
@@ -25,11 +27,10 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import visualize_experiment_freeze
-from rsp.utils.experiment_utils import replay
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
+from rsp.utils.route_graph_analysis import visualize_experiment_freeze
 
 
 def _2d_analysis():
@@ -226,4 +227,5 @@ if __name__ == '__main__':
     filtered_experiments = list(filter(lambda experiment: experiment.experiment_id in experiments_ids,
                                        experiment_agenda.experiments))
     for experiment in filtered_experiments:
+        analyze_experiment(experiment=experiment, data_frame=experiment_data)
         render_experiment(experiment=experiment, data_frame=experiment_data)
