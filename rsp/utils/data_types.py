@@ -134,8 +134,8 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
     """
     return {'experiment_id': experiment_parameters.experiment_id,
             'time_full': experiment_results.time_full,
-            'time_full_after_malfunction': experiment_results.time_delta_after_malfunction,
-            'time_delta_after_malfunction': experiment_results.time_full_after_malfunction,
+            'time_full_after_malfunction': experiment_results.time_full_after_malfunction,
+            'time_delta_after_malfunction': experiment_results.time_delta_after_malfunction,
             'solution_full': experiment_results.solution_full,
             'solution_full_after_malfunction': experiment_results.solution_full_after_malfunction,
             'solution_delta_after_malfunction': experiment_results.solution_delta_after_malfunction,
