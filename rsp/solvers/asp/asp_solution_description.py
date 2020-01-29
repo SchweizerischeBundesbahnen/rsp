@@ -8,7 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from rsp.abstract_problem_description import AbstractProblemDescription
 from rsp.abstract_problem_description import Waypoint
 from rsp.abstract_solution_description import AbstractSolutionDescription
-from rsp.asp.asp_solver import FluxHelperResult
+from rsp.solvers.asp.asp_solver import FluxHelperResult
 
 
 class ASPSolutionDescription(AbstractSolutionDescription):

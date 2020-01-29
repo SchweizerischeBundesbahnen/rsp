@@ -21,9 +21,9 @@ from flatland.utils.simple_rail import make_simple_rail
 from flatland.utils.simple_rail import make_simple_rail_with_alternatives
 
 from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.asp.asp_problem_description import ASPProblemDescription
-from rsp.googleortools.cp_sat_solver import CPSATSolver
-from rsp.googleortools.ortools_problem_description import ORToolsProblemDescription
+from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.solvers.googleortools.cp_sat_solver import CPSATSolver
+from rsp.solvers.googleortools.ortools_problem_description import ORToolsProblemDescription
 from rsp.utils.data_types import AgentsPathsDict
 
 
