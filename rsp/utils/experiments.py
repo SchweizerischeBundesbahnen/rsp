@@ -26,7 +26,6 @@ load_experiment_results_to_file
     Load the results form an experiment result file
 """
 import datetime
-import errno
 import multiprocessing
 import os
 import pickle
@@ -56,6 +55,7 @@ from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.experiment_solver import AbstractSolver
+from rsp.utils.file_utils import check_create_folder
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -444,12 +444,7 @@ def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agend
         The experiment agenda to save
     """
     file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
-    if not os.path.exists(os.path.dirname(file_name)):
-        try:
-            os.makedirs(os.path.dirname(file_name))
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise exc
+    check_create_folder(experiment_folder_name)
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -494,12 +489,7 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
     Returns
     -------
     """
-    if not os.path.exists(os.path.dirname(file_name)):
-        try:
-            os.makedirs(os.path.dirname(file_name))
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise exc
+    check_create_folder(os.path.dirname(file_name))
 
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -547,7 +537,9 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
-        experiment_results = experiment_results.append(file_data, ignore_index=True)
+        # TODO SIM-250 malfunction data files may be empty
+        if len(file_data) > 0:
+            experiment_results = experiment_results.append(file_data, ignore_index=True)
 
     return experiment_results
 

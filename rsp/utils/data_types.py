@@ -10,6 +10,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
+from pandas import Series
 
 ExperimentFreeze = NamedTuple('ExperimentFreeze', [
     ('freeze_visit', List[TrainrunWaypoint]),
@@ -185,6 +186,38 @@ def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentR
         nb_conflicts_delta_after_malfunction=rows['nb_conflicts_delta_after_malfunction'].iloc[0],
         malfunction=rows['malfunction'].iloc[0],
         agents_paths_dict=rows['agents_paths_dict'].iloc[0],
+    )
+
+
+def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
+    """Converts data frame back to experiment results structure.
+
+    Parameters
+    ----------
+    rows: DataFrame
+
+    Returns
+    -------
+    ExperimentResults
+    """
+    return ExperimentResults(
+        time_full=row['time_full'],
+        time_full_after_malfunction=row['time_full_after_malfunction'],
+        time_delta_after_malfunction=row['time_delta_after_malfunction'],
+        solution_full=row['solution_full'],
+        solution_full_after_malfunction=row['solution_full_after_malfunction'],
+        solution_delta_after_malfunction=row['solution_delta_after_malfunction'],
+        costs_full=row['costs_full'],
+        costs_full_after_malfunction=row['costs_full_after_malfunction'],
+        costs_delta_after_malfunction=row['costs_delta_after_malfunction'],
+        experiment_freeze_full=row['experiment_freeze_full'],
+        experiment_freeze_full_after_malfunction=row['experiment_freeze_full_after_malfunction'],
+        experiment_freeze_delta_after_malfunction=row['experiment_freeze_delta_after_malfunction'],
+        nb_conflicts_full=row['nb_conflicts_full'],
+        nb_conflicts_full_after_malfunction=row['nb_conflicts_full_after_malfunction'],
+        nb_conflicts_delta_after_malfunction=row['nb_conflicts_delta_after_malfunction'],
+        malfunction=row['malfunction'],
+        agents_paths_dict=row['agents_paths_dict'],
     )
 
 

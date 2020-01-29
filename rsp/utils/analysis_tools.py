@@ -63,6 +63,7 @@ def three_dimensional_scatter_plot(data: DataFrame,
                                    file_name: str = "",
                                    fig: Optional[matplotlib.figure.Figure] = None,
                                    subplot_pos: str = '111',
+                                   subplot_title: str = '',
                                    colors: Optional[List[str]] = None):
     """Adds a 3d-scatterplot as a subplot to a figure.
 
@@ -100,6 +101,10 @@ def three_dimensional_scatter_plot(data: DataFrame,
     ax.set_xlabel(columns[0])
     ax.set_ylabel(columns[1])
     ax.set_zlabel(columns[2])
+    if not subplot_title:
+        ax.set_title(str(columns))
+    else:
+        ax.set_title(subplot_title)
 
     ax.scatter(x_values, y_values, z_values, color=colors)
     for i in np.arange(0, len(z_values)):

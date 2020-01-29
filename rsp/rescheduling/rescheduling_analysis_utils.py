@@ -81,7 +81,7 @@ def _analyze_times(current_results: ExperimentResults):
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
-# numpy produces overflow -> python ints are unbounded, see stackoverflow
+# numpy produces overflow -> python ints are unbounded, see https://stackoverflow.com/questions/2104782/returning-the-product-of-a-list
 def _prod(l: List[int]):
     return reduce(mul, l, 1)
 
@@ -142,17 +142,18 @@ def analyze_experiment(experiment: ExperimentParameters,
                        data_frame: DataFrame):
     # find first row for this experiment (iloc[0]
     rows = data_frame.loc[data_frame['experiment_id'] == experiment.experiment_id]
-
-    train_runs_input: TrainrunDict = rows['solution_full'].iloc[0]
-    train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
-    train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
-    experiment_freeze_delta_afer_malfunction: ExperimentFreezeDict = \
-        rows['experiment_freeze_delta_after_malfunction'].iloc[0]
-    malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
+    print('malfunction_time_step')
+    print(rows['malfunction_time_step'].iloc[0])
     n_agents: int = int(rows['n_agents'].iloc[0])
-    agents_paths_dict: AgentsPathsDict = rows['agents_paths_dict'].iloc[0]
 
     experiment_results: ExperimentResults = convert_data_frame_row_to_experiment_results(rows)
+    train_runs_input: TrainrunDict = experiment_results.solution_full
+    train_runs_full_after_malfunction: TrainrunDict = experiment_results.solution_full_after_malfunction
+    train_runs_delta_after_malfunction: TrainrunDict = experiment_results.solution_delta_after_malfunction
+    experiment_freeze_delta_afer_malfunction: ExperimentFreezeDict = experiment_results.experiment_freeze_delta_after_malfunction
+    malfunction: ExperimentMalfunction = experiment_results.malfunction
+    agents_paths_dict: AgentsPathsDict = experiment_results.agents_paths_dict
+
     _analyze_times(experiment_results)
     _analyze_paths(experiment_results)
 

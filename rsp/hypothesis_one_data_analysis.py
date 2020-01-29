@@ -11,6 +11,9 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
+from typing import List
+
+import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from matplotlib import gridspec
@@ -23,6 +26,7 @@ from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import swap_columns
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
+from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
@@ -30,10 +34,11 @@ from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
+from rsp.utils.file_utils import check_create_folder
 from rsp.utils.route_graph_analysis import visualize_experiment_freeze
 
 
-def _2d_analysis():
+def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame):
     fig = plt.figure(constrained_layout=True)
     ncols = 2
     nrows = 5
@@ -96,7 +101,7 @@ def _2d_analysis():
     plt.show()
 
 
-def _3d_analysis():
+def _3d_analysis(averaged_data: DataFrame, std_data: DataFrame):
     fig = plt.figure()
     three_dimensional_scatter_plot(data=averaged_data,
                                    error=std_data,
@@ -104,7 +109,8 @@ def _3d_analysis():
                                    fig=fig,
                                    subplot_pos='111',
                                    colors=['black' if z_value < 1 else 'red' for z_value in averaged_data['speed_up']])
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data, columns=['n_agents', 'size', 'time_full'],
+    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                   columns=['n_agents', 'size', 'time_full'],
                                    fig=fig,
                                    subplot_pos='121')
     three_dimensional_scatter_plot(data=averaged_data, error=std_data,
@@ -188,12 +194,53 @@ def render_experiment(experiment: ExperimentParameters, data_frame: DataFrame):
     cleanup_renderer_for_env(renderer)
 
 
-if __name__ == '__main__':
+# TODO SIM-250 we should work with malfunction ranges instead of repeating the same experiment under different ids
+def _malfunction_analysis(experiment_data: DataFrame):
+    # add column 'malfunction_time_step'
+    experiment_data['malfunction_time_step'] = 0.0
+    experiment_data['experiment_id_group'] = 0.0
+    experiment_data['malfunction_time_step'] = experiment_data['malfunction_time_step'].astype(float)
+    experiment_data['malfunction_time_step'] = experiment_data['experiment_id_group'].astype(float)
+    for index, row in experiment_data.iterrows():
+        experiment_results = convert_pandas_series_experiment_results(row)
+        time_step = float(experiment_results.malfunction.time_step)
+        experiment_data.set_value(index, 'malfunction_time_step', time_step)
+        experiment_data.set_value(index, 'experiment_id_group', str(row['experiment_id']).split("_")[0])
+    print(experiment_data.dtypes)
+
+    # filter 'malfunction_time_step' <150
+    experiment_data = experiment_data[experiment_data['malfunction_time_step'] < 150]
+
+    # preview
+    print(experiment_data['malfunction_time_step'])
+    print(experiment_data['experiment_id_group'])
+    malfunction_ids = np.unique(experiment_data['experiment_id_group'].to_numpy())
+    print(malfunction_ids)
+
+    # malfunction analysis where malfunction is encoded in experiment id
+    check_create_folder('malfunction')
+    for i in malfunction_ids:
+        fig = plt.figure(constrained_layout=True)
+        experiment_data_i = experiment_data[experiment_data['experiment_id_group'] == i]
+        two_dimensional_scatter_plot(data=experiment_data_i,
+                                     columns=['malfunction_time_step', 'time_full_after_malfunction'],
+                                     fig=fig,
+                                     title='malfunction_time_step - time_full_after_malfunction ' + str(i)
+                                     )
+        plt.savefig(f'malfunction/malfunction_{int(i):03d}.png')
+        plt.close()
+
+
+def main(data_folder: str,
+         analysis_2d: bool = False,
+         analysis_3d: bool = False,
+         malfunction_analysis: bool = False,
+         qualitative_analysis_experiment_ids: List[str] = None):
     # Import the desired experiment results
 
-    data_folder = './exp_hypothesis_one_2020_01_28T11_54_24'
     experiment_data: DataFrame = load_experiment_results_from_folder(data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
+    print(data_folder)
     print(experiment_agenda)
 
     for key in ['size', 'n_agents', 'max_num_cities', 'max_rail_between_cities', 'max_rail_in_city']:
@@ -203,29 +250,41 @@ if __name__ == '__main__':
     swap_columns(experiment_data, 'time_full_after_malfunction', 'time_delta_after_malfunction')
     # \ TODO SIM-151 re-generate data with bugfix, for the time being swap the wrong values
 
+    # add column 'speed_up'
     experiment_data['speed_up'] = \
         experiment_data['time_delta_after_malfunction'] / experiment_data['time_full_after_malfunction']
 
     # Average over the trials of each experiment
     averaged_data, std_data = average_over_trials(experiment_data)
 
-    # / TODO SIM-151 remove explorative code
-    print(experiment_data['speed_up'])
-    print(experiment_data['time_delta_after_malfunction'])
-    print(experiment_data['time_full_after_malfunction'])
+    # previews
+    preview_cols = ['speed_up', 'time_delta_after_malfunction', 'experiment_id']
+    for preview_col in preview_cols:
+        print(preview_col)
+        print(experiment_data[preview_col])
     print(experiment_data.loc[experiment_data['experiment_id'] == 58].to_json())
-    # \ TODO SIM-151 remove explorative code
 
     # quantitative analysis
-    # Initially plot the computation time vs the level size and the number of agent
-
-    _2d_analysis()
-    _3d_analysis()
+    if malfunction_analysis:
+        _malfunction_analysis(experiment_data)
+    if analysis_2d:
+        _2d_analysis(averaged_data, std_data)
+    if analysis_3d:
+        _3d_analysis(averaged_data, std_data)
 
     # qualitative explorative analysis
-    experiments_ids = [233]
-    filtered_experiments = list(filter(lambda experiment: experiment.experiment_id in experiments_ids,
-                                       experiment_agenda.experiments))
-    for experiment in filtered_experiments:
-        analyze_experiment(experiment=experiment, data_frame=experiment_data)
-        render_experiment(experiment=experiment, data_frame=experiment_data)
+    if qualitative_analysis_experiment_ids:
+        filtered_experiments = list(filter(
+            lambda experiment: experiment.experiment_id in qualitative_analysis_experiment_ids,
+            experiment_agenda.experiments))
+        for experiment in filtered_experiments:
+            analyze_experiment(experiment=experiment, data_frame=experiment_data)
+            render_experiment(experiment=experiment, data_frame=experiment_data)
+
+
+if __name__ == '__main__':
+    main(data_folder='./exp_hypothesis_one_2020_01_24T09_19_03_three_trials',
+         analysis_2d=False,
+         analysis_3d=True,
+         malfunction_analysis=False,
+         qualitative_analysis_experiment_ids=[233])
