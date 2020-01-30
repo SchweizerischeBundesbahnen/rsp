@@ -336,20 +336,22 @@ def create_experiment_agenda(experiment_name: str,
             experiment_id = param_id
             if vary_malfunction > 1:
                 experiment_id = f"{param_id}_{earliest_malfunction}"
-            current_experiment = ExperimentParameters(experiment_id=experiment_id,
-                                                      trials_in_experiment=trials_per_experiment,
-                                                      number_of_agents=parameter_set[1],
-                                                      speed_data=speed_data,
-                                                      width=parameter_set[0],
-                                                      height=parameter_set[0],
-                                                      seed_value=12,
-                                                      max_num_cities=parameter_set[4],
-                                                      grid_mode=False,
-                                                      max_rail_between_cities=parameter_set[3],
-                                                      max_rail_in_city=parameter_set[2],
-                                                      earliest_malfunction=earliest_malfunction,
-                                                      malfunction_duration=parameter_set[6],
-                                                      number_of_shortest_paths_per_agent=parameter_set[7])
+            current_experiment = ExperimentParameters(
+                experiment_id=experiment_id,
+                experiment_group=0,
+                trials_in_experiment=trials_per_experiment,
+                number_of_agents=parameter_set[1],
+                speed_data=speed_data,
+                width=parameter_set[0],
+                height=parameter_set[0],
+                seed_value=12,
+                max_num_cities=parameter_set[4],
+                grid_mode=False,
+                max_rail_between_cities=parameter_set[3],
+                max_rail_in_city=parameter_set[2],
+                earliest_malfunction=earliest_malfunction,
+                malfunction_duration=parameter_set[6],
+                number_of_shortest_paths_per_agent=parameter_set[7])
             experiment_list.append(current_experiment)
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))
