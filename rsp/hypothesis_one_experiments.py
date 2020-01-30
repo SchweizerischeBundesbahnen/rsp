@@ -1,6 +1,7 @@
 from typing import Dict
 from typing import Tuple
 
+from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.solvers.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_experiment_agenda
@@ -44,3 +45,17 @@ if __name__ == '__main__':
                           run_experiments_parallel=True,
                           show_results_without_details=False,
                           verbose=False)
+
+    experiment_folder_name = run_experiment_agenda(solver=solver,
+                                                   experiment_agenda=experiment_agenda,
+                                                   run_experiments_parallel=True,
+                                                   show_results_without_details=False,
+                                                   verbose=False)
+
+    hypothesis_one_data_analysis(
+        data_folder=experiment_folder_name,
+        analysis_2d=True,
+        analysis_3d=False,
+        malfunction_analysis=False,
+        qualitative_analysis_experiment_ids=range(experiment_agenda)
+    )

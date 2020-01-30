@@ -5,6 +5,7 @@ Methods
 average_over_trials
     Average over all the experiment trials
 """
+import os
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -126,11 +127,15 @@ def two_dimensional_scatter_plot(data: DataFrame,
                                  columns: DataFrame.columns,
                                  error: DataFrame = None,
                                  baseline: DataFrame = None,
-                                 file_name: str = "",
+                                 file_name: Optional[str] = None,
+                                 output_folder: Optional[str] = None,
                                  fig: Optional[matplotlib.figure.Figure] = None,
                                  subplot_pos: str = '111',
                                  title: str = None,
-                                 colors: Optional[List[str]] = None):
+                                 colors: Optional[List[str]] = None,
+                                 xscale: Optional[str] = None,
+                                 yscale: Optional[str] = None
+                                 ):
     """Adds a 2d-scatterplot as a subplot to a figure.
 
     Parameters
@@ -157,32 +162,43 @@ def two_dimensional_scatter_plot(data: DataFrame,
     y_values = data[columns[1]].values
     experiment_ids = data['experiment_id'].values
 
-    show = False
     if fig is None:
-        show = True
         fig = plt.figure()
+        fig.set_size_inches(w=15, h=15)
 
     ax: axes.Axes = fig.add_subplot(subplot_pos)
     if title:
         ax.set_title(title)
     ax.set_xlabel(columns[0])
     ax.set_ylabel(columns[1])
+    if xscale:
+        ax.set_xscale(xscale)
+    if yscale:
+        ax.set_yscale(yscale)
 
     ax.scatter(x_values, y_values, color=colors)
     for i in np.arange(0, len(y_values)):
         ax.text(x_values[i], y_values[i], "{}".format(experiment_ids[i]))
     if error is not None:
         # plot errorbars
-        y_error = error[columns[1]].values
-        for i in np.arange(0, len(y_values)):
-            ax.plot([x_values[i], x_values[i]],
-                    [y_values[i] + y_error[i], y_values[i] - y_error[i]], marker="_")
+        _2d_plot_errorbars(ax, columns, error, x_values, y_values)
     if baseline is not None:
-        for i in np.arange(0, len(y_values)):
-            ax.plot([x_values[i], x_values[i]],
-                    [baseline[i], y_values[i]], marker="_")
+        _2d_plot_baseline(ax, baseline, x_values, y_values)
 
-    if len(file_name) > 1:
+    if file_name is not None:
         plt.savefig(file_name)
-    elif show:
-        plt.show()
+    elif output_folder is not None:
+        plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_' + '_'.join(columns) + '.png'))
+
+
+def _2d_plot_errorbars(ax, columns, error, x_values, y_values):
+    y_error = error[columns[1]].values
+    for i in np.arange(0, len(y_values)):
+        ax.plot([x_values[i], x_values[i]],
+                [y_values[i] + y_error[i], y_values[i] - y_error[i]], marker="_")
+
+
+def _2d_plot_baseline(ax, baseline, x_values, y_values):
+    for i in np.arange(0, len(y_values)):
+        ax.plot([x_values[i], x_values[i]],
+                [baseline[i], y_values[i]], marker="_")
