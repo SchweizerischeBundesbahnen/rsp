@@ -110,6 +110,7 @@ def three_dimensional_scatter_plot(data: DataFrame,
     ax.scatter(x_values, y_values, z_values, color=colors)
     for i in np.arange(0, len(z_values)):
         ax.text(x_values[i], y_values[i], z_values[i], "{}".format(experiment_ids[i]))
+
     if error is not None:
         # plot errorbars
         z_error = error[columns[2]].values
@@ -127,6 +128,7 @@ def two_dimensional_scatter_plot(data: DataFrame,
                                  columns: DataFrame.columns,
                                  error: DataFrame = None,
                                  baseline: DataFrame = None,
+                                 link_column: str = 'size',
                                  file_name: Optional[str] = None,
                                  output_folder: Optional[str] = None,
                                  fig: Optional[matplotlib.figure.Figure] = None,
@@ -154,6 +156,18 @@ def two_dimensional_scatter_plot(data: DataFrame,
         a 3-digit integer describing the position of the subplot.
     colors: List[str]
         List of colors for the data points.
+    link_column
+        Group data points by this column and draw a bar between consecutive data points.
+    baseline
+        data points that define a baseline. Visualized by a bar
+    output_folder
+        Save plot to this folder.
+    title
+        Plot title
+    xscale
+        Passed to matplotlib. See there for possible values such as 'log'.
+    yscale
+        Passed to matplotlib. See there for possible values such as 'log'.
 
     Returns
     -------
@@ -177,18 +191,40 @@ def two_dimensional_scatter_plot(data: DataFrame,
         ax.set_yscale(yscale)
 
     ax.scatter(x_values, y_values, color=colors)
-    for i in np.arange(0, len(y_values)):
-        ax.text(x_values[i], y_values[i], "{}".format(experiment_ids[i]))
+    _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values)
     if error is not None:
-        # plot errorbars
         _2d_plot_errorbars(ax, columns, error, x_values, y_values)
     if baseline is not None:
         _2d_plot_baseline(ax, baseline, x_values, y_values)
+
+    if link_column is not None:
+        _2d_plot_link_column(ax, columns, data, link_column)
 
     if file_name is not None:
         plt.savefig(file_name)
     elif output_folder is not None:
         plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_' + '_'.join(columns) + '.png'))
+
+
+def _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values):
+    for i in np.arange(0, len(y_values)):
+        ax.text(x_values[i], y_values[i], "{}".format(experiment_ids[i]))
+
+
+def _2d_plot_link_column(ax, columns, data, link_column):
+    grouped_data = data.groupby([link_column])
+    for _, group in grouped_data:
+        sorted_group = group.sort_values(columns[0])
+        # index is experiment_id! Therefore, count the number of iterations
+        count = 0
+        for index, _ in sorted_group.iterrows():
+            if count == len(sorted_group) - 2:
+                break
+            count += 1
+            ax.plot([sorted_group.at[index, columns[0]], sorted_group.at[index + 1, columns[0]]],
+                    [sorted_group.at[index, columns[1]], sorted_group.at[index + 1, columns[1]]],
+                    marker="_",
+                    color='black')
 
 
 def _2d_plot_errorbars(ax, columns, error, x_values, y_values):

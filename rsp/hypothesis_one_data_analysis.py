@@ -14,11 +14,12 @@ Hypothesis 2:
 import os
 from functools import partial
 from typing import List
+from typing import Set
 
-import ffmpeg
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
@@ -33,6 +34,7 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.data_types import ExperimentResults
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
@@ -41,32 +43,32 @@ from rsp.utils.route_graph_analysis import visualize_experiment_freeze
 
 
 def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: str = None):
-    # number of agents
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['n_agents', 'speed_up'],
-                                 colors=['black' if inv_speed_up < 1 else 'red' for inv_speed_up in
-                                         averaged_data['time_delta_after_malfunction'] / averaged_data[
-                                             'time_full_after_malfunction']],
-                                 title='speed_up delta-rescheduling against re-scheduling',
-                                 output_folder=output_folder
-                                 )
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['n_agents', 'time_full'],
-                                 title='scheduling for comparison',
-                                 output_folder=output_folder
-                                 )
-    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                 columns=['n_agents', 'time_full_after_malfunction'],
-                                 title='re-scheduling',
-                                 output_folder=output_folder
-                                 )
-    two_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                 columns=['n_agents', 'time_delta_after_malfunction'],
-                                 title='delta re-scheduling',
-                                 output_folder=output_folder
-                                 )
+    for column in ['n_agents', 'size', 'size_used']:
+        two_dimensional_scatter_plot(data=averaged_data,
+                                     error=std_data,
+                                     columns=[column, 'speed_up'],
+                                     colors=['black' if inv_speed_up < 1 else 'red' for inv_speed_up in
+                                             averaged_data['time_delta_after_malfunction'] / averaged_data[
+                                                 'time_full_after_malfunction']],
+                                     title='speed_up delta-rescheduling against re-scheduling',
+                                     output_folder=output_folder
+                                     )
+        two_dimensional_scatter_plot(data=averaged_data,
+                                     error=std_data,
+                                     columns=[column, 'time_full'],
+                                     title='scheduling for comparison',
+                                     output_folder=output_folder
+                                     )
+        two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                     columns=[column, 'time_full_after_malfunction'],
+                                     title='re-scheduling',
+                                     output_folder=output_folder
+                                     )
+        two_dimensional_scatter_plot(data=averaged_data, error=std_data,
+                                     columns=[column, 'time_delta_after_malfunction'],
+                                     title='delta re-scheduling',
+                                     output_folder=output_folder
+                                     )
 
     # resource conflicts
     two_dimensional_scatter_plot(data=averaged_data,
@@ -131,7 +133,8 @@ def render_experiment(
         experiment: ExperimentParameters,
         data_frame: DataFrame,
         data_folder: str = None,
-        rendering: bool = False):
+        rendering: bool = False,
+        convert_to_mpeg: bool = True):
     """Render the experiment in the analysis.
 
     Parameters
@@ -141,7 +144,11 @@ def render_experiment(
     data_frame: DataFrame
         Pandas data frame with one ore more trials of this experiment.
     data_folder
+        Folder to store FLATland pngs and mpeg to
     rendering
+        Flatland rendering?
+    convert_to_mpeg
+        Converts the rendering to mpeg
     """
     from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvRender, RendererForEnvCleanup
 
@@ -219,11 +226,10 @@ def render_experiment(
         rendering_call_back=rendering_call_back
     )
     cleanup_renderer_for_env(renderer)
-    if rendering:
+    if convert_to_mpeg:
         experiment_output_folder = f"{data_folder}/experiment_{experiment.experiment_id:04d}_analysis"
         check_create_folder(experiment_output_folder)
-        # TODO SIM-151 documentation this is only a wrapper for ffmepg, ffmepg must be installed!
-        # https://github.com/kkroening/ffmpeg-python/blob/master/examples/README.md
+        import ffmpeg
         (ffmpeg
          .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s='1920x1080')
          .output(f'{experiment_output_folder}/experiment_{experiment.experiment_id}_flatland_data_analysis.mp4', crf=15,
@@ -269,7 +275,7 @@ def _malfunction_analysis(experiment_data: DataFrame):
         plt.savefig(f'malfunction/malfunction_{int(i):03d}.png')
         plt.close()
 
-
+# TODO SIM-151 documentation of derived columns
 def hypothesis_one_data_analysis(data_folder: str,
                                  analysis_2d: bool = False,
                                  analysis_3d: bool = False,
@@ -306,13 +312,13 @@ def hypothesis_one_data_analysis(data_folder: str,
         experiment_data['nb_resource_conflicts_delta_after_malfunction'] / experiment_data[
             'nb_resource_conflicts_full_after_malfunction']
 
-    # add column 'path_search_space_*
+    # add column 'path_search_space_* and 'size_used'
     for key in ['path_search_space_schedule', 'path_search_space_rsp_full', 'path_search_space_rsp_delta',
-                'factor_path_search_space']:
+                'factor_path_search_space', 'size_used']:
         experiment_data[key] = 0.0
         experiment_data[key] = experiment_data[key].astype(float)
     for index, row in experiment_data.iterrows():
-        experiment_results = convert_pandas_series_experiment_results(row)
+        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
         path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = _extract_path_search_space(
             experiment_results=experiment_results, experiment_id=row['experiment_id'])
         factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
@@ -320,6 +326,11 @@ def hypothesis_one_data_analysis(data_folder: str,
         experiment_data.at[index, 'path_search_space_rsp_full'] = path_search_space_rsp_full
         experiment_data.at[index, 'path_search_space_rsp_delta'] = path_search_space_rsp_delta
         experiment_data.at[index, 'factor_path_search_space'] = factor_path_search_space
+
+        used_cells: Set[Waypoint] = {waypoint.position for agent_id, agent_paths in experiment_results.agents_paths_dict.items()
+                                     for agent_path in agent_paths
+                                     for waypoint in agent_path}
+        experiment_data.at[index, 'size_used'] = len(used_cells)
 
     # Average over the trials of each experiment
     averaged_data, std_data = average_over_trials(experiment_data)
