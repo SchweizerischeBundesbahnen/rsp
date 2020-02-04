@@ -213,18 +213,21 @@ def _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values):
 
 def _2d_plot_link_column(ax, columns, data, link_column):
     grouped_data = data.groupby([link_column])
+    cmap = plt.get_cmap("tab10")
+    group_index = 0
     for _, group in grouped_data:
         sorted_group = group.sort_values(columns[0])
         # index is experiment_id! Therefore, count the number of iterations
         count = 0
         for index, _ in sorted_group.iterrows():
-            if count == len(sorted_group) - 2:
+            if count == len(sorted_group) - 1:
                 break
             count += 1
             ax.plot([sorted_group.at[index, columns[0]], sorted_group.at[index + 1, columns[0]]],
                     [sorted_group.at[index, columns[1]], sorted_group.at[index + 1, columns[1]]],
                     marker="_",
-                    color='black')
+                    color=cmap(group_index))
+        group_index += 1
 
 
 def _2d_plot_errorbars(ax, columns, error, x_values, y_values):
