@@ -16,6 +16,7 @@ import numpy as np
 from matplotlib import axes
 from mpl_toolkits.mplot3d import Axes3D
 from pandas import DataFrame
+from pandas import Series
 
 matplotlib.use('Qt5Agg')
 # Dummy import currently because otherwise the import is removed all the time but used by 3d scatter plot
@@ -156,7 +157,7 @@ def two_dimensional_scatter_plot(data: DataFrame,
         a 3-digit integer describing the position of the subplot.
     colors: List[str]
         List of colors for the data points.
-    link_column
+    link_column: str
         Group data points by this column and draw a bar between consecutive data points.
     baseline
         data points that define a baseline. Visualized by a bar
@@ -172,8 +173,8 @@ def two_dimensional_scatter_plot(data: DataFrame,
     Returns
     -------
     """
-    x_values = data[columns[0]].values
-    y_values = data[columns[1]].values
+    x_values: Series = data[columns[0]].values
+    y_values: Series = data[columns[1]].values
     experiment_ids = data['experiment_id'].values
 
     if fig is None:
@@ -206,12 +207,15 @@ def two_dimensional_scatter_plot(data: DataFrame,
         plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_' + '_'.join(columns) + '.png'))
 
 
-def _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values):
+def _2d_plot_label_scatterpoints(ax: axes.Axes, experiment_ids: Series, x_values: Series, y_values: Series):
+    """Add experiment id to data points."""
     for i in np.arange(0, len(y_values)):
         ax.text(x_values[i], y_values[i], "{}".format(experiment_ids[i]))
 
 
-def _2d_plot_link_column(ax, columns, data, link_column):
+def _2d_plot_link_column(ax: axes.Axes, columns: DataFrame.columns, data: DataFrame, link_column: str):
+    """Group data by a column and draw a line between consecutive data points
+    of that group."""
     grouped_data = data.groupby([link_column])
     cmap = plt.get_cmap("tab10")
     group_index = 0
@@ -230,14 +234,16 @@ def _2d_plot_link_column(ax, columns, data, link_column):
         group_index += 1
 
 
-def _2d_plot_errorbars(ax, columns, error, x_values, y_values):
+def _2d_plot_errorbars(ax: axes.Axes, columns: DataFrame.columns, error: DataFrame, x_values: Series, y_values: Series):
+    """Plot error range."""
     y_error = error[columns[1]].values
     for i in np.arange(0, len(y_values)):
         ax.plot([x_values[i], x_values[i]],
                 [y_values[i] + y_error[i], y_values[i] - y_error[i]], marker="_")
 
 
-def _2d_plot_baseline(ax, baseline, x_values, y_values):
+def _2d_plot_baseline(ax: axes.Axes, baseline: DataFrame, x_values: Series, y_values: Series):
+    """Plot baseline y values and draw a line to the data points."""
     for i in np.arange(0, len(y_values)):
         ax.plot([x_values[i], x_values[i]],
                 [baseline[i], y_values[i]], marker="_")

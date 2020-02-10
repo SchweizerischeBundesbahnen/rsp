@@ -112,7 +112,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
     return topo
 
 
-def _number_of_paths_in_route_dag(topo: nx.DiGraph) -> Tuple[int, List]:
+def _paths_in_route_dag(topo: nx.DiGraph) -> Tuple[int, List]:
     """Get the number of all source nodes (no incoming edges) to all sink nodes
     (no outgoing edges).
 
@@ -196,7 +196,7 @@ def _extract_all_waypoints_and_digraph_from_spanning_paths(
     return all_waypoints, topo
 
 
-def get_number_of_paths_for_experiment_freeze(
+def get_paths_for_experiment_freeze(
         agent_paths: AgentPaths,
         experiment_freeze: Optional[ExperimentFreeze] = None) -> Tuple[int, List]:
     """Determine the number of routes through the route graph given the
@@ -214,5 +214,5 @@ def get_number_of_paths_for_experiment_freeze(
     if experiment_freeze:
         for wp in experiment_freeze.freeze_banned:
             topo.remove_node(wp)
-    nb_paths_after, paths = _number_of_paths_in_route_dag(topo)
+    nb_paths_after, paths = _paths_in_route_dag(topo)
     return nb_paths_after, paths

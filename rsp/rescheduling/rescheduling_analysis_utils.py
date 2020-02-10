@@ -10,7 +10,7 @@ from pandas import DataFrame
 from rsp.utils.data_types import convert_data_frame_row_to_experiment_results
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.route_graph_analysis import get_number_of_paths_for_experiment_freeze
+from rsp.utils.route_graph_analysis import get_paths_for_experiment_freeze
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -110,15 +110,15 @@ def _extract_path_search_space(experiment_results: ExperimentResults, experiment
     for agent_id in experiment_freeze_delta_afer_malfunction:
         agent_paths = agents_paths_dict[agent_id]
         # TODO SIM-239 this is not correct, there may not be enough time for all paths; use experiment_freeze for scheduling
-        nb_alternatives_schedule, alternatives_schedule = get_number_of_paths_for_experiment_freeze(
+        nb_alternatives_schedule, alternatives_schedule = get_paths_for_experiment_freeze(
             agent_paths,
             None
         )
-        nb_alternatives_rsp_full, alternatives_rsp_full = get_number_of_paths_for_experiment_freeze(
+        nb_alternatives_rsp_full, alternatives_rsp_full = get_paths_for_experiment_freeze(
             agent_paths,
             experiment_freeze_full_after_malfunction[agent_id]
         )
-        nb_alternatives_rsp_delta, alternatives_rsp_delta = get_number_of_paths_for_experiment_freeze(
+        nb_alternatives_rsp_delta, alternatives_rsp_delta = get_paths_for_experiment_freeze(
             agent_paths,
             experiment_freeze_delta_afer_malfunction[agent_id]
         )

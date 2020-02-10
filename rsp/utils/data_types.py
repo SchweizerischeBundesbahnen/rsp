@@ -38,6 +38,7 @@ def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypo
 
 
 SpeedData = Mapping[float, float]
+# experiment_group (future use): if we want use a range of values on the same infrastructure and want to identify them
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
                                    ('experiment_group', int),
