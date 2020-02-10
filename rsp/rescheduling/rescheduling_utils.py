@@ -132,8 +132,8 @@ def generic_experiment_freeze_for_rescheduling(
         # TODO SIM-241 remove tweaky debg snippet as soon as pipeline is stable
         # uncomment the following lines for debugging purposes
         if False:
-            print("experimentFreezePrettyPrint(experiment_freeze_dict[2]) generic rsp")
-            experimentFreezePrettyPrint(experiment_freeze_dict[2])
+            print("experimentFreezePrettyPrint(experiment_freeze_dict[8]) generic rsp")
+            experimentFreezePrettyPrint(experiment_freeze_dict[8])
 
     return experiment_freeze_dict
 
@@ -222,19 +222,21 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
     for waypoint in banned_set:
         _remove_from_reachable(waypoint)
 
+    # build predecessor and successor nodes
+    predecessors, successors = _build_predecessors_successors(agent_paths)
     # collect earliest and latest in the sub-DAG
-    for agent_path in agent_paths:
-        # N.B. consider the path even if not all frozen element are in this path. We consider the DAG spanned by the paths under recombination.
-        _add_agent_path_for_get_freeze_for_delta(
-            agent_path,
-            reachable_earliest_dict,
-            reachable_latest_dict,
-            force_freeze_dict,
-            banned_set,
-            subdag_source,
-            latest_arrival,
-            minimum_travel_time,
-        )
+    # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
+    _add_agent_for_get_freeze_for_delta(
+        predecessors,
+        successors,
+        reachable_earliest_dict,
+        reachable_latest_dict,
+        force_freeze_dict,
+        banned_set,
+        subdag_source,
+        latest_arrival,
+        minimum_travel_time,
+    )
     # banned all waypoints not reachable from both source and sink or where earliest > latest
     for waypoint in all_waypoints:
         if (waypoint not in reachable_earliest_dict or waypoint not in reachable_latest_dict or  # noqa: W504
@@ -250,6 +252,16 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
         freeze_banned=banned,
         freeze_latest=reachable_latest_dict
     )
+
+
+def _build_predecessors_successors(agent_paths: AgentPaths):
+    predecessors = {waypoint: set() for agent_path in agent_paths for waypoint in agent_path}
+    successors = {waypoint: set() for agent_path in agent_paths for waypoint in agent_path}
+    for agent_path in agent_paths:
+        for first, second in zip(agent_path, agent_path[1:]):
+            predecessors[second].add(first)
+            successors[first].add(second)
+    return predecessors, successors
 
 
 def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
@@ -372,22 +384,25 @@ def _search_last_contiguously_freezed_from_start(
     return last_forced_from_start
 
 
-def _add_agent_path_for_get_freeze_for_delta(agent_path,
-                                             earliest_dict: Dict[Waypoint, int],
-                                             latest_dict: Dict[Waypoint, int],
-                                             force_freeze_dict: Dict[Waypoint, int],
-                                             banned_set: Set[Waypoint],
-                                             subdag_source: TrainrunWaypoint,
-                                             latest_arrival: int,
-                                             minimum_travel_time):
+def _add_agent_for_get_freeze_for_delta(predecessors: Dict[Waypoint, Set[Waypoint]],
+                                        successors: Dict[Waypoint, Set[Waypoint]],
+                                        earliest_dict: Dict[Waypoint, int],
+                                        latest_dict: Dict[Waypoint, int],
+                                        force_freeze_dict: Dict[Waypoint, int],
+                                        banned_set: Set[Waypoint],
+                                        subdag_source: TrainrunWaypoint,
+                                        latest_arrival: int,
+                                        minimum_travel_time):
     """Traverse the sub-DAG along one of the paths generating the route DAG and
     update earliest and latest times. Used within
     _generic_experiment_freeze_for_rescheduling_agent_while_running.
 
     Parameters
     ----------
-    agent_path
-        agent_path for traversing the route DAG, one of the paths generating the DAG.
+    predecessors: Dict[Waypoint,Set[Waypoint]]
+        predecessor of the agent's waypoints
+    successors: Dict[Waypoint,Set[Waypoint]]
+        successors of the agent's waypoints
     earliest_dict
         earliest time for the agent to reach this vertex given the freezed times
     latest_dict
@@ -408,30 +423,50 @@ def _add_agent_path_for_get_freeze_for_delta(agent_path,
     -------
         updates earliest_dict and latest_dict
     """
+    _extract_earliest(banned_set, earliest_dict, force_freeze_dict, minimum_travel_time, subdag_source, successors)
+    _extract_latest(banned_set, force_freeze_dict, latest_arrival, latest_dict, minimum_travel_time, predecessors,
+                    successors)
 
-    # we consider edges agent_path[waypoint_index] -> waypoint and update earliest[waypoint] forward
-    # i.e. waypoint == agent_path[waypoint_index+1] (forward!)
-    for waypoint_index, waypoint in enumerate(agent_path[1:]):
-        if waypoint in force_freeze_dict or waypoint in banned_set:
-            continue
-        else:
 
-            path_earliest = earliest_dict.get(agent_path[waypoint_index], numpy.inf) + minimum_travel_time
-            earliest = min(path_earliest, earliest_dict.get(waypoint, numpy.inf))
-            if earliest > subdag_source.scheduled_at and earliest < numpy.inf:
-                earliest_dict[waypoint] = int(earliest)
+def _extract_latest(banned_set, force_freeze_dict, latest_arrival, latest_dict, minimum_travel_time, predecessors,
+                    successors):
+    # iterate as long as there are updates (not optimized!)
+    # update max(latest_at_next_node-minimum_travel_time,current_latest) until fixed point reached
+    done = False
+    while not done:
+        done = True
+        for waypoint in successors:
+            for predecessor in predecessors[waypoint]:
+                if predecessor in force_freeze_dict or predecessor in banned_set:
+                    continue
+                else:
+                    path_latest = latest_dict.get(waypoint, -numpy.inf) - minimum_travel_time
+                    latest = max(path_latest, latest_dict.get(predecessor, -numpy.inf))
+                    if latest < latest_arrival and latest > -numpy.inf:
+                        latest = int(latest)
+                        if latest_dict.get(predecessor, None) != latest:
+                            done = False
+                        latest_dict[predecessor] = latest
 
-    # we consider waypoint -> reversed_agent_path[waypoint_index] and update latest_dict[waypoint] backwards
-    # i.e. waypoint == reversed_agent_path[waypoint_index+1] (backwards!)
-    reversed_agent_path = list(reversed(list(agent_path)))
-    for waypoint_index, waypoint in enumerate(reversed_agent_path[1:]):
-        if waypoint in force_freeze_dict or waypoint in banned_set:
-            continue
-        else:
-            path_latest = latest_dict.get(reversed_agent_path[waypoint_index], -numpy.inf) - minimum_travel_time
-            latest = max(path_latest, latest_dict.get(waypoint, -numpy.inf))
-            if latest < latest_arrival and latest > -numpy.inf:
-                latest_dict[waypoint] = int(latest)
+
+def _extract_earliest(banned_set, earliest_dict, force_freeze_dict, minimum_travel_time, subdag_source, successors):
+    # iterate as long as there are updates (not optimized!)
+    # update as min(earliest_at_predecessor+minimum_travel_time,current_earliest) until fixed point reached
+    done = False
+    while not done:
+        done = True
+        for waypoint in successors:
+            for successor in successors[waypoint]:
+                if successor in force_freeze_dict or successor in banned_set:
+                    continue
+                else:
+                    path_earliest = earliest_dict.get(waypoint, numpy.inf) + minimum_travel_time
+                    earliest = min(path_earliest, earliest_dict.get(successor, numpy.inf))
+                    if earliest > subdag_source.scheduled_at and earliest < numpy.inf:
+                        earliest = int(earliest)
+                        if earliest_dict.get(successor, None) != earliest:
+                            done = False
+                        earliest_dict[successor] = earliest
 
 
 def _get_delayed_trainrun_waypoint_after_malfunction(

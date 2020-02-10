@@ -4,7 +4,6 @@ from typing import Callable
 from typing import Dict
 from typing import NamedTuple
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 import numpy as np
@@ -22,7 +21,6 @@ from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
-from rsp.utils.general_utils import verification_by_file
 
 # TODO SIM-239 bad code smell: generic file should not have dependency to submodule!
 
@@ -101,14 +99,6 @@ def solve_problem(env: RailEnv,
     assert solution.is_solved()
 
     trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
-
-    if isinstance(problem, ASPProblemDescription):
-        aspsolution: ASPSolutionDescription = solution
-        actual_answer_set: Set[str] = aspsolution.asp_solution.answer_sets
-
-        verification_by_file("answer_set", actual_answer_set, loop_index, problem.get_solver_name())
-
-    verification_by_file("solution_trainrun_dict", solution.get_trainruns_dict(), loop_index, problem.get_solver_name())
 
     if debug:
         print("####train runs dict")
@@ -378,8 +368,6 @@ def replay(env: RailEnv,
     """
     total_reward = 0
     time_step = 0
-    actual_action_plan = [controller_from_train_runs.act(time_step) for time_step in range(env._max_episode_steps)]
-    verification_by_file("action_plan", actual_action_plan, loop_index, solver_name)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
         if disable_verification_in_replay:

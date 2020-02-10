@@ -45,6 +45,7 @@ from pandas import DataFrame
 
 from rsp.rescheduling.rescheduling_analysis_utils import _analyze_paths
 from rsp.rescheduling.rescheduling_analysis_utils import _analyze_times
+from rsp.rescheduling.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import convert_experiment_results_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
@@ -124,6 +125,7 @@ def run_experiment(solver: AbstractSolver,
         if current_results is None:
             print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
             return []
+
         # Store results
         data_frame.append(
             convert_experiment_results_to_data_frame(
@@ -150,6 +152,9 @@ def run_experiment(solver: AbstractSolver,
         trial_time = (time.time() - start_trial)
         print("Running trial {} for experiment {}: took {:5.3f}s"
               .format(trial + 1, experiment_parameters.experiment_id, trial_time))
+
+        plausibility_check_experiment_results(experiment_results=current_results,
+                                              experiment_id=experiment_parameters.experiment_id)
     return data_frame
 
 

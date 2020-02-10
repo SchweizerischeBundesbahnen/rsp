@@ -238,7 +238,7 @@ def schedule_full(k: int,
     return schedule_problem, schedule_result, schedule_solution
 
 
-# TODO SIM-239 we should pass ExperimentFreeze as input
+# TODO SIM-239 we should pass ExperimentFreeze as input and no FLATland env?
 def reschedule_full_after_malfunction(
         schedule_problem: ASPProblemDescription,
         schedule_trainruns: TrainrunDict,
@@ -302,6 +302,7 @@ def reschedule_full_after_malfunction(
         latest_arrival=malfunction_rail_env._max_episode_steps
     )
 
+    # TODO SIM-239 no copy, pass in agents_path_dict and experiment_freeze
     full_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
         schedule_trainruns=schedule_trainruns

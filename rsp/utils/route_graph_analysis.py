@@ -112,8 +112,8 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
     return topo
 
 
-def _paths_in_route_dag(topo: nx.DiGraph) -> Tuple[int, List]:
-    """Get the number of all source nodes (no incoming edges) to all sink nodes
+def _paths_in_route_dag(topo: nx.DiGraph) -> List[List[Waypoint]]:
+    """Get the paths of all source nodes (no incoming edges) to all sink nodes
     (no outgoing edges).
 
     Parameters
@@ -131,7 +131,7 @@ def _paths_in_route_dag(topo: nx.DiGraph) -> Tuple[int, List]:
         for sink in sinks:
             source_sink_paths = list(nx.all_simple_paths(topo, source, sink))
             all_paths += source_sink_paths
-    return len(all_paths), all_paths
+    return all_paths
 
 
 def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: ExperimentFreeze) -> str:
@@ -198,9 +198,8 @@ def _extract_all_waypoints_and_digraph_from_spanning_paths(
 
 def get_paths_for_experiment_freeze(
         agent_paths: AgentPaths,
-        experiment_freeze: Optional[ExperimentFreeze] = None) -> Tuple[int, List]:
-    """Determine the number of routes through the route graph given the
-    constraints.
+        experiment_freeze: Optional[ExperimentFreeze] = None) -> List[List[Waypoint]]:
+    """Determine the routes through the route graph given the constraints.
 
     Parameters
     ----------
@@ -214,5 +213,5 @@ def get_paths_for_experiment_freeze(
     if experiment_freeze:
         for wp in experiment_freeze.freeze_banned:
             topo.remove_node(wp)
-    nb_paths_after, paths = _paths_in_route_dag(topo)
-    return nb_paths_after, paths
+    paths = _paths_in_route_dag(topo)
+    return paths

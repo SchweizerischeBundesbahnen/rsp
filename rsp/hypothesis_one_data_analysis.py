@@ -25,6 +25,7 @@ from pandas import DataFrame
 
 from rsp.rescheduling.rescheduling_analysis_utils import _extract_path_search_space
 from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
+from rsp.rescheduling.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.solvers.solve_problem import replay
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
@@ -290,6 +291,7 @@ def _malfunction_analysis(experiment_data: DataFrame):
         plt.savefig(f'malfunction/malfunction_{int(i):03d}.png')
         plt.close()
 
+
 # TODO SIM-151 documentation of derived columns
 def hypothesis_one_data_analysis(data_folder: str,
                                  analysis_2d: bool = False,
@@ -335,20 +337,26 @@ def hypothesis_one_data_analysis(data_folder: str,
     for index, row in experiment_data.iterrows():
         experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
         path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = _extract_path_search_space(
-            experiment_results=experiment_results, experiment_id=row['experiment_id'])
+            experiment_results=experiment_results)
         factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
         experiment_data.at[index, 'path_search_space_schedule'] = path_search_space_schedule
         experiment_data.at[index, 'path_search_space_rsp_full'] = path_search_space_rsp_full
         experiment_data.at[index, 'path_search_space_rsp_delta'] = path_search_space_rsp_delta
         experiment_data.at[index, 'factor_path_search_space'] = factor_path_search_space
 
-        used_cells: Set[Waypoint] = {waypoint.position for agent_id, agent_paths in experiment_results.agents_paths_dict.items()
+        used_cells: Set[Waypoint] = {waypoint.position for agent_id, agent_paths in
+                                     experiment_results.agents_paths_dict.items()
                                      for agent_path in agent_paths
                                      for waypoint in agent_path}
         experiment_data.at[index, 'size_used'] = len(used_cells)
 
+    # Plausibility tests on experiment data
+    _run_plausibility_tests_on_experiment_data(experiment_data)
+
     # Average over the trials of each experiment
+    print("Averaging...")
     averaged_data, std_data = average_over_trials(experiment_data)
+    print("  -> Done averaging.")
 
     # previews
     preview_cols = ['speed_up', 'time_delta_after_malfunction', 'experiment_id',
@@ -379,6 +387,15 @@ def hypothesis_one_data_analysis(data_folder: str,
                               data_frame=experiment_data,
                               data_folder=data_folder,
                               rendering=True)
+
+
+def _run_plausibility_tests_on_experiment_data(experiment_data):
+    print("Running plausibility tests on experiment data...")
+    for _, row in experiment_data.iterrows():
+        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
+        experiment_id = row['experiment_id']
+        plausibility_check_experiment_results(experiment_results=experiment_results, experiment_id=experiment_id)
+    print("  -> Done plausibility tests on experiment data.")
 
 
 if __name__ == '__main__':
