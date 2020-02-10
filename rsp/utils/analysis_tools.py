@@ -220,7 +220,7 @@ def _2d_plot_link_column(ax, columns, data, link_column):
         # index is experiment_id! Therefore, count the number of iterations
         count = 0
         for index, _ in sorted_group.iterrows():
-            if count == len(sorted_group) - 1:
+            if count >= len(sorted_group) - 1:
                 break
             count += 1
             ax.plot([sorted_group.at[index, columns[0]], sorted_group.at[index + 1, columns[0]]],

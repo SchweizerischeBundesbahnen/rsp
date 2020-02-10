@@ -73,11 +73,26 @@ def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: s
     # resource conflicts
     two_dimensional_scatter_plot(data=averaged_data,
                                  error=std_data,
+                                 columns=['nb_resource_conflicts_full',
+                                          'time_full'],
+                                 title='effect of resource conflicts',
+                                 output_folder=output_folder,
+                                 )
+    two_dimensional_scatter_plot(data=averaged_data,
+                                 error=std_data,
                                  columns=['nb_resource_conflicts_full_after_malfunction',
                                           'time_full_after_malfunction'],
                                  title='effect of resource conflicts',
                                  output_folder=output_folder,
                                  )
+    two_dimensional_scatter_plot(data=averaged_data,
+                                 error=std_data,
+                                 columns=['nb_resource_conflicts_delta_after_malfunction',
+                                          'time_delta_after_malfunction'],
+                                 title='effect of resource conflicts',
+                                 output_folder=output_folder,
+                                 )
+
     # nb paths
     two_dimensional_scatter_plot(data=averaged_data,
                                  error=std_data,
@@ -90,7 +105,7 @@ def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: s
     two_dimensional_scatter_plot(data=averaged_data,
                                  error=std_data,
                                  columns=['path_search_space_rsp_delta',
-                                          'time_full_after_malfunction'],
+                                          'time_delta_after_malfunction'],
                                  title='impact of number of considered paths over all agents',
                                  output_folder=output_folder,
                                  xscale='log'
