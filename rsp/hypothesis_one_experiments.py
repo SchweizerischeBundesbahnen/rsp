@@ -44,7 +44,7 @@ def get_first_agenda_pipeline_params() -> Tuple[ParameterRanges, Dict[float, flo
 
 
 if __name__ == '__main__':
-    parameter_ranges, speed_data = get_pipeline_params()
+    parameter_ranges, speed_data = get_first_agenda_pipeline_params()
 
     # Create an experiment agenda out of the parameter ranges
     experiment_agenda = create_experiment_agenda(experiment_name="exp_hypothesis_one",
