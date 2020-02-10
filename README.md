@@ -96,6 +96,11 @@ The pre-commit is only run on the files changed.
 Details:
 * [ pre-commit.  A framework for managing and maintaining multi-language pre-commit hooks.](https://pre-commit.com/)
 
+### Automatic mpeg conversion of FLATland
+In order to have automatic mpeg conversion, we use the python-wrapper [ffmpeg-python](https://github.com/kkroening/ffmpeg-python/blob/master/examples/README.md).
+For this to work, `ffmpeg` must be installed and on the `PATH`.
+
+
 ## Architecture Overview Scheduling
 We implement the following pipeline:
 ```text

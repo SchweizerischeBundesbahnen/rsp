@@ -67,6 +67,7 @@ def test_created_env_tuple():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
     test_parameters = ExperimentParameters(experiment_id=0,
+                                           experiment_group=0,
                                            trials_in_experiment=1,
                                            number_of_agents=7,
                                            width=30,
@@ -100,7 +101,8 @@ def test_created_env_tuple():
 def test_regression_experiment_agenda():
     """Run a simple agenda as regression test."""
     agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
-        ExperimentParameters(experiment_id=0, trials_in_experiment=1, number_of_agents=2, width=30, height=30,
+        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=1, number_of_agents=2, width=30,
+                             height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
@@ -350,7 +352,8 @@ def test_regression_experiment_agenda():
 def test_save_and_load_experiment_results():
     """Run a simple agenda and save and load the results."""
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
-        ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
+        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
+                             height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
@@ -383,15 +386,18 @@ def test_save_and_load_experiment_results():
 def test_parallel_experiment_execution():
     """Run a parallel experiment agenda."""
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
-        ExperimentParameters(experiment_id=0, trials_in_experiment=3, number_of_agents=2, width=30, height=30,
+        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
+                             height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10),
-        ExperimentParameters(experiment_id=1, trials_in_experiment=3, number_of_agents=3, width=30, height=30,
+        ExperimentParameters(experiment_id=1, experiment_group=0, trials_in_experiment=3, number_of_agents=3, width=30,
+                             height=30,
                              seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10),
-        ExperimentParameters(experiment_id=2, trials_in_experiment=3, number_of_agents=4, width=30, height=30,
+        ExperimentParameters(experiment_id=2, experiment_group=0, trials_in_experiment=3, number_of_agents=4, width=30,
+                             height=30,
                              seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10)])

@@ -1,5 +1,6 @@
 """Analysis the ExperimentFreeze as Route Graph."""
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -101,15 +102,17 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
             alpha=0.9)
 
     plt.gca().invert_yaxis()
-    if file_name:
+    print(file_name)
+    if file_name is not None:
         plt.savefig(file_name)
     else:
         plt.show()
+    plt.close()
 
     return topo
 
 
-def _number_of_paths_in_route_dag(topo: nx.DiGraph) -> int:
+def _paths_in_route_dag(topo: nx.DiGraph) -> Tuple[int, List]:
     """Get the number of all source nodes (no incoming edges) to all sink nodes
     (no outgoing edges).
 
@@ -128,7 +131,7 @@ def _number_of_paths_in_route_dag(topo: nx.DiGraph) -> int:
         for sink in sinks:
             source_sink_paths = list(nx.all_simple_paths(topo, source, sink))
             all_paths += source_sink_paths
-    return len(all_paths)
+    return len(all_paths), all_paths
 
 
 def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: ExperimentFreeze) -> str:
@@ -193,9 +196,9 @@ def _extract_all_waypoints_and_digraph_from_spanning_paths(
     return all_waypoints, topo
 
 
-def get_number_of_paths_for_experiment_freeze(
+def get_paths_for_experiment_freeze(
         agent_paths: AgentPaths,
-        experiment_freeze: Optional[ExperimentFreeze] = None) -> int:
+        experiment_freeze: Optional[ExperimentFreeze] = None) -> Tuple[int, List]:
     """Determine the number of routes through the route graph given the
     constraints.
 
@@ -211,5 +214,5 @@ def get_number_of_paths_for_experiment_freeze(
     if experiment_freeze:
         for wp in experiment_freeze.freeze_banned:
             topo.remove_node(wp)
-    nb_paths_after = _number_of_paths_in_route_dag(topo)
-    return nb_paths_after
+    nb_paths_after, paths = _paths_in_route_dag(topo)
+    return nb_paths_after, paths

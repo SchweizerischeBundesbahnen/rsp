@@ -136,18 +136,19 @@ def run_experiment(solver: AbstractSolver,
             print("*** experiment result of trial {} for experiment {}".format(trial + 1,
                                                                                experiment_parameters.experiment_id))
 
-            _pp.pprint({key: data_frame[-1][key]
-                        for key in COLUMNS
-                        if not key.startswith('solution_') and 'experiment_freeze' not in key and key != 'agents_paths_dict'
-                        })
+            _pp.pprint({
+                key: data_frame[-1][key]
+                for key in COLUMNS
+                if not key.startswith('solution_') and 'experiment_freeze' not in key and key != 'agents_paths_dict'
+            })
 
-            _analyze_times(current_results)
-            _analyze_paths(current_results)
+            _analyze_times(experiment_results=current_results)
+            _analyze_paths(experiment_results=current_results, experiment_id=experiment_parameters.experiment_id)
         if rendering:
             from flatland.utils.rendertools import RenderTool, AgentRenderVariant
             env_renderer.close_window()
         trial_time = (time.time() - start_trial)
-        print("Running trial {} for experiment {}: took {:5.3f}ms"
+        print("Running trial {} for experiment {}: took {:5.3f}s"
               .format(trial + 1, experiment_parameters.experiment_id, trial_time))
     return data_frame
 
@@ -335,20 +336,22 @@ def create_experiment_agenda(experiment_name: str,
             experiment_id = param_id
             if vary_malfunction > 1:
                 experiment_id = f"{param_id}_{earliest_malfunction}"
-            current_experiment = ExperimentParameters(experiment_id=experiment_id,
-                                                      trials_in_experiment=trials_per_experiment,
-                                                      number_of_agents=parameter_set[1],
-                                                      speed_data=speed_data,
-                                                      width=parameter_set[0],
-                                                      height=parameter_set[0],
-                                                      seed_value=12,
-                                                      max_num_cities=parameter_set[4],
-                                                      grid_mode=False,
-                                                      max_rail_between_cities=parameter_set[3],
-                                                      max_rail_in_city=parameter_set[2],
-                                                      earliest_malfunction=earliest_malfunction,
-                                                      malfunction_duration=parameter_set[6],
-                                                      number_of_shortest_paths_per_agent=parameter_set[7])
+            current_experiment = ExperimentParameters(
+                experiment_id=experiment_id,
+                experiment_group=0,
+                trials_in_experiment=trials_per_experiment,
+                number_of_agents=parameter_set[1],
+                speed_data=speed_data,
+                width=parameter_set[0],
+                height=parameter_set[0],
+                seed_value=12,
+                max_num_cities=parameter_set[4],
+                grid_mode=False,
+                max_rail_between_cities=parameter_set[3],
+                max_rail_in_city=parameter_set[2],
+                earliest_malfunction=earliest_malfunction,
+                malfunction_duration=parameter_set[6],
+                number_of_shortest_paths_per_agent=parameter_set[7])
             experiment_list.append(current_experiment)
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))
@@ -472,7 +475,7 @@ def create_experiment_folder_name(experiment_name: str) -> str:
 
 
 def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
-    filename = "experiment_{}.pkl".format(experiment_id)
+    filename = "experiment_{:04d}.pkl".format(experiment_id)
     return os.path.join(experiment_folder_name, filename)
 
 
@@ -534,7 +537,7 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     files = os.listdir(experiment_folder_name)
     for file in [file for file in files if 'agenda' not in file]:
         file_name = os.path.join(experiment_folder_name, file)
-        if file_name.endswith('experiment_agenda.pkl'):
+        if file_name.endswith('experiment_agenda.pkl') or not file_name.endswith(".pkl"):
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)

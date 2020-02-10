@@ -16,6 +16,7 @@ if __name__ == '__main__':
 
     experiment_agenda = ExperimentAgenda(experiments=[
         ExperimentParameters(experiment_id=0,
+                             experiment_group=0,
                              trials_in_experiment=1,
                              number_of_agents=50,
                              width=35,

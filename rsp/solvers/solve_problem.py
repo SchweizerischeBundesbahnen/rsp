@@ -23,6 +23,7 @@ from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
 from rsp.utils.general_utils import verification_by_file
+
 # TODO SIM-239 bad code smell: generic file should not have dependency to submodule!
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
