@@ -7,10 +7,10 @@ from typing import Tuple
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
+from rsp.route_dag.route_dag import get_paths_for_experiment_freeze
 from rsp.utils.data_types import convert_data_frame_row_to_experiment_results
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.route_graph_analysis import get_paths_for_experiment_freeze
 
 _pp = pprint.PrettyPrinter(indent=4)
 

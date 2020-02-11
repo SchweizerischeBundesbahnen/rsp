@@ -399,9 +399,9 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_01_29T16_24_52-with-conflicts',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_10T21_14_32',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[]  # list(range(0, 301))
+                                 qualitative_analysis_experiment_ids=[9, 97, 190, 122, 257, 265],
                                  )

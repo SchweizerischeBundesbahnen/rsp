@@ -10,6 +10,7 @@ from rsp.rescheduling.rescheduling_utils import _generic_experiment_freeze_for_r
 from rsp.rescheduling.rescheduling_utils import _get_delayed_trainrun_waypoint_after_malfunction
 from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
+from rsp.route_dag.route_dag import topo_from_agent_paths
 from rsp.utils.data_types import experiment_freeze_dict_from_list_of_train_run_waypoint
 from rsp.utils.data_types import ExperimentFreeze
 from rsp.utils.data_types import ExperimentFreezeDict
@@ -1433,7 +1434,8 @@ def test_get_freeze_for_delta():
     freeze_dict: ExperimentFreezeDict = generic_experiment_freeze_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
-        agents_path_dict=agents_path_dict,
+        topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
+                   for agent_id in agents_path_dict},
         force_freeze=force_freeze,
         malfunction=malfunction,
         latest_arrival=333
@@ -1776,7 +1778,7 @@ def test_bugfix_sim_172():
 
     actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent_while_running(
         minimum_travel_time=1,
-        agent_paths=agent_paths,
+        topo=topo_from_agent_paths(agent_paths),
         force_freeze=force_freeze,
         subdag_source=_get_delayed_trainrun_waypoint_after_malfunction(
             agent_id=malfunction.agent_id,
@@ -1939,7 +1941,7 @@ def test_bugfix_sim_175_no_path_splitting_forward():
 
     actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent_while_running(
         minimum_travel_time=1,
-        agent_paths=agent_paths,
+        topo=topo_from_agent_paths(agent_paths),
         force_freeze=force_freeze,
         subdag_source=force_freeze[0],
         latest_arrival=6667)
@@ -1985,7 +1987,7 @@ def test_bugfix_sim_175_no_path_splitting_backward():
 
     actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent_while_running(
         minimum_travel_time=1,
-        agent_paths=agent_paths,
+        topo=topo_from_agent_paths(agent_paths),
         force_freeze=force_freeze,
         subdag_source=force_freeze[0],
         latest_arrival=6667)
@@ -2032,7 +2034,7 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
 
     actual_experiment_freeze = _generic_experiment_freeze_for_rescheduling_agent_while_running(
         minimum_travel_time=1,
-        agent_paths=agent_paths,
+        topo=topo_from_agent_paths(agent_paths),
         force_freeze=force_freeze,
         subdag_source=force_freeze[0],
         latest_arrival=6667)

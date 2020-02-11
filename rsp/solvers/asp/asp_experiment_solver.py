@@ -8,11 +8,11 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-from rsp.oracle.oracle import determine_delta
+from rsp.oracle.oracle import perfect_oracle
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
-from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
 from rsp.rescheduling.rescheduling_utils import verify_experiment_freeze_for_agent
+from rsp.route_dag.route_dag import topo_from_agent_paths
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.solvers.solve_problem import replay
@@ -331,7 +331,7 @@ def reschedule_full_after_malfunction(
     return full_reschedule_problem, full_reschedule_result, full_reschedule_solution
 
 
-# TODO SIM-239 we should pass ExperimentFreeze as input
+# TODO SIM-239 we should pass ExperimentFreeze as input, remove rendering?
 def reschedule_delta_after_malfunction(
         schedule_problem: ASPProblemDescription,
         full_reschedule_trainruns: TrainrunDict,
@@ -359,6 +359,9 @@ def reschedule_delta_after_malfunction(
 
     """
 
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+                                for agent in malfunction_rail_env.agents}
+
     # --------------------------------------------------------------------------------------
     # Rendering
     # --------------------------------------------------------------------------------------
@@ -380,61 +383,28 @@ def reschedule_delta_after_malfunction(
         render_renderer_for_env(renderer, test_id, solver_name, i_step)
 
     # --------------------- -----------------------------------------------------------------
-    # Delta Re-Scheduling
+    # Delta Re-Scheduling with "perfect" oracle
     # --------------------------------------------------------------------------------------
-
-    delta, force_freeze = determine_delta(full_reschedule_trainruns,
-                                          malfunction,
-                                          schedule_trainruns,
-                                          verbose=False)
-    # TODO SIM-241 remove tweaky debg snippet as soon as pipeline is stable
-    # uncomment the following lines for debugging purposes
-    if False:
-        culprit = 2
-        print(f"####schedule_trainruns[{culprit}]")
-        print(_pp.pformat(schedule_trainruns[culprit]))
-        print("f####full_reschedule_trainruns[{culprit}]")
-        print(_pp.pformat(full_reschedule_trainruns[culprit]))
-        print("f####malfunction")
-        print(malfunction)
-        print("f####force_freeze[{culprit}]")
-        print(_pp.pformat(force_freeze[culprit]))
-    if debug:
-        print("####agents_path_dict")
-        print(_pp.pformat(schedule_problem.agents_path_dict))
-        print("####schedule_trainruns")
-        print(_pp.pformat(schedule_trainruns))
-        print("####full_reschedule_trainruns")
-        print(_pp.pformat(full_reschedule_trainruns))
-        print("####malfunction")
-        print(malfunction)
-        print("####force_freeze")
-        print(_pp.pformat(force_freeze))
-    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
-                                for agent in malfunction_rail_env.agents}
-    freeze_dict: ExperimentFreezeDict = generic_experiment_freeze_for_rescheduling(
-        schedule_trainruns=schedule_trainruns,
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        agents_path_dict=schedule_problem.agents_path_dict,
-        force_freeze=force_freeze,
+    freeze_dict = perfect_oracle(
+        full_reschedule_trainruns_dict=full_reschedule_trainruns,
         malfunction=malfunction,
-        latest_arrival=malfunction_rail_env._max_episode_steps
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        max_episode_steps=malfunction_rail_env._max_episode_steps,
+        agents_path_dict=schedule_problem.agents_path_dict,
+        schedule_trainruns_dict=schedule_trainruns
     )
-
-    if debug:
-        print("####freeze_dict delta rescheduling")
-        experimentFreezeDictPrettyPrint(freeze_dict)
 
     # verify that full reschedule solution is still a solution in the constrained solution space
     for agent_id in freeze_dict:
         verify_experiment_freeze_for_agent(
             agent_id=agent_id,
-            agent_paths=schedule_problem.agents_path_dict[agent_id],
+            topo=topo_from_agent_paths(schedule_problem.agents_path_dict[agent_id]),
             experiment_freeze=freeze_dict[agent_id],
             force_freeze=[],
             scheduled_trainrun=full_reschedule_trainruns[agent_id]
         )
 
+    # TODO SIM-239 no copy, pass freeze in
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
         # TODO SIM-146 bad code smell: why should we need to pass the train runs so far???

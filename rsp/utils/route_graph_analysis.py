@@ -2,16 +2,14 @@
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from flatland.utils.ordered_set import OrderedSet
 
+from rsp.route_dag.route_dag import route_dag_from_agent_paths_and_freeze
 from rsp.utils.data_types import AgentPaths
 from rsp.utils.data_types import ExperimentFreeze
 
@@ -43,7 +41,8 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
 
     # nx directed graph
-    all_waypoints, topo = _extract_all_waypoints_and_digraph_from_spanning_paths(agent_paths)
+    route_dag = route_dag_from_agent_paths_and_freeze(agent_paths, f)
+    all_waypoints: List[Waypoint] = list(route_dag.topo.nodes)
 
     # figsize
     flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
@@ -84,7 +83,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
         for trainrun_waypoint in train_run_delta_after_malfunction
     }
 
-    plt_color_map = [_get_color_for_node(node, f) for node in topo.nodes()]
+    plt_color_map = [_get_color_for_node(node, f) for node in route_dag.topo.nodes()]
 
     plt_labels = {
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
@@ -92,7 +91,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
             f"{_get_label_for_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}"
         for wp in
         all_waypoints}
-    nx.draw(topo, plt_pos,
+    nx.draw(route_dag.topo, plt_pos,
             labels=plt_labels,
             edge_color='black',
             width=1,
@@ -109,29 +108,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
         plt.show()
     plt.close()
 
-    return topo
-
-
-def _paths_in_route_dag(topo: nx.DiGraph) -> List[List[Waypoint]]:
-    """Get the paths of all source nodes (no incoming edges) to all sink nodes
-    (no outgoing edges).
-
-    Parameters
-    ----------
-    topo: DiGraph
-
-    Returns
-    -------
-    int
-    """
-    sources = (node for node, in_degree in topo.in_degree if in_degree == 0)
-    sinks = (node for node, out_degree in topo.out_degree if out_degree == 0)
-    all_paths = []
-    for source in sources:
-        for sink in sinks:
-            source_sink_paths = list(nx.all_simple_paths(topo, source, sink))
-            all_paths += source_sink_paths
-    return all_paths
+    return route_dag.topo
 
 
 def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: ExperimentFreeze) -> str:
@@ -171,47 +148,3 @@ def _get_label_for_schedule_for_waypoint(
     if waypoint in train_run_delta_after_malfunction_dict:
         s.append(f"S': {train_run_delta_after_malfunction_dict[waypoint]}")
     return "\n".join(s)
-
-
-def _extract_all_waypoints_and_digraph_from_spanning_paths(
-        agent_paths: AgentPaths) -> Tuple[Set[Waypoint], nx.DiGraph]:
-    """Extract  the agent's route DAG and all waypoints in it.
-
-    Parameters
-    ----------
-    agent_paths: AgentPaths
-
-    Returns
-    -------
-    Set[Waypoint], nx.DiGraph()
-        the waypoints and the directed graph
-    """
-    topo = nx.DiGraph()
-    all_waypoints: Set[Waypoint] = OrderedSet()
-    for path in agent_paths:
-        for wp1, wp2 in zip(path, path[1:]):
-            topo.add_edge(wp1, wp2)
-            all_waypoints.add(wp1)
-            all_waypoints.add(wp2)
-    return all_waypoints, topo
-
-
-def get_paths_for_experiment_freeze(
-        agent_paths: AgentPaths,
-        experiment_freeze: Optional[ExperimentFreeze] = None) -> List[List[Waypoint]]:
-    """Determine the routes through the route graph given the constraints.
-
-    Parameters
-    ----------
-    agent_paths
-    experiment_freeze
-
-    Returns
-    -------
-    """
-    _, topo = _extract_all_waypoints_and_digraph_from_spanning_paths(agent_paths)
-    if experiment_freeze:
-        for wp in experiment_freeze.freeze_banned:
-            topo.remove_node(wp)
-    paths = _paths_in_route_dag(topo)
-    return paths

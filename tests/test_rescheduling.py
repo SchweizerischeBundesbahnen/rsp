@@ -17,6 +17,7 @@ from numpy.random.mtrand import RandomState
 from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
 from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
 from rsp.rescheduling.rescheduling_utils import verify_experiment_freeze_for_agent
+from rsp.route_dag.route_dag import topo_from_agent_paths
 from rsp.solvers.asp.asp_experiment_solver import reschedule_delta_after_malfunction
 from rsp.solvers.asp.asp_experiment_solver import reschedule_full_after_malfunction
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
@@ -187,7 +188,8 @@ def test_rescheduling_no_bottleneck():
         latest_arrival=dynamic_env._max_episode_steps
     )
     for agent_id, _ in freeze_dict.items():
-        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id])
+        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id],
+                                           topo_from_agent_paths(agents_paths_dict[agent_id]))
 
     schedule_problem.get_copy_for_experiment_freeze(experiment_freeze_dict=freeze_dict,
                                                     schedule_trainruns=fake_schedule)
@@ -446,7 +448,8 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():
-        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id], agents_paths_dict[agent_id], )
+        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id],
+                                           topo_from_agent_paths(agents_paths_dict[agent_id]), )
 
     schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
