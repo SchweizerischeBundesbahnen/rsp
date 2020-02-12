@@ -61,7 +61,6 @@ def perfect_oracle(
                     for agent_path in agents_path_dict[agent_id]
                     for waypoint in agent_path}
          for agent_id in delta.keys()}
-    # TODO OrderedSet
     force_banned: Dict[int, Set[Waypoint]] = {
         agent_id: {
             waypoint

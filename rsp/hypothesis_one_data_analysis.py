@@ -399,7 +399,7 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_10T21_14_32',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_11T13_41_02',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
