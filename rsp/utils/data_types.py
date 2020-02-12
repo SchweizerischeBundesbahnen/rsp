@@ -41,7 +41,6 @@ SpeedData = Mapping[float, float]
 # experiment_group (future use): if we want use a range of values on the same infrastructure and want to identify them
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
-                                   # TODO SIM-260 regenerate data with experiment_group
                                    ('experiment_group', int),
                                    ('trials_in_experiment', int),
                                    ('number_of_agents', int),
@@ -98,7 +97,6 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ])
 
 COLUMNS = ['experiment_id',
-           # TODO SIM-260 regenerate data with experiment_group
            'experiment_group',
            'time_full',
            'time_full_after_malfunction',
@@ -138,7 +136,6 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
     DataFrame
     """
     return {'experiment_id': experiment_parameters.experiment_id,
-            # TODO SIM-260 regenerate data with experiment_group
             'experiment_group': experiment_parameters.experiment_group,
             'time_full': experiment_results.time_full,
             'time_full_after_malfunction': experiment_results.time_full_after_malfunction,

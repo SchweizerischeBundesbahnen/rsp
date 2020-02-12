@@ -305,7 +305,7 @@ def reschedule_full_after_malfunction(
     # TODO SIM-239 no copy, pass in agents_path_dict and experiment_freeze
     full_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
-        schedule_trainruns=schedule_trainruns
+        schedule_trainruns_to_minimize_for=schedule_trainruns
     )
 
     if debug:
@@ -408,7 +408,8 @@ def reschedule_delta_after_malfunction(
     delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
         # TODO SIM-146 bad code smell: why should we need to pass the train runs so far???
-        schedule_trainruns=full_reschedule_trainruns
+        # minimize with respect to original schedule S0
+        schedule_trainruns_to_minimize_for=schedule_trainruns
     )
 
     delta_reschedule_result, delta_reschedule_solution = solve_problem(

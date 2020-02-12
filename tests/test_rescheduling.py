@@ -192,7 +192,7 @@ def test_rescheduling_no_bottleneck():
                                            topo_from_agent_paths(agents_paths_dict[agent_id]))
 
     schedule_problem.get_copy_for_experiment_freeze(experiment_freeze_dict=freeze_dict,
-                                                    schedule_trainruns=fake_schedule)
+                                                    schedule_trainruns_to_minimize_for=fake_schedule)
 
     _, full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
         malfunction=fake_malfunction,
@@ -453,7 +453,7 @@ def test_rescheduling_bottleneck():
 
     schedule_problem.get_copy_for_experiment_freeze(
         experiment_freeze_dict=freeze_dict,
-        schedule_trainruns=fake_schedule
+        schedule_trainruns_to_minimize_for=fake_schedule
     )
 
     inject_fake_malfunction_into_dynamic_env(dynamic_env, fake_malfunction)

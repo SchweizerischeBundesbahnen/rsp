@@ -74,5 +74,5 @@ if __name__ == '__main__':
         analysis_2d=True,
         analysis_3d=False,
         malfunction_analysis=False,
-        qualitative_analysis_experiment_ids=range(experiment_agenda)
+        qualitative_analysis_experiment_ids=range(len(experiment_agenda.experiments))
     )
