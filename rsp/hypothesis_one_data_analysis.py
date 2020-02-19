@@ -23,20 +23,20 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
-from rsp.rescheduling.rescheduling_analysis_utils import _extract_path_search_space
-from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
-from rsp.rescheduling.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.route_dag.route_dag_analysis import visualize_experiment_freeze
+from rsp.route_dag.analysis.rescheduling_analysis_utils import _extract_path_search_space
+from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
+from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.route_dag.analysis.route_dag_analysis import visualize_experiment_freeze
 from rsp.solvers.asp.asp_solve_problem import replay
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import RouteDAGConstraintsDict
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
@@ -176,8 +176,8 @@ def render_experiment(
     train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
     train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
 
-    experiment_freeze_rsp_full: ExperimentFreezeDict = rows['experiment_freeze_full_after_malfunction'].iloc[0]
-    experiment_freeze_rsp_delta: ExperimentFreezeDict = rows['experiment_freeze_delta_after_malfunction'].iloc[0]
+    experiment_freeze_rsp_full: RouteDAGConstraintsDict = rows['experiment_freeze_full_after_malfunction'].iloc[0]
+    experiment_freeze_rsp_delta: RouteDAGConstraintsDict = rows['experiment_freeze_delta_after_malfunction'].iloc[0]
     malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
     n_agents: int = rows['n_agents'].iloc[0]
 

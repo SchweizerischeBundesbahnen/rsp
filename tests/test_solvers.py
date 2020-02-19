@@ -16,7 +16,7 @@ from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail
 from flatland.utils.simple_rail import make_simple_rail_with_alternatives
 
-from rsp.route_dag.route_dag_generation import schedule_problem_description_from_rail_env
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.utils.experiment_render_utils import make_render_call_back_for_replay
 

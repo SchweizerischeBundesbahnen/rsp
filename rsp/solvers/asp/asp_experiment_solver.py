@@ -7,11 +7,11 @@ from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-from rsp.oracle.oracle import perfect_oracle
-from rsp.route_dag.route_dag_generation import get_freeze_for_full_rescheduling
-from rsp.route_dag.route_dag_generation import schedule_problem_description_from_rail_env
-from rsp.route_dag.route_dag_generation import verify_experiment_freeze_for_agent
-from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.generators.route_dag_generator_utils import verify_experiment_freeze_for_agent
+from rsp.route_dag.route_dag import RouteDAG
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.solvers.asp.asp_solve_problem import replay
@@ -235,7 +235,7 @@ def reschedule_full_after_malfunction(
     # --------------------------------------------------------------------------------------
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
                                 malfunction_rail_env.agents}
-    tc: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
+    tc: RouteDAG = get_freeze_for_full_rescheduling(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=minimum_travel_time_dict,
@@ -271,7 +271,7 @@ def reschedule_full_after_malfunction(
 
 # TODO SIM-239 we should pass ExperimentFreeze as input, remove rendering? sollte nur ScheduleProblemDescription zurückgeben
 def reschedule_delta_after_malfunction(
-        tc: ScheduleProblemDescription,
+        tc: RouteDAG,
         full_reschedule_trainruns: TrainrunDict,
         schedule_trainruns: TrainrunDict,
         malfunction: ExperimentMalfunction,
@@ -300,7 +300,7 @@ def reschedule_delta_after_malfunction(
     # --------------------- -----------------------------------------------------------------
     # Delta Re-Scheduling with "perfect" oracle
     # --------------------------------------------------------------------------------------
-    tc: ScheduleProblemDescription = perfect_oracle(
+    tc: RouteDAG = perfect_oracle(
         full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
         malfunction=malfunction,
         minimum_travel_time_dict=tc.minimum_travel_time_dict,

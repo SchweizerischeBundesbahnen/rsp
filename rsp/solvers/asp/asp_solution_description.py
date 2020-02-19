@@ -10,7 +10,7 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
+from rsp.route_dag.route_dag import RouteDAG
 from rsp.solvers.asp.asp_helper import FluxHelperResult
 
 
@@ -18,12 +18,12 @@ class ASPSolutionDescription():
 
     def __init__(self,
                  asp_solution: FluxHelperResult,
-                 tc: ScheduleProblemDescription
+                 tc: RouteDAG
                  ):
         self.asp_solution: FluxHelperResult = asp_solution
         self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
         self._action_plan = None
-        self.tc: ScheduleProblemDescription = tc
+        self.tc: RouteDAG = tc
 
     def get_trainruns_dict(self) -> TrainrunDict:
         """Get train runs for all agents: waypoints and entry times."""

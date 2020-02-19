@@ -6,19 +6,20 @@ from typing import Dict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import generic_experiment_freeze_for_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
+    _generic_experiment_freeze_for_rescheduling_agent_while_running
+from rsp.route_dag.generators.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
+from rsp.route_dag.route_dag import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.route_dag import experiment_freeze_dict_from_list_of_train_run_waypoint
+from rsp.route_dag.route_dag import RouteDAG
 from rsp.route_dag.route_dag import topo_from_agent_paths
-from rsp.route_dag.route_dag_generation import _generic_experiment_freeze_for_rescheduling_agent_while_running
-from rsp.route_dag.route_dag_generation import _get_delayed_trainrun_waypoint_after_malfunction
-from rsp.route_dag.route_dag_generation import _get_topology_with_dummy_nodes_from_agent_paths_dict
-from rsp.route_dag.route_dag_generation import generic_experiment_freeze_for_rescheduling
-from rsp.route_dag.route_dag_generation import get_freeze_for_full_rescheduling
-from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
-from rsp.utils.data_types import ExperimentFreeze
-from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import experimentFreezePrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import RouteDAGConstraints
+from rsp.utils.data_types import RouteDAGConstraintsDict
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -426,7 +427,7 @@ def _get_data():
 def test_get_freeze_for_full_rescheduling():
     agent_paths, train_run = _get_data()
     malfunction = ExperimentMalfunction(time_step=19, agent_id=2, malfunction_duration=20)
-    expected_experiment_freeze = ExperimentFreeze(
+    expected_experiment_freeze = RouteDAGConstraints(
 
         freeze_visit=[
             Waypoint(position=(6, 23), direction=5),
@@ -566,14 +567,14 @@ def test_get_freeze_for_full_rescheduling():
 
         ])
     _, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict({2: agent_paths})
-    tc: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
+    tc: RouteDAG = get_freeze_for_full_rescheduling(
         minimum_travel_time_dict={2: 1},
         topo_dict=topo_dict,
         malfunction=malfunction,
         schedule_trainruns={2: train_run},
         latest_arrival=333
     )
-    experiment_freeze: ExperimentFreeze = tc.experiment_freeze_dict[2]
+    experiment_freeze: RouteDAGConstraints = tc.experiment_freeze_dict[2]
     print(f"freeze_visit={_pp.pformat(experiment_freeze.freeze_visit)}")
     print(f"freeze_earliest={_pp.pformat(experiment_freeze.freeze_earliest)}")
     print(f"freeze_latest={_pp.pformat(experiment_freeze.freeze_latest)}")
@@ -1255,7 +1256,7 @@ def test_get_freeze_for_delta():
     malfunction = ExperimentMalfunction(time_step=19, agent_id=1, malfunction_duration=20)
 
     expected_freeze_dict = {
-        0: ExperimentFreeze(
+        0: RouteDAGConstraints(
             freeze_visit=[
                 Waypoint(position=(8, 23), direction=1),
                 Waypoint(position=(8, 24), direction=1),
@@ -1350,7 +1351,7 @@ def test_get_freeze_for_delta():
                  (Waypoint(position=(13, 28), direction=3), 314)]),
             freeze_banned=[Waypoint(position=(7, 27), direction=0), Waypoint(position=(7, 28), direction=1),
                            Waypoint(position=(7, 29), direction=1), Waypoint(position=(8, 29), direction=2)]),
-        1: ExperimentFreeze(
+        1: RouteDAGConstraints(
             freeze_visit=[
                 Waypoint(position=(23, 23), direction=1),
                 Waypoint(position=(23, 24), direction=1),
@@ -1447,7 +1448,7 @@ def test_get_freeze_for_delta():
                 Waypoint(position=(23, 27), direction=0), Waypoint(position=(24, 28), direction=1),
                 Waypoint(position=(24, 29), direction=1), Waypoint(position=(23, 29), direction=0)
             ])}
-    tc: ScheduleProblemDescription = generic_experiment_freeze_for_rescheduling(
+    tc: RouteDAG = generic_experiment_freeze_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
         topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
@@ -1456,7 +1457,7 @@ def test_get_freeze_for_delta():
         malfunction=malfunction,
         latest_arrival=333
     )
-    freeze_dict: ExperimentFreezeDict = tc.experiment_freeze_dict
+    freeze_dict: RouteDAGConstraintsDict = tc.experiment_freeze_dict
 
     print("####freeze_dict")
     experimentFreezeDictPrettyPrint(freeze_dict)
@@ -1797,7 +1798,7 @@ def test_bugfix_sim_172():
         minimum_travel_time=1,
         topo=topo_from_agent_paths(agent_paths),
         force_freeze=force_freeze,
-        subdag_source=_get_delayed_trainrun_waypoint_after_malfunction(
+        subdag_source=get_delayed_trainrun_waypoint_after_malfunction(
             agent_id=malfunction.agent_id,
             trainrun=schedule_trainrun,
             malfunction=malfunction

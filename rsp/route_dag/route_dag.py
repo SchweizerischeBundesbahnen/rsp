@@ -1,3 +1,4 @@
+"""Route DAG data structures and utils."""
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -8,17 +9,26 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-ExperimentFreeze = NamedTuple('ExperimentFreeze', [
+MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
+
+TopoDict = Dict[int, nx.DiGraph]
+AgentPaths = List[List[Waypoint]]
+AgentsPathsDict = Dict[int, AgentPaths]
+
+RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
     ('freeze_visit', List[TrainrunWaypoint]),
     ('freeze_earliest', Dict[Waypoint, int]),
     ('freeze_latest', Dict[Waypoint, int]),
     ('freeze_banned', List[Waypoint])
 ])
-ExperimentFreezeDict = Dict[int, ExperimentFreeze]
 
-AgentPaths = List[List[Waypoint]]
-AgentsPathsDict = Dict[int, AgentPaths]
-MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
+RouteDAGConstraintsDict = Dict[int, RouteDAGConstraints]
+RouteDAG = NamedTuple('RouteDAG', [
+    ('experiment_freeze_dict', RouteDAGConstraintsDict),
+    ('minimum_travel_time_dict', Dict[int, int]),
+    ('topo_dict', Dict[int, nx.DiGraph]),
+    ('max_episode_steps', int)
+])
 
 
 def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]) -> Dict[TrainrunWaypoint, int]:
@@ -32,16 +42,6 @@ def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypo
     -------
     """
     return {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in l}
-
-
-# TODO SIM-239 necessary/ScheduleProblemDescription?
-RouteDag = NamedTuple('RouteDag', [
-    ('topo', nx.DiGraph),
-    ('constraints', ExperimentFreeze),
-])
-
-RouteDagDict = Dict[int, RouteDag]
-TopoDict = Dict[int, nx.DiGraph]
 
 
 def _paths_in_route_dag(topo: nx.DiGraph) -> List[List[Waypoint]]:
@@ -76,23 +76,6 @@ def get_sources_for_topo(topo: nx.DiGraph) -> Iterator[Waypoint]:
     return sources
 
 
-def route_dag_from_agent_paths_and_freeze(agent_paths: AgentPaths, f: ExperimentFreeze) -> RouteDag:
-    """Extract  the agent's route DAG.
-
-    Parameters
-    ----------
-    agent_paths: AgentPaths
-    f: ExperimentFreeze
-
-    Returns
-    -------
-    RouteDag
-        the route dag (topology and constraints)
-    """
-
-    return RouteDag(topo_from_agent_paths(agent_paths=agent_paths), f)
-
-
 def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     """Extract  the agent's topology.
 
@@ -114,7 +97,7 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
 
 def get_paths_for_experiment_freeze(
         topo: nx.DiGraph,
-        experiment_freeze: Optional[ExperimentFreeze] = None) -> List[List[Waypoint]]:
+        experiment_freeze: Optional[RouteDAGConstraints] = None) -> List[List[Waypoint]]:
     """Determine the routes through the route graph given the constraints.
 
     Parameters
@@ -131,3 +114,27 @@ def get_paths_for_experiment_freeze(
                 topo.remove_node(wp)
     paths = _paths_in_route_dag(topo)
     return paths
+
+
+def _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict: AgentsPathsDict):
+    # get topology from agent paths
+    topo_dict = {agent_id: topo_from_agent_paths(agents_paths_dict[agent_id])
+                 for agent_id in agents_paths_dict}
+    # add dummy nodes
+    dummy_source_dict: Dict[int, Waypoint] = {}
+    dummy_sink_dict: Dict[int, Waypoint] = {}
+    for agent_id, topo in topo_dict.items():
+        sources = list(get_sources_for_topo(topo))
+        sinks = list(get_sinks_for_topo(topo))
+
+        dummy_sink_waypoint = Waypoint(position=agents_paths_dict[agent_id][0][-1].position,
+                                       direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+        dummy_sink_dict[agent_id] = dummy_sink_waypoint
+        dummy_source_waypoint = Waypoint(position=agents_paths_dict[agent_id][0][0].position,
+                                         direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+        dummy_source_dict[agent_id] = dummy_source_waypoint
+        for source in sources:
+            topo.add_edge(dummy_source_waypoint, source)
+        for sink in sinks:
+            topo.add_edge(sink, dummy_sink_waypoint)
+    return dummy_source_dict, topo_dict

@@ -14,9 +14,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import _paths_in_route_dag
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.route_dag.route_dag_generation import ExperimentFreezeDict
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentMalfunction
@@ -34,7 +34,7 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('build_problem_time', float),
                                          ('trainruns_dict', TrainrunDict),
                                          ('nb_conflicts', int),
-                                         ('experiment_freeze', Optional[ExperimentFreezeDict])
+                                         ('experiment_freeze', Optional[RouteDAGConstraintsDict])
                                          ])
 
 # test_id: int, solver_name: str, i_step: int
@@ -159,7 +159,7 @@ def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_di
 def verify_trainruns_dict(env: RailEnv,
                           trainruns_dict: TrainrunDict,
                           expected_malfunction: Optional[ExperimentMalfunction] = None,
-                          expected_experiment_freeze: Optional[ExperimentFreezeDict] = None
+                          expected_experiment_freeze: Optional[RouteDAGConstraintsDict] = None
                           ):
     """Verify the consistency of a train run.
 

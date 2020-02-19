@@ -9,8 +9,8 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 from pandas import Series
 
-from rsp.route_dag.route_dag import ExperimentFreeze
-from rsp.route_dag.route_dag import ExperimentFreezeDict
+from rsp.route_dag.route_dag import RouteDAGConstraints
+from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import TopoDict
 
 SpeedData = Mapping[float, float]
@@ -52,9 +52,9 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
     ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
-    ('experiment_freeze_full', ExperimentFreezeDict),
-    ('experiment_freeze_full_after_malfunction', ExperimentFreezeDict),
-    ('experiment_freeze_delta_after_malfunction', ExperimentFreezeDict),
+    ('experiment_freeze_full', RouteDAGConstraintsDict),
+    ('experiment_freeze_full_after_malfunction', RouteDAGConstraintsDict),
+    ('experiment_freeze_delta_after_malfunction', RouteDAGConstraintsDict),
     ('malfunction', ExperimentMalfunction),
     ('topo_dict', TopoDict),
     ('nb_resource_conflicts_full', int),
@@ -204,13 +204,13 @@ def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def experimentFreezeDictPrettyPrint(d: ExperimentFreezeDict):
+def experimentFreezeDictPrettyPrint(d: RouteDAGConstraintsDict):
     for agent_id, experiment_freeze in d.items():
         prefix = f"agent {agent_id} "
         experimentFreezePrettyPrint(experiment_freeze, prefix)
 
 
-def experimentFreezePrettyPrint(experiment_freeze: ExperimentFreeze, prefix: str = ""):
+def experimentFreezePrettyPrint(experiment_freeze: RouteDAGConstraints, prefix: str = ""):
     print(f"{prefix}freeze_visit={_pp.pformat(experiment_freeze.freeze_visit)}")
     print(f"{prefix}freeze_earliest={_pp.pformat(experiment_freeze.freeze_earliest)}")
     print(f"{prefix}freeze_latest={_pp.pformat(experiment_freeze.freeze_latest)}")

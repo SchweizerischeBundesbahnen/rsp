@@ -9,7 +9,7 @@ from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail
 from importlib_resources import path
 
-from rsp.route_dag.route_dag_generation import schedule_problem_description_from_rail_env
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.solvers.asp.asp_helper import _asp_helper
 from rsp.solvers.asp.asp_helper import flux_helper
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription

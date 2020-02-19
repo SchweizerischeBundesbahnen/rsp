@@ -1,0 +1,242 @@
+"""Generic route dag generation."""
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
+
+import networkx as nx
+import numpy as np
+from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
+
+from rsp.route_dag.route_dag import RouteDAGConstraints
+from rsp.utils.data_types import ExperimentMalfunction
+
+
+def propagate_earliest(banned_set: Set[Waypoint],
+                       earliest_dict: Dict[Waypoint, int],
+                       force_freeze_dict: Dict[Waypoint, int],
+                       minimum_travel_time: int,
+                       subdag_source: TrainrunWaypoint,
+                       topo: nx.DiGraph):
+    """Extract earliest times at nodes by moving forward from source. Earliest
+    time for the agent to reach this vertex given the freezed times.
+
+    Parameters
+    ----------
+    banned_set
+    earliest_dict
+    force_freeze_dict
+    minimum_travel_time
+    subdag_source
+    topo
+    """
+    # iterate as long as there are updates (not optimized!)
+    # update as min(earliest_at_predecessor+minimum_travel_time,current_earliest) until fixed point reached
+    done = False
+    while not done:
+        done = True
+        for waypoint in topo.nodes:
+            # https://networkx.github.io/documentation/stable/reference/classes/generated/networkx.DiGraph.predecessors.html
+            for successor in topo.successors(waypoint):
+                if successor in force_freeze_dict or successor in banned_set:
+                    continue
+                else:
+                    # TODO SIM-239 ticket machen oder erledigen
+                    # TODO SIM-XXX put minimum_travel_time per edge and add dumy edges for source and sink as input
+                    # add +1 for
+                    minimum_travel_time_here = minimum_travel_time
+
+                    # minimum travel time is 1 (synchronization step) to one if we're coming from the source
+                    if topo.in_degree[waypoint] == 0:
+                        minimum_travel_time_here = 1
+                    path_earliest = earliest_dict.get(waypoint, np.inf) + minimum_travel_time_here
+                    earliest = min(path_earliest, earliest_dict.get(successor, np.inf))
+                    if earliest > subdag_source.scheduled_at and earliest < np.inf:
+                        earliest = int(earliest)
+                        if earliest_dict.get(successor, None) != earliest:
+                            done = False
+                        earliest_dict[successor] = earliest
+    return earliest_dict
+
+
+def propagate_latest(banned_set: Set[Waypoint],
+                     force_freeze_dict: Dict[Waypoint, int],
+                     latest_arrival: int,
+                     latest_dict: Dict[Waypoint, int],
+                     minimum_travel_time: int,
+                     topo: nx.DiGraph):
+    """Extract latest by moving backwards from sinks. Latest time for the agent
+    to pass here in order to reach the target in time.
+
+    Parameters
+    ----------
+    banned_set
+    force_freeze_dict
+    latest_arrival
+    latest_dict
+    minimum_travel_time
+    topo
+    """
+    # iterate as long as there are updates (not optimized!)
+    # update max(latest_at_next_node-minimum_travel_time,current_latest) until fixed point reached
+    done = False
+    while not done:
+        done = True
+        for waypoint in topo.nodes:
+            # https://networkx.github.io/documentation/stable/reference/classes/generated/networkx.DiGraph.predecessors.html
+            for predecessor in topo.predecessors(waypoint):
+                if predecessor in force_freeze_dict or predecessor in banned_set:
+                    continue
+                else:
+                    # TODO SIM-239 make ticket for hard-coded parts
+                    # minimum travel time is 1 (synchronization step) if we're goint to the sink
+                    minimum_travel_time_corrected = minimum_travel_time
+                    if topo.out_degree[waypoint] == 0:
+                        minimum_travel_time_corrected = 1
+
+                    path_latest = latest_dict.get(waypoint, -np.inf) - minimum_travel_time_corrected
+                    latest = max(path_latest, latest_dict.get(predecessor, -np.inf))
+                    if latest < latest_arrival and latest > -np.inf:
+                        latest = int(latest)
+                        if latest_dict.get(predecessor, None) != latest:
+                            done = False
+                        latest_dict[predecessor] = latest
+    return latest_dict
+
+
+def get_delayed_trainrun_waypoint_after_malfunction(
+        agent_id: int,
+        trainrun: Trainrun,
+        malfunction: ExperimentMalfunction) -> TrainrunWaypoint:
+    """Returns the trainrun waypoint after the malfunction that needs to be re.
+
+    Parameters
+    ----------
+    agent_id
+    trainrun
+    malfunction
+
+    Returns
+    -------
+    """
+    previous_scheduled = 0
+    for trainrun_waypoint in trainrun:
+        if trainrun_waypoint.scheduled_at > malfunction.time_step:
+            if agent_id == malfunction.agent_id:
+                return TrainrunWaypoint(
+                    waypoint=trainrun_waypoint.waypoint,
+                    # TODO + 1?
+                    scheduled_at=previous_scheduled + malfunction.malfunction_duration + 1)
+            else:
+                # TODO may this be to pessimistic? should earliest be previous_scheduled + minimum_running_time?
+                return trainrun_waypoint
+        previous_scheduled = trainrun_waypoint.scheduled_at
+    return trainrun[-1]
+
+
+def verify_experiment_freeze_for_agent(
+        agent_id: int,
+        experiment_freeze: RouteDAGConstraints,
+        topo: nx.DiGraph,
+        force_freeze: Optional[List[TrainrunWaypoint]] = None,
+        malfunction: Optional[ExperimentMalfunction] = None,
+        scheduled_trainrun: Optional[Trainrun] = None
+):
+    """Does the experiment_freeze reflect the force freeze, route DAG and
+    malfunctions correctly?
+
+    Parameters
+    ----------
+    scheduled_trainrun
+    experiment_freeze
+        the experiment freeze to be verified.
+    topo
+        the route DAG
+    force_freeze
+        the trainrun waypoints that must as given (consistency is not checked!)
+    malfunction
+        if it's the agent in malfunction, the experiment freeze should put a visit and earliest constraint
+    scheduled_trainrun
+        verify that this whole train run is part of the solution space.
+        With malfunctions, caller must ensure that only relevant part is passed to be verified!
+
+    Returns
+    -------
+    """
+
+    all_waypoints = topo.nodes
+    for waypoint in all_waypoints:
+        # if waypoint is banned -> must not earliest/latest/visit
+        if waypoint in experiment_freeze.freeze_banned:
+            assert waypoint not in experiment_freeze.freeze_earliest, \
+                f"agent {agent_id}: {waypoint} banned, should have no earliest"
+            assert waypoint not in experiment_freeze.freeze_latest, \
+                f"agent {agent_id}: {waypoint} banned, should have no latest"
+            assert waypoint not in experiment_freeze.freeze_visit, \
+                f"agent {agent_id}: {waypoint} banned, should have no visit"
+        else:
+            # waypoint must have earliest and latest s.t. earliest <= latest
+            assert waypoint in experiment_freeze.freeze_earliest, \
+                f"agent {agent_id} has no earliest for {waypoint}"
+            assert waypoint in experiment_freeze.freeze_latest, \
+                f"agent {agent_id} has no latest for {waypoint}"
+            assert experiment_freeze.freeze_earliest[waypoint] <= experiment_freeze.freeze_latest[waypoint], \
+                f"agent {agent_id} at {waypoint}: earliest should be less or equal to latest, " + \
+                f"found {experiment_freeze.freeze_earliest[waypoint]} <= {experiment_freeze.freeze_latest[waypoint]}"
+
+    # verify that force is implemented correctly
+    if force_freeze:
+        for trainrun_waypoint in force_freeze:
+            assert experiment_freeze.freeze_latest[trainrun_waypoint.waypoint] == trainrun_waypoint.scheduled_at, \
+                f"agent {agent_id}: should have latest requirement " \
+                f"for {trainrun_waypoint.waypoint} at {trainrun_waypoint.scheduled_at} - " \
+                f"found {experiment_freeze.freeze_latest[trainrun_waypoint.waypoint]}"
+            assert experiment_freeze.freeze_earliest[trainrun_waypoint.waypoint] == trainrun_waypoint.scheduled_at, \
+                f"agent {agent_id}: should have earliest requirement " \
+                f"for {trainrun_waypoint.waypoint} at {trainrun_waypoint.scheduled_at} - " \
+                f"found {experiment_freeze.freeze_earliest[trainrun_waypoint.waypoint]}"
+            assert trainrun_waypoint.waypoint in experiment_freeze.freeze_visit, \
+                f"agent {agent_id}: should have visit requirement " \
+                f"for {trainrun_waypoint.waypoint}"
+            assert trainrun_waypoint.waypoint not in experiment_freeze.freeze_banned, \
+                f"agent {agent_id}: should have no banned requirement " \
+                f"for {trainrun_waypoint.waypoint}"
+
+    # verify that all points up to malfunction are forced to be visited
+    if malfunction:
+        for waypoint, earliest in experiment_freeze.freeze_earliest.items():
+            # everything before malfunction must be the same
+            if earliest <= malfunction.time_step:
+                assert experiment_freeze.freeze_latest[waypoint] == earliest
+                assert waypoint in experiment_freeze.freeze_visit
+            else:
+                assert earliest >= malfunction.time_step + malfunction.malfunction_duration, f"{agent_id} {malfunction}"
+
+    # verify that scheduled train run is in the solution space
+    if scheduled_trainrun:
+        scheduled_dict = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+                          for trainrun_waypoint in scheduled_trainrun}
+        for waypoint, scheduled_at in scheduled_dict.items():
+            assert waypoint not in experiment_freeze.freeze_banned, \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but banned constraint"
+            assert waypoint in experiment_freeze.freeze_earliest, \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but no earliest constraint"
+            assert scheduled_at >= experiment_freeze.freeze_earliest[waypoint], \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but found earliest {experiment_freeze.freeze_latest[waypoint]}"
+            assert waypoint in experiment_freeze.freeze_latest, \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but no latest constraint"
+            assert scheduled_at <= experiment_freeze.freeze_latest[waypoint], \
+                f"agent {agent_id}: the known solution has " \
+                f"schedule {waypoint} at {scheduled_at} - " \
+                f"but found latest {experiment_freeze.freeze_latest[waypoint]}"
+            assert waypoint not in experiment_freeze.freeze_banned

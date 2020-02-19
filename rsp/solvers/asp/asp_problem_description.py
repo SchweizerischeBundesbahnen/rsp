@@ -6,11 +6,11 @@ from typing import Tuple
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraints
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.route_dag.route_dag_generation import ExperimentFreeze
-from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
+from rsp.route_dag.route_dag import RouteDAG
 from rsp.solvers.asp.asp_helper import ASPHeuristics
 from rsp.solvers.asp.asp_helper import ASPObjective
 from rsp.solvers.asp.asp_helper import flux_helper
@@ -20,8 +20,7 @@ from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 class ASPProblemDescription():
 
     def __init__(self,
-                 tc: ScheduleProblemDescription,
-                 # TODO SIM-239 graph instead (RouteDag: add minimum_travel_time,max_episodes etc.?)
+                 tc: RouteDAG,
                  asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
                  asp_heuristics: List[ASPHeuristics] = None
                  ):
@@ -35,7 +34,7 @@ class ASPProblemDescription():
     @staticmethod
     def factory_rescheduling(
             # TODO SIM-190 penalize re-routing
-            tc: ScheduleProblemDescription,
+            tc: RouteDAG,
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
@@ -50,7 +49,7 @@ class ASPProblemDescription():
 
     @staticmethod
     def factory_scheduling(
-            tc: ScheduleProblemDescription
+            tc: RouteDAG
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
@@ -227,7 +226,7 @@ class ASPProblemDescription():
                         direction=int(d))  # convert Grid4TransitionsEnum to int so it can be used as int in ASP!
 
     def _build_asp_program(self,
-                           tc: ScheduleProblemDescription,
+                           tc: RouteDAG,
                            add_minimumrunnigtime_per_agent: bool = False
                            ):
         # preparation
@@ -276,7 +275,7 @@ class ASPProblemDescription():
 
     def _translate_experiment_freeze_to_ASP(self,
                                             agent_id: int,
-                                            freeze: ExperimentFreeze):
+                                            freeze: RouteDAGConstraints):
         """The model is freezed by translating the ExperimentFreeze into ASP:
 
         - for all schedule_time_(train,vertex) <= malfunction.time_step:

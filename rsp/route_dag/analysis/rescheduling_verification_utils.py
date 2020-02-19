@@ -3,8 +3,8 @@ from typing import Set
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.rescheduling.rescheduling_analysis_utils import _extract_number_of_path_alternatives
-from rsp.rescheduling.rescheduling_analysis_utils import _extract_path_search_space
+from rsp.route_dag.analysis.rescheduling_analysis_utils import _extract_number_of_path_alternatives
+from rsp.route_dag.analysis.rescheduling_analysis_utils import _extract_path_search_space
 from rsp.utils.data_types import ExperimentResults
 
 

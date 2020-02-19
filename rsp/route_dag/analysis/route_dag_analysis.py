@@ -9,13 +9,13 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.route_dag import route_dag_from_agent_paths_and_freeze
+from rsp.route_dag.route_dag import topo_from_agent_paths
 from rsp.utils.data_types import AgentPaths
-from rsp.utils.data_types import ExperimentFreeze
+from rsp.utils.data_types import RouteDAGConstraints
 
 
 def visualize_experiment_freeze(agent_paths: AgentPaths,
-                                f: ExperimentFreeze,
+                                f: RouteDAGConstraints,
                                 train_run_input: Trainrun,
                                 train_run_full_after_malfunction: Trainrun,
                                 train_run_delta_after_malfunction: Trainrun,
@@ -41,8 +41,8 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
 
     # nx directed graph
-    route_dag = route_dag_from_agent_paths_and_freeze(agent_paths, f)
-    all_waypoints: List[Waypoint] = list(route_dag.topo.nodes)
+    topo = topo_from_agent_paths(agent_paths)
+    all_waypoints: List[Waypoint] = list(topo.nodes)
 
     # figsize
     flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
@@ -83,7 +83,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
         for trainrun_waypoint in train_run_delta_after_malfunction
     }
 
-    plt_color_map = [_get_color_for_node(node, f) for node in route_dag.topo.nodes()]
+    plt_color_map = [_get_color_for_node(node, f) for node in topo.nodes()]
 
     plt_labels = {
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
@@ -91,7 +91,7 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
             f"{_get_label_for_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}"
         for wp in
         all_waypoints}
-    nx.draw(route_dag.topo, plt_pos,
+    nx.draw(topo, plt_pos,
             labels=plt_labels,
             edge_color='black',
             width=1,
@@ -108,10 +108,10 @@ def visualize_experiment_freeze(agent_paths: AgentPaths,
         plt.show()
     plt.close()
 
-    return route_dag.topo
+    return topo
 
 
-def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: ExperimentFreeze) -> str:
+def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: RouteDAGConstraints) -> str:
     if waypoint in f.freeze_banned:
         return "X"
     s: str = "["
@@ -124,7 +124,7 @@ def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: ExperimentFree
     return s
 
 
-def _get_color_for_node(n: Waypoint, f: ExperimentFreeze):
+def _get_color_for_node(n: Waypoint, f: RouteDAGConstraints):
     # https://matplotlib.org/examples/color/named_colors.html
     if n in f.freeze_banned:
         return 'salmon'
