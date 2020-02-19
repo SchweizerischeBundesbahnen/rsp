@@ -54,7 +54,6 @@ class ASPExperimentSolver(AbstractSolver):
         -------
         ExperimentResults
         """
-        rendering = True
         tc_schedule_problem = schedule_problem_description_from_rail_env(static_rail_env, k)
         schedule_result = asp_schedule_wrapper(tc_schedule_problem,
                                                rendering=rendering,
