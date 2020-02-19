@@ -1,10 +1,5 @@
-"""Solve a problem a."""
-import pprint
-from typing import Callable
 from typing import Dict
-from typing import NamedTuple
 from typing import Optional
-from typing import Tuple
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
@@ -15,132 +10,29 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
-from rsp.route_dag.route_dag import _paths_in_route_dag
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
 from rsp.utils.experiment_render_utils import init_renderer_for_env
 from rsp.utils.experiment_render_utils import render_env
-from rsp.utils.general_utils import current_milli_time
-
-# TODO SIM-239 bad code smell: generic file should not have dependency to submodule!
-
-SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
-                                        [('total_reward', int),
-                                         ('solve_time', float),
-                                         ('optimization_costs', float),
-                                         ('build_problem_time', float),
-                                         ('trainruns_dict', TrainrunDict),
-                                         ('nb_conflicts', int),
-                                         ('experiment_freeze', Optional[RouteDAGConstraintsDict])
-                                         ])
-
-# test_id: int, solver_name: str, i_step: int
-SolveProblemRenderCallback = Callable[[int, str, int], None]
-
-_pp = pprint.PrettyPrinter(indent=4)
 
 
-# --------------------------------------------------------------------------------------
-# Solve an `AbstractProblemDescription`
-# --------------------------------------------------------------------------------------
-# TODO SIM-239 de-couple solver parts with constraint description part; move solver-dependent parts to other module!
-# TODO SIM-220 discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
-#  Then, we could get rid of this intermediate layer and move solve_problem to AbstractProblemDescription
-# TODO SIM-239 extract data types and abstract parts from asp package!
-def solve_problem(env: RailEnv,
-                  problem: ASPProblemDescription,
-                  rendering: bool = False,
-                  debug: bool = False,
-                  loop_index: int = 0,
-                  disable_verification_in_replay: bool = False,
-                  expected_malfunction: Optional[ExperimentMalfunction] = None
-                  ) -> Tuple[SchedulingExperimentResult, ASPSolutionDescription]:
-    """Solves an :class:`AbstractProblemDescription` and optionally verifies it
-    againts the provided :class:`RailEnv`.
-
-    Parameters
-    ----------
-    problem
-    disable_verification_in_replay
-        Whether it is tested the replay corresponds to the problem's solution
-        TODO SIM-105 Should there be option to disable replay completely? Profile experiments to test how much time replay takes in the experiments.
-    env
-        The env to run the verification with
-    rendering_call_back
-        Called every step in replay
-    debug
-        Display debugging information
-    loop_index
-        Used for display, should identify the problem instance
-    expected_malfunction
-        Used in verification if provided
+def create_action_plan(train_runs_dict: TrainrunDict, env: RailEnv) -> ControllerFromTrainruns:
+    """Creates an action plan (fix schedule, when an action has which positions
+    and when it has to take which actions).
 
     Returns
     -------
-    SchedulingExperimentResult
+    ActionPlanDict
     """
-    # --------------------------------------------------------------------------------------
-    # Preparations
-    # --------------------------------------------------------------------------------------
-    minimum_number_of_shortest_paths_over_all_agents = np.min(
-        [len(_paths_in_route_dag(topo)) for agent_id, topo in problem.tc.topo_dict.items()])
 
-    if minimum_number_of_shortest_paths_over_all_agents == 0:
-        raise Exception("At least one Agent has no path to its target!")
+    # tweak solutions
+    solution_trainruns_tweaked = {}
+    for agent_id, trainrun in train_runs_dict.items():
+        solution_trainruns_tweaked[agent_id] = \
+            [TrainrunWaypoint(waypoint=trainrun[1].waypoint, scheduled_at=trainrun[0].scheduled_at)] + trainrun[2:]
 
-    # --------------------------------------------------------------------------------------
-    # Solve the problem
-    # --------------------------------------------------------------------------------------
-    start_build_problem = current_milli_time()
-    build_problem_time = (current_milli_time() - start_build_problem) / 1000.0
-
-    start_solver = current_milli_time()
-    solution: ASPSolutionDescription = problem.solve()
-    solve_time = (current_milli_time() - start_solver) / 1000.0
-    assert solution.is_solved()
-
-    trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
-
-    if debug:
-        print("####train runs dict")
-        print(_pp.pformat(trainruns_dict))
-
-    # --------------------------------------------------------------------------------------
-    # Replay and verifiy the solution
-    # --------------------------------------------------------------------------------------
-    verify_trainruns_dict(env=env,
-                          trainruns_dict=trainruns_dict,
-                          expected_malfunction=expected_malfunction,
-                          expected_experiment_freeze=problem.tc.experiment_freeze_dict
-                          )
-    controller_from_train_runs: ControllerFromTrainruns = solution.create_action_plan(env=env)
-    if debug:
-        print("  **** solution to replay:")
-        print(_pp.pformat(solution.get_trainruns_dict()))
-        print("  **** action plan to replay:")
-        controller_from_train_runs.print_action_plan()
-        print("  **** expected_malfunction to replay:")
-        print(_pp.pformat(expected_malfunction))
-
-    total_reward = replay(env=env,
-                          loop_index=loop_index,
-                          expected_malfunction=expected_malfunction,
-                          solver_name=problem.get_solver_name(),
-                          rendering=rendering,
-                          controller_from_train_runs=controller_from_train_runs,
-                          debug=debug,
-                          disable_verification_in_replay=disable_verification_in_replay)
-
-    return SchedulingExperimentResult(total_reward=total_reward,
-                                      solve_time=solve_time,
-                                      optimization_costs=solution.get_objective_value(),
-                                      build_problem_time=build_problem_time,
-                                      nb_conflicts=solution.extract_nb_resource_conflicts(),
-                                      trainruns_dict=solution.get_trainruns_dict(),
-                                      experiment_freeze=problem.tc.experiment_freeze_dict), solution
+    return ControllerFromTrainruns(env, solution_trainruns_tweaked)
 
 
 def get_summ_running_times_trainruns_dict(trainruns_dict: TrainrunDict):
@@ -159,7 +51,7 @@ def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_di
 def verify_trainruns_dict(env: RailEnv,
                           trainruns_dict: TrainrunDict,
                           expected_malfunction: Optional[ExperimentMalfunction] = None,
-                          expected_experiment_freeze: Optional[RouteDAGConstraintsDict] = None
+                          expected_route_dag_constraints: Optional[RouteDAGConstraintsDict] = None
                           ):
     """Verify the consistency of a train run.
 
@@ -176,7 +68,7 @@ def verify_trainruns_dict(env: RailEnv,
     env
     trainruns_dict
     expected_malfunction
-    expected_experiment_freeze
+    expected_route_dag_constraints
 
     Returns
     -------
@@ -198,8 +90,8 @@ def verify_trainruns_dict(env: RailEnv,
         _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict)
 
     # 6. verify freezes are respected
-    if expected_experiment_freeze:
-        _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict)
+    if expected_route_dag_constraints:
+        _verify_trainruns_6_freeze(expected_route_dag_constraints, trainruns_dict)
 
 
 def _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict):
@@ -217,19 +109,19 @@ def _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict):
             break
 
 
-def _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict):
-    for agent_id, experiment_freeze in expected_experiment_freeze.items():
+def _verify_trainruns_6_freeze(expected_route_dag_constraints, trainruns_dict):
+    for agent_id, route_dag_constraints in expected_route_dag_constraints.items():
         waypoint_dict: Dict[Waypoint, int] = {
             trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
             for trainrun_waypoint in trainruns_dict[agent_id]
         }
 
         # is freeze_visit respected?
-        for waypoint in experiment_freeze.freeze_visit:
+        for waypoint in route_dag_constraints.freeze_visit:
             assert waypoint in waypoint_dict
 
         # is freeze_earliest respected?
-        for waypoint, scheduled_at in experiment_freeze.freeze_earliest.items():
+        for waypoint, scheduled_at in route_dag_constraints.freeze_earliest.items():
             if waypoint in waypoint_dict:
                 actual_scheduled_at = waypoint_dict[waypoint]
                 assert actual_scheduled_at >= scheduled_at, \
@@ -237,7 +129,7 @@ def _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict):
                     f"for {waypoint} of agent {agent_id}"
 
         # is freeze_latest respected?
-        for waypoint, scheduled_at in experiment_freeze.freeze_latest.items():
+        for waypoint, scheduled_at in route_dag_constraints.freeze_latest.items():
             if waypoint in waypoint_dict:
                 actual_scheduled_at = waypoint_dict[waypoint]
                 assert actual_scheduled_at <= scheduled_at, \
@@ -245,7 +137,7 @@ def _verify_trainruns_6_freeze(expected_experiment_freeze, trainruns_dict):
                     f"for {waypoint} of agent {agent_id}"
 
         # is freeze_banned respected?
-        for waypoint in experiment_freeze.freeze_banned:
+        for waypoint in route_dag_constraints.freeze_banned:
             assert waypoint not in waypoint_dict
 
 

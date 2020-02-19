@@ -6,21 +6,21 @@ from typing import Tuple
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.experiment_solvers.asp.asp_helper import ASPHeuristics
+from rsp.experiment_solvers.asp.asp_helper import ASPObjective
+from rsp.experiment_solvers.asp.asp_helper import flux_helper
+from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraints
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.route_dag.route_dag import RouteDAG
-from rsp.solvers.asp.asp_helper import ASPHeuristics
-from rsp.solvers.asp.asp_helper import ASPObjective
-from rsp.solvers.asp.asp_helper import flux_helper
-from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 
 
 class ASPProblemDescription():
 
     def __init__(self,
-                 tc: RouteDAG,
+                 tc: ScheduleProblemDescription,
                  asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
                  asp_heuristics: List[ASPHeuristics] = None
                  ):
@@ -34,7 +34,7 @@ class ASPProblemDescription():
     @staticmethod
     def factory_rescheduling(
             # TODO SIM-190 penalize re-routing
-            tc: RouteDAG,
+            tc: ScheduleProblemDescription,
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
@@ -49,7 +49,7 @@ class ASPProblemDescription():
 
     @staticmethod
     def factory_scheduling(
-            tc: RouteDAG
+            tc: ScheduleProblemDescription
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
@@ -226,7 +226,7 @@ class ASPProblemDescription():
                         direction=int(d))  # convert Grid4TransitionsEnum to int so it can be used as int in ASP!
 
     def _build_asp_program(self,
-                           tc: RouteDAG,
+                           tc: ScheduleProblemDescription,
                            add_minimumrunnigtime_per_agent: bool = False
                            ):
         # preparation
@@ -257,25 +257,25 @@ class ASPProblemDescription():
                                               # TODO SIM-190 route section penalty
                                               )
 
-            _new_asp_program += self._translate_experiment_freeze_to_ASP(agent_id=agent_id,
-                                                                         freeze=tc.experiment_freeze_dict[agent_id])
+            _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,
+                                                                             freeze=tc.route_dag_constraints_dict[
+                                                                                 agent_id])
 
         if add_minimumrunnigtime_per_agent:
-            # TODO SIM-239 add
             for agent_id in self.tc.minimum_travel_time_dict:
                 agent_sink = list(get_sinks_for_topo(self.tc.topo_dict[agent_id]))[0]
                 agent_source = list(get_sources_for_topo(self.tc.topo_dict[agent_id]))[0]
-                earliest_arrival = self.tc.experiment_freeze_dict[agent_id].freeze_earliest[agent_sink]
-                earliest_departure = self.tc.experiment_freeze_dict[agent_id].freeze_earliest[agent_source]
+                earliest_arrival = self.tc.route_dag_constraints_dict[agent_id].freeze_earliest[agent_sink]
+                earliest_departure = self.tc.route_dag_constraints_dict[agent_id].freeze_earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
 
         # cleanup
         return _new_asp_program
 
-    def _translate_experiment_freeze_to_ASP(self,
-                                            agent_id: int,
-                                            freeze: RouteDAGConstraints):
+    def _translate_route_dag_constraints_to_ASP(self,
+                                                agent_id: int,
+                                                freeze: RouteDAGConstraints):
         """The model is freezed by translating the ExperimentFreeze into ASP:
 
         - for all schedule_time_(train,vertex) <= malfunction.time_step:

@@ -1,8 +1,8 @@
 from typing import Dict
 from typing import Tuple
 
+from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
-from rsp.solvers.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import run_experiment_agenda

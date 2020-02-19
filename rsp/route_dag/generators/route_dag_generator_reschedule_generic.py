@@ -11,22 +11,22 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.route_dag.generators.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
-from rsp.route_dag.generators.route_dag_generator_utils import verify_experiment_freeze_for_agent
+from rsp.route_dag.generators.route_dag_generator_utils import verify_route_dag_constraints_for_agent
 from rsp.route_dag.route_dag import get_sinks_for_topo
-from rsp.route_dag.route_dag import RouteDAG
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
 
 
-def generic_experiment_freeze_for_rescheduling(
+def generic_route_dag_constraints_for_rescheduling(
         schedule_trainruns: TrainrunDict,
         minimum_travel_time_dict: Dict[int, int],
         topo_dict: TopoDict,
         force_freeze: Dict[int, List[TrainrunWaypoint]],
         malfunction: ExperimentMalfunction,
         latest_arrival: int
-) -> RouteDAG:
+) -> ScheduleProblemDescription:
     """Derives the experiment freeze given the malfunction and optionally a
     force freeze from an Oracle. The node after the malfunction time has to be
     visited with an earliest constraint.
@@ -49,8 +49,8 @@ def generic_experiment_freeze_for_rescheduling(
     Returns
     -------
     """
-    experiment_freeze_dict = {
-        agent_id: _generic_experiment_freeze_for_rescheduling_agent_while_running(
+    route_dag_constraints_dict = {
+        agent_id: _generic_route_dag_constraints_for_rescheduling_agent_while_running(
             minimum_travel_time=minimum_travel_time_dict[agent_id],
             topo=topo_dict[agent_id],
             force_freeze=force_freeze[agent_id],
@@ -72,16 +72,16 @@ def generic_experiment_freeze_for_rescheduling(
     }
 
     # inconsistent data if malfunction agent is not impacted by the malfunction!
-    if malfunction.agent_id not in experiment_freeze_dict:
+    if malfunction.agent_id not in route_dag_constraints_dict:
         raise Exception(f"agent {malfunction.agent_id} has malfunction {malfunction} "
                         f"before scheduled start {schedule_trainruns[malfunction.agent_id] if malfunction.agent_id in schedule_trainruns else None}. ")
 
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     for agent_id, schedule_trainrun in schedule_trainruns.items():
-        if agent_id not in experiment_freeze_dict:
+        if agent_id not in route_dag_constraints_dict:
             if malfunction.time_step < schedule_trainrun[0].scheduled_at:
 
-                experiment_freeze_dict[agent_id] = RouteDAGConstraints(
+                route_dag_constraints_dict[agent_id] = RouteDAGConstraints(
                     freeze_visit=[],
                     freeze_earliest=propagate_earliest(
                         banned_set=[],
@@ -101,7 +101,7 @@ def generic_experiment_freeze_for_rescheduling(
                     ),
                     freeze_banned=[],
                 )
-                freeze: RouteDAGConstraints = experiment_freeze_dict[agent_id]
+                freeze: RouteDAGConstraints = route_dag_constraints_dict[agent_id]
                 # N.B. copy keys into new list (cannot delete keys while looping concurrently looping over them)
                 waypoints: List[Waypoint] = list(freeze.freeze_earliest.keys())
                 for waypoint in waypoints:
@@ -112,7 +112,7 @@ def generic_experiment_freeze_for_rescheduling(
             elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
                 visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
                 all_waypoints = topo_dict[agent_id].nodes
-                experiment_freeze_dict[agent_id] = RouteDAGConstraints(
+                route_dag_constraints_dict[agent_id] = RouteDAGConstraints(
                     freeze_visit=[trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun],
                     freeze_earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
                                      for trainrun_waypoint in schedule_trainrun},
@@ -122,27 +122,27 @@ def generic_experiment_freeze_for_rescheduling(
                                    for waypoint in all_waypoints
                                    if waypoint not in visited],
                 )
-    # TODO SIM-239 should not be here
-    for agent_id in experiment_freeze_dict:
-        verify_experiment_freeze_for_agent(
+    # TODO SIM-324 pull out verification
+    for agent_id in route_dag_constraints_dict:
+        verify_route_dag_constraints_for_agent(
             agent_id=agent_id,
             topo=topo_dict[agent_id],
-            experiment_freeze=experiment_freeze_dict[agent_id],
+            route_dag_constraints=route_dag_constraints_dict[agent_id],
             force_freeze=force_freeze[agent_id],
             malfunction=malfunction if malfunction.agent_id == agent_id else None,
             scheduled_trainrun=list(
                 filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
                        schedule_trainruns[agent_id]))
         )
-    return RouteDAG(
-        experiment_freeze_dict=experiment_freeze_dict,
+    return ScheduleProblemDescription(
+        route_dag_constraints_dict=route_dag_constraints_dict,
         topo_dict=topo_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         max_episode_steps=latest_arrival
     )
 
 
-def _generic_experiment_freeze_for_rescheduling_agent_while_running(
+def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         minimum_travel_time: int,
         topo: nx.DiGraph,
         force_freeze: List[TrainrunWaypoint],
@@ -206,7 +206,7 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
     # there may be multiple vertices by which the last cell may be entered!
     sinks = get_sinks_for_topo(topo)
     for sink in sinks:
-        # TODO SIM-239 we should remove this logic here!
+        # TODO SIM-239 cleanup or documentation?
         # -1 for occupying the cell for one time step!
         reachable_latest_dict[sink] = latest_arrival - 1
 

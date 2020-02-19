@@ -23,15 +23,17 @@ RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
 ])
 
 RouteDAGConstraintsDict = Dict[int, RouteDAGConstraints]
-RouteDAG = NamedTuple('RouteDAG', [
-    ('experiment_freeze_dict', RouteDAGConstraintsDict),
+ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
+    ('route_dag_constraints_dict', RouteDAGConstraintsDict),
     ('minimum_travel_time_dict', Dict[int, int]),
     ('topo_dict', Dict[int, nx.DiGraph]),
     ('max_episode_steps', int)
 ])
 
 
-def experiment_freeze_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]) -> Dict[TrainrunWaypoint, int]:
+def route_dag_constraints_dict_from_list_of_train_run_waypoint(
+        l: List[TrainrunWaypoint]
+) -> Dict[TrainrunWaypoint, int]:
     """Generate dictionary of scheduled time at waypoint.
 
     Parameters
@@ -95,21 +97,21 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     return topo
 
 
-def get_paths_for_experiment_freeze(
+def get_paths_for_route_dag_constraints(
         topo: nx.DiGraph,
-        experiment_freeze: Optional[RouteDAGConstraints] = None) -> List[List[Waypoint]]:
+        route_dag_constraints: Optional[RouteDAGConstraints] = None) -> List[List[Waypoint]]:
     """Determine the routes through the route graph given the constraints.
 
     Parameters
     ----------
     agent_paths
-    experiment_freeze
+    route_dag_constraints
 
     Returns
     -------
     """
-    if experiment_freeze:
-        for wp in experiment_freeze.freeze_banned:
+    if route_dag_constraints:
+        for wp in route_dag_constraints.freeze_banned:
             if wp in topo.nodes:
                 topo.remove_node(wp)
     paths = _paths_in_route_dag(topo)

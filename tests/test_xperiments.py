@@ -4,7 +4,7 @@ import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.solvers.asp.asp_experiment_solver import ASPExperimentSolver
+from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -420,6 +420,6 @@ def test_parallel_experiment_execution():
         experiment_results_dict = experiment_results.to_dict()
 
     for key in experiment_results_dict:
-        if not key.startswith("time"):
+        if not key.startswith("time") and key != 'topo_dict':
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"

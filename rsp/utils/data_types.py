@@ -52,9 +52,9 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
     ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
-    ('experiment_freeze_full', RouteDAGConstraintsDict),
-    ('experiment_freeze_full_after_malfunction', RouteDAGConstraintsDict),
-    ('experiment_freeze_delta_after_malfunction', RouteDAGConstraintsDict),
+    ('route_dag_constraints_full', RouteDAGConstraintsDict),
+    ('route_dag_constraints_full_after_malfunction', RouteDAGConstraintsDict),
+    ('route_dag_constraints_delta_after_malfunction', RouteDAGConstraintsDict),
     ('malfunction', ExperimentMalfunction),
     ('topo_dict', TopoDict),
     ('nb_resource_conflicts_full', int),
@@ -83,9 +83,9 @@ COLUMNS = ['experiment_id',
            'costs_full',
            'costs_full_after_malfunction',
            'costs_delta_after_malfunction',
-           'experiment_freeze_full',
-           'experiment_freeze_full_after_malfunction',
-           'experiment_freeze_delta_after_malfunction',
+           'route_dag_constraints_full',
+           'route_dag_constraints_full_after_malfunction',
+           'route_dag_constraints_delta_after_malfunction',
            'nb_resource_conflicts_full',
            'nb_resource_conflicts_full_after_malfunction',
            'nb_resource_conflicts_delta_after_malfunction',
@@ -122,9 +122,9 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
             'costs_full': experiment_results.costs_full,
             'costs_full_after_malfunction': experiment_results.costs_full_after_malfunction,
             'costs_delta_after_malfunction': experiment_results.costs_delta_after_malfunction,
-            'experiment_freeze_full': experiment_results.experiment_freeze_full,
-            'experiment_freeze_full_after_malfunction': experiment_results.experiment_freeze_full_after_malfunction,
-            'experiment_freeze_delta_after_malfunction': experiment_results.experiment_freeze_delta_after_malfunction,
+            'route_dag_constraints_full': experiment_results.route_dag_constraints_full,
+            'route_dag_constraints_full_after_malfunction': experiment_results.route_dag_constraints_full_after_malfunction,
+            'route_dag_constraints_delta_after_malfunction': experiment_results.route_dag_constraints_delta_after_malfunction,
             'nb_resource_conflicts_full': experiment_results.nb_resource_conflicts_full,
             'nb_resource_conflicts_full_after_malfunction': experiment_results.nb_resource_conflicts_full_after_malfunction,
             'nb_resource_conflicts_delta_after_malfunction': experiment_results.nb_resource_conflicts_delta_after_malfunction,
@@ -158,9 +158,9 @@ def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentR
         costs_full=rows['costs_full'].iloc[0],
         costs_full_after_malfunction=rows['costs_full_after_malfunction'].iloc[0],
         costs_delta_after_malfunction=rows['costs_delta_after_malfunction'].iloc[0],
-        experiment_freeze_full=rows['experiment_freeze_full'].iloc[0],
-        experiment_freeze_full_after_malfunction=rows['experiment_freeze_full_after_malfunction'].iloc[0],
-        experiment_freeze_delta_after_malfunction=rows['experiment_freeze_delta_after_malfunction'].iloc[0],
+        route_dag_constraints_full=rows['route_dag_constraints_full'].iloc[0],
+        route_dag_constraints_full_after_malfunction=rows['route_dag_constraints_full_after_malfunction'].iloc[0],
+        route_dag_constraints_delta_after_malfunction=rows['route_dag_constraints_delta_after_malfunction'].iloc[0],
         nb_resource_conflicts_full=rows['nb_resource_conflicts_full'].iloc[0],
         nb_resource_conflicts_full_after_malfunction=rows['nb_resource_conflicts_full_after_malfunction'].iloc[0],
         nb_resource_conflicts_delta_after_malfunction=rows['nb_resource_conflicts_delta_after_malfunction'].iloc[0],
@@ -190,9 +190,9 @@ def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
         costs_full=row['costs_full'],
         costs_full_after_malfunction=row['costs_full_after_malfunction'],
         costs_delta_after_malfunction=row['costs_delta_after_malfunction'],
-        experiment_freeze_full=row['experiment_freeze_full'],
-        experiment_freeze_full_after_malfunction=row['experiment_freeze_full_after_malfunction'],
-        experiment_freeze_delta_after_malfunction=row['experiment_freeze_delta_after_malfunction'],
+        route_dag_constraints_full=row['route_dag_constraints_full'],
+        route_dag_constraints_full_after_malfunction=row['route_dag_constraints_full_after_malfunction'],
+        route_dag_constraints_delta_after_malfunction=row['route_dag_constraints_delta_after_malfunction'],
         nb_resource_conflicts_full=row['nb_resource_conflicts_full'],
         nb_resource_conflicts_full_after_malfunction=row['nb_resource_conflicts_full_after_malfunction'],
         nb_resource_conflicts_delta_after_malfunction=row['nb_resource_conflicts_delta_after_malfunction'],
@@ -205,13 +205,13 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 
 def experimentFreezeDictPrettyPrint(d: RouteDAGConstraintsDict):
-    for agent_id, experiment_freeze in d.items():
+    for agent_id, route_dag_constraints in d.items():
         prefix = f"agent {agent_id} "
-        experimentFreezePrettyPrint(experiment_freeze, prefix)
+        experimentFreezePrettyPrint(route_dag_constraints, prefix)
 
 
-def experimentFreezePrettyPrint(experiment_freeze: RouteDAGConstraints, prefix: str = ""):
-    print(f"{prefix}freeze_visit={_pp.pformat(experiment_freeze.freeze_visit)}")
-    print(f"{prefix}freeze_earliest={_pp.pformat(experiment_freeze.freeze_earliest)}")
-    print(f"{prefix}freeze_latest={_pp.pformat(experiment_freeze.freeze_latest)}")
-    print(f"{prefix}freeze_banned={_pp.pformat(experiment_freeze.freeze_banned)}")
+def experimentFreezePrettyPrint(route_dag_constraints: RouteDAGConstraints, prefix: str = ""):
+    print(f"{prefix}freeze_visit={_pp.pformat(route_dag_constraints.freeze_visit)}")
+    print(f"{prefix}freeze_earliest={_pp.pformat(route_dag_constraints.freeze_earliest)}")
+    print(f"{prefix}freeze_latest={_pp.pformat(route_dag_constraints.freeze_latest)}")
+    print(f"{prefix}freeze_banned={_pp.pformat(route_dag_constraints.freeze_banned)}")

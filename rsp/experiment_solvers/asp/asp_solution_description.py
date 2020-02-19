@@ -1,55 +1,31 @@
 import re
 from typing import Set
 
-from flatland.action_plan.action_plan import ControllerFromTrainruns
-from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.experiment_solvers.asp.asp_helper import FluxHelperResult
 from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.route_dag.route_dag import RouteDAG
-from rsp.solvers.asp.asp_helper import FluxHelperResult
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 
 
 class ASPSolutionDescription():
 
     def __init__(self,
                  asp_solution: FluxHelperResult,
-                 tc: RouteDAG
+                 tc: ScheduleProblemDescription
                  ):
         self.asp_solution: FluxHelperResult = asp_solution
         self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
         self._action_plan = None
-        self.tc: RouteDAG = tc
+        self.tc: ScheduleProblemDescription = tc
 
     def get_trainruns_dict(self) -> TrainrunDict:
         """Get train runs for all agents: waypoints and entry times."""
         return {agent_id: self.get_trainrun_for_agent(agent_id) for agent_id in self.tc.topo_dict}
-
-    def create_action_plan(self, env: RailEnv) -> ControllerFromTrainruns:
-        """Creates an action plan (fix schedule, when an action has which
-        positions and when it has to take which actions).
-
-        Returns
-        -------
-        ActionPlanDict
-        """
-        if self._action_plan is not None:
-            return self._action_plan
-
-        solution_trainruns: TrainrunDict = self.get_trainruns_dict()
-
-        # tweak solutions
-        solution_trainruns_tweaked = {}
-        for agent_id, trainrun in solution_trainruns.items():
-            solution_trainruns_tweaked[agent_id] = \
-                [TrainrunWaypoint(waypoint=trainrun[1].waypoint, scheduled_at=trainrun[0].scheduled_at)] + trainrun[2:]
-
-        self._action_plan = ControllerFromTrainruns(env, solution_trainruns_tweaked)
-        return self._action_plan
 
     def _get_solver_variable_value(self, var_name) -> str:
         return list(filter(lambda s: s.startswith(str(var_name)), self.answer_set))[0]

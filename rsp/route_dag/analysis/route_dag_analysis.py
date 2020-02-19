@@ -14,15 +14,15 @@ from rsp.utils.data_types import AgentPaths
 from rsp.utils.data_types import RouteDAGConstraints
 
 
-def visualize_experiment_freeze(agent_paths: AgentPaths,
-                                f: RouteDAGConstraints,
-                                train_run_input: Trainrun,
-                                train_run_full_after_malfunction: Trainrun,
-                                train_run_delta_after_malfunction: Trainrun,
-                                file_name: Optional[str] = None,
-                                title: Optional[str] = None,
-                                scale: int = 2,
-                                ) -> nx.DiGraph:
+def visualize_route_dag_constraints(agent_paths: AgentPaths,
+                                    f: RouteDAGConstraints,
+                                    train_run_input: Trainrun,
+                                    train_run_full_after_malfunction: Trainrun,
+                                    train_run_delta_after_malfunction: Trainrun,
+                                    file_name: Optional[str] = None,
+                                    title: Optional[str] = None,
+                                    scale: int = 2,
+                                    ) -> nx.DiGraph:
     """Draws an agent's route graph with constraints into a file.
 
     Parameters

@@ -8,12 +8,12 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
 from rsp.route_dag.route_dag import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.route_dag import AgentsPathsDict
-from rsp.route_dag.route_dag import RouteDAG
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import RouteDAGConstraints
 from rsp.utils.data_types import RouteDAGConstraintsDict
 
 
-def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> RouteDAG:
+def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> ScheduleProblemDescription:
     agents_paths_dict = {
         # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
         i: get_k_shortest_paths(env,
@@ -26,10 +26,10 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> RouteDAG
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                 for agent in env.agents}
     _, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict=agents_paths_dict)
-    schedule_problem_description = RouteDAG(
-        experiment_freeze_dict=_get_freeze_for_scheduling(minimum_travel_time_dict=minimum_travel_time_dict,
-                                                          agents_paths_dict=agents_paths_dict,
-                                                          latest_arrival=env._max_episode_steps),
+    schedule_problem_description = ScheduleProblemDescription(
+        route_dag_constraints_dict=_get_freeze_for_scheduling(minimum_travel_time_dict=minimum_travel_time_dict,
+                                                              agents_paths_dict=agents_paths_dict,
+                                                              latest_arrival=env._max_episode_steps),
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
         max_episode_steps=env._max_episode_steps)

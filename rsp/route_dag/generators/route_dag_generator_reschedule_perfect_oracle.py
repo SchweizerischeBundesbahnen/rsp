@@ -7,9 +7,10 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.generators.route_dag_generator_reschedule_generic import generic_experiment_freeze_for_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
+    generic_route_dag_constraints_for_rescheduling
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.route_dag.route_dag import RouteDAG
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
@@ -24,7 +25,7 @@ def perfect_oracle(
         minimum_travel_time_dict: Dict[int, int],
         max_episode_steps: int,
         schedule_topo_dict: TopoDict,
-        schedule_trainrun_dict: TrainrunDict) -> RouteDAG:
+        schedule_trainrun_dict: TrainrunDict) -> ScheduleProblemDescription:
     """The perfect oracle only opens up the differences between the schedule
     and the imaginary re-schedule. It gives no additional routing flexibility!
 
@@ -110,7 +111,7 @@ def perfect_oracle(
         topo_dict[agent_id] = new_topo
 
     # build constraints given the topos, the force_freezes
-    tc: RouteDAG = generic_experiment_freeze_for_rescheduling(
+    tc: ScheduleProblemDescription = generic_route_dag_constraints_for_rescheduling(
         schedule_trainruns=schedule_trainrun_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
@@ -118,7 +119,7 @@ def perfect_oracle(
         malfunction=malfunction,
         latest_arrival=max_episode_steps
     )
-    freeze_dict: RouteDAGConstraintsDict = tc.experiment_freeze_dict
+    freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
     freeze_dict_all: RouteDAGConstraintsDict = {
         agent_id: RouteDAGConstraints(
             freeze_visit=freeze_dict[agent_id].freeze_visit,
@@ -128,8 +129,8 @@ def perfect_oracle(
         )
         for agent_id in delta.keys()
     }
-    return RouteDAG(
-        experiment_freeze_dict=freeze_dict_all,
+    return ScheduleProblemDescription(
+        route_dag_constraints_dict=freeze_dict_all,
         minimum_travel_time_dict=tc.minimum_travel_time_dict,
         topo_dict=tc.topo_dict,
         max_episode_steps=tc.max_episode_steps

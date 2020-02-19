@@ -1,4 +1,4 @@
-from rsp.solvers.asp.asp_experiment_solver import ASPExperimentSolver
+from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ParameterRanges

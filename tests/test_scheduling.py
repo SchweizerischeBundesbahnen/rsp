@@ -1,8 +1,10 @@
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
+from rsp.experiment_solvers.experiment_solver_utils import get_summ_running_times_trainruns_dict
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.solvers.asp.asp_experiment_solver import schedule_full
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
 
@@ -67,7 +69,8 @@ def test_scheduling():
     assert static_env.rail.grid.tolist() == expected_grid
     assert dynamic_env.rail.grid.tolist() == expected_grid
 
-    schedule_problem, schedule_result, schedule_solution = schedule_full(10, static_env)
+    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, 10)
+    schedule_result = asp_schedule_wrapper(tc=tc_schedule_problem, static_rail_env=static_env)
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # sanity check for our expected data
@@ -81,7 +84,7 @@ def test_scheduling():
 
     # sanity check for earliest at target (one time step before arrival at dummy target node)
     agent_minimum_running_times = sum([
-        schedule_problem.tc.experiment_freeze_dict[agent.handle].freeze_earliest[
+        tc_schedule_problem.route_dag_constraints_dict[agent.handle].freeze_earliest[
             Waypoint(position=agent.target, direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)]
         for agent in static_env.agents]) - len(static_env.agents)
     assert expected_total_running_times == agent_minimum_running_times, \
@@ -90,8 +93,8 @@ def test_scheduling():
 
     # optimization costs must be zero since we have no delay with respect to earliest
     expected_objective = 0
-    actual_objective = schedule_solution.get_objective_value()
+    actual_objective = schedule_result.optimization_costs
     assert actual_objective == expected_objective, f"actual_objective={actual_objective}, expected_objective={expected_objective}"
-    actual_sum_running_times = schedule_solution.get_sum_running_times()
+    actual_sum_running_times = get_summ_running_times_trainruns_dict(schedule_result.trainruns_dict)
     assert actual_sum_running_times == expected_total_running_times, \
         f"actual_sum_running_times={actual_sum_running_times}, expected_total_running_times={expected_total_running_times}"

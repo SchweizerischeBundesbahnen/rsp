@@ -14,18 +14,18 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from numpy.random.mtrand import RandomState
 
+from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.experiment_solvers.asp.asp_solve_problem import verify_trainruns_dict
+from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
+from rsp.experiment_solvers.experiment_solver_utils import get_delay_trainruns_dict
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
-from rsp.route_dag.generators.route_dag_generator_utils import verify_experiment_freeze_for_agent
-from rsp.route_dag.route_dag import RouteDAG
+from rsp.route_dag.generators.route_dag_generator_utils import verify_route_dag_constraints_for_agent
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import topo_from_agent_paths
-from rsp.solvers.asp.asp_experiment_solver import reschedule_delta_after_malfunction
-from rsp.solvers.asp.asp_experiment_solver import reschedule_full_after_malfunction
-from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.solvers.asp.asp_solve_problem import get_delay_trainruns_dict
-from rsp.solvers.asp.asp_solve_problem import verify_trainruns_dict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
@@ -186,27 +186,31 @@ def test_rescheduling_no_bottleneck():
 
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
                                 static_env.agents}
-    tc: RouteDAG = get_freeze_for_full_rescheduling(
+    tc: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )
-    freeze_dict: RouteDAGConstraintsDict = tc.experiment_freeze_dict
+    freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
 
     for agent_id, _ in freeze_dict.items():
-        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id],
-                                           topo_from_agent_paths(agents_paths_dict[agent_id]))
+        verify_route_dag_constraints_for_agent(agent_id, freeze_dict[agent_id],
+                                               topo_from_agent_paths(agents_paths_dict[agent_id]))
 
-    schedule_problem = ASPProblemDescription.factory_scheduling(
-        tc=schedule_problem_description_from_rail_env(static_env, k))
+    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
 
-    _, full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+    full_reschedule_result = asp_reschedule_wrapper(
         malfunction=fake_malfunction,
         malfunction_rail_env=dynamic_env,
-        schedule_problem=schedule_problem,
-        schedule_trainruns=fake_schedule,
+        tc=get_freeze_for_full_rescheduling(
+            malfunction=fake_malfunction,
+            schedule_trainruns=fake_schedule,
+            minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+            latest_arrival=dynamic_env._max_episode_steps,
+            topo_dict=tc_schedule_problem.topo_dict
+        ),
         rendering=False,
         debug=False,
         malfunction_env_reset=lambda *args, **kwargs: None
@@ -215,7 +219,7 @@ def test_rescheduling_no_bottleneck():
 
     # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 0 (equals malfunction delay)
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
-    actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
+    actual_costs = full_reschedule_result.optimization_costs
     assert actual_costs == 0, f"actual costs {actual_costs}"
 
     assert full_reschedule_trainruns[0][-1].scheduled_at == 66
@@ -415,19 +419,16 @@ def test_rescheduling_bottleneck():
 
     # we derive the re-schedule problem from the schedule problem
     k = 10
-    tc = schedule_problem_description_from_rail_env(static_env, k)
-    schedule_problem = ASPProblemDescription.factory_scheduling(
-        tc=tc)
-
-    tc: RouteDAG = get_freeze_for_full_rescheduling(
+    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
+    tc_reschedule_problem: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                   for agent in static_env.agents},
-        topo_dict=tc.topo_dict,
+        topo_dict=tc_schedule_problem.topo_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )
-    freeze_dict: RouteDAGConstraintsDict = tc.experiment_freeze_dict
+    freeze_dict: RouteDAGConstraintsDict = tc_reschedule_problem.route_dag_constraints_dict
 
     assert freeze_dict[0].freeze_visit == []
     for trainrun_waypoint in [
@@ -459,22 +460,27 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():
-        verify_experiment_freeze_for_agent(agent_id=agent_id,
-                                           experiment_freeze=freeze_dict[agent_id],
-                                           topo=tc.topo_dict[agent_id])
+        verify_route_dag_constraints_for_agent(agent_id=agent_id,
+                                               route_dag_constraints=freeze_dict[agent_id],
+                                               topo=tc_reschedule_problem.topo_dict[agent_id])
 
     ASPProblemDescription.factory_rescheduling(
-        tc=tc
+        tc=tc_reschedule_problem
     )
 
     inject_fake_malfunction_into_dynamic_env(dynamic_env, fake_malfunction)
 
-    _, full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+    full_reschedule_result = asp_reschedule_wrapper(
         malfunction=fake_malfunction,
         malfunction_env_reset=lambda *args, **kwargs: None,
         malfunction_rail_env=dynamic_env,
-        schedule_problem=schedule_problem,
-        schedule_trainruns=fake_schedule,
+        tc=get_freeze_for_full_rescheduling(
+            malfunction=fake_malfunction,
+            schedule_trainruns=fake_schedule,
+            minimum_travel_time_dict=tc_reschedule_problem.minimum_travel_time_dict,
+            latest_arrival=dynamic_env._max_episode_steps,
+            topo_dict=tc_reschedule_problem.topo_dict
+        ),
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
 
@@ -483,7 +489,7 @@ def test_rescheduling_bottleneck():
 
     # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
-    actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
+    actual_costs = full_reschedule_result.optimization_costs
 
     expected_delay_wr_schedule = 22
     assert expected_delay_wr_schedule == get_delay_trainruns_dict(fake_schedule, expected_reschedule)
@@ -790,14 +796,21 @@ def _verify_rescheduling_delta(fake_malfunction: Malfunction,
                                fake_full_reschedule_trainruns: TrainrunDict,
                                expected_arrivals, expected_delay):
     dynamic_env, fake_malfunction, schedule_problem = _dummy_test_case(fake_malfunction)
-    _, delta_reschedule_result, delta_reschedule_solution = reschedule_delta_after_malfunction(
-        full_reschedule_trainruns=fake_full_reschedule_trainruns,
-        schedule_trainruns=fake_full_reschedule_trainruns,
+    tc_delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle(
+        full_reschedule_trainrun_waypoints_dict=fake_full_reschedule_trainruns,
+        malfunction=fake_malfunction,
+        # TODO SIM-146 code smell: why do we need env????
+        max_episode_steps=schedule_problem.tc.max_episode_steps,
+        schedule_topo_dict=schedule_problem.tc.topo_dict,
+        schedule_trainrun_dict=fake_schedule,
+        minimum_travel_time_dict=schedule_problem.tc.minimum_travel_time_dict
+    )
+    delta_reschedule_result = asp_reschedule_wrapper(
+        tc=tc_delta_reschedule_problem,
         malfunction=fake_malfunction,
         # TODO SIM-146 code smell: why do we need env????
         malfunction_rail_env=dynamic_env,
-        tc=schedule_problem.tc
-
+        malfunction_env_reset=lambda *args, **kwargs: None
     )
     delta_reschedule_trainruns = delta_reschedule_result.trainruns_dict
     for train, expected_arrival in expected_arrivals.items():
@@ -809,9 +822,9 @@ def _verify_rescheduling_delta(fake_malfunction: Malfunction,
     assert delay_in_delta_reschedule == expected_delay, f"found {delay_in_delta_reschedule}, expected={expected_delay}"
     delay_in_full_reschedule = get_delay_trainruns_dict(fake_schedule, fake_full_reschedule_trainruns)
     assert delay_in_full_reschedule == expected_delay, f"found {delay_in_full_reschedule}, expected {expected_delay}"
-    asp_costs = delta_reschedule_solution.asp_solution.stats['summary']['costs'][0]
+    asp_costs = delta_reschedule_result.optimization_costs
 
-    # TODO SIM-174 semantics of costs in ASP differ in full vs. Delta re-scheduling: analyse and streamline
+    # TODO SIM-239 semantics of costs in ASP differ in full vs. Delta re-scheduling: analyse and streamline
     expected_asp_costs = expected_delay - delay_in_full_reschedule
     assert asp_costs == expected_asp_costs, f"found asp_costs={asp_costs}, expected={expected_asp_costs}"
 
