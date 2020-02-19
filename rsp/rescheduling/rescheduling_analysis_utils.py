@@ -8,6 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.route_dag.route_dag import get_paths_for_experiment_freeze
+from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import convert_data_frame_row_to_experiment_results
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
@@ -103,9 +104,9 @@ def _analyze_paths(experiment_results: ExperimentResults, experiment_id: int, de
 def _extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
     experiment_freeze_delta_afer_malfunction = experiment_results.experiment_freeze_delta_after_malfunction
     experiment_freeze_full_after_malfunction = experiment_results.experiment_freeze_full_after_malfunction
-    agents_paths_dict = experiment_results.agents_paths_dict
+    topo_dict = experiment_results.topo_dict
     all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = _extract_number_of_path_alternatives(
-        agents_paths_dict, experiment_freeze_delta_afer_malfunction,
+        topo_dict, experiment_freeze_delta_afer_malfunction,
         experiment_freeze_full_after_malfunction)
     path_search_space_schedule = _prod(all_nb_alternatives_schedule)
     path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
@@ -114,7 +115,7 @@ def _extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[i
 
 
 def _extract_number_of_path_alternatives(
-        agents_paths_dict,
+        topo_dict: TopoDict,
         experiment_freeze_delta_afer_malfunction,
         experiment_freeze_full_after_malfunction) -> Tuple[List[int], List[int], List[int]]:
     """Extract number of path alternatives for schedule, rsp full and rsp delta
@@ -124,19 +125,18 @@ def _extract_number_of_path_alternatives(
     all_nb_alternatives_rsp_delta = []
 
     for agent_id in experiment_freeze_delta_afer_malfunction:
-        agent_paths = agents_paths_dict[agent_id]
         alternatives_schedule = get_paths_for_experiment_freeze(
-            agent_paths,
+            topo=topo_dict[agent_id],
             # TODO SIM-239 this is not correct, there may not be enough time for all paths; use experiment_freeze for scheduling
-            None
+            experiment_freeze=None
         )
         alternatives_rsp_full = get_paths_for_experiment_freeze(
-            agent_paths,
-            experiment_freeze_full_after_malfunction[agent_id]
+            topo=topo_dict[agent_id],
+            experiment_freeze=experiment_freeze_full_after_malfunction[agent_id]
         )
         alternatives_rsp_delta = get_paths_for_experiment_freeze(
-            agent_paths,
-            experiment_freeze_delta_afer_malfunction[agent_id]
+            topo=topo_dict[agent_id],
+            experiment_freeze=experiment_freeze_delta_afer_malfunction[agent_id]
         )
         all_nb_alternatives_schedule.append(len(alternatives_schedule))
         all_nb_alternatives_rsp_full.append(len(alternatives_rsp_full))

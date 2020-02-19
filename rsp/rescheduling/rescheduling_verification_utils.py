@@ -17,7 +17,7 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults,
     """
     experiment_freeze_delta_afer_malfunction = experiment_results.experiment_freeze_delta_after_malfunction
     experiment_freeze_full_after_malfunction = experiment_results.experiment_freeze_full_after_malfunction
-    agents_paths_dict = experiment_results.agents_paths_dict
+    topo_dict = experiment_results.topo_dict
 
     # 1. plausibility check
     # a) same waypoint in schedule and re-schedule -> waypoint also in delta re-schedule
@@ -46,7 +46,7 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults,
 
     # 2. plausibility test: number of alternatives should be decreasing
     all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = _extract_number_of_path_alternatives(
-        agents_paths_dict, experiment_freeze_delta_afer_malfunction,
+        topo_dict, experiment_freeze_delta_afer_malfunction,
         experiment_freeze_full_after_malfunction)
 
     for agent_id in experiment_freeze_delta_afer_malfunction:
@@ -56,9 +56,9 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults,
         assert nb_alternatives_schedule >= nb_alternatives_rsp_full
         assert nb_alternatives_rsp_full >= nb_alternatives_rsp_delta
 
-    assert len(all_nb_alternatives_schedule) == len(agents_paths_dict.keys())
-    assert len(all_nb_alternatives_rsp_full) == len(agents_paths_dict.keys())
-    assert len(all_nb_alternatives_rsp_delta) == len(agents_paths_dict.keys())
+    assert len(all_nb_alternatives_schedule) == len(topo_dict.keys())
+    assert len(all_nb_alternatives_rsp_full) == len(topo_dict.keys())
+    assert len(all_nb_alternatives_rsp_delta) == len(topo_dict.keys())
 
     path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = _extract_path_search_space(
         experiment_results)

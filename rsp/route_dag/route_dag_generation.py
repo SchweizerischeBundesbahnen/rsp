@@ -5,19 +5,97 @@ from typing import Optional
 from typing import Set
 
 import networkx as nx
-import numpy
+import numpy as np
+from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.route_dag import AgentsPathsDict
 from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import get_sources_for_topo
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import topo_from_agent_paths
 from rsp.route_dag.route_dag import TopoDict
-from rsp.utils.data_types import AgentsPathsDict
+from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentFreeze
 from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
+
+
+# TODO SIM-239 separate into scheduling, re-scheduling, delta and helpers! make UT for helpers
+def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> ScheduleProblemDescription:
+    agents_paths_dict = {
+        # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
+        i: get_k_shortest_paths(env,
+                                agent.initial_position,
+                                agent.initial_direction,
+                                agent.target,
+                                k) for i, agent in enumerate(env.agents)
+    }
+
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+                                for agent in env.agents}
+    _, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict=agents_paths_dict)
+    schedule_problem_description = ScheduleProblemDescription(
+        experiment_freeze_dict=_get_freeze_for_scheduling(minimum_travel_time_dict=minimum_travel_time_dict,
+                                                          agents_paths_dict=agents_paths_dict,
+                                                          latest_arrival=env._max_episode_steps),
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        topo_dict=topo_dict,
+        max_episode_steps=env._max_episode_steps)
+    return schedule_problem_description
+
+
+def _get_freeze_for_scheduling(
+        minimum_travel_time_dict: Dict[int, int],
+        agents_paths_dict: AgentsPathsDict,
+        latest_arrival: int
+) -> ExperimentFreezeDict:
+    dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
+
+    return {
+        agent_id: ExperimentFreeze(
+            freeze_visit=[],
+            freeze_earliest=_propagate_earliest(
+                banned_set=[],
+                earliest_dict={dummy_source_dict[agent_id]: 0},
+                minimum_travel_time=minimum_travel_time_dict[agent_id],
+                force_freeze_dict={},
+                subdag_source=TrainrunWaypoint(waypoint=dummy_source_dict[agent_id], scheduled_at=0),
+                topo=topo_dict[agent_id],
+            ),
+            # TODO SIM-239 deactivate for backward compatibility?
+            freeze_latest={waypoint: latest_arrival for waypoint in topo_dict[agent_id].nodes},
+            freeze_banned=[],
+        )
+        for agent_id in agents_paths_dict}
+
+
+def _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict):
+    # get topology from agent paths
+    topo_dict = {agent_id: topo_from_agent_paths(agents_paths_dict[agent_id])
+                 for agent_id in agents_paths_dict}
+    # add dummy nodes
+    dummy_source_dict: Dict[int, Waypoint] = {}
+    dummy_sink_dict: Dict[int, Waypoint] = {}
+    for agent_id, topo in topo_dict.items():
+        sources = list(get_sources_for_topo(topo))
+        sinks = list(get_sinks_for_topo(topo))
+
+        dummy_sink_waypoint = Waypoint(position=agents_paths_dict[agent_id][0][-1].position,
+                                       direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+        dummy_sink_dict[agent_id] = dummy_sink_waypoint
+        dummy_source_waypoint = Waypoint(position=agents_paths_dict[agent_id][0][0].position,
+                                         direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+        dummy_source_dict[agent_id] = dummy_source_waypoint
+        for source in sources:
+            topo.add_edge(dummy_source_waypoint, source)
+        for sink in sinks:
+            topo.add_edge(sink, dummy_sink_waypoint)
+    return dummy_source_dict, topo_dict
 
 
 def generic_experiment_freeze_for_rescheduling(
@@ -27,7 +105,7 @@ def generic_experiment_freeze_for_rescheduling(
         force_freeze: Dict[int, List[TrainrunWaypoint]],
         malfunction: ExperimentMalfunction,
         latest_arrival: int
-) -> ExperimentFreezeDict:
+) -> ScheduleProblemDescription:
     """Derives the experiment freeze given the malfunction and optionally a
     force freeze from an Oracle. The node after the malfunction time has to be
     visited with an earliest constraint.
@@ -81,31 +159,25 @@ def generic_experiment_freeze_for_rescheduling(
     for agent_id, schedule_trainrun in schedule_trainruns.items():
         if agent_id not in experiment_freeze_dict:
             if malfunction.time_step < schedule_trainrun[0].scheduled_at:
-                earliest_dict = {
-                    schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at
-                }
-                _propagate_earliest(
-                    banned_set=[],
-                    earliest_dict=earliest_dict,
-                    minimum_travel_time=minimum_travel_time_dict[agent_id],
-                    force_freeze_dict={},
-                    subdag_source=schedule_trainrun[0],
-                    topo=topo_dict[agent_id],
-                )
 
-                latest_dict = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[agent_id])}
-                _propagate_latest(
-                    banned_set=[],
-                    latest_dict=latest_dict,
-                    latest_arrival=latest_arrival,
-                    minimum_travel_time=minimum_travel_time_dict[agent_id],
-                    force_freeze_dict={},
-                    topo=topo_dict[agent_id],
-                )
                 experiment_freeze_dict[agent_id] = ExperimentFreeze(
                     freeze_visit=[],
-                    freeze_earliest=earliest_dict,
-                    freeze_latest=latest_dict,
+                    freeze_earliest=_propagate_earliest(
+                        banned_set=[],
+                        earliest_dict={schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at},
+                        minimum_travel_time=minimum_travel_time_dict[agent_id],
+                        force_freeze_dict={},
+                        subdag_source=schedule_trainrun[0],
+                        topo=topo_dict[agent_id],
+                    ),
+                    freeze_latest=_propagate_latest(
+                        banned_set=[],
+                        latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[agent_id])},
+                        latest_arrival=latest_arrival,
+                        minimum_travel_time=minimum_travel_time_dict[agent_id],
+                        force_freeze_dict={},
+                        topo=topo_dict[agent_id],
+                    ),
                     freeze_banned=[],
                 )
                 freeze: ExperimentFreeze = experiment_freeze_dict[agent_id]
@@ -129,7 +201,7 @@ def generic_experiment_freeze_for_rescheduling(
                                    for waypoint in all_waypoints
                                    if waypoint not in visited],
                 )
-
+    # TODO SIM-239 should not be here
     for agent_id in experiment_freeze_dict:
         verify_experiment_freeze_for_agent(
             agent_id=agent_id,
@@ -141,7 +213,39 @@ def generic_experiment_freeze_for_rescheduling(
                 filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
                        schedule_trainruns[agent_id]))
         )
-    return experiment_freeze_dict
+    return ScheduleProblemDescription(
+        experiment_freeze_dict=experiment_freeze_dict,
+        topo_dict=topo_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        max_episode_steps=latest_arrival
+    )
+
+
+def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
+                                     schedule_trainruns: TrainrunDict,
+                                     minimum_travel_time_dict: Dict[int, int],
+                                     topo_dict: Dict[int, nx.DiGraph],
+                                     latest_arrival: int
+                                     ) -> ScheduleProblemDescription:
+    """Returns the experiment freeze for the full re-scheduling problem. Wraps
+    the generic freeze by freezing everything up to and including the
+    malfunction.
+
+    See param description there.
+    """
+    return generic_experiment_freeze_for_rescheduling(
+        malfunction=malfunction,
+        schedule_trainruns=schedule_trainruns,
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        force_freeze={agent_id: [trainrun_waypoint
+                                 for trainrun_waypoint in schedule_trainrun
+                                 if trainrun_waypoint.scheduled_at <= malfunction.time_step
+                                 ]
+                      for agent_id, schedule_trainrun in schedule_trainruns.items()
+                      },
+        topo_dict=topo_dict,
+        latest_arrival=latest_arrival
+    )
 
 
 def _generic_experiment_freeze_for_rescheduling_agent_while_running(
@@ -182,7 +286,7 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
     all_waypoints: List[Waypoint] = topo.nodes
 
     # span a sub-dag for the problem
-    # - for full scheduling (TODO SIM-173), this is source vertex and time 0
+    # - for full scheduling (TODO SIM-239), this is source vertex and time 0
     # - for full re-scheduling, this is the next waypoint after the malfunction (delayed for the agent in malfunction)
     # - for delta re-scheduling, if the Oracle tells that more can be freezed than up to malfunction, we use this!
     #   If the force freeze is not contiguous, we need to consider what can be reached given the freezes.
@@ -208,6 +312,7 @@ def _generic_experiment_freeze_for_rescheduling_agent_while_running(
     # there may be multiple vertices by which the last cell may be entered!
     sinks = get_sinks_for_topo(topo)
     for sink in sinks:
+        # TODO SIM-239 we should remove this logic here!
         # -1 for occupying the cell for one time step!
         reachable_latest_dict[sink] = latest_arrival - 1
 
@@ -340,13 +445,20 @@ def _propagate_latest(banned_set: Set[Waypoint],
                 if predecessor in force_freeze_dict or predecessor in banned_set:
                     continue
                 else:
-                    path_latest = latest_dict.get(waypoint, -numpy.inf) - minimum_travel_time
-                    latest = max(path_latest, latest_dict.get(predecessor, -numpy.inf))
-                    if latest < latest_arrival and latest > -numpy.inf:
+                    # TODO SIM-239 make ticket for hard-coded parts
+                    # minimum travel time is 1 (synchronization step) if we're goint to the sink
+                    minimum_travel_time_corrected = minimum_travel_time
+                    if topo.out_degree[waypoint] == 0:
+                        minimum_travel_time_corrected = 1
+
+                    path_latest = latest_dict.get(waypoint, -np.inf) - minimum_travel_time_corrected
+                    latest = max(path_latest, latest_dict.get(predecessor, -np.inf))
+                    if latest < latest_arrival and latest > -np.inf:
                         latest = int(latest)
                         if latest_dict.get(predecessor, None) != latest:
                             done = False
                         latest_dict[predecessor] = latest
+    return latest_dict
 
 
 def _propagate_earliest(banned_set: Set[Waypoint],
@@ -378,20 +490,29 @@ def _propagate_earliest(banned_set: Set[Waypoint],
                 if successor in force_freeze_dict or successor in banned_set:
                     continue
                 else:
-                    path_earliest = earliest_dict.get(waypoint, numpy.inf) + minimum_travel_time
-                    earliest = min(path_earliest, earliest_dict.get(successor, numpy.inf))
-                    if earliest > subdag_source.scheduled_at and earliest < numpy.inf:
+                    # TODO SIM-239 ticket machen oder erledigen
+                    # TODO SIM-XXX put minimum_travel_time per edge and add dumy edges for source and sink as input
+                    # add +1 for
+                    minimum_travel_time_here = minimum_travel_time
+
+                    # minimum travel time is 1 (synchronization step) to one if we're coming from the source
+                    if topo.in_degree[waypoint] == 0:
+                        minimum_travel_time_here = 1
+                    path_earliest = earliest_dict.get(waypoint, np.inf) + minimum_travel_time_here
+                    earliest = min(path_earliest, earliest_dict.get(successor, np.inf))
+                    if earliest > subdag_source.scheduled_at and earliest < np.inf:
                         earliest = int(earliest)
                         if earliest_dict.get(successor, None) != earliest:
                             done = False
                         earliest_dict[successor] = earliest
+    return earliest_dict
 
 
 def _get_delayed_trainrun_waypoint_after_malfunction(
         agent_id: int,
         trainrun: Trainrun,
         malfunction: ExperimentMalfunction) -> TrainrunWaypoint:
-    """
+    """Returns the trainrun waypoint after the malfunction that needs to be re.
 
     Parameters
     ----------
@@ -401,45 +522,20 @@ def _get_delayed_trainrun_waypoint_after_malfunction(
 
     Returns
     -------
-
     """
+    previous_scheduled = 0
     for trainrun_waypoint in trainrun:
         if trainrun_waypoint.scheduled_at > malfunction.time_step:
             if agent_id == malfunction.agent_id:
                 return TrainrunWaypoint(
                     waypoint=trainrun_waypoint.waypoint,
-                    scheduled_at=trainrun_waypoint.scheduled_at + malfunction.malfunction_duration)
+                    # TODO + 1?
+                    scheduled_at=previous_scheduled + malfunction.malfunction_duration + 1)
             else:
+                # TODO may this be to pessimistic? should earliest be previous_scheduled + minimum_running_time?
                 return trainrun_waypoint
+        previous_scheduled = trainrun_waypoint.scheduled_at
     return trainrun[-1]
-
-
-def get_freeze_for_full_rescheduling(malfunction: ExperimentMalfunction,
-                                     schedule_trainruns: TrainrunDict,
-                                     minimum_travel_time_dict: Dict[int, int],
-                                     agents_path_dict: AgentsPathsDict,
-                                     latest_arrival: int
-                                     ) -> ExperimentFreezeDict:
-    """Returns the experiment freeze for the full re-scheduling problem. Wraps
-    the generic freeze by freezing everything up to and including the
-    malfunction.
-
-    See param description there.
-    """
-    return generic_experiment_freeze_for_rescheduling(
-        malfunction=malfunction,
-        schedule_trainruns=schedule_trainruns,
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        force_freeze={agent_id: [trainrun_waypoint
-                                 for trainrun_waypoint in schedule_trainrun
-                                 if trainrun_waypoint.scheduled_at <= malfunction.time_step
-                                 ]
-                      for agent_id, schedule_trainrun in schedule_trainruns.items()
-                      },
-        topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
-                   for agent_id in agents_path_dict},
-        latest_arrival=latest_arrival
-    )
 
 
 def verify_experiment_freeze_for_agent(

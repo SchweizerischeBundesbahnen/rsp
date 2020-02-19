@@ -5,28 +5,25 @@ from typing import Tuple
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.oracle.oracle import perfect_oracle
-from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
-from rsp.rescheduling.rescheduling_utils import verify_experiment_freeze_for_agent
-from rsp.route_dag.route_dag import topo_from_agent_paths
+from rsp.route_dag.route_dag_generation import get_freeze_for_full_rescheduling
+from rsp.route_dag.route_dag_generation import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag_generation import verify_experiment_freeze_for_agent
+from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
-from rsp.solvers.solve_problem import replay
-from rsp.solvers.solve_problem import SchedulingExperimentResult
-from rsp.solvers.solve_problem import solve_problem
+from rsp.solvers.asp.asp_solve_problem import replay
+from rsp.solvers.asp.asp_solve_problem import SchedulingExperimentResult
+from rsp.solvers.asp.asp_solve_problem import solve_problem
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.experiment_solver import AbstractSolver
-from rsp.utils.experiment_solver import RendererForEnvCleanup
-from rsp.utils.experiment_solver import RendererForEnvInit
-from rsp.utils.experiment_solver import RendererForEnvRender
 
 
+# TODO SIM-239 sollte nichts mit ASP zu tun haben
 class ASPExperimentSolver(AbstractSolver):
     """Implements `AbstractSolver` for ASP.
 
@@ -63,6 +60,7 @@ class ASPExperimentSolver(AbstractSolver):
         -------
         ExperimentResults
         """
+        rendering = True
         # TODO SIM-239 pass experiment_freeze into this
         schedule_problem, schedule_result, schedule_solution = schedule_full(k, static_rail_env, rendering=rendering,
                                                                              debug=debug)
@@ -77,8 +75,9 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
 
         malfunction_env_reset()
-        controller_from_train_runs: ControllerFromTrainruns = schedule_solution.create_action_plan()
-
+        controller_from_train_runs: ControllerFromTrainruns = schedule_solution.create_action_plan(
+            env=malfunction_rail_env)
+        malfunction_env_reset()
         malfunction = replay(
             controller_from_train_runs=controller_from_train_runs,
             env=malfunction_rail_env,
@@ -125,7 +124,7 @@ class ASPExperimentSolver(AbstractSolver):
             schedule_trainruns=schedule_trainruns,
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
-            schedule_problem=schedule_problem,
+            tc=schedule_problem.tc,
             rendering=rendering,
             debug=debug
         )
@@ -153,7 +152,7 @@ class ASPExperimentSolver(AbstractSolver):
                                             experiment_freeze_full_after_malfunction=full_reschedule_result.experiment_freeze,
                                             experiment_freeze_delta_after_malfunction=delta_reschedule_result.experiment_freeze,
                                             malfunction=malfunction,
-                                            agents_paths_dict=schedule_problem.agents_path_dict,
+                                            topo_dict=schedule_problem.tc.topo_dict,
                                             nb_resource_conflicts_full=schedule_result.nb_conflicts,
                                             nb_resource_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
                                             nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
@@ -188,52 +187,16 @@ def schedule_full(k: int,
     """
 
     # --------------------------------------------------------------------------------------
-    # Generate k shortest paths
-    # --------------------------------------------------------------------------------------
-    # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
-    # TODO SIM-239 take from experimentparams
-    agents_paths_dict = {
-        i: get_k_shortest_paths(static_rail_env,
-                                agent.initial_position,
-                                agent.initial_direction,
-                                agent.target,
-                                k) for i, agent in enumerate(static_rail_env.agents)
-    }
-
-    # --------------------------------------------------------------------------------------
-    # Rendering
-    # --------------------------------------------------------------------------------------
-    if rendering:
-        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
-        from rsp.utils.experiment_render_utils import render_env
-        from rsp.utils.experiment_render_utils import init_renderer_for_env
-        init_renderer_for_env = init_renderer_for_env
-        render_renderer_for_env = render_env
-        cleanup_renderer_for_env = cleanup_renderer_for_env
-    else:
-        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
-        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
-        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
-
-    renderer = init_renderer_for_env(static_rail_env, rendering)
-
-    def rendering_call_back(test_id: int, solver_name, i_step: int):
-        render_renderer_for_env(renderer, test_id, solver_name, i_step)
-
-    # --------------------------------------------------------------------------------------
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
-    schedule_problem = ASPProblemDescription(env=static_rail_env,
-                                             agents_path_dict=agents_paths_dict)
+    schedule_problem = ASPProblemDescription.factory_scheduling(
+        tc=schedule_problem_description_from_rail_env(static_rail_env, k))
 
     schedule_result, schedule_solution = solve_problem(
         env=static_rail_env,
         problem=schedule_problem,
-        rendering_call_back=rendering_call_back,
+        rendering=rendering,
         debug=debug)
-
-    # rendering hooks
-    cleanup_renderer_for_env(renderer)
 
     return schedule_problem, schedule_result, schedule_solution
 
@@ -246,7 +209,6 @@ def reschedule_full_after_malfunction(
         malfunction_rail_env: RailEnv,
         malfunction_env_reset: Callable[[], None],
         debug: bool = False,
-        disable_verification_in_replay: bool = False,
         rendering: bool = False,
 ) -> Tuple[ASPProblemDescription, SchedulingExperimentResult, ASPSolutionDescription]:
     """Solve the Full Re-Scheduling Problem for static rail env (i.e. without
@@ -261,7 +223,6 @@ def reschedule_full_after_malfunction(
     malfunction_rail_env
     malfunction_env_reset
     debug
-    disable_verification_in_replay
     rendering
 
     Returns
@@ -270,58 +231,35 @@ def reschedule_full_after_malfunction(
     """
 
     # --------------------------------------------------------------------------------------
-    # Rendering
-    # --------------------------------------------------------------------------------------
-    if rendering:
-        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
-        from rsp.utils.experiment_render_utils import render_env
-        from rsp.utils.experiment_render_utils import init_renderer_for_env
-        init_renderer_for_env = init_renderer_for_env
-        render_renderer_for_env = render_env
-        cleanup_renderer_for_env = cleanup_renderer_for_env
-    else:
-        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
-        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
-        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
-
-    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
-
-    def rendering_call_back(test_id: int, solver_name, i_step: int):
-        render_renderer_for_env(renderer, test_id, solver_name, i_step)
-
-    # --------------------------------------------------------------------------------------
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
                                 malfunction_rail_env.agents}
-    freeze_dict: ExperimentFreezeDict = get_freeze_for_full_rescheduling(
+    tc: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=minimum_travel_time_dict,
-        agents_path_dict=schedule_problem.agents_path_dict,
-        latest_arrival=malfunction_rail_env._max_episode_steps
+        latest_arrival=malfunction_rail_env._max_episode_steps,
+        topo_dict=schedule_problem.tc.topo_dict
     )
 
-    # TODO SIM-239 no copy, pass in agents_path_dict and experiment_freeze
-    full_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
-        experiment_freeze_dict=freeze_dict,
-        schedule_trainruns_to_minimize_for=schedule_trainruns
+    full_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
+        tc=tc
     )
 
     if debug:
         print("###reschedule_full freeze_dict")
-        experimentFreezeDictPrettyPrint(freeze_dict)
+        experimentFreezeDictPrettyPrint(tc.experiment_freeze_dict)
 
     full_reschedule_result, full_reschedule_solution = solve_problem(
         env=malfunction_rail_env,
         problem=full_reschedule_problem,
-        rendering_call_back=rendering_call_back,
+        rendering=rendering,
         debug=debug,
         expected_malfunction=malfunction,
         # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
         disable_verification_in_replay=True
     )
-    cleanup_renderer_for_env(renderer)
     malfunction_env_reset()
 
     if debug:
@@ -331,9 +269,9 @@ def reschedule_full_after_malfunction(
     return full_reschedule_problem, full_reschedule_result, full_reschedule_solution
 
 
-# TODO SIM-239 we should pass ExperimentFreeze as input, remove rendering?
+# TODO SIM-239 we should pass ExperimentFreeze as input, remove rendering? sollte nur ScheduleProblemDescription zurückgeben
 def reschedule_delta_after_malfunction(
-        schedule_problem: ASPProblemDescription,
+        tc: ScheduleProblemDescription,
         full_reschedule_trainruns: TrainrunDict,
         schedule_trainruns: TrainrunDict,
         malfunction: ExperimentMalfunction,
@@ -359,69 +297,43 @@ def reschedule_delta_after_malfunction(
 
     """
 
-    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
-                                for agent in malfunction_rail_env.agents}
-
-    # --------------------------------------------------------------------------------------
-    # Rendering
-    # --------------------------------------------------------------------------------------
-    if rendering:
-        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
-        from rsp.utils.experiment_render_utils import render_env
-        from rsp.utils.experiment_render_utils import init_renderer_for_env
-        init_renderer_for_env = init_renderer_for_env
-        render_renderer_for_env = render_env
-        cleanup_renderer_for_env = cleanup_renderer_for_env
-    else:
-        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
-        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
-        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
-
-    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
-
-    def rendering_call_back(test_id: int, solver_name, i_step: int):
-        render_renderer_for_env(renderer, test_id, solver_name, i_step)
-
     # --------------------- -----------------------------------------------------------------
     # Delta Re-Scheduling with "perfect" oracle
     # --------------------------------------------------------------------------------------
-    freeze_dict = perfect_oracle(
-        full_reschedule_trainruns_dict=full_reschedule_trainruns,
+    tc: ScheduleProblemDescription = perfect_oracle(
+        full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
         malfunction=malfunction,
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        max_episode_steps=malfunction_rail_env._max_episode_steps,
-        agents_path_dict=schedule_problem.agents_path_dict,
-        schedule_trainruns_dict=schedule_trainruns
+        minimum_travel_time_dict=tc.minimum_travel_time_dict,
+        max_episode_steps=tc.max_episode_steps,
+        schedule_topo_dict=tc.topo_dict,
+        schedule_trainrun_dict=schedule_trainruns
     )
+    freeze_dict = tc.experiment_freeze_dict
 
     # verify that full reschedule solution is still a solution in the constrained solution space
     for agent_id in freeze_dict:
         verify_experiment_freeze_for_agent(
             agent_id=agent_id,
-            topo=topo_from_agent_paths(schedule_problem.agents_path_dict[agent_id]),
+            topo=tc.topo_dict[agent_id],
             experiment_freeze=freeze_dict[agent_id],
             force_freeze=[],
             scheduled_trainrun=full_reschedule_trainruns[agent_id]
         )
 
-    # TODO SIM-239 no copy, pass freeze in
-    delta_reschedule_problem: ASPProblemDescription = schedule_problem.get_copy_for_experiment_freeze(
-        experiment_freeze_dict=freeze_dict,
-        # TODO SIM-146 bad code smell: why should we need to pass the train runs so far???
-        # minimize with respect to original schedule S0
-        schedule_trainruns_to_minimize_for=schedule_trainruns
+    delta_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
+        tc=tc
     )
 
     delta_reschedule_result, delta_reschedule_solution = solve_problem(
         env=malfunction_rail_env,
         problem=delta_reschedule_problem,
-        rendering_call_back=rendering_call_back,
+        rendering=rendering,
         debug=debug,
         expected_malfunction=malfunction,
+        # TODO SIM-239 remove/extract?
         # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
         disable_verification_in_replay=True
     )
-    cleanup_renderer_for_env(renderer)
 
     if debug:
         print("####delta train runs dict")

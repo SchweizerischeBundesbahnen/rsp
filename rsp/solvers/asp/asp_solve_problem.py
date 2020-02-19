@@ -14,12 +14,15 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.abstract_solution_description import AbstractSolutionDescription
-from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
+from rsp.route_dag.route_dag import _paths_in_route_dag
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
+from rsp.route_dag.route_dag_generation import ExperimentFreezeDict
 from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
+from rsp.utils.experiment_render_utils import init_renderer_for_env
+from rsp.utils.experiment_render_utils import render_env
 from rsp.utils.general_utils import current_milli_time
 
 # TODO SIM-239 bad code smell: generic file should not have dependency to submodule!
@@ -46,9 +49,10 @@ _pp = pprint.PrettyPrinter(indent=4)
 # TODO SIM-239 de-couple solver parts with constraint description part; move solver-dependent parts to other module!
 # TODO SIM-220 discuss with Adrian: get rid of "old world" (solve_utils/solve_tests/solve_envs)?
 #  Then, we could get rid of this intermediate layer and move solve_problem to AbstractProblemDescription
+# TODO SIM-239 extract data types and abstract parts from asp package!
 def solve_problem(env: RailEnv,
-                  problem: AbstractProblemDescription,
-                  rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
+                  problem: ASPProblemDescription,
+                  rendering: bool = False,
                   debug: bool = False,
                   loop_index: int = 0,
                   disable_verification_in_replay: bool = False,
@@ -82,7 +86,7 @@ def solve_problem(env: RailEnv,
     # Preparations
     # --------------------------------------------------------------------------------------
     minimum_number_of_shortest_paths_over_all_agents = np.min(
-        [len(agents_paths) for agents_paths in problem.agents_path_dict.values()])
+        [len(_paths_in_route_dag(topo)) for agent_id, topo in problem.tc.topo_dict.items()])
 
     if minimum_number_of_shortest_paths_over_all_agents == 0:
         raise Exception("At least one Agent has no path to its target!")
@@ -94,7 +98,7 @@ def solve_problem(env: RailEnv,
     build_problem_time = (current_milli_time() - start_build_problem) / 1000.0
 
     start_solver = current_milli_time()
-    solution: AbstractSolutionDescription = problem.solve()
+    solution: ASPSolutionDescription = problem.solve()
     solve_time = (current_milli_time() - start_solver) / 1000.0
     assert solution.is_solved()
 
@@ -110,9 +114,9 @@ def solve_problem(env: RailEnv,
     verify_trainruns_dict(env=env,
                           trainruns_dict=trainruns_dict,
                           expected_malfunction=expected_malfunction,
-                          expected_experiment_freeze=problem.experiment_freeze_dict
+                          expected_experiment_freeze=problem.tc.experiment_freeze_dict
                           )
-    controller_from_train_runs: ControllerFromTrainruns = solution.create_action_plan()
+    controller_from_train_runs: ControllerFromTrainruns = solution.create_action_plan(env=env)
     if debug:
         print("  **** solution to replay:")
         print(_pp.pformat(solution.get_trainruns_dict()))
@@ -125,7 +129,7 @@ def solve_problem(env: RailEnv,
                           loop_index=loop_index,
                           expected_malfunction=expected_malfunction,
                           solver_name=problem.get_solver_name(),
-                          rendering_call_back=rendering_call_back,
+                          rendering=rendering,
                           controller_from_train_runs=controller_from_train_runs,
                           debug=debug,
                           disable_verification_in_replay=disable_verification_in_replay)
@@ -136,7 +140,7 @@ def solve_problem(env: RailEnv,
                                       build_problem_time=build_problem_time,
                                       nb_conflicts=solution.extract_nb_resource_conflicts(),
                                       trainruns_dict=solution.get_trainruns_dict(),
-                                      experiment_freeze=problem.experiment_freeze_dict), solution
+                                      experiment_freeze=problem.tc.experiment_freeze_dict), solution
 
 
 def get_summ_running_times_trainruns_dict(trainruns_dict: TrainrunDict):
@@ -264,11 +268,13 @@ def _verify_trainruns_3_source_target(env, trainruns_dict):
     for agent_id, agent in enumerate(env.agents):
         assert agent_id == agent.handle
         assert agent.handle in trainruns_dict
-        initial_trainrun_waypoint = trainruns_dict[agent_id][0]
+        # initial trainrun_waypoint is first after dummy
+        initial_trainrun_waypoint = trainruns_dict[agent_id][1]
         assert initial_trainrun_waypoint.waypoint.position == agent.initial_position, \
             f"agent {agent} does not start in expected initial position, found {initial_trainrun_waypoint}"
         assert initial_trainrun_waypoint.waypoint.direction == agent.initial_direction, \
             f"agent {agent} does not start in expected initial direction, found {initial_trainrun_waypoint}"
+        # target trainrun waypoint is last before dummy
         final_trainrun_waypoint = trainruns_dict[agent_id][-1]
         assert final_trainrun_waypoint.waypoint.position == agent.target, \
             f"agent {agent} does not end in expected target position, found {final_trainrun_waypoint}"
@@ -296,7 +302,7 @@ def _verify_trainruns_2_mutual_exclusion(trainruns_dict):
         agent_positions_per_time_step.setdefault(time_step, {})
         trainrun_waypoint = TrainrunWaypoint(
             waypoint=Waypoint(position=previous_trainrun_waypoint.waypoint.position,
-                              direction=ASPProblemDescription.MAGIC_DIRECTION_FOR_TARGET),
+                              direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET),
             scheduled_at=time_step)
         agent_positions_per_time_step[time_step][agent_id] = trainrun_waypoint
     for time_step in agent_positions_per_time_step:
@@ -326,11 +332,11 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
             previous_waypoints.add(trainrun_waypoint.waypoint)
 
 
-def replay(env: RailEnv,
+def replay(env: RailEnv,  # noqa: C901
            solver_name: str,
            controller_from_train_runs: ControllerFromTrainruns,
            expected_malfunction: Optional[ExperimentMalfunction] = None,
-           rendering_call_back: SolveProblemRenderCallback = lambda *a, **k: None,
+           rendering: bool = False,
            debug: bool = False,
            loop_index: int = 0,
            stop_on_malfunction: bool = False,
@@ -368,6 +374,8 @@ def replay(env: RailEnv,
     """
     total_reward = 0
     time_step = 0
+    if rendering:
+        renderer = init_renderer_for_env(env, rendering)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
         if disable_verification_in_replay:
@@ -391,13 +399,15 @@ def replay(env: RailEnv,
                     # malfunction duration is already decreased by one in this step(), therefore add +1!
                     return ExperimentMalfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
 
-        rendering_call_back(test_id=loop_index, solver_name=solver_name, i_step=time_step)
+        if rendering:
+            render_env(renderer, test_id=loop_index, solver_name=solver_name, i_step=time_step)
 
         # if all agents have reached their goals, break
         if done['__all__']:
             break
-
         time_step += 1
+    if rendering:
+        cleanup_renderer_for_env(renderer)
     if stop_on_malfunction:
         return None
     else:

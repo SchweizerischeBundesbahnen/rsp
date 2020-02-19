@@ -90,8 +90,12 @@ def flux_helper(
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
                 paths.append(heuristic_routes_path)
     if asp_objective:
-        with path('res.asp.encodings', f'{asp_objective.value}.lp') as bound_path:
-            paths.append(bound_path)
+        with path('res.asp.encodings', f'{asp_objective.value}.lp') as objetive_path:
+            paths.append(objetive_path)
+        if asp_objective == ASPObjective.MINIMIZE_DELAY:
+            with path('res.asp.encodings', f'delay_linear_within_one_minute.lp') as delay_model_path:
+                paths.append(delay_model_path)
+
     flux_result = _asp_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,

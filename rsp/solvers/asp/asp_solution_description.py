@@ -1,22 +1,55 @@
 import re
 from typing import Set
 
+from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.abstract_problem_description import Waypoint
-from rsp.abstract_solution_description import AbstractSolutionDescription
-from rsp.solvers.asp.asp_solver import FluxHelperResult
+from rsp.route_dag.route_dag import get_sources_for_topo
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
+from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
+from rsp.solvers.asp.asp_helper import FluxHelperResult
 
 
-class ASPSolutionDescription(AbstractSolutionDescription):
+class ASPSolutionDescription():
 
-    def __init__(self, env: RailEnv, asp_solution: FluxHelperResult):
-        super(self.__class__, self).__init__(env)
+    def __init__(self,
+                 asp_solution: FluxHelperResult,
+                 tc: ScheduleProblemDescription
+                 ):
         self.asp_solution: FluxHelperResult = asp_solution
         self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
+        self._action_plan = None
+        self.tc: ScheduleProblemDescription = tc
+
+    def get_trainruns_dict(self) -> TrainrunDict:
+        """Get train runs for all agents: waypoints and entry times."""
+        return {agent_id: self.get_trainrun_for_agent(agent_id) for agent_id in self.tc.topo_dict}
+
+    def create_action_plan(self, env: RailEnv) -> ControllerFromTrainruns:
+        """Creates an action plan (fix schedule, when an action has which
+        positions and when it has to take which actions).
+
+        Returns
+        -------
+        ActionPlanDict
+        """
+        if self._action_plan is not None:
+            return self._action_plan
+
+        solution_trainruns: TrainrunDict = self.get_trainruns_dict()
+
+        # tweak solutions
+        solution_trainruns_tweaked = {}
+        for agent_id, trainrun in solution_trainruns.items():
+            solution_trainruns_tweaked[agent_id] = \
+                [TrainrunWaypoint(waypoint=trainrun[1].waypoint, scheduled_at=trainrun[0].scheduled_at)] + trainrun[2:]
+
+        self._action_plan = ControllerFromTrainruns(env, solution_trainruns_tweaked)
+        return self._action_plan
 
     def _get_solver_variable_value(self, var_name) -> str:
         return list(filter(lambda s: s.startswith(str(var_name)), self.answer_set))[0]
@@ -64,16 +97,14 @@ class ASPSolutionDescription(AbstractSolutionDescription):
     def _get_solution_trainrun(self, agent_id) -> Trainrun:
         var_prefix = "dl((t{},".format(agent_id)
         agent_facts = filter(lambda s: s.startswith(str(var_prefix)), self.answer_set)
-        agent = self._env.agents[agent_id]
-        start_waypoint = AbstractProblemDescription.convert_position_and_entry_direction_to_waypoint(
-            *agent.initial_position,
-            agent.initial_direction)
+        start_waypoint = list(get_sources_for_topo(self.tc.topo_dict[agent_id]))[0]
         # filter out dl entries that are zero and not relevant to us
         path = list(filter(lambda pse: pse.scheduled_at > 0 or pse.waypoint == start_waypoint,
                            map(self.__class__._parse_dl_fact, agent_facts)))
         path.sort(key=lambda p: p.scheduled_at)
         # remove the transition from the target waypoint to the dummy
-        assert path[-1].waypoint.direction == AbstractProblemDescription.MAGIC_DIRECTION_FOR_TARGET
+        assert path[-1].waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET, \
+            f"{path[-1]}"
         path = path[:-1]
         return path
 
@@ -81,16 +112,17 @@ class ASPSolutionDescription(AbstractSolutionDescription):
         """Get latest entry time for an agent at a waypoint over all agents and
         all their non-dummy waypoints."""
         latest_entry = 0
-        for agent_id in range(len(self._env.agents)):
+        for agent_id in self.tc.topo_dict:
             latest_entry = max(latest_entry, self.get_trainrun_for_agent(agent_id)[-1].scheduled_at)
         return latest_entry
 
     def get_sum_running_times(self) -> int:
-        """Get the model's cost of the solution with to its minimization
-        objective (which might be slightly different from the FLATland
-        rewards)."""
+        """Get the sum of running times from the solution schedule train runs.
+
+        Dummy edge at the end is strippe off.
+        """
         costs = 0
-        for agent_id in range(len(self._env.agents)):
+        for agent_id in self.tc.topo_dict:
             solution_trainrun = self.get_trainrun_for_agent(agent_id)
             costs += solution_trainrun[-1].scheduled_at - solution_trainrun[0].scheduled_at
         return costs

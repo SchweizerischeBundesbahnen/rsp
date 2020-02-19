@@ -1,143 +1,194 @@
 from __future__ import print_function
 
-from typing import Dict
 from typing import List
-from typing import Optional
-from typing import Set
 from typing import Tuple
 
-from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
-from overrides import overrides
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.abstract_problem_description import Waypoint
-from rsp.rescheduling.rescheduling_utils import ExperimentFreeze
-from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
+from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import get_sources_for_topo
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
+from rsp.route_dag.route_dag_generation import ExperimentFreeze
+from rsp.scheduling.scheduling_data_types import ScheduleProblemDescription
+from rsp.solvers.asp.asp_helper import ASPHeuristics
+from rsp.solvers.asp.asp_helper import ASPObjective
+from rsp.solvers.asp.asp_helper import flux_helper
 from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
-from rsp.solvers.asp.asp_solver import ASPHeuristics
-from rsp.solvers.asp.asp_solver import ASPObjective
-from rsp.solvers.asp.asp_solver import flux_helper
 
 
-class ASPProblemDescription(AbstractProblemDescription):
+class ASPProblemDescription():
 
     def __init__(self,
-                 env: RailEnv,
-                 agents_path_dict: Dict[int, Optional[List[Tuple[Waypoint]]]],
+                 tc: ScheduleProblemDescription,
+                 # TODO SIM-239 graph instead (RouteDag: add minimum_travel_time,max_episodes etc.?)
                  asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
                  asp_heuristics: List[ASPHeuristics] = None
                  ):
-
-        self.asp_program: List[str] = []
-        self.env: RailEnv = env
+        self.tc = tc
         self.asp_objective: ASPObjective = asp_objective
-        self.experiment_freeze_dict = None
         if asp_heuristics is None:
             self.asp_heuristics: List[ASPHeuristics] = [ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ]
         else:
             self.asp_heuristics: List[ASPHeuristics] = asp_heuristics
-        self.dummy_target_vertices: Optional[Dict[int, List[Waypoint]]] = None
 
-        self.agents_waypoints: Dict[int, Set[Waypoint]] = {
-            agent.handle: {waypoint
-                           for agent_path in agents_path_dict[agent.handle]
-                           for waypoint in agent_path}
-            for agent in env.agents}
+    @staticmethod
+    def factory_rescheduling(
+            # TODO SIM-190 penalize re-routing
+            tc: ScheduleProblemDescription,
+    ) -> 'ASPProblemDescription':
+        asp_problem = ASPProblemDescription(
+            tc=tc,
+            asp_objective=ASPObjective.MINIMIZE_DELAY,
+            # TODO SIM-167 switch on heuristics
+            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
+        )
+        asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
+            tc=tc,
+            add_minimumrunnigtime_per_agent=False)
+        return asp_problem
 
-        super().__init__(env, agents_path_dict, skip_mutual_exclusion=True)
+    @staticmethod
+    def factory_scheduling(
+            tc: ScheduleProblemDescription
+    ) -> 'ASPProblemDescription':
+        asp_problem = ASPProblemDescription(
+            tc=tc,
+            asp_objective=ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
+            # TODO SIM-167 switch on heuristics
+            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
+        )
+        asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
+            tc=tc,
+            # minimize_total_sum_of_running_times.lp requires minimumrunningtime(agent_id,<minimumrunningtime)
+            add_minimumrunnigtime_per_agent=True
+        )
+        return asp_problem
 
-    @overrides
     def get_solver_name(self) -> str:
-        """See :class:`AbstractProblemDescription`."""
+        """Return the solver name for printing."""
+        return "ASP"
 
-        # determine number of routing alternatives
-        k = max([len(agent_paths) for agent_paths in self.agents_path_dict.values()])
-        return "ASP_{}".format(k)
+    @staticmethod
+    def _sanitize_waypoint(waypoint: Waypoint):
+        return tuple([tuple(waypoint.position), int(waypoint.direction)])
 
-    @overrides
-    def _implement_train(self, agent_id: int, start_vertices: List[Waypoint], target_vertices: List[Waypoint],
-                         minimum_running_time: int):
-        """See :class:`AbstractProblemDescription`."""
+    def _implement_train(self, agent_id: int, start_vertices: List[Waypoint], target_vertices: List[Waypoint]):
+        """Rule 2 each train is scheduled.
+
+        Parameters
+        ----------
+        agent_id
+        start_vertices
+        target_vertices
+        minimum_running_time
+        """
 
         self.asp_program.append("train(t{}).".format(agent_id))
-        self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
         for start_waypoint in start_vertices:
-            self.asp_program.append("start(t{}, {}).".format(agent_id, tuple(start_waypoint)))
+            self.asp_program.append("start(t{}, {}).".format(agent_id, self._sanitize_waypoint(start_waypoint)))
         for target_waypoint in target_vertices:
-            self.asp_program.append("end(t{}, {}).".format(agent_id, tuple(target_waypoint)))
+            self.asp_program.append("end(t{}, {}).".format(agent_id, self._sanitize_waypoint(target_waypoint)))
 
-    @overrides
     def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """See :class:`AbstractProblemDescription`."""
+        """Rule 102 Time windows for earliest-requirements. If a
+        section_requirement specifies an entry_earliest and/or exit_earliest
+        time, then the event times for the entry_event and/or exit_event on the
+        corresponding trainrun_section MUST be >= the specified time.
 
+        Parameters
+        ----------
+        agent_id
+        waypoint
+        time
+        """
         # ASP fact e(T,V,E)
-        self.asp_program.append("e(t{},{},{}).".format(agent_id, tuple(waypoint), int(time)))
+        self.asp_program.append("e(t{},{},{}).".format(agent_id, self._sanitize_waypoint(waypoint), int(time)))
 
-    @overrides
     def _implement_agent_latest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """See :class:`AbstractProblemDescription`."""
+        """Rule 101 Time windows for latest-requirements. If a
+        section_requirement specifies a entry_latest and/or exit_latest time
+        then the event times for the entry_event and/or exit_event on the
+        corresponding trainrun_section SHOULD be <= the specified time. If the
+        scheduled time is later than required, the solution will still be
+        accepted, but it will be penalized by the objective function, see
+        below. Important Remark: Among the 12 business rules, this is the only
+        'soft' constraint, i.e. a rule that may be violated and the solution
+        still accepted.
+
+        Parameters
+        ----------
+        agent_id
+        waypoint
+        time
+        """
 
         # ASP fact l(T,V,E)
-        self.asp_program.append("l(t{},{},{}).".format(agent_id, tuple(waypoint), int(time)))
+        self.asp_program.append("l(t{},{},{}).".format(agent_id, self._sanitize_waypoint(waypoint), int(time)))
 
-    @overrides
-    def _implement_route_section(self, agent_id: int, entry_waypoint: Waypoint, exit_waypoint: Waypoint,
-                                 resource_id: Tuple[int, int], minimum_travel_time: int = 1, route_section_penalty=0):
-        """See :class:`AbstractProblemDescription`."""
+    def _implement_route_section(self, agent_id: int,
+                                 entry_waypoint: Waypoint,
+                                 exit_waypoint: Waypoint,
+                                 resource_id: Tuple[int, int],
+                                 minimum_travel_time: int = 1,
+                                 route_section_penalty=0):
+        """Rule 103 Minimum section time For each trainrun_section the
+        following holds:
+
+                 texit - tentry >= minimum_running_time + min_stopping_time, where
+                 tentry, texit are the entry and exit times into this trainrun_section,
+                 minimum_running_time is given by the route_section corresponding to this trainrun_section and
+                 min_stopping_time is given by the section_requirement corresponding to this trainrun_section or equal
+                 to 0 (zero) if no section_requirement with a min_stopping_time is associated to this trainrun_section.
+
+        Rule 104 Resource Occupations
+                 In prose, this means that if a train T1 starts occupying a resource R before train T2, then T2 has to
+                 wait until T1 releases it (plus the release time of the resource) before it can start to occupy it.
+
+                 This rule explicitly need not hold between trainrun_sections of the same train.
+                 The problem instances are infeasible if you require this separation of occupations also
+                 among trainrun_sections of the same train.
+
+        Parameters
+        ----------
+        """
 
         # add edge: edge(T,V,V')
-        self.asp_program.append("edge(t{}, {},{}).".format(agent_id, tuple(entry_waypoint), tuple(exit_waypoint)))
+        self.asp_program.append("edge(t{}, {},{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
+                                                           self._sanitize_waypoint(exit_waypoint)))
 
         # minimum waiting time: w(T,E,W)
         # TODO workaround we use waiting times to model train-specific minimum travel time;
         #      instead we should use train-specific route graphs which are linked by resources only!
         self.asp_program.append(
-            "w(t{}, ({},{}),{}).".format(agent_id, tuple(entry_waypoint), tuple(exit_waypoint),
+            "w(t{}, ({},{}),{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
+                                         self._sanitize_waypoint(exit_waypoint),
                                          int(minimum_travel_time)))
         # minimum running time: m(E,M)
-        self.asp_program.append("m({}, ({},{}),{}).".format(agent_id, tuple(entry_waypoint), tuple(exit_waypoint), 0))
+        self.asp_program.append("m({}, ({},{}),{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
+                                                            self._sanitize_waypoint(exit_waypoint), 0))
 
         # declare resource
         # TODO SIM-144 resource may be declared multiple times, maybe we should declare resource by
         #      loop over grid cells and their transitions
         self.asp_program.append(
-            "resource(resource_{}_{},({},{})).".format(*resource_id, tuple(entry_waypoint), tuple(exit_waypoint)))
+            "resource(resource_{}_{},({},{})).".format(*resource_id, self._sanitize_waypoint(entry_waypoint),
+                                                       self._sanitize_waypoint(exit_waypoint)))
 
         # TODO SIM-129: release time = 1 to allow for synchronization in FLATland - can we get rid of it?
         self.asp_program.append("b(resource_{}_{},1).".format(*resource_id))
 
         # penalty for objective minimize_routes.lp and heuristic_ROUTES.lp (used only if activated)
+        # TODO SIM-190
         if route_section_penalty > 0:
             # penalty(E,P) # noqa: E800
             self.asp_program.append("penalty(({},{}),{})."
-                                    .format(tuple(entry_waypoint), tuple(exit_waypoint), route_section_penalty))
+                                    .format(self._sanitize_waypoint(entry_waypoint),
+                                            self._sanitize_waypoint(exit_waypoint), route_section_penalty))
 
-    @overrides
-    def _implement_resource_mutual_exclusion(self,
-                                             agent_1_id: int,
-                                             agent_1_entry_waypoint: Waypoint,
-                                             agent_1_exit_waypoint: Waypoint,
-                                             agent_2_id: int,
-                                             agent_2_entry_waypoint: Waypoint,
-                                             agent_2_exit_waypoint: Waypoint,
-                                             resource_id: Tuple[int, int]
-                                             ):
-        """See `AbstractProblemDescription`."""
-
-        # nothing to do here since derived from data
-        pass
-
-    @overrides
-    def _create_objective_function_minimize(self, variables: Dict[int, List[Waypoint]]):
-        """See :class:`AbstractProblemDescription`."""
-        # TODO SIM-137 SIM-113 bad code smell: the chosen minimization objective is passed when the ASP solver is called, but added here in ortools
-        self.dummy_target_vertices = variables
-
-    @overrides
     def solve(self, verbose: bool = False) -> ASPSolutionDescription:
-        """See :class:`AbstractProblemDescription`."""
+        """Return the solver and return solver-specific solution
+        description."""
         # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
         # (we don't use all features in encoding.lp)
         self.asp_program.append("bridge(0,0,0).")
@@ -150,84 +201,78 @@ class ASPProblemDescription(AbstractProblemDescription):
         self.asp_program.append("act_penalty_for_train(0,0,0).")
 
         asp_solution = flux_helper(self.asp_program,
-                                   bound_all_events=self.env._max_episode_steps,
+                                   bound_all_events=self.tc.max_episode_steps,
                                    asp_objective=self.asp_objective,
                                    asp_heurisics=self.asp_heuristics,
                                    verbose=verbose)
-        return ASPSolutionDescription(env=self.env, asp_solution=asp_solution)
+        return ASPSolutionDescription(asp_solution=asp_solution, tc=self.tc)
 
-    def get_copy_for_experiment_freeze(self,
-                                       experiment_freeze_dict: ExperimentFreezeDict,
-                                       schedule_trainruns_to_minimize_for: TrainrunDict,
-                                       verbose: bool = False) -> 'ASPProblemDescription':
-        """Returns a problem description with additional constraints to freeze
-        all the variables up to malfunction.
-
-        The freeze comes from :meth:`rsp.asp.ASPExperimentSolver._get_freeze_for_malfunction_per_train`.
-
-
-        The ASP constraints are derived by :meth:`rsp.solvers.asp.asp_problem_description.ASPProblemDescription._translate_experiment_freeze_to_ASP`.
-
+    @staticmethod
+    def convert_position_and_entry_direction_to_waypoint(r: int, c: int, d: int) -> Waypoint:
+        """
         Parameters
         ----------
-        malfunction
-            the malfunction
-        trainruns_dict
-            the schedule
-        verbose
-            print debug information
+        r
+            row
+        c
+            column
+        d
+            direction we are facing in the cell (and have entered by)
 
         Returns
         -------
-        ASPProblemDescription
+        row, column, entry direction
         """
+        return Waypoint(position=(r, c),
+                        direction=int(d))  # convert Grid4TransitionsEnum to int so it can be used as int in ASP!
 
-        freezed_copy = self._prepare_freezed_copy(schedule_trainruns_to_minimize_for)
-        freezed_copy.experiment_freeze_dict = experiment_freeze_dict
+    def _build_asp_program(self,
+                           tc: ScheduleProblemDescription,
+                           add_minimumrunnigtime_per_agent: bool = False
+                           ):
+        # preparation
+        _new_asp_program = []
+        self.asp_program = _new_asp_program
 
-        for agent_id, experiment_freeze in experiment_freeze_dict.items():
-            f = self._translate_experiment_freeze_to_ASP(agent_id, experiment_freeze)
-            freezed_copy.asp_program += f
+        # add trains
+        for agent_id, topo in tc.topo_dict.items():
+            sources = get_sources_for_topo(topo)
+            sinks = get_sinks_for_topo(topo)
 
-        return freezed_copy
+            self._implement_train(agent_id=agent_id,
+                                  start_vertices=sources,
+                                  target_vertices=sinks
+                                  )
 
-    def _prepare_freezed_copy(self, schedule_trainruns: Dict[int, List[TrainrunWaypoint]]):
-        env = self.env
-        freezed_copy = ASPProblemDescription(
-            env,
-            agents_path_dict=self.agents_path_dict,
-            asp_objective=ASPObjective.MINIMIZE_DELAY,
-            # TODO SIM-167 switch on heuristics
-            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
-        )
-        freezed_copy.asp_program = self.asp_program.copy()
+            for (entry_waypoint, exit_waypoint) in topo.edges:
+                is_dummy_edge = (
+                        entry_waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or exit_waypoint.direction ==
+                        MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+                self._implement_route_section(agent_id=agent_id,
+                                              entry_waypoint=entry_waypoint,
+                                              exit_waypoint=exit_waypoint,
+                                              resource_id=entry_waypoint.position,
+                                              minimum_travel_time=(1
+                                                                   if is_dummy_edge
+                                                                   else tc.minimum_travel_time_dict[agent_id]),
+                                              # TODO SIM-190 route section penalty
+                                              )
 
-        # remove all earliest constraints
-        # 2019-12-03 discussion with Potsdam (SIM-146): adding multiple earliest constraints for the same vertex could have side-effects
-        freezed_copy.asp_program = list(filter(lambda s: not s.startswith("e("), freezed_copy.asp_program))
-        asp_program = freezed_copy.asp_program
+            _new_asp_program += self._translate_experiment_freeze_to_ASP(agent_id=agent_id,
+                                                                         freeze=tc.experiment_freeze_dict[agent_id])
 
-        # TODO SIM-173 is this correct????? this seems like a dirty hack. move to where earliest are produces
-        # add constraints for dummy target nodes
-        for agent_id, dummy_target_waypoints in self.dummy_target_vertices.items():
-            train = "t{}".format(agent_id)
-            for dummy_target_waypoint in dummy_target_waypoints:
-                vertex = tuple(dummy_target_waypoint)
-                # add + 1 for dummy target edge within target cell
-                asp_program.append(
-                    f"e({train},{vertex},{schedule_trainruns[agent_id][-1].scheduled_at + 1}).")
+        if add_minimumrunnigtime_per_agent:
+            # TODO SIM-239 add
+            for agent_id in self.tc.minimum_travel_time_dict:
+                agent_sink = list(get_sinks_for_topo(self.tc.topo_dict[agent_id]))[0]
+                agent_source = list(get_sources_for_topo(self.tc.topo_dict[agent_id]))[0]
+                earliest_arrival = self.tc.experiment_freeze_dict[agent_id].freeze_earliest[agent_sink]
+                earliest_departure = self.tc.experiment_freeze_dict[agent_id].freeze_earliest[agent_source]
+                minimum_running_time = earliest_arrival - earliest_departure
+                self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
 
-        # linear penalties up to upper_bound_linear_penalty and then penalty_after_linear
-        # penalize +1 at each time step after the scheduled time up to upper_bound_linear_penalty
-        # TODO SIM-171 ASP performance enhancement: possibly only penalize only in intervals > 1 for speed-up
-        asp_program.append("#const upper_bound_linear_penalty = 60.")
-        asp_program.append("#const penalty_after_linear = 5000000.")
-        asp_program.append("linear_range(1..upper_bound_linear_penalty).")
-        asp_program.append("potlate(T,V,E+S,1) :- e(T,V,E), linear_range(S), end(T,V).")
-        asp_program.append(
-            "potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).")
-
-        return freezed_copy
+        # cleanup
+        return _new_asp_program
 
     def _translate_experiment_freeze_to_ASP(self,
                                             agent_id: int,
@@ -258,14 +303,14 @@ class ASPProblemDescription(AbstractProblemDescription):
         # - no route constraints in addition to visit -> should be added immediately
 
         for trainrun_waypoint in freeze.freeze_visit:
-            vertex = tuple(trainrun_waypoint)
+            vertex = self._sanitize_waypoint(trainrun_waypoint)
 
             # add visit constraint
             # visit(t1,1).
             frozen.append(f"visit({train},{vertex}).")
 
         for waypoint, scheduled_at in freeze.freeze_latest.items():
-            vertex = tuple(waypoint)
+            vertex = self._sanitize_waypoint(waypoint)
             time = scheduled_at
 
             # add earliest constraint
@@ -273,7 +318,7 @@ class ASPProblemDescription(AbstractProblemDescription):
             frozen.append(f"l({train},{vertex},{time}).")
 
         for waypoint, scheduled_at in freeze.freeze_earliest.items():
-            vertex = tuple(waypoint)
+            vertex = self._sanitize_waypoint(waypoint)
             time = scheduled_at
 
             # add earliest constraint
@@ -281,7 +326,7 @@ class ASPProblemDescription(AbstractProblemDescription):
             frozen.append(f"e({train},{vertex},{time}).")
 
         for waypoint in freeze.freeze_banned:
-            vertex = tuple(waypoint)
+            vertex = self._sanitize_waypoint(waypoint)
             #  vertex must not be visited
             # visit(t1,1).
             frozen.append(f":- visit({train},{vertex}).")

@@ -26,7 +26,8 @@ from pandas import DataFrame
 from rsp.rescheduling.rescheduling_analysis_utils import _extract_path_search_space
 from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
 from rsp.rescheduling.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.solvers.solve_problem import replay
+from rsp.route_dag.route_dag_analysis import visualize_experiment_freeze
+from rsp.solvers.asp.asp_solve_problem import replay
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
@@ -40,7 +41,6 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.route_graph_analysis import visualize_experiment_freeze
 
 
 def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: str = None):
@@ -239,7 +239,7 @@ def render_experiment(
         stop_on_malfunction=False,
         solver_name='data_analysis',
         disable_verification_in_replay=False,
-        rendering_call_back=rendering_call_back
+        rendering=False
     )
     cleanup_renderer_for_env(renderer)
     if convert_to_mpeg:

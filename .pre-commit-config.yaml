@@ -21,7 +21,7 @@ repos:
     hooks:
       - id: docformatter
 
-# TODO make rsp black compatible (conflicts with flake8)
+# TODO SIM-257 make rsp black compatible (conflicts with flake8)
 #  - repo: https://github.com/psf/black
 #    # https://github.com/psf/black/issues/875
 #    rev: 19.10b0
