@@ -84,27 +84,11 @@ class ASPSolutionDescription():
         path = path[:-1]
         return path
 
-    def get_model_latest_arrival_time(self) -> int:
-        """Get latest entry time for an agent at a waypoint over all agents and
-        all their non-dummy waypoints."""
-        latest_entry = 0
-        for agent_id in self.tc.topo_dict:
-            latest_entry = max(latest_entry, self.get_trainrun_for_agent(agent_id)[-1].scheduled_at)
-        return latest_entry
-
-    def get_sum_running_times(self) -> int:
-        """Get the sum of running times from the solution schedule train runs.
-
-        Dummy edge at the end is strippe off.
-        """
-        costs = 0
-        for agent_id in self.tc.topo_dict:
-            solution_trainrun = self.get_trainrun_for_agent(agent_id)
-            costs += solution_trainrun[-1].scheduled_at - solution_trainrun[0].scheduled_at
-        return costs
-
     def get_objective_value(self) -> float:
         return self.asp_solution.stats['summary']['costs'][0]
+
+    def get_list_of_lates(self):
+        return len(list(filter(lambda s: s.startswith('late('), self.answer_set)))
 
     def extract_nb_resource_conflicts(self) -> int:
         return len(list(filter(lambda s: s.startswith('shared('), self.answer_set)))

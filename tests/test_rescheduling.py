@@ -791,7 +791,7 @@ def test_rescheduling_delta_bottleneck():
                                expected_arrivals={0: 29 + 20, 1: 46 + 20}, expected_delay=40)
 
 
-def _verify_rescheduling_delta(fake_malfunction: Malfunction,
+def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
                                fake_schedule: TrainrunDict,
                                fake_full_reschedule_trainruns: TrainrunDict,
                                expected_arrivals, expected_delay):
@@ -799,7 +799,7 @@ def _verify_rescheduling_delta(fake_malfunction: Malfunction,
     tc_delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle(
         full_reschedule_trainrun_waypoints_dict=fake_full_reschedule_trainruns,
         malfunction=fake_malfunction,
-        # TODO SIM-146 code smell: why do we need env????
+        # TODO SIM-239 code smell: why do we need env????
         max_episode_steps=schedule_problem.tc.max_episode_steps,
         schedule_topo_dict=schedule_problem.tc.topo_dict,
         schedule_trainrun_dict=fake_schedule,
@@ -808,7 +808,7 @@ def _verify_rescheduling_delta(fake_malfunction: Malfunction,
     delta_reschedule_result = asp_reschedule_wrapper(
         tc=tc_delta_reschedule_problem,
         malfunction=fake_malfunction,
-        # TODO SIM-146 code smell: why do we need env????
+        # TODO SIM-239 code smell: why do we need env????
         malfunction_rail_env=dynamic_env,
         malfunction_env_reset=lambda *args, **kwargs: None
     )
@@ -824,8 +824,8 @@ def _verify_rescheduling_delta(fake_malfunction: Malfunction,
     assert delay_in_full_reschedule == expected_delay, f"found {delay_in_full_reschedule}, expected {expected_delay}"
     asp_costs = delta_reschedule_result.optimization_costs
 
-    # TODO SIM-239 semantics of costs in ASP differ in full vs. Delta re-scheduling: analyse and streamline
-    expected_asp_costs = expected_delay - delay_in_full_reschedule
+    # the delta model does not count the malfunction as costs
+    expected_asp_costs = expected_delay - fake_malfunction.malfunction_duration
     assert asp_costs == expected_asp_costs, f"found asp_costs={asp_costs}, expected={expected_asp_costs}"
 
 
