@@ -1,16 +1,16 @@
 import pprint
-import warnings
 from functools import reduce
 from operator import mul
 from typing import List
+from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
+from rsp.route_dag.route_dag import get_paths_for_experiment_freeze
 from rsp.utils.data_types import convert_data_frame_row_to_experiment_results
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.route_graph_analysis import get_paths_for_experiment_freeze
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -86,7 +86,7 @@ def _prod(l: List[int]):
 # TODO SIM-151: use in plots instead of log output
 def _analyze_paths(experiment_results: ExperimentResults, experiment_id: int, debug: bool = False):
     _rsp_delta, _rsp_full, _schedule = _extract_path_search_space(
-        experiment_results=experiment_results, experiment_id=experiment_id, debug=debug)
+        experiment_results=experiment_results)
     print("**** path search space: "
           f"path_search_space_schedule={_schedule:.2E}, "
           f"path_search_space_rsp_full={_rsp_full:.2E}, "
@@ -100,54 +100,48 @@ def _analyze_paths(experiment_results: ExperimentResults, experiment_id: int, de
           f"resource_conflicts_search_space_rsp_delta={resource_conflicts_search_space_rsp_delta :.2E}")
 
 
-def _extract_path_search_space(experiment_results: ExperimentResults, experiment_id: int, debug: bool = False):
+def _extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
     experiment_freeze_delta_afer_malfunction = experiment_results.experiment_freeze_delta_after_malfunction
     experiment_freeze_full_after_malfunction = experiment_results.experiment_freeze_full_after_malfunction
-    all_nb_alternatives_schedule = []
-    all_nb_alternatives_rsp_full = []
-    all_nb_alternatives_rsp_delta = []
     agents_paths_dict = experiment_results.agents_paths_dict
-    for agent_id in experiment_freeze_delta_afer_malfunction:
-        agent_paths = agents_paths_dict[agent_id]
-        # TODO SIM-239 this is not correct, there may not be enough time for all paths; use experiment_freeze for scheduling
-        nb_alternatives_schedule, alternatives_schedule = get_paths_for_experiment_freeze(
-            agent_paths,
-            None
-        )
-        nb_alternatives_rsp_full, alternatives_rsp_full = get_paths_for_experiment_freeze(
-            agent_paths,
-            experiment_freeze_full_after_malfunction[agent_id]
-        )
-        nb_alternatives_rsp_delta, alternatives_rsp_delta = get_paths_for_experiment_freeze(
-            agent_paths,
-            experiment_freeze_delta_afer_malfunction[agent_id]
-        )
-        assert nb_alternatives_schedule >= nb_alternatives_rsp_full
-        # TODO SIM-260 bugfix
-        if nb_alternatives_rsp_full < nb_alternatives_rsp_delta:
-            warnings.warn("experiment {}, agent {}: nb_alternatives_rsp_full={}, nb_alternatives_rsp_delta={}"
-                          .format(experiment_id, agent_id, nb_alternatives_rsp_full, nb_alternatives_rsp_delta))
-            print(f"experiment {experiment_id}, agent {agent_id}: alternatives_rsp_full={alternatives_rsp_full}")
-            print(f"experiment {experiment_id}, agent {agent_id}: alternatives_rsp_delta={alternatives_rsp_delta}")
-
-        all_nb_alternatives_schedule.append(nb_alternatives_schedule)
-        all_nb_alternatives_rsp_full.append(nb_alternatives_rsp_full)
-        all_nb_alternatives_rsp_delta.append(nb_alternatives_rsp_delta)
-        if debug:
-            print(f"  agent {agent_id}: "
-                  f"nb_alternatives_schedule={nb_alternatives_schedule}, "
-                  f"nb_alternatives_rsp_full={nb_alternatives_rsp_full}",
-                  f"nb_alternatives_rsp_delta={nb_alternatives_rsp_delta}, "
-                  )
-    assert len(all_nb_alternatives_schedule) == len(agents_paths_dict.keys())
-    assert len(all_nb_alternatives_rsp_full) == len(agents_paths_dict.keys())
-    assert len(all_nb_alternatives_rsp_delta) == len(agents_paths_dict.keys())
+    all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = _extract_number_of_path_alternatives(
+        agents_paths_dict, experiment_freeze_delta_afer_malfunction,
+        experiment_freeze_full_after_malfunction)
     path_search_space_schedule = _prod(all_nb_alternatives_schedule)
     path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
     path_search_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
-    assert path_search_space_schedule >= path_search_space_rsp_full
-    assert path_search_space_rsp_full >= path_search_space_rsp_delta
     return path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule
+
+
+def _extract_number_of_path_alternatives(
+        agents_paths_dict,
+        experiment_freeze_delta_afer_malfunction,
+        experiment_freeze_full_after_malfunction) -> Tuple[List[int], List[int], List[int]]:
+    """Extract number of path alternatives for schedule, rsp full and rsp delta
+    for each agent."""
+    all_nb_alternatives_schedule = []
+    all_nb_alternatives_rsp_full = []
+    all_nb_alternatives_rsp_delta = []
+
+    for agent_id in experiment_freeze_delta_afer_malfunction:
+        agent_paths = agents_paths_dict[agent_id]
+        alternatives_schedule = get_paths_for_experiment_freeze(
+            agent_paths,
+            # TODO SIM-239 this is not correct, there may not be enough time for all paths; use experiment_freeze for scheduling
+            None
+        )
+        alternatives_rsp_full = get_paths_for_experiment_freeze(
+            agent_paths,
+            experiment_freeze_full_after_malfunction[agent_id]
+        )
+        alternatives_rsp_delta = get_paths_for_experiment_freeze(
+            agent_paths,
+            experiment_freeze_delta_afer_malfunction[agent_id]
+        )
+        all_nb_alternatives_schedule.append(len(alternatives_schedule))
+        all_nb_alternatives_rsp_full.append(len(alternatives_rsp_full))
+        all_nb_alternatives_rsp_delta.append(len(alternatives_rsp_delta))
+    return all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule
 
 
 def analyze_experiment(experiment: ExperimentParameters,

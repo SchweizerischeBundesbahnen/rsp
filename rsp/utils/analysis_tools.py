@@ -215,18 +215,21 @@ def _2d_plot_label_scatterpoints(ax: axes.Axes, experiment_ids: Series, x_values
 
 def _2d_plot_link_column(ax: axes.Axes, columns: DataFrame.columns, data: DataFrame, link_column: str):
     """Group data by a column and draw a line between consecutive data points
-    of that group."""
+    of that group.
+
+    It is assumed that the group has consecutive experiment ids!
+    """
     grouped_data = data.groupby([link_column])
     cmap = plt.get_cmap("tab10")
     group_index = 0
     for _, group in grouped_data:
-        sorted_group = group.sort_values(columns[0])
+        sorted_group = group.sort_values('experiment_id')
         # index is experiment_id! Therefore, count the number of iterations
         count = 0
         for index, _ in sorted_group.iterrows():
-            if count >= len(sorted_group) - 1:
-                break
             count += 1
+            if count >= len(sorted_group):
+                break
             ax.plot([sorted_group.at[index, columns[0]], sorted_group.at[index + 1, columns[0]]],
                     [sorted_group.at[index, columns[1]], sorted_group.at[index + 1, columns[1]]],
                     marker="_",

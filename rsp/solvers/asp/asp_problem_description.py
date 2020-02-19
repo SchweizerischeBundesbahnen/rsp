@@ -7,6 +7,7 @@ from typing import Set
 from typing import Tuple
 
 from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from overrides import overrides
 
@@ -157,7 +158,7 @@ class ASPProblemDescription(AbstractProblemDescription):
 
     def get_copy_for_experiment_freeze(self,
                                        experiment_freeze_dict: ExperimentFreezeDict,
-                                       schedule_trainruns: Dict[int, List[TrainrunWaypoint]],
+                                       schedule_trainruns_to_minimize_for: TrainrunDict,
                                        verbose: bool = False) -> 'ASPProblemDescription':
         """Returns a problem description with additional constraints to freeze
         all the variables up to malfunction.
@@ -181,7 +182,7 @@ class ASPProblemDescription(AbstractProblemDescription):
         ASPProblemDescription
         """
 
-        freezed_copy = self._prepare_freezed_copy(schedule_trainruns)
+        freezed_copy = self._prepare_freezed_copy(schedule_trainruns_to_minimize_for)
         freezed_copy.experiment_freeze_dict = experiment_freeze_dict
 
         for agent_id, experiment_freeze in experiment_freeze_dict.items():

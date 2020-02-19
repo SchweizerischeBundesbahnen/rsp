@@ -1,18 +1,111 @@
 import pprint
+from typing import Dict
+from typing import Set
 from typing import Tuple
 
+import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.rescheduling.rescheduling_utils import generic_experiment_freeze_for_rescheduling
+from rsp.route_dag.route_dag import topo_from_agent_paths
+from rsp.utils.data_types import AgentsPathsDict
+from rsp.utils.data_types import ExperimentFreeze
+from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
 # TODO SIM-239 the oracle should take correspond to https://confluence.sbb.ch/display/SIM/Ablauf+RSP+Pipeline+Hypothese+1
-def determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
-                    malfunction: ExperimentMalfunction,
-                    schedule_trainrunwaypoints: TrainrunDict,
-                    verbose: bool = False) -> Tuple[TrainrunDict, TrainrunDict]:
+def perfect_oracle(
+        full_reschedule_trainruns_dict: TrainrunDict,
+        malfunction: ExperimentMalfunction,
+        minimum_travel_time_dict: Dict[int, int],
+        max_episode_steps: int,
+        agents_path_dict: AgentsPathsDict,
+        schedule_trainruns_dict: TrainrunDict):
+    """The perfect oracle only opens up the differences between the schedule
+    and the imaginary re-schedule. It gives no additional routing flexibility!
+
+    Parameters
+    ----------
+    full_reschedule_trainruns_dict
+    malfunction
+    minimum_travel_time_dict
+    max_episode_steps
+    agents_path_dict
+    schedule_trainruns_dict
+
+    Returns
+    -------
+    """
+    # force_freeze: all that are the same (waypoint and scheduled_at)
+    # delta: all trainrun_waypoints in the re-schedule not the same
+    delta, force_freeze = _determine_delta(full_reschedule_trainruns_dict,
+                                           malfunction,
+                                           schedule_trainruns_dict,
+                                           verbose=False)
+
+    # ban all that are neither in schedule nor re-schedule
+    full_reschedule_waypoints: Dict[int, Set[Waypoint]] = \
+        {agent_id: {trainrun_waypoint.waypoint
+                    for trainrun_waypoint in full_reschedule_trainruns_dict[agent_id]}
+         for agent_id in delta.keys()}
+    schedule_waypoints: Dict[int, Set[Waypoint]] = \
+        {agent_id: {trainrun_waypoint.waypoint
+                    for trainrun_waypoint in schedule_trainruns_dict[agent_id]}
+         for agent_id in delta.keys()}
+    all_waypoints: Dict[int, Set[Waypoint]] = \
+        {agent_id: {waypoint
+                    for agent_path in agents_path_dict[agent_id]
+                    for waypoint in agent_path}
+         for agent_id in delta.keys()}
+    force_banned: Dict[int, Set[Waypoint]] = {
+        agent_id: {
+            waypoint
+            for waypoint in all_waypoints[agent_id]
+            if (waypoint not in schedule_waypoints[agent_id] and waypoint not in full_reschedule_waypoints[agent_id])
+        }
+        for agent_id in delta.keys()}
+
+    # build topos without banned
+    topo_dict: Dict[int, nx.DiGraph] = {agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
+                                        for agent_id in agents_path_dict}
+    for agent_id, topo in topo_dict.items():
+        nodes_to_removes = [
+            waypoint
+            for waypoint in topo.nodes
+            if (waypoint not in schedule_waypoints[agent_id] and waypoint not in full_reschedule_waypoints[agent_id])
+        ]
+        topo.remove_nodes_from(nodes_to_removes)
+
+    # build constraints given the topos, the force_freezes
+    freeze_dict: ExperimentFreezeDict = generic_experiment_freeze_for_rescheduling(
+        schedule_trainruns=schedule_trainruns_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        topo_dict=topo_dict,
+        force_freeze=force_freeze,
+        malfunction=malfunction,
+        latest_arrival=max_episode_steps
+    )
+
+    freeze_dict_all: ExperimentFreezeDict = {
+        agent_id: ExperimentFreeze(
+            freeze_visit=freeze_dict[agent_id].freeze_visit,
+            freeze_earliest=freeze_dict[agent_id].freeze_earliest,
+            freeze_latest=freeze_dict[agent_id].freeze_latest,
+            freeze_banned=freeze_dict[agent_id].freeze_banned + list(force_banned[agent_id]),
+        )
+        for agent_id in delta.keys()
+    }
+    return freeze_dict_all
+
+
+def _determine_delta(full_reschedule_trainrunwaypoints_dict: TrainrunDict,
+                     malfunction: ExperimentMalfunction,
+                     schedule_trainrunwaypoints: TrainrunDict,
+                     verbose: bool = False) -> Tuple[TrainrunDict, TrainrunDict]:
     """Delta contains the information about what is changed by the malfunction
     with respect to the malfunction.
 
