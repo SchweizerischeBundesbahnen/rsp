@@ -9,8 +9,7 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.route_dag import topo_from_agent_paths
-from rsp.utils.data_types import AgentPaths
+from rsp.route_dag.route_dag import topo_from_agent_paths, AgentPaths
 from rsp.utils.data_types import RouteDAGConstraints
 
 

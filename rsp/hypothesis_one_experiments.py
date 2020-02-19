@@ -57,17 +57,12 @@ if __name__ == '__main__':
     solver = ASPExperimentSolver()
 
     # Run experiments
-    run_experiment_agenda(solver=solver,
-                          experiment_agenda=experiment_agenda,
-                          run_experiments_parallel=True,
-                          show_results_without_details=False,
-                          verbose=False)
-
-    experiment_folder_name = run_experiment_agenda(solver=solver,
-                                                   experiment_agenda=experiment_agenda,
-                                                   run_experiments_parallel=True,
-                                                   show_results_without_details=False,
-                                                   verbose=False)
+    experiment_folder_name = run_experiment_agenda(
+        solver=solver,
+        experiment_agenda=experiment_agenda,
+        run_experiments_parallel=True,
+        show_results_without_details=False,
+        verbose=False)
 
     hypothesis_one_data_analysis(
         data_folder=experiment_folder_name,
