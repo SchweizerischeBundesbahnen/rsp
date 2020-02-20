@@ -6,6 +6,9 @@
 
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% minimize delay first
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 { late(T,V,D,W) : visit(T,V) } :- potlate(T,V,D,W).
 
@@ -19,5 +22,12 @@ next(T,V,D,D') :- potlate(T,V,D,_), potlate(T,E,D',_), D<D',
 
 #minimize{ W@0,T,V,D : late(T,V,D,W) }.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% minimze re-routing second
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+active_penalty(P,T,E) :- penalty(E,P), route(T,E).
+
 % TODO SIM-190 linear combination, currently hierarchical with lower prio to route section priorities
-#minimize{ P@1,T,E : penalty(E,P), route(T,E) }.
+#minimize{ P@1,T,E : active_penalty(P,T,E) }.

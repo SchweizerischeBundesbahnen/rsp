@@ -248,7 +248,7 @@ def hypothesis_one_data_analysis(data_folder: str,
         sum_route_section_penalties_full_after_malfunction = {}
         lateness_delta_after_malfunction = {}
         sum_route_section_penalties_delta_after_malfunction = {}
-        for agent_id, train_run_input in experiment_results.solution_full.items():
+        for agent_id in experiment_results.solution_full.keys():
             train_run_full_after_malfunction = experiment_results.solution_full_after_malfunction[agent_id]
             train_run_full_after_malfunction_target = train_run_full_after_malfunction[-1]
             train_run_full_after_malfunction_constraints = \
@@ -265,7 +265,8 @@ def hypothesis_one_data_analysis(data_folder: str,
             }
             sum_route_section_penalties_full_after_malfunction[agent_id] = sum([
                 penalty
-                for edge, penalty in experiment_results.problem_full_after_malfunction.route_section_penalties[agent_id].items()
+                for edge, penalty in
+                experiment_results.problem_full_after_malfunction.route_section_penalties[agent_id].items()
                 if edge in edges_full_after_malfunction
             ])
             train_run_delta_after_malfunction = experiment_results.solution_delta_after_malfunction[agent_id]
@@ -285,7 +286,8 @@ def hypothesis_one_data_analysis(data_folder: str,
             }
             sum_route_section_penalties_delta_after_malfunction[agent_id] = sum([
                 penalty
-                for edge, penalty in experiment_results.problem_delta_after_malfunction.route_section_penalties[agent_id].items()
+                for edge, penalty in
+                experiment_results.problem_delta_after_malfunction.route_section_penalties[agent_id].items()
                 if edge in edges_delta_after_malfunction
             ])
         print(f"lateness_full_after_malfunction={lateness_full_after_malfunction}")
@@ -365,16 +367,18 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
         sum_all_route_section_penalties_delta_after_malfunction: int = sum(
             sum_route_section_penalties_delta_after_malfunction.values())
 
+        # TODO SIM-190
         # assert costs_full_after_malfunction == sum_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
         print(
-            f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
-            f"sum_lateness_full_after_malfunction={sum_lateness_full_after_malfunction}, " \
+            f"costs_full_after_malfunction={costs_full_after_malfunction}, "
+            f"sum_lateness_full_after_malfunction={sum_lateness_full_after_malfunction}, "
             f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
         )
+        # TODO SIM-190
         # assert costs_delta_after_malfunction == sum_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
         print(
-            f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
-            f"sum_lateness_delta_after_malfunction={sum_lateness_delta_after_malfunction}, " \
+            f"costs_delta_after_malfunction={costs_delta_after_malfunction}, "
+            f"sum_lateness_delta_after_malfunction={sum_lateness_delta_after_malfunction}, "
             f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
         )
 

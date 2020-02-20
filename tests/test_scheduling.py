@@ -70,7 +70,7 @@ def test_scheduling():
     assert dynamic_env.rail.grid.tolist() == expected_grid
 
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, 10)
-    schedule_result = asp_schedule_wrapper(tc=tc_schedule_problem, static_rail_env=static_env)
+    schedule_result = asp_schedule_wrapper(schedule_problem_description=tc_schedule_problem, static_rail_env=static_env)
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # sanity check for our expected data

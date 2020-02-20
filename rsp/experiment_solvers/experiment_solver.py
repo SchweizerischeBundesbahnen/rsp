@@ -7,6 +7,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import replay
+from rsp.experiment_solvers.asp.asp_solve_problem import replay_and_verify_asp_solution
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
@@ -102,7 +103,7 @@ class ASPExperimentSolver(AbstractSolver):
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
             malfunction_rail_env=malfunction_rail_env,
-            tc=full_reschedule_problem,
+            reschedule_problem_description=full_reschedule_problem,
             rendering=rendering,
             debug=debug
         )
@@ -128,7 +129,7 @@ class ASPExperimentSolver(AbstractSolver):
         delta_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
-            tc=delta_reschedule_problem,
+            reschedule_problem_description=delta_reschedule_problem,
             rendering=rendering,
             debug=debug,
             malfunction_env_reset=lambda *args, **kwargs: None
@@ -165,7 +166,7 @@ class ASPExperimentSolver(AbstractSolver):
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def asp_schedule_wrapper(tc: ScheduleProblemDescription,
+def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescription,
                          static_rail_env: RailEnv,
                          rendering: bool = False,
                          debug: bool = False,
@@ -191,19 +192,22 @@ def asp_schedule_wrapper(tc: ScheduleProblemDescription,
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
     schedule_problem = ASPProblemDescription.factory_scheduling(
-        tc=tc)
+        tc=schedule_problem_description)
 
     schedule_result, schedule_solution = solve_problem(
-        env=static_rail_env,
         problem=schedule_problem,
-        rendering=rendering,
         debug=debug)
+    replay_and_verify_asp_solution(env=static_rail_env,
+                                   problem_description=schedule_problem_description,
+                                   asp_solution=schedule_solution,
+                                   rendering=rendering,
+                                   debug=debug)
 
     return schedule_result
 
 
 def asp_reschedule_wrapper(
-        tc: ScheduleProblemDescription,
+        reschedule_problem_description: ScheduleProblemDescription,
         malfunction: ExperimentMalfunction,
         malfunction_rail_env: RailEnv,
         malfunction_env_reset: Callable[[], None],
@@ -222,22 +226,25 @@ def asp_reschedule_wrapper(
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
     full_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-        tc=tc
+        tc=reschedule_problem_description
     )
 
     if debug:
         print("###reschedule")
-        experimentFreezeDictPrettyPrint(tc.route_dag_constraints_dict)
+        experimentFreezeDictPrettyPrint(reschedule_problem_description.route_dag_constraints_dict)
 
     full_reschedule_result, full_reschedule_solution = solve_problem(
-        env=malfunction_rail_env,
         problem=full_reschedule_problem,
-        rendering=rendering,
-        debug=debug,
-        expected_malfunction=malfunction,
-        # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
-        disable_verification_in_replay=True
+        debug=debug
     )
+    replay_and_verify_asp_solution(env=malfunction_rail_env,
+                                   problem_description=reschedule_problem_description,
+                                   asp_solution=full_reschedule_solution,
+                                   rendering=rendering,
+                                   debug=debug,
+                                   expected_malfunction=malfunction,
+                                   # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
+                                   disable_verification_in_replay=True)
     malfunction_env_reset()
 
     if debug:

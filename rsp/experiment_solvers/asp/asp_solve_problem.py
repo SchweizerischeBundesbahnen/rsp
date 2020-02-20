@@ -15,20 +15,55 @@ from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.experiment_solvers.experiment_solver_utils import verify_trainruns_dict
 from rsp.route_dag.route_dag import get_paths_in_route_dag
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def solve_problem(env: RailEnv,
-                  problem: ASPProblemDescription,
-                  rendering: bool = False,
-                  debug: bool = False,
-                  loop_index: int = 0,
-                  disable_verification_in_replay: bool = False,
-                  expected_malfunction: Optional[ExperimentMalfunction] = None
-                  ) -> Tuple[SchedulingExperimentResult, ASPSolutionDescription]:
+def replay_and_verify_asp_solution(env: RailEnv,
+                                   problem_description: ScheduleProblemDescription,
+                                   asp_solution: ASPSolutionDescription,
+                                   rendering: bool = False,
+                                   debug: bool = False,
+                                   loop_index: int = 0,
+                                   disable_verification_in_replay: bool = False,
+                                   expected_malfunction: Optional[ExperimentMalfunction] = None) -> int:
+    # --------------------------------------------------------------------------------------
+    # Replay and verifiy the solution
+    # --------------------------------------------------------------------------------------
+    trainruns_dict = asp_solution.get_trainruns_dict()
+    verify_trainruns_dict(env=env,
+                          trainruns_dict=trainruns_dict,
+                          expected_malfunction=expected_malfunction,
+                          expected_route_dag_constraints=problem_description.route_dag_constraints_dict
+                          )
+    controller_from_train_runs: ControllerFromTrainruns = create_action_plan(train_runs_dict=trainruns_dict, env=env)
+    if debug:
+        print("  **** solution to replay:")
+
+        print(_pp.pformat(trainruns_dict))
+        print("  **** action plan to replay:")
+        controller_from_train_runs.print_action_plan()
+        print("  **** expected_malfunction to replay:")
+        print(_pp.pformat(expected_malfunction))
+
+    total_reward = replay(env=env,
+                          loop_index=loop_index,
+                          expected_malfunction=expected_malfunction,
+                          solver_name="ASP",
+                          rendering=rendering,
+                          controller_from_train_runs=controller_from_train_runs,
+                          debug=debug,
+                          disable_verification_in_replay=disable_verification_in_replay)
+    return total_reward
+
+
+def solve_problem(
+        problem: ASPProblemDescription,
+        debug: bool = False,
+) -> Tuple[SchedulingExperimentResult, ASPSolutionDescription]:
     """Solves an :class:`AbstractProblemDescription` and optionally verifies it
     againts the provided :class:`RailEnv`.
 
@@ -79,33 +114,7 @@ def solve_problem(env: RailEnv,
         print("####train runs dict")
         print(_pp.pformat(trainruns_dict))
 
-    # --------------------------------------------------------------------------------------
-    # Replay and verifiy the solution
-    # --------------------------------------------------------------------------------------
-    verify_trainruns_dict(env=env,
-                          trainruns_dict=trainruns_dict,
-                          expected_malfunction=expected_malfunction,
-                          expected_route_dag_constraints=problem.tc.route_dag_constraints_dict
-                          )
-    controller_from_train_runs: ControllerFromTrainruns = create_action_plan(train_runs_dict=trainruns_dict, env=env)
-    if debug:
-        print("  **** solution to replay:")
-        print(_pp.pformat(solution.get_trainruns_dict()))
-        print("  **** action plan to replay:")
-        controller_from_train_runs.print_action_plan()
-        print("  **** expected_malfunction to replay:")
-        print(_pp.pformat(expected_malfunction))
-
-    total_reward = replay(env=env,
-                          loop_index=loop_index,
-                          expected_malfunction=expected_malfunction,
-                          solver_name=problem.get_solver_name(),
-                          rendering=rendering,
-                          controller_from_train_runs=controller_from_train_runs,
-                          debug=debug,
-                          disable_verification_in_replay=disable_verification_in_replay)
-
-    return SchedulingExperimentResult(total_reward=total_reward,
+    return SchedulingExperimentResult(total_reward=-np.inf,
                                       solve_time=solve_time,
                                       optimization_costs=solution.get_objective_value(),
                                       build_problem_time=build_problem_time,

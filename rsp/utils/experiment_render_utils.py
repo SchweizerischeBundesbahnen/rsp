@@ -62,10 +62,12 @@ def visualize_experiment(
     problem_schedule: ScheduleProblemDescription = rows['problem_full'].iloc[0]
     malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
     n_agents: int = rows['n_agents'].iloc[0]
-    lateness_full_after_malfunction: Dict[int,int] = rows['lateness_full_after_malfunction'].iloc[0]
-    sum_route_section_penalties_full_after_malfunction: Dict[int,int] = rows['sum_route_section_penalties_full_after_malfunction'].iloc[0]
-    lateness_delta_after_malfunction: Dict[int,int] = rows['lateness_delta_after_malfunction'].iloc[0]
-    sum_route_section_penalties_delta_after_malfunction: Dict[int,int] = rows['sum_route_section_penalties_delta_after_malfunction'].iloc[0]
+    lateness_full_after_malfunction: Dict[int, int] = rows['lateness_full_after_malfunction'].iloc[0]
+    sum_route_section_penalties_full_after_malfunction: Dict[int, int] = \
+        rows['sum_route_section_penalties_full_after_malfunction'].iloc[0]
+    lateness_delta_after_malfunction: Dict[int, int] = rows['lateness_delta_after_malfunction'].iloc[0]
+    sum_route_section_penalties_delta_after_malfunction: Dict[int, int] = \
+        rows['sum_route_section_penalties_delta_after_malfunction'].iloc[0]
 
     experiment_output_folder = f"{data_folder}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
     check_create_folder(experiment_output_folder)
@@ -124,7 +126,8 @@ def visualize_experiment(
                               k=experiment_parameters.number_of_shortest_paths_per_agent,
                               costs=costs_delta_after_malfunction,
                               lateness=lateness_delta_after_malfunction[agent_id],
-                              sum_route_section_penalties=sum_route_section_penalties_delta_after_malfunction[agent_id]),
+                              sum_route_section_penalties=sum_route_section_penalties_delta_after_malfunction[
+                                  agent_id]),
             file_name=(os.path.join(experiment_output_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
                        if data_folder is not None else None)

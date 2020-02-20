@@ -141,7 +141,7 @@ def _asp_helper(encoding_files: List[str],
         in deterministic mode, a seed is injected and multi-threading is deactivated
     """
 
-    verbose=True
+    verbose = True
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)
