@@ -138,7 +138,8 @@ def generic_route_dag_constraints_for_rescheduling(
         route_dag_constraints_dict=route_dag_constraints_dict,
         topo_dict=topo_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
-        max_episode_steps=latest_arrival
+        max_episode_steps=latest_arrival,
+        route_section_penalties={agent_id: {} for agent_id in route_dag_constraints_dict.keys()}
     )
 
 

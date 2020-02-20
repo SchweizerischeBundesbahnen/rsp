@@ -32,7 +32,8 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> Schedule
                                                               latest_arrival=env._max_episode_steps),
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
-        max_episode_steps=env._max_episode_steps)
+        max_episode_steps=env._max_episode_steps,
+        route_section_penalties={agent.handle: {} for agent in env.agents})
     return schedule_problem_description
 
 

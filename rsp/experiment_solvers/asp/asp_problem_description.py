@@ -33,7 +33,6 @@ class ASPProblemDescription():
 
     @staticmethod
     def factory_rescheduling(
-            # TODO SIM-190 penalize re-routing
             tc: ScheduleProblemDescription,
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
@@ -247,15 +246,17 @@ class ASPProblemDescription():
                 is_dummy_edge = (
                         entry_waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or exit_waypoint.direction ==
                         MAGIC_DIRECTION_FOR_SOURCE_TARGET)
-                self._implement_route_section(agent_id=agent_id,
-                                              entry_waypoint=entry_waypoint,
-                                              exit_waypoint=exit_waypoint,
-                                              resource_id=entry_waypoint.position,
-                                              minimum_travel_time=(1
-                                                                   if is_dummy_edge
-                                                                   else tc.minimum_travel_time_dict[agent_id]),
-                                              # TODO SIM-190 route section penalty
-                                              )
+                self._implement_route_section(
+                    agent_id=agent_id,
+                    entry_waypoint=entry_waypoint,
+                    exit_waypoint=exit_waypoint,
+                    resource_id=entry_waypoint.position,
+                    minimum_travel_time=(1
+                                         if is_dummy_edge
+                                         else tc.minimum_travel_time_dict[agent_id]),
+                    route_section_penalty=tc.route_section_penalties[agent_id].get(
+                        (entry_waypoint, exit_waypoint), 0)
+                )
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,
                                                                              freeze=tc.route_dag_constraints_dict[

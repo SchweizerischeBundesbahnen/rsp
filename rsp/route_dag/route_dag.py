@@ -4,6 +4,7 @@ from typing import Iterator
 from typing import List
 from typing import NamedTuple
 from typing import Optional
+from typing import Tuple
 
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
@@ -23,11 +24,14 @@ RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
 ])
 
 RouteDAGConstraintsDict = Dict[int, RouteDAGConstraints]
+RouteDagEdge = Tuple[Waypoint, Waypoint]
+RouteSectionPenaltyDict = Dict[RouteDagEdge, int]
 ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
     ('route_dag_constraints_dict', RouteDAGConstraintsDict),
     ('minimum_travel_time_dict', Dict[int, int]),
     ('topo_dict', Dict[int, nx.DiGraph]),
-    ('max_episode_steps', int)
+    ('max_episode_steps', int),
+    ('route_section_penalties', Dict[int, RouteSectionPenaltyDict])
 ])
 
 

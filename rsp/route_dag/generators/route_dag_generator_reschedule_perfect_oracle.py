@@ -133,7 +133,8 @@ def perfect_oracle(
         route_dag_constraints_dict=freeze_dict_all,
         minimum_travel_time_dict=tc.minimum_travel_time_dict,
         topo_dict=tc.topo_dict,
-        max_episode_steps=tc.max_episode_steps
+        max_episode_steps=tc.max_episode_steps,
+        route_section_penalties={agent_id: {} for agent_id in delta.keys()}
     )
 
 
