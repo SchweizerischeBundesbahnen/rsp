@@ -414,7 +414,8 @@ def test_run_full_pipeline():
         analysis_2d=True,
         analysis_3d=False,
         malfunction_analysis=False,
-        qualitative_analysis_experiment_ids=[0]
+        qualitative_analysis_experiment_ids=[0],
+        flatland_rendering=False
     )
 
 
