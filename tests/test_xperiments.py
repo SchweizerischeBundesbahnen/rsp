@@ -1,10 +1,14 @@
 """Run tests for different experiment methods."""
+from typing import Dict
+
 import pandas
 import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
+from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -349,7 +353,10 @@ def test_regression_experiment_agenda():
 
 
 def test_save_and_load_experiment_results():
-    """Run a simple agenda and save and load the results."""
+    """Run a simple agenda and save and load the results.
+
+    Check that loading gives the same result.
+    """
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
         ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
                              height=30,
@@ -377,9 +384,38 @@ def test_save_and_load_experiment_results():
         experiment_results_dict = experiment_results.to_dict()
 
     for key in experiment_results_dict:
-        if not key.startswith("time") and key != 'topo_dict':
+        if key == 'topo_dict':
+            results_topo_dict: Dict[int, TopoDict] = experiment_results_dict[key]
+            loaded_topo_dict: Dict[int, TopoDict] = loaded_result_dict[key]
+            assert results_topo_dict.keys() == loaded_topo_dict.keys()
+            for exp_id, topo_dict in results_topo_dict.items():
+                for agent_id in topo_dict:
+                    assert results_topo_dict[exp_id][agent_id].nodes == loaded_topo_dict[exp_id][agent_id].nodes
+                    assert results_topo_dict[exp_id][agent_id].edges == loaded_topo_dict[exp_id][agent_id].edges
+        elif not key.startswith("time"):
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
+
+
+def test_run_full_pipeline():
+    """Ensure that the full pipeline runs without error on a simple agenda."""
+    agenda = ExperimentAgenda(experiment_name="test_run_full_pipeline", experiments=[
+        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
+                             height=30,
+                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
+
+    solver = ASPExperimentSolver()
+    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
+
+    hypothesis_one_data_analysis(
+        data_folder=experiment_folder_name,
+        analysis_2d=True,
+        analysis_3d=False,
+        malfunction_analysis=False,
+        qualitative_analysis_experiment_ids=[0]
+    )
 
 
 def test_parallel_experiment_execution():

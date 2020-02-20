@@ -12,9 +12,6 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.data_types import ExperimentMalfunction
-from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
-from rsp.utils.experiment_render_utils import init_renderer_for_env
-from rsp.utils.experiment_render_utils import render_env
 
 
 def create_action_plan(train_runs_dict: TrainrunDict, env: RailEnv) -> ControllerFromTrainruns:
@@ -232,7 +229,8 @@ def replay(env: RailEnv,  # noqa: C901
            debug: bool = False,
            loop_index: int = 0,
            stop_on_malfunction: bool = False,
-           disable_verification_in_replay: bool = False) -> Optional[ExperimentMalfunction]:
+           disable_verification_in_replay: bool = False,
+           image_output_directory: Optional[str] = None) -> Optional[ExperimentMalfunction]:
     """Replay the solution an check whether the actions againts FLATland env
     can be performed as against. Verifies that the solution is indeed a
     solution in the FLATland sense.
@@ -267,6 +265,7 @@ def replay(env: RailEnv,  # noqa: C901
     total_reward = 0
     time_step = 0
     if rendering:
+        from rsp.utils.experiment_render_utils import init_renderer_for_env
         renderer = init_renderer_for_env(env, rendering)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
@@ -292,13 +291,16 @@ def replay(env: RailEnv,  # noqa: C901
                     return ExperimentMalfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
 
         if rendering:
-            render_env(renderer, test_id=loop_index, solver_name=solver_name, i_step=time_step)
+            from rsp.utils.experiment_render_utils import render_env
+            render_env(renderer, test_id=loop_index, solver_name=solver_name, i_step=time_step,
+                       image_output_directory=image_output_directory)
 
         # if all agents have reached their goals, break
         if done['__all__']:
             break
         time_step += 1
     if rendering:
+        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
         cleanup_renderer_for_env(renderer)
     if stop_on_malfunction:
         return None
