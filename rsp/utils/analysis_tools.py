@@ -18,7 +18,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from pandas import DataFrame
 from pandas import Series
 
-matplotlib.use('Qt5Agg')
+# workaround: WORKSPACE is defined in ci where we do not have Qt installed
+if 'WORKSPACE' not in os.environ:
+    matplotlib.use('Qt5Agg')
 # Dummy import currently because otherwise the import is removed all the time but used by 3d scatter plot
 axes3d = Axes3D
 

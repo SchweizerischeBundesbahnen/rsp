@@ -55,6 +55,7 @@ def visualize_experiment(
 
     problem_rsp_full: ScheduleProblemDescription = rows['problem_full_after_malfunction'].iloc[0]
     problem_rsp_delta: ScheduleProblemDescription = rows['problem_delta_after_malfunction'].iloc[0]
+    problem_schedule: ScheduleProblemDescription = rows['problem_full'].iloc[0]
     malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
     n_agents: int = rows['n_agents'].iloc[0]
 
@@ -62,6 +63,20 @@ def visualize_experiment(
     check_create_folder(experiment_output_folder)
 
     for agent_id in problem_rsp_delta.route_dag_constraints_dict.keys():
+        topo = problem_schedule.topo_dict[agent_id]
+        visualize_route_dag_constraints(
+            topo=topo,
+            train_run_input=train_runs_input[agent_id],
+            train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
+            train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
+            f=problem_schedule.route_dag_constraints_dict[agent_id],
+            route_section_penalties=problem_schedule.route_section_penalties[agent_id],
+            title=_make_title(agent_id, experiment, malfunction, n_agents, topo,
+                              problem_schedule.route_dag_constraints_dict[agent_id]),
+            file_name=(os.path.join(experiment_output_folder,
+                                    f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
+                       if data_folder is not None else None)
+        )
         topo = problem_rsp_delta.topo_dict[agent_id]
         visualize_route_dag_constraints(
             topo=topo,
