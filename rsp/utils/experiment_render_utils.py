@@ -49,6 +49,7 @@ def visualize_experiment(
     train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
     train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
 
+    route_dag_constraints_full: RouteDAGConstraintsDict = rows['route_dag_constraints_full'].iloc[0]
     route_dag_constraints_rsp_full: RouteDAGConstraintsDict = rows['route_dag_constraints_full_after_malfunction'].iloc[
         0]
     route_dag_constraints_rsp_delta: RouteDAGConstraintsDict = \
@@ -61,6 +62,17 @@ def visualize_experiment(
     check_create_folder(experiment_output_folder)
 
     for agent_id in route_dag_constraints_rsp_delta:
+        visualize_route_dag_constraints(
+            topo=topo_dict[agent_id],
+            train_run_input=train_runs_input[agent_id],
+            train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
+            train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
+            f=route_dag_constraints_full[agent_id],
+            title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}",
+            file_name=(os.path.join(experiment_output_folder,
+                                    f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
+                       if data_folder is not None else None)
+        )
         visualize_route_dag_constraints(
             topo=topo_dict[agent_id],
             train_run_input=train_runs_input[agent_id],
