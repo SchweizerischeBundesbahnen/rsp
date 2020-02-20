@@ -11,7 +11,7 @@ from pandas import Series
 
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
-from rsp.route_dag.route_dag import TopoDict
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 
 SpeedData = Mapping[float, float]
 # experiment_group (future use): if we want use a range of values on the same infrastructure and want to identify them
@@ -50,13 +50,14 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('solution_full_after_malfunction', TrainrunDict),
     ('solution_delta_after_malfunction', TrainrunDict),
     ('costs_full', float),  # sum of travelling times in scheduling solution
-    ('costs_full_after_malfunction', float),  # total delay at target over all agents with respect to schedule
-    ('costs_delta_after_malfunction', float),  # total delay at target over all agents with respect to schedule
-    ('route_dag_constraints_full', RouteDAGConstraintsDict),
-    ('route_dag_constraints_full_after_malfunction', RouteDAGConstraintsDict),
-    ('route_dag_constraints_delta_after_malfunction', RouteDAGConstraintsDict),
+    ('costs_full_after_malfunction', float),
+    # TODO SIM-325 total delay at target over all agents with respect to schedule
+    ('costs_delta_after_malfunction', float),
+    # TODO SIM-325 total delay at target over all agents with respect to schedule
+    ('problem_full', ScheduleProblemDescription),
+    ('problem_full_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_after_malfunction', ScheduleProblemDescription),
     ('malfunction', ExperimentMalfunction),
-    ('topo_dict', TopoDict),
     ('nb_resource_conflicts_full', int),
     ('nb_resource_conflicts_full_after_malfunction', int),
     ('nb_resource_conflicts_delta_after_malfunction', int)
@@ -83,14 +84,13 @@ COLUMNS = ['experiment_id',
            'costs_full',
            'costs_full_after_malfunction',
            'costs_delta_after_malfunction',
-           'route_dag_constraints_full',
-           'route_dag_constraints_full_after_malfunction',
-           'route_dag_constraints_delta_after_malfunction',
+           'problem_full',
+           'problem_full_after_malfunction',
+           'problem_delta_after_malfunction',
            'nb_resource_conflicts_full',
            'nb_resource_conflicts_full_after_malfunction',
            'nb_resource_conflicts_delta_after_malfunction',
            'malfunction',
-           'topo_dict',
            'size',
            'n_agents',
            'max_num_cities',
@@ -122,14 +122,13 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
             'costs_full': experiment_results.costs_full,
             'costs_full_after_malfunction': experiment_results.costs_full_after_malfunction,
             'costs_delta_after_malfunction': experiment_results.costs_delta_after_malfunction,
-            'route_dag_constraints_full': experiment_results.route_dag_constraints_full,
-            'route_dag_constraints_full_after_malfunction': experiment_results.route_dag_constraints_full_after_malfunction,
-            'route_dag_constraints_delta_after_malfunction': experiment_results.route_dag_constraints_delta_after_malfunction,
+            'problem_full': experiment_results.problem_full,
+            'problem_full_after_malfunction': experiment_results.problem_full_after_malfunction,
+            'problem_delta_after_malfunction': experiment_results.problem_delta_after_malfunction,
             'nb_resource_conflicts_full': experiment_results.nb_resource_conflicts_full,
             'nb_resource_conflicts_full_after_malfunction': experiment_results.nb_resource_conflicts_full_after_malfunction,
             'nb_resource_conflicts_delta_after_malfunction': experiment_results.nb_resource_conflicts_delta_after_malfunction,
             'malfunction': experiment_results.malfunction,
-            'topo_dict': experiment_results.topo_dict,
             'size': experiment_parameters.width,
             'n_agents': experiment_parameters.number_of_agents,
             'max_num_cities': experiment_parameters.max_num_cities,
@@ -158,14 +157,13 @@ def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentR
         costs_full=rows['costs_full'].iloc[0],
         costs_full_after_malfunction=rows['costs_full_after_malfunction'].iloc[0],
         costs_delta_after_malfunction=rows['costs_delta_after_malfunction'].iloc[0],
-        route_dag_constraints_full=rows['route_dag_constraints_full'].iloc[0],
-        route_dag_constraints_full_after_malfunction=rows['route_dag_constraints_full_after_malfunction'].iloc[0],
-        route_dag_constraints_delta_after_malfunction=rows['route_dag_constraints_delta_after_malfunction'].iloc[0],
+        problem_full=rows['problem_full'].iloc[0],
+        problem_full_after_malfunction=rows['problem_full_after_malfunction'].iloc[0],
+        problem_delta_after_malfunction=rows['problem_delta_after_malfunction'].iloc[0],
         nb_resource_conflicts_full=rows['nb_resource_conflicts_full'].iloc[0],
         nb_resource_conflicts_full_after_malfunction=rows['nb_resource_conflicts_full_after_malfunction'].iloc[0],
         nb_resource_conflicts_delta_after_malfunction=rows['nb_resource_conflicts_delta_after_malfunction'].iloc[0],
-        malfunction=rows['malfunction'].iloc[0],
-        topo_dict=rows['topo_dict'].iloc[0],
+        malfunction=rows['malfunction'].iloc[0]
     )
 
 
@@ -190,14 +188,13 @@ def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
         costs_full=row['costs_full'],
         costs_full_after_malfunction=row['costs_full_after_malfunction'],
         costs_delta_after_malfunction=row['costs_delta_after_malfunction'],
-        route_dag_constraints_full=row['route_dag_constraints_full'],
-        route_dag_constraints_full_after_malfunction=row['route_dag_constraints_full_after_malfunction'],
-        route_dag_constraints_delta_after_malfunction=row['route_dag_constraints_delta_after_malfunction'],
+        problem_full=row['problem_full'],
+        problem_full_after_malfunction=row['problem_full_after_malfunction'],
+        problem_delta_after_malfunction=row['problem_delta_after_malfunction'],
         nb_resource_conflicts_full=row['nb_resource_conflicts_full'],
         nb_resource_conflicts_full_after_malfunction=row['nb_resource_conflicts_full_after_malfunction'],
         nb_resource_conflicts_delta_after_malfunction=row['nb_resource_conflicts_delta_after_malfunction'],
         malfunction=row['malfunction'],
-        topo_dict=row['topo_dict'],
     )
 
 

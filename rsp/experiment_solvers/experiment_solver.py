@@ -93,17 +93,16 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
+        full_reschedule_problem = get_freeze_for_full_rescheduling(malfunction=malfunction,
+                                                                   schedule_trainruns=schedule_trainruns,
+                                                                   minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+                                                                   latest_arrival=malfunction_rail_env._max_episode_steps,
+                                                                   topo_dict=tc_schedule_problem.topo_dict)
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
             malfunction_rail_env=malfunction_rail_env,
-            tc=get_freeze_for_full_rescheduling(
-                malfunction=malfunction,
-                schedule_trainruns=schedule_trainruns,
-                minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
-                latest_arrival=malfunction_rail_env._max_episode_steps,
-                topo_dict=tc_schedule_problem.topo_dict
-            ),
+            tc=full_reschedule_problem,
             rendering=rendering,
             debug=debug
         )
@@ -152,11 +151,10 @@ class ASPExperimentSolver(AbstractSolver):
                                             costs_full=schedule_result.optimization_costs,
                                             costs_full_after_malfunction=full_reschedule_result.optimization_costs,
                                             costs_delta_after_malfunction=delta_reschedule_result.optimization_costs,
-                                            route_dag_constraints_full=schedule_result.route_dag_constraints,
-                                            route_dag_constraints_full_after_malfunction=full_reschedule_result.route_dag_constraints,
-                                            route_dag_constraints_delta_after_malfunction=delta_reschedule_result.route_dag_constraints,
+                                            problem_full=tc_schedule_problem,
+                                            problem_full_after_malfunction=full_reschedule_problem,
+                                            problem_delta_after_malfunction=delta_reschedule_problem,
                                             malfunction=malfunction,
-                                            topo_dict=tc_schedule_problem.topo_dict,
                                             nb_resource_conflicts_full=schedule_result.nb_conflicts,
                                             nb_resource_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
                                             nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts

@@ -2,6 +2,7 @@ import os
 import time
 from typing import Optional
 
+import networkx as nx
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayerRenderCallback
 from flatland.envs.rail_env import RailEnv
@@ -10,7 +11,10 @@ from pandas import DataFrame
 
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
-from rsp.route_dag.route_dag import RouteDAGConstraintsDict
+from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
+from rsp.route_dag.route_dag import get_paths_in_route_dag
+from rsp.route_dag.route_dag import RouteDAGConstraints
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
@@ -49,36 +53,39 @@ def visualize_experiment(
     train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
     train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
 
-    route_dag_constraints_rsp_full: RouteDAGConstraintsDict = rows['route_dag_constraints_full_after_malfunction'].iloc[
-        0]
-    route_dag_constraints_rsp_delta: RouteDAGConstraintsDict = \
-        rows['route_dag_constraints_delta_after_malfunction'].iloc[0]
+    problem_rsp_full: ScheduleProblemDescription = rows['problem_full_after_malfunction'].iloc[0]
+    problem_rsp_delta: ScheduleProblemDescription = rows['problem_delta_after_malfunction'].iloc[0]
     malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
     n_agents: int = rows['n_agents'].iloc[0]
 
-    topo_dict = rows['topo_dict'].iloc[0]
     experiment_output_folder = f"{data_folder}/experiment_{experiment.experiment_id:04d}_analysis"
     check_create_folder(experiment_output_folder)
 
-    for agent_id in route_dag_constraints_rsp_delta:
+    for agent_id in problem_rsp_delta.route_dag_constraints_dict.keys():
+        topo = problem_rsp_delta.topo_dict[agent_id]
         visualize_route_dag_constraints(
-            topo=topo_dict[agent_id],
+            topo=topo,
             train_run_input=train_runs_input[agent_id],
             train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
             train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
-            f=route_dag_constraints_rsp_delta[agent_id],
-            title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}",
+            f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
+            route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
+            title=_make_title(agent_id, experiment, malfunction, n_agents, topo,
+                              problem_rsp_delta.route_dag_constraints_dict[agent_id]),
             file_name=(os.path.join(experiment_output_folder,
                                     f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
                        if data_folder is not None else None)
         )
+        topo = problem_rsp_full.topo_dict[agent_id]
         visualize_route_dag_constraints(
-            topo=topo_dict[agent_id],
+            topo=topo,
             train_run_input=train_runs_input[agent_id],
             train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
             train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
-            f=route_dag_constraints_rsp_full[agent_id],
-            title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}",
+            f=problem_rsp_full.route_dag_constraints_dict[agent_id],
+            route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
+            title=_make_title(agent_id, experiment, malfunction, n_agents, topo,
+                              problem_rsp_full.route_dag_constraints_dict[agent_id]),
             file_name=(os.path.join(experiment_output_folder,
                                     f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
                        if data_folder is not None else None)
@@ -90,6 +97,20 @@ def visualize_experiment(
                      rail_env=malfunction_rail_env,
                      trainruns=train_runs_full_after_malfunction,
                      convert_to_mpeg=convert_to_mpeg)
+
+
+def _make_title(agent_id: str,
+                experiment,
+                malfunction: ExperimentMalfunction,
+                n_agents: int,
+                topo: nx.DiGraph,
+                current_constraints: RouteDAGConstraints):
+    title = f"experiment {experiment.experiment_id}\n" \
+            f"agent {agent_id}/{n_agents}\n" \
+            f"{malfunction}\n" \
+            f"all paths in topo {len(get_paths_in_route_dag(topo))}\n" \
+            f"open paths in topo {len(get_paths_for_route_dag_constraints(topo, current_constraints))}\n"
+    return title
 
 
 def _replay_flatland(data_folder: str,

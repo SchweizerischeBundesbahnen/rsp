@@ -229,7 +229,7 @@ def hypothesis_one_data_analysis(data_folder: str,
 
         used_cells: Set[Waypoint] = {
             waypoint for agent_id, topo in
-            experiment_results.topo_dict.items()
+            experiment_results.problem_full.topo_dict.items()
             for waypoint in topo.nodes
         }
         experiment_data.at[index, 'size_used'] = len(used_cells)

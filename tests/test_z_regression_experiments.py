@@ -346,7 +346,7 @@ def test_regression_experiment_agenda():
         skip = key.startswith("time")
         skip = skip or key.startswith("solution")
         skip = skip or key.startswith("delta")
-        skip = skip or key == 'topo_dict'
+        skip = skip or key.startswith('problem')
         if not skip:
             assert expected_result_dict[key] == result_dict[key], \
                 f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"
@@ -392,7 +392,7 @@ def test_save_and_load_experiment_results():
                 for agent_id in topo_dict:
                     assert results_topo_dict[exp_id][agent_id].nodes == loaded_topo_dict[exp_id][agent_id].nodes
                     assert results_topo_dict[exp_id][agent_id].edges == loaded_topo_dict[exp_id][agent_id].edges
-        elif not key.startswith("time"):
+        elif not key.startswith("time") and not key.startswith('problem_'):
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
 
@@ -417,6 +417,9 @@ def test_run_full_pipeline():
         qualitative_analysis_experiment_ids=[0],
         flatland_rendering=False
     )
+
+    # cleanup
+    delete_experiment_folder(experiment_folder_name)
 
 
 def test_parallel_experiment_execution():
@@ -457,6 +460,6 @@ def test_parallel_experiment_execution():
         experiment_results_dict = experiment_results.to_dict()
 
     for key in experiment_results_dict:
-        if not key.startswith("time") and key != 'topo_dict':
+        if not key.startswith("time") and not key.startswith('problem_'):
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"

@@ -13,6 +13,7 @@ from rsp.route_dag.generators.route_dag_generator_utils import propagate_earlies
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
 from rsp.route_dag.generators.route_dag_generator_utils import verify_route_dag_constraints_for_agent
 from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import RouteSectionPenaltiesDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import ExperimentMalfunction
@@ -134,13 +135,31 @@ def generic_route_dag_constraints_for_rescheduling(
                 filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
                        schedule_trainruns[agent_id]))
         )
+
+    route_section_penalties = _extract_route_section_penalties(schedule_trainruns, topo_dict)
+
     return ScheduleProblemDescription(
         route_dag_constraints_dict=route_dag_constraints_dict,
         topo_dict=topo_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         max_episode_steps=latest_arrival,
-        route_section_penalties={agent_id: {} for agent_id in route_dag_constraints_dict.keys()}
+        route_section_penalties=route_section_penalties
     )
+
+
+def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict: TopoDict):
+    """Penalize edges by 1 in the topology departing from scheduled
+    trainrun."""
+    route_section_penalties: RouteSectionPenaltiesDict = {}
+    for agent_id, schedule_trainrun in schedule_trainruns.items():
+        route_section_penalties[agent_id] = {}
+        waypoints_in_schedule = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
+        topo = topo_dict[agent_id]
+        for edge in topo.edges:
+            (from_waypoint, to_waypoint) = edge
+            if from_waypoint in waypoints_in_schedule and to_waypoint not in waypoints_in_schedule:
+                route_section_penalties[edge] = 1
+    return route_section_penalties
 
 
 def _generic_route_dag_constraints_for_rescheduling_agent_while_running(

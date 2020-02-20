@@ -9,11 +9,13 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.route_dag import RouteSectionPenalties
 from rsp.utils.data_types import RouteDAGConstraints
 
 
 def visualize_route_dag_constraints(topo: nx.DiGraph,
                                     f: RouteDAGConstraints,
+                                    route_section_penalties: RouteSectionPenalties,
                                     train_run_input: Trainrun,
                                     train_run_full_after_malfunction: Trainrun,
                                     train_run_delta_after_malfunction: Trainrun,
@@ -90,8 +92,11 @@ def visualize_route_dag_constraints(topo: nx.DiGraph,
             f"{_get_label_for_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}"
         for wp in
         all_waypoints}
+
+    edge_labels = {edge: route_section_penalties.get(edge, 0) for edge in topo.edges}
     nx.draw(topo, plt_pos,
             labels=plt_labels,
+            edge_labels=edge_labels,
             edge_color='black',
             width=1,
             linewidths=1,

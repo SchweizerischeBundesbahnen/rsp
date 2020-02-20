@@ -14,7 +14,7 @@ from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.experiment_solvers.experiment_solver_utils import verify_trainruns_dict
-from rsp.route_dag.route_dag import _paths_in_route_dag
+from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
 
@@ -57,7 +57,7 @@ def solve_problem(env: RailEnv,
     # Preparations
     # --------------------------------------------------------------------------------------
     minimum_number_of_shortest_paths_over_all_agents = np.min(
-        [len(_paths_in_route_dag(topo)) for agent_id, topo in problem.tc.topo_dict.items()])
+        [len(get_paths_in_route_dag(topo)) for agent_id, topo in problem.tc.topo_dict.items()])
 
     if minimum_number_of_shortest_paths_over_all_agents == 0:
         raise Exception("At least one Agent has no path to its target!")

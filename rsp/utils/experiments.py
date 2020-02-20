@@ -141,7 +141,7 @@ def run_experiment(solver: AbstractSolver,
             _pp.pprint({
                 key: data_frame[-1][key]
                 for key in COLUMNS
-                if not key.startswith('solution_') and 'route_dag_constraints' not in key and key != 'agents_paths_dict'
+                if not key.startswith('solution_') and not key.startswith('problem_')
             })
 
             _analyze_times(experiment_results=current_results)
