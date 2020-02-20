@@ -37,7 +37,7 @@ class ASPProblemDescription():
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
-            asp_objective=ASPObjective.MINIMIZE_DELAY,
+            asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
             # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
         )

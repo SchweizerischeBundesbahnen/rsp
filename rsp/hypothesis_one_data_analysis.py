@@ -11,6 +11,7 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
+from typing import Dict
 from typing import List
 from typing import Set
 
@@ -234,6 +235,75 @@ def hypothesis_one_data_analysis(data_folder: str,
         }
         experiment_data.at[index, 'size_used'] = len(used_cells)
 
+    # add columns for costs
+    for key in ['lateness_full_after_malfunction',
+                'sum_route_section_penalties_full_after_malfunction',
+                'lateness_delta_after_malfunction',
+                'sum_route_section_penalties_delta_after_malfunction']:
+        experiment_data[key] = None
+    for index, row in experiment_data.iterrows():
+        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
+
+        lateness_full_after_malfunction = {}
+        sum_route_section_penalties_full_after_malfunction = {}
+        lateness_delta_after_malfunction = {}
+        sum_route_section_penalties_delta_after_malfunction = {}
+        for agent_id, train_run_input in experiment_results.solution_full.items():
+            train_run_full_after_malfunction = experiment_results.solution_full_after_malfunction[agent_id]
+            train_run_full_after_malfunction_target = train_run_full_after_malfunction[-1]
+            train_run_full_after_malfunction_constraints = \
+                experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
+            train_run_full_after_malfunction_target_earliest = \
+                train_run_full_after_malfunction_constraints.freeze_earliest[
+                    train_run_full_after_malfunction_target.waypoint]
+            lateness_full_after_malfunction[agent_id] = \
+                max(train_run_full_after_malfunction[
+                        -1].scheduled_at - train_run_full_after_malfunction_target_earliest, 0)
+            edges_full_after_malfunction = {
+                (wp1.waypoint, wp2.waypoint)
+                for wp1, wp2 in zip(train_run_full_after_malfunction, train_run_full_after_malfunction[1:])
+            }
+            sum_route_section_penalties_full_after_malfunction[agent_id] = sum([
+                penalty
+                for edge, penalty in experiment_results.problem_full_after_malfunction.route_section_penalties[agent_id].items()
+                if edge in edges_full_after_malfunction
+            ])
+            train_run_delta_after_malfunction = experiment_results.solution_delta_after_malfunction[agent_id]
+            train_run_delta_after_malfunction_target = train_run_delta_after_malfunction[-1]
+            train_run_delta_after_malfunction_constraints = \
+                experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
+            train_run_delta_after_malfunction_target_earliest = \
+                train_run_delta_after_malfunction_constraints.freeze_earliest[
+                    train_run_delta_after_malfunction_target.waypoint]
+            lateness_delta_after_malfunction[agent_id] = \
+                max(
+                    train_run_delta_after_malfunction_target.scheduled_at - train_run_delta_after_malfunction_target_earliest,
+                    0)
+            edges_delta_after_malfunction = {
+                (wp1.waypoint, wp2.waypoint)
+                for wp1, wp2 in zip(train_run_delta_after_malfunction, train_run_delta_after_malfunction[1:])
+            }
+            sum_route_section_penalties_delta_after_malfunction[agent_id] = sum([
+                penalty
+                for edge, penalty in experiment_results.problem_delta_after_malfunction.route_section_penalties[agent_id].items()
+                if edge in edges_delta_after_malfunction
+            ])
+        print(f"lateness_full_after_malfunction={lateness_full_after_malfunction}")
+        print(
+            f"sum_route_section_penalties_full_after_malfunction={sum_route_section_penalties_full_after_malfunction}")
+        print(f"lateness_delta_after_malfunction={lateness_delta_after_malfunction}")
+        print(
+            f"sum_route_section_penalties_delta_after_malfunction={sum_route_section_penalties_delta_after_malfunction}")
+
+        # https://stackoverflow.com/questions/47231398/how-to-assign-a-python-object-such-as-a-dictionary-to-pandas-column
+        experiment_data.loc[index, 'lateness_full_after_malfunction'] = [lateness_full_after_malfunction]
+        experiment_data.loc[index, 'sum_route_section_penalties_full_after_malfunction'] = [
+            sum_route_section_penalties_full_after_malfunction]
+        experiment_data.loc[index, 'lateness_delta_after_malfunction'] = [lateness_delta_after_malfunction]
+        experiment_data.loc[index, 'sum_route_section_penalties_delta_after_malfunction'] = [
+            sum_route_section_penalties_delta_after_malfunction]
+        # TODO plausibilise costs
+
     # Plausibility tests on experiment data
     _run_plausibility_tests_on_experiment_data(experiment_data)
 
@@ -267,7 +337,7 @@ def hypothesis_one_data_analysis(data_folder: str,
             experiment_agenda.experiments))
         for experiment in filtered_experiments:
             analyze_experiment(experiment=experiment, data_frame=experiment_data)
-            visualize_experiment(experiment=experiment,
+            visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
                                  data_folder=data_folder,
                                  flatland_rendering=flatland_rendering)
@@ -279,6 +349,35 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
         experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
         experiment_id = row['experiment_id']
         plausibility_check_experiment_results(experiment_results=experiment_results, experiment_id=experiment_id)
+        costs_full_after_malfunction: int = row['costs_full_after_malfunction']
+        lateness_full_after_malfunction: Dict[int, int] = row['lateness_full_after_malfunction']
+        sum_route_section_penalties_full_after_malfunction: Dict[int, int] = row[
+            'sum_route_section_penalties_full_after_malfunction']
+        costs_delta_after_malfunction: int = row['costs_delta_after_malfunction']
+        lateness_delta_after_malfunction: Dict[int, int] = row['lateness_delta_after_malfunction']
+        sum_route_section_penalties_delta_after_malfunction: Dict[int, int] = row[
+            'sum_route_section_penalties_delta_after_malfunction']
+
+        sum_lateness_full_after_malfunction: int = sum(lateness_full_after_malfunction.values())
+        sum_all_route_section_penalties_full_after_malfunction: int = sum(
+            sum_route_section_penalties_full_after_malfunction.values())
+        sum_lateness_delta_after_malfunction: int = sum(lateness_delta_after_malfunction.values())
+        sum_all_route_section_penalties_delta_after_malfunction: int = sum(
+            sum_route_section_penalties_delta_after_malfunction.values())
+
+        # assert costs_full_after_malfunction == sum_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
+        print(
+            f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
+            f"sum_lateness_full_after_malfunction={sum_lateness_full_after_malfunction}, " \
+            f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
+        )
+        # assert costs_delta_after_malfunction == sum_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
+        print(
+            f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
+            f"sum_lateness_delta_after_malfunction={sum_lateness_delta_after_malfunction}, " \
+            f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
+        )
+
     print("  -> Done plausibility tests on experiment data.")
 
 

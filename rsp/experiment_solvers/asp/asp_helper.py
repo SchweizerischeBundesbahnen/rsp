@@ -24,6 +24,12 @@ class ASPObjective(Enum):
     # minimize delay with respect to earliest constraints
     MINIMIZE_DELAY = "minimize_delay"
 
+    # minimize route section penalties
+    MINIMIZE_ROUTES = "minimize_routes"
+
+    # minimize linear combination of route section penalties and delay
+    MINIMIZE_DELAY_ROUTES_COMBINED = "minimize_delay_and_routes_combined"
+
 
 class ASPHeuristics(Enum):
     """enum value (key arbitrary) must be the same as encoding to be
@@ -134,6 +140,8 @@ def _asp_helper(encoding_files: List[str],
     deterministic_mode
         in deterministic mode, a seed is injected and multi-threading is deactivated
     """
+
+    verbose=True
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)

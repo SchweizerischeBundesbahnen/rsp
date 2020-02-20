@@ -13,16 +13,17 @@ from rsp.route_dag.route_dag import RouteSectionPenalties
 from rsp.utils.data_types import RouteDAGConstraints
 
 
-def visualize_route_dag_constraints(topo: nx.DiGraph,
-                                    f: RouteDAGConstraints,
-                                    route_section_penalties: RouteSectionPenalties,
-                                    train_run_input: Trainrun,
-                                    train_run_full_after_malfunction: Trainrun,
-                                    train_run_delta_after_malfunction: Trainrun,
-                                    file_name: Optional[str] = None,
-                                    title: Optional[str] = None,
-                                    scale: int = 2,
-                                    ) -> nx.DiGraph:
+def visualize_route_dag_constraints(
+        topo: nx.DiGraph,
+        f: RouteDAGConstraints,
+        route_section_penalties: RouteSectionPenalties,
+        train_run_input: Trainrun,
+        train_run_full_after_malfunction: Trainrun,
+        train_run_delta_after_malfunction: Trainrun,
+        file_name: Optional[str] = None,
+        title: Optional[str] = None,
+        scale: int = 2,
+) -> nx.DiGraph:
     """Draws an agent's route graph with constraints into a file.
 
     Parameters
@@ -93,16 +94,20 @@ def visualize_route_dag_constraints(topo: nx.DiGraph,
         for wp in
         all_waypoints}
 
-    edge_labels = {edge: route_section_penalties.get(edge, 0) for edge in topo.edges}
-    nx.draw(topo, plt_pos,
+    edge_labels = {edge: route_section_penalties.get(edge, 0)
+                   for edge in topo.edges
+                   if route_section_penalties.get(edge, 0) > 0}
+
+    nx.draw(topo,
+            plt_pos,
             labels=plt_labels,
-            edge_labels=edge_labels,
             edge_color='black',
             width=1,
             linewidths=1,
             node_size=1500,
             node_color=plt_color_map,
             alpha=0.9)
+    nx.draw_networkx_edge_labels(topo, plt_pos, edge_labels=edge_labels)
 
     plt.gca().invert_yaxis()
     print(file_name)

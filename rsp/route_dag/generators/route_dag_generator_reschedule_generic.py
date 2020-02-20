@@ -136,7 +136,7 @@ def generic_route_dag_constraints_for_rescheduling(
                        schedule_trainruns[agent_id]))
         )
 
-    route_section_penalties = _extract_route_section_penalties(schedule_trainruns, topo_dict)
+    route_section_penalties = extract_route_section_penalties(schedule_trainruns, topo_dict)
 
     return ScheduleProblemDescription(
         route_dag_constraints_dict=route_dag_constraints_dict,
@@ -147,9 +147,11 @@ def generic_route_dag_constraints_for_rescheduling(
     )
 
 
-def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict: TopoDict):
+def extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict: TopoDict):
     """Penalize edges by 1 in the topology departing from scheduled
     trainrun."""
+    print("****************")
+    print(schedule_trainruns)
     route_section_penalties: RouteSectionPenaltiesDict = {}
     for agent_id, schedule_trainrun in schedule_trainruns.items():
         route_section_penalties[agent_id] = {}
@@ -158,7 +160,10 @@ def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict
         for edge in topo.edges:
             (from_waypoint, to_waypoint) = edge
             if from_waypoint in waypoints_in_schedule and to_waypoint not in waypoints_in_schedule:
-                route_section_penalties[edge] = 1
+                route_section_penalties[agent_id][edge] = 1
+    for agent_id,topo in topo_dict.items():
+        print(f"{agent_id}: {list(topo.edges)}")
+    print(route_section_penalties)
     return route_section_penalties
 
 
