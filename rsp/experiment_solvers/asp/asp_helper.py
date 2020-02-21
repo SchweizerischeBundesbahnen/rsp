@@ -101,7 +101,7 @@ def flux_helper(
     if asp_objective:
         with path('res.asp.encodings', f'{asp_objective.value}.lp') as objetive_path:
             paths.append(objetive_path)
-        if asp_objective == ASPObjective.MINIMIZE_DELAY:
+        if asp_objective in [ASPObjective.MINIMIZE_DELAY, ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED]:
             with path('res.asp.encodings', f'delay_linear_within_one_minute.lp') as delay_model_path:
                 paths.append(delay_model_path)
 
@@ -140,8 +140,6 @@ def _asp_helper(encoding_files: List[str],
     deterministic_mode
         in deterministic mode, a seed is injected and multi-threading is deactivated
     """
-
-    verbose = True
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)

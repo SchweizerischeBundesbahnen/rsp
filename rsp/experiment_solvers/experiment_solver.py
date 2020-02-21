@@ -233,13 +233,21 @@ def asp_reschedule_wrapper(
         print("###reschedule")
         experimentFreezeDictPrettyPrint(reschedule_problem_description.route_dag_constraints_dict)
 
-    full_reschedule_result, full_reschedule_solution = solve_problem(
+    full_reschedule_result, asp_solution = solve_problem(
         problem=full_reschedule_problem,
         debug=debug
     )
+    if debug:
+        print("###lates")
+        print(asp_solution.extract_list_of_lates())
+        print("###route penalties")
+        print(asp_solution.extract_list_of_active_penalty())
+        print("###reschedule")
+        print(_pp.pformat(full_reschedule_result.trainruns_dict))
+
     replay_and_verify_asp_solution(env=malfunction_rail_env,
                                    problem_description=reschedule_problem_description,
-                                   asp_solution=full_reschedule_solution,
+                                   asp_solution=asp_solution,
                                    rendering=rendering,
                                    debug=debug,
                                    expected_malfunction=malfunction,
@@ -247,8 +255,5 @@ def asp_reschedule_wrapper(
                                    disable_verification_in_replay=True)
     malfunction_env_reset()
 
-    if debug:
-        print("###reschedule")
-        print(_pp.pformat(full_reschedule_result.solution.get_trainruns_dict()))
 
     return full_reschedule_result

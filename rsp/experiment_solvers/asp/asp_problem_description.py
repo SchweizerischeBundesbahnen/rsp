@@ -163,8 +163,8 @@ class ASPProblemDescription():
                                          self._sanitize_waypoint(exit_waypoint),
                                          int(minimum_travel_time)))
         # minimum running time: m(E,M)
-        self.asp_program.append("m({}, ({},{}),{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
-                                                            self._sanitize_waypoint(exit_waypoint), 0))
+        self.asp_program.append("m(({},{}),{}).".format(self._sanitize_waypoint(entry_waypoint),
+                                                        self._sanitize_waypoint(exit_waypoint), 0))
 
         # declare resource
         # TODO SIM-144 resource may be declared multiple times, maybe we should declare resource by
@@ -197,6 +197,11 @@ class ASPProblemDescription():
         self.asp_program.append("penalty(0,0).")
         # initially, not act_penalty_for_train activated
         self.asp_program.append("act_penalty_for_train(0,0,0).")
+
+        # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
+        # TODO SIM-322 hard-coded value 1
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), visit(T,V), visit(T,V'), edge(T,V,V').")
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), visit(T,V), visit(T,V'), edge(T,V,V').")
 
         asp_solution = flux_helper(self.asp_program,
                                    bound_all_events=self.tc.max_episode_steps,
@@ -243,6 +248,7 @@ class ASPProblemDescription():
                                   )
 
             for (entry_waypoint, exit_waypoint) in topo.edges:
+                # TODO SIM-322 hard-coded assumptions on dummy edges
                 is_dummy_edge = (
                         entry_waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or exit_waypoint.direction ==
                         MAGIC_DIRECTION_FOR_SOURCE_TARGET)
@@ -255,7 +261,7 @@ class ASPProblemDescription():
                                          if is_dummy_edge
                                          else tc.minimum_travel_time_dict[agent_id]),
                     route_section_penalty=tc.route_section_penalties[agent_id].get(
-                        (entry_waypoint, exit_waypoint), 0)
+                        (entry_waypoint, exit_waypoint), 0) if not is_dummy_edge else 0
                 )
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,

@@ -211,8 +211,6 @@ def test_rescheduling_no_bottleneck():
             latest_arrival=dynamic_env._max_episode_steps,
             topo_dict=tc_schedule_problem.topo_dict
         ),
-        rendering=False,
-        debug=False,
         malfunction_env_reset=lambda *args, **kwargs: None
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
@@ -220,6 +218,7 @@ def test_rescheduling_no_bottleneck():
     # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 0 (equals malfunction delay)
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
     actual_costs = full_reschedule_result.optimization_costs
+
     assert actual_costs == 0, f"actual costs {actual_costs}"
 
     assert full_reschedule_trainruns[0][-1].scheduled_at == 66
@@ -480,7 +479,7 @@ def test_rescheduling_bottleneck():
             minimum_travel_time_dict=tc_reschedule_problem.minimum_travel_time_dict,
             latest_arrival=dynamic_env._max_episode_steps,
             topo_dict=tc_reschedule_problem.topo_dict
-        ),
+        )
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
 
@@ -498,7 +497,8 @@ def test_rescheduling_bottleneck():
         f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
 
     # the solver returns the delay with respect to the defined earliest time (which is 20 after the scheduled arrival)
-    expected_costs = expected_delay_wr_schedule - 20
+    expected_rerouting_penalty = 1
+    expected_costs = expected_delay_wr_schedule - 20 + expected_rerouting_penalty
     assert actual_costs == expected_costs, f"actual costs {actual_costs} from solver, expected {expected_costs}"
 
 

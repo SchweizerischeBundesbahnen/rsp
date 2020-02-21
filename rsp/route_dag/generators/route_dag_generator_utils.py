@@ -45,8 +45,8 @@ def propagate_earliest(banned_set: Set[Waypoint],
                 else:
                     minimum_travel_time_here = minimum_travel_time
                     # TODO SIM-322 put minimum_travel_time per edge and add dumy edges for source and sink as input
-                    # minimum travel time is 1 (synchronization step) to one if we're coming from the source
-                    if topo.in_degree[waypoint] == 0:
+                    # minimum travel time is 1 (synchronization step) to one if we're coming from the source or goint to sink
+                    if topo.in_degree[waypoint] == 0 or topo.out_degree[successor] == 0:
                         minimum_travel_time_here = 1
                     path_earliest = earliest_dict.get(waypoint, np.inf) + minimum_travel_time_here
                     earliest = min(path_earliest, earliest_dict.get(successor, np.inf))
@@ -89,8 +89,8 @@ def propagate_latest(banned_set: Set[Waypoint],
                 else:
                     minimum_travel_time_corrected = minimum_travel_time
                     # TODO SIM-322 put minimum_travel_time per edge and add dumy edges for source and sink as input
-                    # minimum travel time is 1 (synchronization step) if we're goint to the sink
-                    if topo.out_degree[waypoint] == 0:
+                    # minimum travel time is 1 (synchronization step) if we're goint to the sink or coming from source
+                    if topo.out_degree[waypoint] == 0 or topo.in_degree[predecessor] == 0:
                         minimum_travel_time_corrected = 1
 
                     path_latest = latest_dict.get(waypoint, -np.inf) - minimum_travel_time_corrected

@@ -342,6 +342,7 @@ def test_regression_experiment_agenda():
         'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257}}
 
     for key in expected_result_dict:
+        # TODO SIM-239 make ticket
         # TODO remove keys in expected_result_dict instead
         skip = key.startswith("time")
         skip = skip or key.startswith("solution")

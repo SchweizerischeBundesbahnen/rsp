@@ -82,6 +82,8 @@ class ASPSolutionDescription():
         # remove the transition from the target waypoint to the dummy
         assert path[-1].waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET, \
             f"{path[-1]}"
+        # TODO SIM-3222 hard-coded assumption that last segment is 1
+        assert path[-1].scheduled_at - path[-2].scheduled_at == 1, f"{path[-2:]}"
         path = path[:-1]
         return path
 
