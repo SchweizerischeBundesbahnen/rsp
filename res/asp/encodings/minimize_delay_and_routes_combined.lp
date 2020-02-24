@@ -27,7 +27,7 @@ next(T,V,D,D') :- potlate(T,V,D,_), potlate(T,E,D',_), D<D',
 % minimze re-routing second
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-active_penalty(P,T,E) :- penalty(E,P), route(T,E).
+active_penalty(P,T,E) :- penalty(T,E,P), route(T,E).
 
 % TODO SIM-190 weighted linear combination, currently sum of boths
 #minimize{ P@0,T,E : active_penalty(P,T,E) }.

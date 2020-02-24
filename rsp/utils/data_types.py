@@ -42,7 +42,7 @@ ExperimentMalfunction = NamedTuple('ExperimentMalfunction', [
     ('malfunction_duration', int)
 ])
 
-ExperimentResults = NamedTuple('ExperimentResults', [
+FIELDS_EXPERIMENT_RESULTS = [
     ('time_full', float),
     ('time_full_after_malfunction', float),
     ('time_delta_after_malfunction', float),
@@ -61,6 +61,22 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('nb_resource_conflicts_full', int),
     ('nb_resource_conflicts_full_after_malfunction', int),
     ('nb_resource_conflicts_delta_after_malfunction', int)
+]
+
+ExperimentResults = NamedTuple('ExperimentResults', FIELDS_EXPERIMENT_RESULTS)
+
+ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalyis', FIELDS_EXPERIMENT_RESULTS + [
+    ('speed_up', float),
+    ('factor_resource_conflicts', int),
+    ('path_search_space_schedule', int),
+    ('path_search_space_rsp_full', int),
+    ('path_search_space_rsp_delta', int),
+    ('factor_path_search_space', int),
+    ('size_used', int),
+    ('lateness_full_after_malfunction', int),
+    ('sum_route_section_penalties_full_after_malfunction', int),
+    ('lateness_delta_after_malfunction', int),
+    ('sum_route_section_penalties_delta_after_malfunction', int),
 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
@@ -96,6 +112,20 @@ COLUMNS = ['experiment_id',
            'max_num_cities',
            'max_rail_between_cities',
            'max_rail_in_city']
+
+COLUMNS_ANALYSIS = COLUMNS + [
+    'speed_up',
+    'factor_resource_conflicts',
+    'path_search_space_schedule',
+    'path_search_space_rsp_full',
+    'path_search_space_rsp_delta',
+    'size_used',
+    'factor_path_search_space',
+    'lateness_full_after_malfunction',
+    'sum_route_section_penalties_full_after_malfunction',
+    'lateness_delta_after_malfunction',
+    'sum_route_section_penalties_delta_after_malfunction',
+]
 
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
@@ -133,7 +163,8 @@ def convert_experiment_results_to_data_frame(experiment_results: ExperimentResul
             'n_agents': experiment_parameters.number_of_agents,
             'max_num_cities': experiment_parameters.max_num_cities,
             'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
-            'max_rail_in_city': experiment_parameters.max_rail_in_city}
+            'max_rail_in_city': experiment_parameters.max_rail_in_city,
+            }
 
 
 def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentResults:
@@ -196,6 +227,127 @@ def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
         nb_resource_conflicts_delta_after_malfunction=row['nb_resource_conflicts_delta_after_malfunction'],
         malfunction=row['malfunction'],
     )
+
+
+def convert_pandas_series_experiment_results_analysis(row: Series) -> ExperimentResultsAnalysis:
+    """Converts data frame back to experiment results structure.
+
+    Parameters
+    ----------
+    rows: DataFrame
+
+    Returns
+    -------
+    ExperimentResults
+    """
+    return ExperimentResultsAnalysis(
+        time_full=row['time_full'],
+        time_full_after_malfunction=row['time_full_after_malfunction'],
+        time_delta_after_malfunction=row['time_delta_after_malfunction'],
+        solution_full=row['solution_full'],
+        solution_full_after_malfunction=row['solution_full_after_malfunction'],
+        solution_delta_after_malfunction=row['solution_delta_after_malfunction'],
+        costs_full=row['costs_full'],
+        costs_full_after_malfunction=row['costs_full_after_malfunction'],
+        costs_delta_after_malfunction=row['costs_delta_after_malfunction'],
+        problem_full=row['problem_full'],
+        problem_full_after_malfunction=row['problem_full_after_malfunction'],
+        problem_delta_after_malfunction=row['problem_delta_after_malfunction'],
+        nb_resource_conflicts_full=row['nb_resource_conflicts_full'],
+        nb_resource_conflicts_full_after_malfunction=row['nb_resource_conflicts_full_after_malfunction'],
+        nb_resource_conflicts_delta_after_malfunction=row['nb_resource_conflicts_delta_after_malfunction'],
+        malfunction=row['malfunction'],
+        speed_up=row['speed_up'],
+        factor_resource_conflicts=row['factor_resource_conflicts'],
+        path_search_space_schedule=row['path_search_space_schedule'],
+        path_search_space_rsp_full=row['path_search_space_rsp_full'],
+        path_search_space_rsp_delta=row['path_search_space_rsp_delta'],
+        size_used=row['size_used'],
+        factor_path_search_space=row['factor_path_search_space'],
+        lateness_full_after_malfunction=row['lateness_full_after_malfunction'],
+        sum_route_section_penalties_full_after_malfunction=row['sum_route_section_penalties_full_after_malfunction'],
+        lateness_delta_after_malfunction=row['lateness_delta_after_malfunction'],
+        sum_route_section_penalties_delta_after_malfunction=row['sum_route_section_penalties_delta_after_malfunction'],
+    )
+
+
+def extend_experiment_results_for_analysis(
+        experiment_results: ExperimentResultsAnalysis,
+        speed_up: float,
+        factor_resource_conflicts: int,
+        path_search_space_schedule: int,
+        path_search_space_rsp_full: int,
+        path_search_space_rsp_delta: int,
+        size_used: int,
+        factor_path_search_space: int,
+        lateness_full_after_malfunction: int,
+        sum_route_section_penalties_full_after_malfunction: int,
+        lateness_delta_after_malfunction: int,
+        sum_route_section_penalties_delta_after_malfunction: int
+) -> ExperimentResultsAnalysis:
+    return ExperimentResultsAnalysis(
+        *experiment_results,
+        speed_up=speed_up,
+        factor_resource_conflicts=factor_resource_conflicts,
+        path_search_space_schedule=path_search_space_schedule,
+        path_search_space_rsp_full=path_search_space_rsp_full,
+        path_search_space_rsp_delta=path_search_space_rsp_delta,
+        size_used=size_used,
+        factor_path_search_space=factor_path_search_space,
+        lateness_full_after_malfunction=lateness_full_after_malfunction,
+        sum_route_section_penalties_full_after_malfunction=sum_route_section_penalties_full_after_malfunction,
+        lateness_delta_after_malfunction=lateness_delta_after_malfunction,
+        sum_route_section_penalties_delta_after_malfunction=sum_route_section_penalties_delta_after_malfunction
+    )
+
+
+def convert_experiment_results_analysis_to_data_frame(experiment_results: ExperimentResultsAnalysis,
+                                                      experiment_parameters: ExperimentParameters) -> DataFrame:
+    """Converts experiment results to data frame.
+
+    Parameters
+    ----------
+    experiment_results: ExperimentResults
+    experiment_parameters: ExperimentParameters
+
+    Returns
+    -------
+    DataFrame
+    """
+    return {'experiment_id': experiment_parameters.experiment_id,
+            'experiment_group': experiment_parameters.experiment_group,
+            'time_full': experiment_results.time_full,
+            'time_full_after_malfunction': experiment_results.time_full_after_malfunction,
+            'time_delta_after_malfunction': experiment_results.time_delta_after_malfunction,
+            'solution_full': experiment_results.solution_full,
+            'solution_full_after_malfunction': experiment_results.solution_full_after_malfunction,
+            'solution_delta_after_malfunction': experiment_results.solution_delta_after_malfunction,
+            'costs_full': experiment_results.costs_full,
+            'costs_full_after_malfunction': experiment_results.costs_full_after_malfunction,
+            'costs_delta_after_malfunction': experiment_results.costs_delta_after_malfunction,
+            'problem_full': experiment_results.problem_full,
+            'problem_full_after_malfunction': experiment_results.problem_full_after_malfunction,
+            'problem_delta_after_malfunction': experiment_results.problem_delta_after_malfunction,
+            'nb_resource_conflicts_full': experiment_results.nb_resource_conflicts_full,
+            'nb_resource_conflicts_full_after_malfunction': experiment_results.nb_resource_conflicts_full_after_malfunction,
+            'nb_resource_conflicts_delta_after_malfunction': experiment_results.nb_resource_conflicts_delta_after_malfunction,
+            'malfunction': experiment_results.malfunction,
+            'size': experiment_parameters.width,
+            'n_agents': experiment_parameters.number_of_agents,
+            'max_num_cities': experiment_parameters.max_num_cities,
+            'max_rail_between_cities': experiment_parameters.max_rail_between_cities,
+            'max_rail_in_city': experiment_parameters.max_rail_in_city,
+            'speed_up': experiment_results.speed_up,
+            'factor_resource_conflicts': experiment_results.factor_resource_conflicts,
+            'path_search_space_schedule': experiment_results.path_search_space_schedule,
+            'path_search_space_rsp_full': experiment_results.path_search_space_rsp_full,
+            'path_search_space_rsp_delta': experiment_results.path_search_space_rsp_delta,
+            'factor_path_search_space': experiment_results.factor_path_search_space,
+            'lateness_full_after_malfunction': experiment_results.lateness_full_after_malfunction,
+            'sum_route_section_penalties_full_after_malfunction': experiment_results.sum_route_section_penalties_full_after_malfunction,
+            'lateness_delta_after_malfunction': experiment_results.lateness_delta_after_malfunction,
+            'sum_route_section_penalties_delta_after_malfunction': experiment_results.sum_route_section_penalties_delta_after_malfunction,
+            }
 
 
 _pp = pprint.PrettyPrinter(indent=4)

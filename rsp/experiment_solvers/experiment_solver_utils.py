@@ -3,7 +3,6 @@ from typing import Dict
 from typing import Optional
 
 import numpy as np
-import time
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_valid_move_actions_

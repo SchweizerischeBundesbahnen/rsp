@@ -176,12 +176,12 @@ class ASPProblemDescription():
         # TODO SIM-129: release time = 1 to allow for synchronization in FLATland - can we get rid of it?
         self.asp_program.append("b(resource_{}_{},1).".format(*resource_id))
 
-        # penalty for objective minimize_routes.lp and heuristic_ROUTES.lp (used only if activated)
-        # TODO SIM-190
+        # add train-specific route penalty (T,E,P) for minimize_delay_and_routes_combined.lp
+        # N.B. we do not use penalty(E,P) as for objective minimize_routes.lp and heuristic_ROUTES.lp
         if route_section_penalty > 0:
-            # penalty(E,P) # noqa: E800
-            self.asp_program.append("penalty(({},{}),{})."
-                                    .format(self._sanitize_waypoint(entry_waypoint),
+            # penalty(T,E,P) # noqa: E800
+            self.asp_program.append("penalty(t{},({},{}),{})."
+                                    .format(agent_id, self._sanitize_waypoint(entry_waypoint),
                                             self._sanitize_waypoint(exit_waypoint), route_section_penalty))
 
     def solve(self, verbose: bool = False) -> ASPSolutionDescription:

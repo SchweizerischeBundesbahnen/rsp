@@ -255,5 +255,4 @@ def asp_reschedule_wrapper(
                                    disable_verification_in_replay=True)
     malfunction_env_reset()
 
-
     return full_reschedule_result

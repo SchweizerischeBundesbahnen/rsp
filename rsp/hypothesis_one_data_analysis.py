@@ -13,21 +13,20 @@ Hypothesis 2:
 """
 from typing import Dict
 from typing import List
-from typing import Set
 
 import numpy as np
-from flatland.envs.rail_trainrun_data_structures import Waypoint
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
-from rsp.route_dag.analysis.rescheduling_analysis_utils import _extract_path_search_space
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.analysis_tools import average_over_trials
+from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import ExperimentAgenda
+from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
@@ -180,7 +179,8 @@ def hypothesis_one_data_analysis(data_folder: str,
                                  analysis_3d: bool = False,
                                  malfunction_analysis: bool = False,
                                  qualitative_analysis_experiment_ids: List[str] = None,
-                                 flatland_rendering: bool = True
+                                 flatland_rendering: bool = True,
+                                 debug: bool = False
                                  ):
     """
 
@@ -191,120 +191,24 @@ def hypothesis_one_data_analysis(data_folder: str,
     analysis_3d
     malfunction_analysis
     qualitative_analysis_experiment_ids
+    flatland_rendering
+    debug
     """
     # Import the desired experiment results
     experiment_data: DataFrame = load_experiment_results_from_folder(data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
+    experiment_agenda_dict: Dict[int, ExperimentParameters] = {
+        experiment.experiment_id: experiment
+        for experiment in experiment_agenda.experiments
+    }
+
     print(data_folder)
     print(experiment_agenda)
 
-    for key in ['size', 'n_agents', 'max_num_cities', 'max_rail_between_cities', 'max_rail_in_city',
-                'nb_resource_conflicts_full',
-                'nb_resource_conflicts_full_after_malfunction',
-                'nb_resource_conflicts_delta_after_malfunction']:
-        experiment_data[key] = experiment_data[key].astype(float)
-
-    # add column 'speed_up'
-    experiment_data['speed_up'] = \
-        experiment_data['time_full_after_malfunction'] / experiment_data['time_delta_after_malfunction']
-
-    # add column 'factor_resource_conflicts'
-    experiment_data['factor_resource_conflicts'] = \
-        experiment_data['nb_resource_conflicts_delta_after_malfunction'] / experiment_data[
-            'nb_resource_conflicts_full_after_malfunction']
-
-    # add column 'path_search_space_* and 'size_used'
-    for key in ['path_search_space_schedule', 'path_search_space_rsp_full', 'path_search_space_rsp_delta',
-                'factor_path_search_space', 'size_used']:
-        experiment_data[key] = 0.0
-        experiment_data[key] = experiment_data[key].astype(float)
-    for index, row in experiment_data.iterrows():
-        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
-        path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = _extract_path_search_space(
-            experiment_results=experiment_results)
-        factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
-        experiment_data.at[index, 'path_search_space_schedule'] = path_search_space_schedule
-        experiment_data.at[index, 'path_search_space_rsp_full'] = path_search_space_rsp_full
-        experiment_data.at[index, 'path_search_space_rsp_delta'] = path_search_space_rsp_delta
-        experiment_data.at[index, 'factor_path_search_space'] = factor_path_search_space
-
-        used_cells: Set[Waypoint] = {
-            waypoint for agent_id, topo in
-            experiment_results.problem_full.topo_dict.items()
-            for waypoint in topo.nodes
-        }
-        experiment_data.at[index, 'size_used'] = len(used_cells)
-
-    # add columns for costs
-    for key in ['lateness_full_after_malfunction',
-                'sum_route_section_penalties_full_after_malfunction',
-                'lateness_delta_after_malfunction',
-                'sum_route_section_penalties_delta_after_malfunction']:
-        experiment_data[key] = None
-    for index, row in experiment_data.iterrows():
-        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
-
-        lateness_full_after_malfunction = {}
-        sum_route_section_penalties_full_after_malfunction = {}
-        lateness_delta_after_malfunction = {}
-        sum_route_section_penalties_delta_after_malfunction = {}
-        for agent_id in experiment_results.solution_full.keys():
-            train_run_full_after_malfunction = experiment_results.solution_full_after_malfunction[agent_id]
-            train_run_full_after_malfunction_target = train_run_full_after_malfunction[-1]
-            train_run_full_after_malfunction_constraints = \
-                experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
-            train_run_full_after_malfunction_target_earliest = \
-                train_run_full_after_malfunction_constraints.freeze_earliest[
-                    train_run_full_after_malfunction_target.waypoint]
-            lateness_full_after_malfunction[agent_id] = \
-                max(train_run_full_after_malfunction[
-                        -1].scheduled_at - train_run_full_after_malfunction_target_earliest, 0)
-            edges_full_after_malfunction = {
-                (wp1.waypoint, wp2.waypoint)
-                for wp1, wp2 in zip(train_run_full_after_malfunction, train_run_full_after_malfunction[1:])
-            }
-            sum_route_section_penalties_full_after_malfunction[agent_id] = sum([
-                penalty
-                for edge, penalty in
-                experiment_results.problem_full_after_malfunction.route_section_penalties[agent_id].items()
-                if edge in edges_full_after_malfunction
-            ])
-            train_run_delta_after_malfunction = experiment_results.solution_delta_after_malfunction[agent_id]
-            train_run_delta_after_malfunction_target = train_run_delta_after_malfunction[-1]
-            train_run_delta_after_malfunction_constraints = \
-                experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
-            train_run_delta_after_malfunction_target_earliest = \
-                train_run_delta_after_malfunction_constraints.freeze_earliest[
-                    train_run_delta_after_malfunction_target.waypoint]
-            lateness_delta_after_malfunction[agent_id] = \
-                max(
-                    train_run_delta_after_malfunction_target.scheduled_at - train_run_delta_after_malfunction_target_earliest,
-                    0)
-            edges_delta_after_malfunction = {
-                (wp1.waypoint, wp2.waypoint)
-                for wp1, wp2 in zip(train_run_delta_after_malfunction, train_run_delta_after_malfunction[1:])
-            }
-            sum_route_section_penalties_delta_after_malfunction[agent_id] = sum([
-                penalty
-                for edge, penalty in
-                experiment_results.problem_delta_after_malfunction.route_section_penalties[agent_id].items()
-                if edge in edges_delta_after_malfunction
-            ])
-        print(f"lateness_full_after_malfunction={lateness_full_after_malfunction}")
-        print(
-            f"sum_route_section_penalties_full_after_malfunction={sum_route_section_penalties_full_after_malfunction}")
-        print(f"lateness_delta_after_malfunction={lateness_delta_after_malfunction}")
-        print(
-            f"sum_route_section_penalties_delta_after_malfunction={sum_route_section_penalties_delta_after_malfunction}")
-
-        # https://stackoverflow.com/questions/47231398/how-to-assign-a-python-object-such-as-a-dictionary-to-pandas-column
-        experiment_data.loc[index, 'lateness_full_after_malfunction'] = [lateness_full_after_malfunction]
-        experiment_data.loc[index, 'sum_route_section_penalties_full_after_malfunction'] = [
-            sum_route_section_penalties_full_after_malfunction]
-        experiment_data.loc[index, 'lateness_delta_after_malfunction'] = [lateness_delta_after_malfunction]
-        experiment_data.loc[index, 'sum_route_section_penalties_delta_after_malfunction'] = [
-            sum_route_section_penalties_delta_after_malfunction]
-        # TODO plausibilise costs
+    # derive additional data columns
+    experiment_data = expand_experiment_data_for_analysis(
+        experiment_data=experiment_data,
+        experiment_agenda_dict=experiment_agenda_dict, debug=debug)
 
     # Plausibility tests on experiment data
     _run_plausibility_tests_on_experiment_data(experiment_data)
@@ -367,28 +271,23 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
         sum_all_route_section_penalties_delta_after_malfunction: int = sum(
             sum_route_section_penalties_delta_after_malfunction.values())
 
-        # TODO SIM-190
-        # assert costs_full_after_malfunction == sum_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
-        print(
-            f"costs_full_after_malfunction={costs_full_after_malfunction}, "
-            f"sum_lateness_full_after_malfunction={sum_lateness_full_after_malfunction}, "
+        assert costs_full_after_malfunction == sum_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
+            f"experiment {experiment_id}: " \
+            f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
+            f"sum_lateness_full_after_malfunction={sum_lateness_full_after_malfunction}, " \
             f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
-        )
-        # TODO SIM-190
-        # assert costs_delta_after_malfunction == sum_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
-        print(
-            f"costs_delta_after_malfunction={costs_delta_after_malfunction}, "
-            f"sum_lateness_delta_after_malfunction={sum_lateness_delta_after_malfunction}, "
+        assert costs_delta_after_malfunction == sum_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
+            f"experiment {experiment_id}: " \
+            f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
+            f"sum_lateness_delta_after_malfunction={sum_lateness_delta_after_malfunction}, " \
             f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
-        )
-
     print("  -> Done plausibility tests on experiment data.")
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_19T19_13_25',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_21T11_11_10',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[9, 97, 190, 122, 257, 265],
+                                 qualitative_analysis_experiment_ids=[]
                                  )

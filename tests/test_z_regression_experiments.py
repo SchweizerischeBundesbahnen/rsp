@@ -115,6 +115,15 @@ def test_regression_experiment_agenda():
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False, verbose=True)
 
+    hypothesis_one_data_analysis(
+        data_folder=experiment_folder_name,
+        analysis_2d=True,
+        analysis_3d=False,
+        malfunction_analysis=False,
+        qualitative_analysis_experiment_ids=[0],
+        flatland_rendering=False
+    )
+
     # load results
     result = load_experiment_results_from_folder(experiment_folder_name)
 
@@ -126,7 +135,9 @@ def test_regression_experiment_agenda():
         print(result_dict)
 
     expected_result_dict = {
-        'costs_delta_after_malfunction': {0: 20.0}, 'costs_full': {0: 0.0}, 'costs_full_after_malfunction': {0: 20.0},
+        # costs in full and delta are delay with respect to constraints induced by malfunction,
+        # i.e. malfunction has to be added to get delay with respect to initial schedule!
+        'costs_delta_after_malfunction': {0: 0.0}, 'costs_full': {0: 0.0}, 'costs_full_after_malfunction': {0: 0.0},
         'delta': {0: {0: [TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(21, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(22, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(23, 29), direction=2)),
