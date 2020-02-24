@@ -26,6 +26,7 @@ RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
 RouteDAGConstraintsDict = Dict[int, RouteDAGConstraints]
 RouteDagEdge = Tuple[Waypoint, Waypoint]
 RouteSectionPenalties = Dict[RouteDagEdge, int]
+WaypointPenalties = Dict[Waypoint, int]
 RouteSectionPenaltiesDict = Dict[int, RouteSectionPenalties]
 ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
     ('route_dag_constraints_dict', RouteDAGConstraintsDict),

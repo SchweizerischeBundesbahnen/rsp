@@ -25,9 +25,11 @@ from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_pandas_series_experiment_results
+from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
@@ -243,8 +245,11 @@ def hypothesis_one_data_analysis(data_folder: str,
             experiment_agenda.experiments))
         for experiment in filtered_experiments:
             analyze_experiment(experiment=experiment, data_frame=experiment_data)
+            row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
+            experiment_results: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(row)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
+                                 experiment_results=experiment_results,
                                  data_folder=data_folder,
                                  flatland_rendering=flatland_rendering)
 

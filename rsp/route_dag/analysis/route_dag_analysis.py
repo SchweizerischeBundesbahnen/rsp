@@ -9,7 +9,9 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.route_dag import RouteDagEdge
 from rsp.route_dag.route_dag import RouteSectionPenalties
+from rsp.route_dag.route_dag import WaypointPenalties
 from rsp.utils.data_types import RouteDAGConstraints
 
 
@@ -17,17 +19,20 @@ def visualize_route_dag_constraints(
         topo: nx.DiGraph,
         f: RouteDAGConstraints,
         route_section_penalties: RouteSectionPenalties,
+        edge_eff_route_penalties: RouteSectionPenalties,
+        vertex_eff_lateness: WaypointPenalties,
         train_run_input: Trainrun,
         train_run_full_after_malfunction: Trainrun,
         train_run_delta_after_malfunction: Trainrun,
         file_name: Optional[str] = None,
         title: Optional[str] = None,
-        scale: int = 2,
+        scale: int = 4,
 ) -> nx.DiGraph:
     """Draws an agent's route graph with constraints into a file.
 
     Parameters
     ----------
+    edge_lateness
     agent_paths
         the agent's paths spanning its routes graph
     f
@@ -90,13 +95,15 @@ def visualize_route_dag_constraints(
     plt_labels = {
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
             f"{_get_label_for_constraint_for_waypoint(wp, f)}\n"
-            f"{_get_label_for_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}"
+            f"{_get_label_for_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}" +
+            (f"\neff late: {vertex_eff_lateness.get(wp, '')}" if vertex_eff_lateness.get(wp, 0) > 0 else "")
         for wp in
         all_waypoints}
 
-    edge_labels = {edge: route_section_penalties.get(edge, 0)
-                   for edge in topo.edges
-                   if route_section_penalties.get(edge, 0) > 0}
+    edge_labels = {
+        edge: _get_edge_label(edge, route_section_penalties, edge_eff_route_penalties)
+        for edge in topo.edges
+    }
 
     nx.draw(topo,
             plt_pos,
@@ -118,6 +125,19 @@ def visualize_route_dag_constraints(
     plt.close()
 
     return topo
+
+
+def _get_edge_label(edge: RouteDagEdge,
+                    route_section_penalties: RouteSectionPenalties,
+                    eff_edge_route_penalties: RouteSectionPenalties) -> str:
+    label = ""
+    label += str(eff_edge_route_penalties.get(edge, 0))
+    label += " / "
+    label += str(route_section_penalties.get(edge, 0))
+
+    if label == "0 / 0":
+        return ""
+    return label
 
 
 def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: RouteDAGConstraints) -> str:

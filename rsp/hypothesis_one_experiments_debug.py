@@ -35,5 +35,5 @@ def _run_experiment_ids_from_agenda(experiment_ids: List[int]):
 
 
 if __name__ == '__main__':
-    experiment_ids = [1]
+    experiment_ids = [9]
     _run_experiment_ids_from_agenda(experiment_ids)

@@ -1,11 +1,14 @@
 """Data types used in the experiment for the real time rescheduling research
 project."""
 import pprint
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
+from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
 from pandas import Series
 
@@ -77,6 +80,10 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalyis', FIELDS_EXPERI
     ('sum_route_section_penalties_full_after_malfunction', int),
     ('lateness_delta_after_malfunction', int),
     ('sum_route_section_penalties_delta_after_malfunction', int),
+    ('vertex_eff_lateness_full_after_malfunction', Dict[Waypoint, int]),
+    ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
+    ('vertex_eff_lateness_delta_after_malfunction', Dict[Waypoint, int]),
+    ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
@@ -125,6 +132,10 @@ COLUMNS_ANALYSIS = COLUMNS + [
     'sum_route_section_penalties_full_after_malfunction',
     'lateness_delta_after_malfunction',
     'sum_route_section_penalties_delta_after_malfunction',
+    'vertex_eff_lateness_full_after_malfunction',
+    'edge_eff_route_penalties_full_after_malfunction',
+    'vertex_eff_lateness_delta_after_malfunction',
+    'edge_eff_route_penalties_delta_after_malfunction',
 ]
 
 
@@ -268,6 +279,11 @@ def convert_pandas_series_experiment_results_analysis(row: Series) -> Experiment
         sum_route_section_penalties_full_after_malfunction=row['sum_route_section_penalties_full_after_malfunction'],
         lateness_delta_after_malfunction=row['lateness_delta_after_malfunction'],
         sum_route_section_penalties_delta_after_malfunction=row['sum_route_section_penalties_delta_after_malfunction'],
+        vertex_eff_lateness_full_after_malfunction=row['vertex_eff_lateness_full_after_malfunction'],
+        edge_eff_route_penalties_full_after_malfunction=row['edge_eff_route_penalties_full_after_malfunction'],
+        vertex_eff_lateness_delta_after_malfunction=row['vertex_eff_lateness_delta_after_malfunction'],
+        edge_eff_route_penalties_delta_after_malfunction=row['edge_eff_route_penalties_delta_after_malfunction'],
+
     )
 
 
@@ -283,7 +299,11 @@ def extend_experiment_results_for_analysis(
         lateness_full_after_malfunction: int,
         sum_route_section_penalties_full_after_malfunction: int,
         lateness_delta_after_malfunction: int,
-        sum_route_section_penalties_delta_after_malfunction: int
+        sum_route_section_penalties_delta_after_malfunction: int,
+        vertex_eff_lateness_full_after_malfunction: Dict[Waypoint, int],
+        edge_eff_route_penalties_full_after_malfunction: Dict[Tuple[Waypoint, Waypoint], int],
+        vertex_eff_lateness_delta_after_malfunction: Dict[Waypoint, int],
+        edge_eff_route_penalties_delta_after_malfunction: Dict[Tuple[Waypoint, Waypoint], int]
 ) -> ExperimentResultsAnalysis:
     return ExperimentResultsAnalysis(
         *experiment_results,
@@ -297,7 +317,11 @@ def extend_experiment_results_for_analysis(
         lateness_full_after_malfunction=lateness_full_after_malfunction,
         sum_route_section_penalties_full_after_malfunction=sum_route_section_penalties_full_after_malfunction,
         lateness_delta_after_malfunction=lateness_delta_after_malfunction,
-        sum_route_section_penalties_delta_after_malfunction=sum_route_section_penalties_delta_after_malfunction
+        sum_route_section_penalties_delta_after_malfunction=sum_route_section_penalties_delta_after_malfunction,
+        vertex_eff_lateness_full_after_malfunction=vertex_eff_lateness_full_after_malfunction,
+        edge_eff_route_penalties_full_after_malfunction=edge_eff_route_penalties_full_after_malfunction,
+        vertex_eff_lateness_delta_after_malfunction=vertex_eff_lateness_delta_after_malfunction,
+        edge_eff_route_penalties_delta_after_malfunction=edge_eff_route_penalties_delta_after_malfunction,
     )
 
 
@@ -347,6 +371,11 @@ def convert_experiment_results_analysis_to_data_frame(experiment_results: Experi
             'sum_route_section_penalties_full_after_malfunction': experiment_results.sum_route_section_penalties_full_after_malfunction,
             'lateness_delta_after_malfunction': experiment_results.lateness_delta_after_malfunction,
             'sum_route_section_penalties_delta_after_malfunction': experiment_results.sum_route_section_penalties_delta_after_malfunction,
+            'vertex_eff_lateness_full_after_malfunction': experiment_results.vertex_eff_lateness_full_after_malfunction,
+            'edge_eff_route_penalties_full_after_malfunction': experiment_results.edge_eff_route_penalties_full_after_malfunction,
+            'vertex_eff_lateness_delta_after_malfunction': experiment_results.vertex_eff_lateness_delta_after_malfunction,
+            'edge_eff_route_penalties_delta_after_malfunction': experiment_results.edge_eff_route_penalties_delta_after_malfunction,
+
             }
 
 
