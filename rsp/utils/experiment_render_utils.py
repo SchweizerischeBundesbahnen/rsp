@@ -77,7 +77,7 @@ def visualize_experiment(
 
     for agent_id in problem_rsp_delta.route_dag_constraints_dict.keys():
         # IMPORTANT: we visualize with respect to the full schedule DAG,
-        #            but the solver the banned elements are not passed to solver any more!
+        #            but the banned elements are not passed to solver any more!
         # TODO SIM-190 documentation about this
         topo = problem_schedule.topo_dict[agent_id]
         train_run_full_after_malfunction = train_runs_full_after_malfunction[agent_id]
