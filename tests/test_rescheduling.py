@@ -51,7 +51,9 @@ def test_rescheduling_no_bottleneck():
         earliest_malfunction=20,
         malfunction_duration=20,
         speed_data={1: 1.0},
-        number_of_shortest_paths_per_agent=10
+        number_of_shortest_paths_per_agent=10,
+        weight_route_change=1,
+        weight_lateness_seconds=1
     )
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
@@ -231,7 +233,8 @@ def test_rescheduling_bottleneck():
                                            height=30, seed_value=12, max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
                                            malfunction_duration=20, speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10)
+                                           number_of_shortest_paths_per_agent=10, weight_route_change=1,
+                                           weight_lateness_seconds=1)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -887,7 +890,8 @@ def _dummy_test_case(fake_malfunction: Malfunction):
                                            height=30, seed_value=12, max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
                                            malfunction_duration=20, speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10)
+                                           number_of_shortest_paths_per_agent=10, weight_route_change=1,
+                                           weight_lateness_seconds=1)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
     k = 10
     schedule_problem = ASPProblemDescription.factory_scheduling(

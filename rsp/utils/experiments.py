@@ -116,12 +116,14 @@ def run_experiment(solver: AbstractSolver,
 
         # Run experiments
         # TODO pass k (number of routing alternatives) explicitly
-        current_results: ExperimentResults = solver.run_experiment_trial(static_rail_env=static_rail_env,
-                                                                         malfunction_rail_env=malfunction_rail_env,
-                                                                         malfunction_env_reset=malfunction_env_reset,
-                                                                         verbose=verbose,
-                                                                         debug=debug
-                                                                         )
+        current_results: ExperimentResults = solver.run_experiment_trial(
+            static_rail_env=static_rail_env,
+            malfunction_rail_env=malfunction_rail_env,
+            malfunction_env_reset=malfunction_env_reset,
+            experiment_parameters=experiment_parameters,
+            verbose=verbose,
+            debug=debug
+        )
         if current_results is None:
             print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
             return []
@@ -356,7 +358,12 @@ def create_experiment_agenda(experiment_name: str,
                 max_rail_in_city=parameter_set[2],
                 earliest_malfunction=earliest_malfunction,
                 malfunction_duration=parameter_set[6],
-                number_of_shortest_paths_per_agent=parameter_set[7])
+                number_of_shortest_paths_per_agent=parameter_set[7],
+                # route change is penalized the same as 60 seconds delay
+                weight_route_change=60,
+                weight_lateness_seconds=1
+            )
+
             experiment_list.append(current_experiment)
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
     print("Generated an agenda with {} experiments".format(len(experiment_list)))

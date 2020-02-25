@@ -84,7 +84,9 @@ def test_created_env_tuple():
                                            earliest_malfunction=10,
                                            malfunction_duration=20,
                                            speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10)
+                                           number_of_shortest_paths_per_agent=10,
+                                           weight_route_change=1,
+                                           weight_lateness_seconds=1)
 
     # Generate the tuple of environments
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
@@ -109,7 +111,9 @@ def test_regression_experiment_agenda():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
+                             weight_route_change=1, weight_lateness_seconds=1
+                             )])
 
     # Import the solver for the experiments
     solver = ASPExperimentSolver()
@@ -374,7 +378,8 @@ def test_save_and_load_experiment_results():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
+                             weight_route_change=1, weight_lateness_seconds=1)])
 
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
@@ -416,7 +421,8 @@ def test_run_full_pipeline():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
+                             weight_route_change=1, weight_lateness_seconds=1)])
 
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
@@ -441,17 +447,17 @@ def test_parallel_experiment_execution():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10),
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1),
         ExperimentParameters(experiment_id=1, experiment_group=0, trials_in_experiment=3, number_of_agents=3, width=30,
                              height=30,
                              seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10),
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1),
         ExperimentParameters(experiment_id=2, experiment_group=0, trials_in_experiment=3, number_of_agents=4, width=30,
                              height=30,
                              seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10)])
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1)])
 
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=True)

@@ -33,11 +33,14 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
                                    ('max_rail_in_city', int),
                                    ('earliest_malfunction', int),
                                    ('malfunction_duration', int),
-                                   ('number_of_shortest_paths_per_agent', int)
+                                   ('number_of_shortest_paths_per_agent', int),
+                                   ('weight_route_change', int),
+                                   ('weight_lateness_seconds', int),
                                    ])
 
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
                                                    ('experiments', List[ExperimentParameters])])
+
 
 ExperimentMalfunction = NamedTuple('ExperimentMalfunction', [
     ('time_step', int),

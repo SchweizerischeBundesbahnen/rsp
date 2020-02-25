@@ -15,6 +15,17 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('nb_conflicts', int),
                                          ('route_dag_constraints', Optional[RouteDAGConstraintsDict])
                                          ])
+SchedulingExperimentResult.__doc__ = """
+    Parameters
+    ----------
+    total_reward: int
+    solve_time: float
+    optimization_costs: float
+    build_problem_time: float
+    trainruns_dict: TrainrunDict
+    nb_conflicts: int
+    route_dag_constraints: Optional[RouteDAGConstraintsDict]
+"""
 
 # test_id: int, solver_name: str, i_step: int
 SolveProblemRenderCallback = Callable[[int, str, int], None]

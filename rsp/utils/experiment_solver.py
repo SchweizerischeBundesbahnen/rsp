@@ -9,6 +9,7 @@ from typing import Callable
 
 from flatland.envs.rail_env import RailEnv
 
+from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 
 # abstract from rendering to have unit tests without dependendance on FLATland rendering
@@ -25,7 +26,7 @@ class AbstractSolver:
             static_rail_env: RailEnv,
             malfunction_rail_env: RailEnv,
             malfunction_env_reset,
-            k: int = 10,
+            experiment_parameters: ExperimentParameters,
             disable_verification_by_replay: bool = False,
             verbose: bool = False,
             debug: bool = False,
@@ -39,8 +40,8 @@ class AbstractSolver:
             this is the environment without any malfunction
         malfunction_rail_env: RailEnv
             this is the enviroment with a malfunction
-        k: int
-            number of routing alternatives to generate
+        experiment_parameters: ExperimentParameters
+
 
         Returns
         -------
