@@ -135,8 +135,7 @@ def perfect_oracle(
         topo_dict=tc.topo_dict,
         max_episode_steps=tc.max_episode_steps,
         route_section_penalties=tc.route_section_penalties,
-        weight_lateness_seconds=1,
-        weight_route_change=1
+        weight_lateness_seconds=1
     )
 
 

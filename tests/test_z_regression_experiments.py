@@ -357,7 +357,6 @@ def test_regression_experiment_agenda():
         'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257}}
 
     for key in expected_result_dict:
-        # TODO SIM-239 make ticket
         # TODO remove keys in expected_result_dict instead
         skip = key.startswith("time")
         skip = skip or key.startswith("solution")
@@ -438,6 +437,43 @@ def test_run_full_pipeline():
 
     # cleanup
     delete_experiment_folder(experiment_folder_name)
+
+
+def test_run_alpha_beta():
+    """Ensure that we get the exact same solution if we multiply the weights
+    for route change and lateness by the same factor."""
+    experiment_parameters = ExperimentParameters(
+        experiment_id=9, experiment_group=0, trials_in_experiment=1, number_of_agents=11,
+        speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30, seed_value=12,
+        max_num_cities=20, grid_mode=False, max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
+        malfunction_duration=20, number_of_shortest_paths_per_agent=10,
+        weight_route_change=20, weight_lateness_seconds=1
+    )
+    scale = 5
+    experiment_parameters_scaled = ExperimentParameters(**dict(
+        experiment_parameters._asdict(),
+        **{
+            'weight_route_change': experiment_parameters.weight_route_change * scale,
+            'weight_lateness_seconds': experiment_parameters.weight_lateness_seconds * scale
+        }))
+
+    solver = ASPExperimentSolver()
+
+    experiment_result_scaled = run_experiment(
+        solver=solver,
+        experiment_parameters=experiment_parameters_scaled
+    )[0]
+
+    experiment_result = run_experiment(
+        solver=solver,
+        experiment_parameters=experiment_parameters
+    )[0]
+    assert experiment_result['costs_full_after_malfunction'] > 0
+
+    assert (experiment_result['costs_full_after_malfunction'] * scale ==
+            experiment_result_scaled['costs_full_after_malfunction'])
+    assert (experiment_result['solution_full_after_malfunction'] ==
+            experiment_result_scaled['solution_full_after_malfunction'])
 
 
 def test_parallel_experiment_execution():

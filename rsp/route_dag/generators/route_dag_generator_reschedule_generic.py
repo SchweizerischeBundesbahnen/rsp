@@ -144,7 +144,6 @@ def generic_route_dag_constraints_for_rescheduling(
         minimum_travel_time_dict=minimum_travel_time_dict,
         max_episode_steps=latest_arrival,
         route_section_penalties=route_section_penalties,
-        weight_route_change=1,
         weight_lateness_seconds=1
     )
 
@@ -228,7 +227,7 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
     # there may be multiple vertices by which the last cell may be entered!
     sinks = get_sinks_for_topo(topo)
     for sink in sinks:
-        # TODO SIM-239 cleanup or documentation?
+        # TODO SIM-322 hard-coded assumption
         # -1 for occupying the cell for one time step!
         reachable_latest_dict[sink] = latest_arrival - 1
 

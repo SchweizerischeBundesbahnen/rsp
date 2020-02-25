@@ -34,8 +34,7 @@ def test_costs_forced_rerouting_one_agent():
             topo_dict=topo_dict,
             max_episode_steps=latest_arrival,
             route_section_penalties={0: {penalized_edge: 1}},
-            weight_lateness_seconds=1,
-            weight_route_change=1
+            weight_lateness_seconds=1
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
@@ -73,8 +72,7 @@ def test_costs_forced_delay_one_agent():
             topo_dict=topo_dict,
             max_episode_steps=latest_arrival,
             route_section_penalties={0: {penalized_edge: 1}},
-            weight_lateness_seconds=1,
-            weight_route_change=1
+            weight_lateness_seconds=1
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
@@ -127,8 +125,8 @@ def test_costs_forced_delay_two_agents():
             topo_dict=topo_dict,
             max_episode_steps=latest_arrival,
             route_section_penalties={0: {penalized_edge: edge_penalty}, 1: {penalized_edge: edge_penalty}},
-            weight_lateness_seconds=1,
-            weight_route_change=1)
+            weight_lateness_seconds=1
+            )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
             tc=schedule_problem_description
@@ -176,15 +174,16 @@ def test_costs_forced_rerouting_two_agents():
                 0: dummy_source1,
                 1: dummy_source2},
             minimum_travel_time_dict=minimum_travel_time_dict,
-            latest_arrival=latest_arrival)
+            latest_arrival=latest_arrival
+        )
         schedule_problem_description = ScheduleProblemDescription(
             route_dag_constraints_dict,
             minimum_travel_time_dict=minimum_travel_time_dict,
             topo_dict=topo_dict,
             max_episode_steps=latest_arrival,
-            route_section_penalties={0: {edge_on_first_path1: edge_penalty}, 1: {edge_on_first_path2: edge_penalty}},
-            weight_lateness_seconds=1,
-            weight_route_change=1
+            route_section_penalties={0: {edge_on_first_path1: edge_penalty},
+                                     1: {edge_on_first_path2: edge_penalty}},
+            weight_lateness_seconds=1
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(

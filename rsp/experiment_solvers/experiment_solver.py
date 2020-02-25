@@ -14,6 +14,7 @@ from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag import apply_weight_route_change
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
@@ -104,9 +105,10 @@ class ASPExperimentSolver(AbstractSolver):
             latest_arrival=malfunction_rail_env._max_episode_steps,
             topo_dict=tc_schedule_problem.topo_dict
         )
-        full_reschedule_problem = self._apply_weight_route_change(
+        full_reschedule_problem = apply_weight_route_change(
             schedule_problem=full_reschedule_problem,
-            weight_route_change=experiment_parameters.weight_route_change
+            weight_route_change=experiment_parameters.weight_route_change,
+            weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
@@ -135,9 +137,10 @@ class ASPExperimentSolver(AbstractSolver):
             schedule_trainrun_dict=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict
         )
-        delta_reschedule_problem = self._apply_weight_route_change(
+        delta_reschedule_problem = apply_weight_route_change(
             schedule_problem=delta_reschedule_problem,
-            weight_route_change=experiment_parameters.weight_route_change
+            weight_route_change=experiment_parameters.weight_route_change,
+            weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
         delta_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
@@ -174,21 +177,6 @@ class ASPExperimentSolver(AbstractSolver):
                                             nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
                                             )
         return current_results
-
-    def _apply_weight_route_change(self, schedule_problem: ScheduleProblemDescription, weight_route_change: int):
-        problem_weights = dict(
-            schedule_problem._asdict(),
-            **{
-                'route_section_penalties': {agent_id: {
-                    edge: penalty * weight_route_change
-                    for edge, penalty in agent_route_section_penalties.items()
-                } for agent_id, agent_route_section_penalties in
-                    schedule_problem.route_section_penalties.items()},
-                'weight_lateness_seconds': 1,
-                'weight_route_change': weight_route_change
-            })
-        schedule_problem = ScheduleProblemDescription(**problem_weights)
-        return schedule_problem
 
 
 _pp = pprint.PrettyPrinter(indent=4)
