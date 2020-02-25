@@ -802,7 +802,6 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
     tc_delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle(
         full_reschedule_trainrun_waypoints_dict=fake_full_reschedule_trainruns,
         malfunction=fake_malfunction,
-        # TODO SIM-239 code smell: why do we need env????
         max_episode_steps=schedule_problem.tc.max_episode_steps,
         schedule_topo_dict=schedule_problem.tc.topo_dict,
         schedule_trainrun_dict=fake_schedule,
@@ -811,7 +810,7 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
     delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=tc_delta_reschedule_problem,
         malfunction=fake_malfunction,
-        # TODO SIM-239 code smell: why do we need env????
+        # TODO SIM-324 code smell: why do we need to pass env? -> extract validation with env
         malfunction_rail_env=dynamic_env,
         malfunction_env_reset=lambda *args, **kwargs: None
     )

@@ -131,7 +131,6 @@ class ASPExperimentSolver(AbstractSolver):
         delta_reschedule_problem = perfect_oracle(
             full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
             malfunction=malfunction,
-            # TODO SIM-239 code smell: why do we need env????
             max_episode_steps=tc_schedule_problem.max_episode_steps,
             schedule_topo_dict=tc_schedule_problem.topo_dict,
             schedule_trainrun_dict=schedule_trainruns,
