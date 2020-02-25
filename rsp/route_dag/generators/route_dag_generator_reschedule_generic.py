@@ -143,7 +143,9 @@ def generic_route_dag_constraints_for_rescheduling(
         topo_dict=topo_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         max_episode_steps=latest_arrival,
-        route_section_penalties=route_section_penalties
+        route_section_penalties=route_section_penalties,
+        weight_route_change=1,
+        weight_lateness_seconds=1
     )
 
 

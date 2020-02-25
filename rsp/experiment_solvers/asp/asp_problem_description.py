@@ -43,7 +43,8 @@ class ASPProblemDescription():
         )
         asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
             tc=tc,
-            add_minimumrunnigtime_per_agent=False)
+            add_minimumrunnigtime_per_agent=False
+        )
         return asp_problem
 
     @staticmethod
@@ -232,7 +233,7 @@ class ASPProblemDescription():
 
     def _build_asp_program(self,
                            tc: ScheduleProblemDescription,
-                           add_minimumrunnigtime_per_agent: bool = False
+                           add_minimumrunnigtime_per_agent: bool = False,
                            ):
         # preparation
         _new_asp_program = []
@@ -262,7 +263,7 @@ class ASPProblemDescription():
                                          if is_dummy_edge
                                          else tc.minimum_travel_time_dict[agent_id]),
                     route_section_penalty=tc.route_section_penalties[agent_id].get(
-                        (entry_waypoint, exit_waypoint), 0) if not is_dummy_edge else 0
+                        (entry_waypoint, exit_waypoint), 0) * tc.weight_route_change if not is_dummy_edge else 0
                 )
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,
@@ -277,6 +278,10 @@ class ASPProblemDescription():
                 earliest_departure = self.tc.route_dag_constraints_dict[agent_id].freeze_earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
+
+        # inject weight lateness
+        if self.asp_objective == ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED:
+            _new_asp_program.append(f"#const weight_lateness_seconds = {tc.weight_lateness_seconds}.")
 
         # cleanup
         return _new_asp_program

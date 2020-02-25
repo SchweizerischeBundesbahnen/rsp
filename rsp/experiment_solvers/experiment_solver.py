@@ -99,6 +99,10 @@ class ASPExperimentSolver(AbstractSolver):
                                                                    minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
                                                                    latest_arrival=malfunction_rail_env._max_episode_steps,
                                                                    topo_dict=tc_schedule_problem.topo_dict)
+        # TODO SIM-190 pass weights from experiment
+        full_reschedule_problem_weights = dict(full_reschedule_problem._asdict(), **{'weight_lateness_seconds': 1, 'weight_route_change': 60})
+        full_reschedule_problem = ScheduleProblemDescription(**full_reschedule_problem_weights)
+
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
@@ -126,6 +130,9 @@ class ASPExperimentSolver(AbstractSolver):
             schedule_trainrun_dict=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict
         )
+        # TODO SIM-190 pass weights from experiment
+        delta_reschedule_problem_weights = dict(full_reschedule_problem._asdict(), **{'weight_lateness_seconds': 1, 'weight_route_change': 60})
+        delta_reschedule_problem = ScheduleProblemDescription(**delta_reschedule_problem_weights)
         delta_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,

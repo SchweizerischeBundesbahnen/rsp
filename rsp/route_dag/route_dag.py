@@ -33,7 +33,11 @@ ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
     ('minimum_travel_time_dict', Dict[int, int]),
     ('topo_dict', Dict[int, nx.DiGraph]),
     ('max_episode_steps', int),
-    ('route_section_penalties', RouteSectionPenaltiesDict)
+    ('route_section_penalties', RouteSectionPenaltiesDict),
+    # represents `alpha /(alpha+beta) * a_1 + (beta)/(alpha+beta) * a_2`
+    ('weight_lateness_seconds', int),
+    ('weight_route_change', int),
+
 ])
 
 
