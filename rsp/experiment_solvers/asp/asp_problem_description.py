@@ -262,9 +262,8 @@ class ASPProblemDescription():
                     minimum_travel_time=(1
                                          if is_dummy_edge
                                          else tc.minimum_travel_time_dict[agent_id]),
-                    route_section_penalty=tc.route_section_penalties[agent_id].get(
-                        (entry_waypoint, exit_waypoint), 0) * tc.weight_route_change if not is_dummy_edge else 0
-                )
+                    route_section_penalty=(tc.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0)
+                                           if not is_dummy_edge else 0))
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,
                                                                              freeze=tc.route_dag_constraints_dict[

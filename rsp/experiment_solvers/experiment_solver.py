@@ -100,14 +100,7 @@ class ASPExperimentSolver(AbstractSolver):
                                                                    latest_arrival=malfunction_rail_env._max_episode_steps,
                                                                    topo_dict=tc_schedule_problem.topo_dict)
         # TODO SIM-190 pass weights from experiment
-        full_reschedule_problem_weights = dict(
-            full_reschedule_problem._asdict(),
-            **{
-                'weight_lateness_seconds': 1,
-                'weight_route_change': 60
-            })
-        full_reschedule_problem = ScheduleProblemDescription(**full_reschedule_problem_weights)
-
+        full_reschedule_problem = self._apply_weight_route_change(full_reschedule_problem, 60)
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
@@ -136,13 +129,7 @@ class ASPExperimentSolver(AbstractSolver):
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict
         )
         # TODO SIM-190 pass weights from experiment
-        delta_reschedule_problem_weights = dict(
-            delta_reschedule_problem._asdict(),
-            **{
-                'weight_lateness_seconds': 1,
-                'weight_route_change': 60
-            })
-        delta_reschedule_problem = ScheduleProblemDescription(**delta_reschedule_problem_weights)
+        delta_reschedule_problem = self._apply_weight_route_change(delta_reschedule_problem, 60)
         delta_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
@@ -178,6 +165,21 @@ class ASPExperimentSolver(AbstractSolver):
                                             nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
                                             )
         return current_results
+
+    def _apply_weight_route_change(self, reschedule_problem: ScheduleProblemDescription, weight_route_change: int):
+        problem_weights = dict(
+            reschedule_problem._asdict(),
+            **{
+                'route_section_penalties': {agent_id: {
+                    edge: penalty * weight_route_change
+                    for edge, penalty in agent_route_section_penalties.items()
+                } for agent_id, agent_route_section_penalties in
+                    reschedule_problem.route_section_penalties.items()},
+                'weight_lateness_seconds': 1,
+                'weight_route_change': weight_route_change
+            })
+        reschedule_problem = ScheduleProblemDescription(**problem_weights)
+        return reschedule_problem
 
 
 _pp = pprint.PrettyPrinter(indent=4)
