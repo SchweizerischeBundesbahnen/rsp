@@ -36,10 +36,10 @@ def get_first_agenda_pipeline_params() -> Tuple[ParameterRanges, Dict[float, flo
                                        malfunction_duration=[20, 20, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1])
     # Define the desired speed profiles
-    speed_data = {1.: 1.,  # Fast passenger train
-                  1. / 2.: 0.,  # Fast freight train
-                  1. / 3.: 0.,  # Slow commuter train
-                  1. / 4.: 0.}  # Slow freight train
+    speed_data = {1.: 0.25,  # Fast passenger train
+                  1. / 2.: 0.25,  # Fast freight train
+                  1. / 3.: 0.25,  # Slow commuter train
+                  1. / 4.: 0.25}  # Slow freight train
     return parameter_ranges, speed_data
 
 
