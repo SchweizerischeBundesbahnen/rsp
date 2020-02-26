@@ -466,8 +466,8 @@ def test_run_alpha_beta():
     # environments not correctly initialized if not created the same way, therefore use create_env_pair_for_experiment
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
     # override grid from loaded file
-    static_rail_env.load_resource('tests.data.alpha_beta', "static_env_alpha_beta2.pkl")
-    malfunction_rail_env.load_resource('tests.data.alpha_beta', "malfunction_env_alpha_beta2.pkl")
+    static_rail_env.load_resource('tests.data.alpha_beta', "static_env_alpha_beta.pkl")
+    malfunction_rail_env.load_resource('tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
 
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.seed_value)
