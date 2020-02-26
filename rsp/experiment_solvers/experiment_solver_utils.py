@@ -283,7 +283,7 @@ def replay(env: RailEnv,  # noqa: C901
             if (trainrun_waypoint.scheduled_at >=
                 (expected_malfunction.time_step + expected_malfunction.malfunction_duration)))
         malfunction_agent_time_step_to_take_action_before_malfunction = \
-            trainrun_waypoint_after_malfunction.scheduled_at - expected_malfunction.malfunction_duration -\
+            trainrun_waypoint_after_malfunction.scheduled_at - expected_malfunction.malfunction_duration - \
             malfunction_agent_minimum_travel_time
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
@@ -300,8 +300,8 @@ def replay(env: RailEnv,  # noqa: C901
         # with malfunction, instead of travel_time before the first point after the malfunction ends,
         # take that action at that time - malfunction_duration - travel_time!
         if expected_malfunction and time_step == malfunction_agent_time_step_to_take_action_before_malfunction:
-            alt_actions = controller_from_train_runs.act(trainrun_waypoint_after_malfunction.scheduled_at - (
-                malfunction_agent_minimum_travel_time))
+            time_step_to_tweak = trainrun_waypoint_after_malfunction.scheduled_at - malfunction_agent_minimum_travel_time
+            alt_actions = controller_from_train_runs.act(time_step_to_tweak)
             if debug:
                 print(
                     f"agent {expected_malfunction.agent_id} at: "
