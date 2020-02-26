@@ -118,8 +118,7 @@ def test_regression_experiment_agenda():
                              )])
 
     # Import the solver for the experiments
-    solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False, verbose=True)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False, verbose=True)
 
     hypothesis_one_data_analysis(
         data_folder=experiment_folder_name,
@@ -383,7 +382,7 @@ def test_save_and_load_experiment_results():
                              weight_route_change=1, weight_lateness_seconds=1)])
 
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     # load results
     loaded_results = load_experiment_results_from_folder(experiment_folder_name)
@@ -425,8 +424,7 @@ def test_run_full_pipeline():
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
                              weight_route_change=1, weight_lateness_seconds=1)])
 
-    solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     hypothesis_one_data_analysis(
         data_folder=experiment_folder_name,
@@ -444,6 +442,12 @@ def test_run_full_pipeline():
 def test_run_alpha_beta():
     """Ensure that we get the exact same solution if we multiply the weights
     for route change and lateness by the same factor."""
+
+    # TODO SIM-339: skip this test in ci under Linux
+    from sys import platform
+    if platform == "linux" or platform == "linux2":
+        return
+
     experiment_parameters = ExperimentParameters(
         experiment_id=9, experiment_group=0, trials_in_experiment=1, number_of_agents=11,
         speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30, seed_value=12,
@@ -522,7 +526,7 @@ def test_parallel_experiment_execution():
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1)])
 
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=True)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=True)
 
     # load results
     loaded_results = load_experiment_results_from_folder(experiment_folder_name)

@@ -168,8 +168,7 @@ def run_experiment(solver: ASPExperimentSolver,
     return data_frame
 
 
-def run_experiment_agenda(solver: ASPExperimentSolver,
-                          experiment_agenda: ExperimentAgenda,
+def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           verbose: bool = False) -> str:
@@ -178,9 +177,6 @@ def run_experiment_agenda(solver: ASPExperimentSolver,
 
     Parameters
     ----------
-    solver: ASPExperimentSolver
-        Solver from the class ASPExperimentSolver that should be solving the experiments
-
     experiment_agenda: ExperimentAgenda
         List of ExperimentParameters
     run_experiments_parallel: bool
@@ -196,6 +192,9 @@ def run_experiment_agenda(solver: ASPExperimentSolver,
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
     save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda)
+
+    # Import the solver for the experiments
+    solver = ASPExperimentSolver()
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
