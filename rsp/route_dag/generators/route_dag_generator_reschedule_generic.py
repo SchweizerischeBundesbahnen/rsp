@@ -58,7 +58,8 @@ def generic_route_dag_constraints_for_rescheduling(
             subdag_source=get_delayed_trainrun_waypoint_after_malfunction(
                 agent_id=agent_id,
                 trainrun=schedule_trainruns[agent_id],
-                malfunction=malfunction
+                malfunction=malfunction,
+                minimum_travel_time=minimum_travel_time_dict[agent_id]
             ),
             latest_arrival=latest_arrival
 

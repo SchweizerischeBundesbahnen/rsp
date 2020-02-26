@@ -212,10 +212,15 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
         for trainrun_waypoint in trainrun_sparse:
             # 1.a) ensure schedule is ascending and respects the train's constant speed
             if previous_trainrun_waypoint is not None:
-                assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell, \
-                    f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
-                    f"from {previous_trainrun_waypoint} " + \
-                    f"minimum running time={minimum_running_time_per_cell}"
+                # TODO SIM-322 hard-coded assumption
+                if previous_trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or \
+                        trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET:
+                    assert trainrun_waypoint.scheduled_at - previous_trainrun_waypoint.scheduled_at == 1
+                else:
+                    assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell, \
+                        f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
+                        f"from {previous_trainrun_waypoint} " + \
+                        f"minimum running time={minimum_running_time_per_cell}"
             # 1.b) ensure train run is non-circular
             assert trainrun_waypoint not in previous_waypoints
             previous_trainrun_waypoint = trainrun_waypoint
@@ -268,6 +273,18 @@ def replay(env: RailEnv,  # noqa: C901
     if rendering:
         from rsp.utils.experiment_render_utils import init_renderer_for_env
         renderer = init_renderer_for_env(env, rendering)
+    if expected_malfunction:
+        malfunction_agent_minimum_travel_time = int(
+            np.ceil(1 / env.agents[expected_malfunction.agent_id].speed_data['speed']))
+
+        trainrun_waypoint_after_malfunction: TrainrunWaypoint = next(
+            trainrun_waypoint for trainrun_waypoint in
+            controller_from_train_runs.trainrun_dict[expected_malfunction.agent_id]
+            if (trainrun_waypoint.scheduled_at >=
+                (expected_malfunction.time_step + expected_malfunction.malfunction_duration)))
+        malfunction_agent_time_step_to_take_action_before_malfunction = \
+            trainrun_waypoint_after_malfunction.scheduled_at - expected_malfunction.malfunction_duration -\
+            malfunction_agent_minimum_travel_time
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
         if disable_verification_in_replay:
@@ -277,6 +294,20 @@ def replay(env: RailEnv,  # noqa: C901
             raise Exception("Unexpected state. See above for !!=unexpected position, MM=unexpected malfuntion")
 
         actions = controller_from_train_runs.act(time_step)
+
+        # TODO SIM-301 should we do we do this tweaking in FLATland?
+        # controller_from_train_runs does not know about malfunctions!
+        # with malfunction, instead of travel_time before the first point after the malfunction ends,
+        # take that action at that time - malfunction_duration - travel_time!
+        if expected_malfunction and time_step == malfunction_agent_time_step_to_take_action_before_malfunction:
+            alt_actions = controller_from_train_runs.act(trainrun_waypoint_after_malfunction.scheduled_at - (
+                malfunction_agent_minimum_travel_time))
+            if debug:
+                print(
+                    f"agent {expected_malfunction.agent_id} at: "
+                    f"action {time_step} {actions[expected_malfunction.agent_id]} -> "
+                    f"{alt_actions[expected_malfunction.agent_id]}")
+            actions[expected_malfunction.agent_id] = alt_actions[expected_malfunction.agent_id]
 
         if debug:
             print(f"env._elapsed_steps={env._elapsed_steps}")
@@ -350,6 +381,7 @@ def _check_expected_position_and_malfunction(ap: ControllerFromTrainruns,
             print(
                 f"{prefix}[{time_step}] agent={agent.handle} at position={agent.position} "
                 f"in direction={agent.direction} "
+                f"with agent.moving={agent.moving} "
                 f"(initial_position={agent.initial_position}, initial_direction={agent.initial_direction}, target={agent.target} "
                 f"with speed={agent.speed_data} and malfunction={agent.malfunction_data}, expected waypoint={we} "
             )

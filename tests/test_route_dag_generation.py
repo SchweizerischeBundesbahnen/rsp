@@ -1801,7 +1801,8 @@ def test_bugfix_sim_172():
         subdag_source=get_delayed_trainrun_waypoint_after_malfunction(
             agent_id=malfunction.agent_id,
             trainrun=schedule_trainrun,
-            malfunction=malfunction
+            malfunction=malfunction,
+            minimum_travel_time=1
         ),
         latest_arrival=6667)
 

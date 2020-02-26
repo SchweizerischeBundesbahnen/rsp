@@ -122,7 +122,6 @@ def run_experiment(solver: ASPExperimentSolver,
             verbose=verbose,
             debug=debug
         )
-        print(f"schedule_and_malfunction={schedule_and_malfunction}")
         current_results: ExperimentResults = solver.run_experiment_trial(
             schedule_and_malfunction=schedule_and_malfunction,
             static_rail_env=static_rail_env,
