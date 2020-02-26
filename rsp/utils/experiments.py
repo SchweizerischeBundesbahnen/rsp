@@ -43,6 +43,8 @@ import pandas as pd
 from flatland.envs.rail_env import RailEnv
 from pandas import DataFrame
 
+from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
+from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_paths
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_times
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
@@ -55,13 +57,12 @@ from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
-from rsp.utils.experiment_solver import AbstractSolver
 from rsp.utils.file_utils import check_create_folder
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def run_experiment(solver: AbstractSolver,
+def run_experiment(solver: ASPExperimentSolver,
                    experiment_parameters: ExperimentParameters,
                    show_results_without_details: bool = True,
                    rendering: bool = False,
@@ -73,8 +74,8 @@ def run_experiment(solver: AbstractSolver,
     Run a single experiment with a given solver and ExperimentParameters
     Parameters
     ----------
-    solver: AbstractSolver
-        Solver from the class AbstractSolver that should be solving the experiments
+    solver: ASPExperimentSolver
+        Solver from the class ASPExperimentSolver that should be solving the experiments
     experiment_parameters: ExperimentParameters
         Parameter set of the data form ExperimentParameters
 
@@ -108,15 +109,22 @@ def run_experiment(solver: AbstractSolver,
             env_renderer.reset()
             env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
 
-        seed_value = experiment_parameters.seed_value
-
         # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
         def malfunction_env_reset():
-            env.reset(False, False, False, seed_value)
+            env.reset(False, False, False, experiment_parameters.seed_value)
 
         # Run experiments
-        # TODO pass k (number of routing alternatives) explicitly
+        schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+            static_rail_env=static_rail_env,
+            malfunction_rail_env=malfunction_rail_env,
+            malfunction_env_reset=malfunction_env_reset,
+            experiment_parameters=experiment_parameters,
+            verbose=verbose,
+            debug=debug
+        )
+        print(f"schedule_and_malfunction={schedule_and_malfunction}")
         current_results: ExperimentResults = solver.run_experiment_trial(
+            schedule_and_malfunction=schedule_and_malfunction,
             static_rail_env=static_rail_env,
             malfunction_rail_env=malfunction_rail_env,
             malfunction_env_reset=malfunction_env_reset,
@@ -160,7 +168,7 @@ def run_experiment(solver: AbstractSolver,
     return data_frame
 
 
-def run_experiment_agenda(solver: AbstractSolver,
+def run_experiment_agenda(solver: ASPExperimentSolver,
                           experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
@@ -170,8 +178,8 @@ def run_experiment_agenda(solver: AbstractSolver,
 
     Parameters
     ----------
-    solver: AbstractSolver
-        Solver from the class AbstractSolver that should be solving the experiments
+    solver: ASPExperimentSolver
+        Solver from the class ASPExperimentSolver that should be solving the experiments
 
     experiment_agenda: ExperimentAgenda
         List of ExperimentParameters
@@ -238,7 +246,7 @@ def run_and_save_one_experiment(current_experiment_parameters,
         traceback.print_exc(file=sys.stdout)
 
 
-def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
+def run_specific_experiments_from_research_agenda(solver: ASPExperimentSolver,
                                                   experiment_agenda: ExperimentAgenda,
                                                   experiment_ids: List[int],
                                                   run_experiments_parallel: bool = True,
@@ -250,8 +258,8 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
 
     Parameters
     ----------
-    solver: AbstractSolver
-        AbstractSolver to be used for the experiments
+    solver: ASPExperimentSolver
+        ASPExperimentSolver to be used for the experiments
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_ids: List[int]
@@ -307,7 +315,7 @@ def create_experiment_agenda(experiment_name: str,
                              speed_data: SpeedData,
                              trials_per_experiment: int = 10,
                              vary_malfunction: int = 1,
-                             vary_malfunction_step: int = 20
+                             vary_malfunction_step: int = 20,
                              ) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
@@ -375,7 +383,8 @@ def create_experiment_agenda(experiment_name: str,
                 number_of_shortest_paths_per_agent=parameter_set[7],
                 # route change is penalized the same as 60 seconds delay
                 weight_route_change=60,
-                weight_lateness_seconds=1
+                weight_lateness_seconds=1,
+
             )
 
             experiment_list.append(current_experiment)

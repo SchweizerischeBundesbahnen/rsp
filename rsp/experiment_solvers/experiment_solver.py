@@ -9,6 +9,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import replay
 from rsp.experiment_solvers.asp.asp_solve_problem import replay_and_verify_asp_solution
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
+from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
@@ -20,11 +21,10 @@ from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.experiment_solver import AbstractSolver
 
 
-class ASPExperimentSolver(AbstractSolver):
-    """Implements `AbstractSolver` for ASP.
+class ASPExperimentSolver():
+    """Implements `ASPExperimentSolver` for ASP.
 
     Methods
     -------
@@ -33,30 +33,16 @@ class ASPExperimentSolver(AbstractSolver):
     """
     _pp = pprint.PrettyPrinter(indent=4)
 
-    def run_experiment_trial(
-            self,
-            static_rail_env: RailEnv,
-            malfunction_rail_env: RailEnv,
-            malfunction_env_reset,
-            experiment_parameters: ExperimentParameters,
-            disable_verification_by_replay: bool = False,
-            verbose: bool = False,
-            debug: bool = False,
-            rendering: bool = False
-    ) -> ExperimentResults:
-        """Runs the experiment.
-
-        Parameters
-        ----------
-        static_rail_env: RailEnv
-            Rail environment without any malfunction
-        malfunction_rail_env: RailEnv
-            Rail environment with one single malfunction
-
-        Returns
-        -------
-        ExperimentResults
-        """
+    def gen_schedule_and_malfunction(self,
+                                     static_rail_env: RailEnv,
+                                     malfunction_rail_env: RailEnv,
+                                     malfunction_env_reset,
+                                     experiment_parameters: ExperimentParameters,
+                                     disable_verification_by_replay: bool = False,
+                                     verbose: bool = False,
+                                     debug: bool = False,
+                                     rendering: bool = False
+                                     ) -> ScheduleAndMalfunction:
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
             k=experiment_parameters.number_of_shortest_paths_per_agent
@@ -85,8 +71,6 @@ class ASPExperimentSolver(AbstractSolver):
             stop_on_malfunction=True,
             solver_name="ASP",
             disable_verification_in_replay=True)
-        if malfunction is None:
-            return None
         malfunction_env_reset()
         # replay may return None (if the given malfunction does not happen during the agents time in the grid
         if malfunction is None:
@@ -94,11 +78,41 @@ class ASPExperimentSolver(AbstractSolver):
 
         if verbose:
             print(f"  **** malfunction={malfunction}")
+        return ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
+
+    def run_experiment_trial(
+            self,
+            schedule_and_malfunction: ScheduleAndMalfunction,
+            static_rail_env: RailEnv,
+            malfunction_rail_env: RailEnv,
+            malfunction_env_reset,
+            experiment_parameters: ExperimentParameters,
+            disable_verification_by_replay: bool = False,
+            verbose: bool = False,
+            debug: bool = False,
+            rendering: bool = False
+    ) -> ExperimentResults:
+        """Runs the experiment.
+
+        Parameters
+        ----------
+        static_rail_env: RailEnv
+            Rail environment without any malfunction
+        malfunction_rail_env: RailEnv
+            Rail environment with one single malfunction
+
+        Returns
+        -------
+        ExperimentResults
+        """
+        tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
+
+        schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
-        full_reschedule_problem = get_freeze_for_full_rescheduling(
+        full_reschedule_problem: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
             malfunction=malfunction,
             schedule_trainruns=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
