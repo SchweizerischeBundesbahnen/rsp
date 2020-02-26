@@ -2,9 +2,9 @@
 order to allow for debugging."""
 from typing import List
 
+from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.hypothesis_one_experiments import get_first_agenda_pipeline_params
-from rsp.solvers.asp.asp_experiment_solver import ASPExperimentSolver
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import run_specific_experiments_from_research_agenda
 

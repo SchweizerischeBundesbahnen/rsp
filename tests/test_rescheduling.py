@@ -14,15 +14,18 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from numpy.random.mtrand import RandomState
 
-from rsp.rescheduling.rescheduling_utils import ExperimentFreezeDict
-from rsp.rescheduling.rescheduling_utils import get_freeze_for_full_rescheduling
-from rsp.rescheduling.rescheduling_utils import verify_experiment_freeze_for_agent
+from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.experiment_solvers.asp.asp_solve_problem import verify_trainruns_dict
+from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
+from rsp.experiment_solvers.experiment_solver_utils import get_delay_trainruns_dict
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
+from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
+from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.generators.route_dag_generator_utils import verify_route_dag_constraints_for_agent
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import topo_from_agent_paths
-from rsp.solvers.asp.asp_experiment_solver import reschedule_delta_after_malfunction
-from rsp.solvers.asp.asp_experiment_solver import reschedule_full_after_malfunction
-from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.solvers.solve_problem import get_delay_trainruns_dict
-from rsp.solvers.solve_problem import verify_trainruns_dict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
@@ -104,7 +107,9 @@ def test_rescheduling_no_bottleneck():
     assert dynamic_env.rail.grid.tolist() == expected_grid
 
     fake_schedule = {
-        0: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=1)),
+        0: [
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(8, 26), direction=1)),
@@ -133,7 +138,9 @@ def test_rescheduling_no_bottleneck():
             TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+        1: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -174,41 +181,46 @@ def test_rescheduling_no_bottleneck():
                                 agent.target,
                                 k) for i, agent in enumerate(static_env.agents)
     }
+    _, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict=agents_paths_dict)
     # we derive the re-schedule problem from the schedule problem
-    schedule_problem = ASPProblemDescription(env=static_env,
-                                             agents_path_dict=agents_paths_dict)
 
-    freeze_dict = get_freeze_for_full_rescheduling(
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
+                                static_env.agents}
+    tc: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
-        minimum_travel_time_dict={
-            agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
-            for agent in static_env.agents},
-        agents_path_dict=agents_paths_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        topo_dict=topo_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )
+    freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
+
     for agent_id, _ in freeze_dict.items():
-        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id],
-                                           topo_from_agent_paths(agents_paths_dict[agent_id]))
+        verify_route_dag_constraints_for_agent(agent_id, freeze_dict[agent_id],
+                                               topo_from_agent_paths(agents_paths_dict[agent_id]))
 
-    schedule_problem.get_copy_for_experiment_freeze(experiment_freeze_dict=freeze_dict,
-                                                    schedule_trainruns_to_minimize_for=fake_schedule)
+    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
 
-    _, full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+    full_reschedule_result = asp_reschedule_wrapper(
         malfunction=fake_malfunction,
         malfunction_rail_env=dynamic_env,
-        schedule_problem=schedule_problem,
-        schedule_trainruns=fake_schedule,
+        tc=get_freeze_for_full_rescheduling(
+            malfunction=fake_malfunction,
+            schedule_trainruns=fake_schedule,
+            minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+            latest_arrival=dynamic_env._max_episode_steps,
+            topo_dict=tc_schedule_problem.topo_dict
+        ),
         rendering=False,
         debug=False,
         malfunction_env_reset=lambda *args, **kwargs: None
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
 
-    # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 20 (=delay)
+    # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 0 (equals malfunction delay)
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
-    actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
-    assert actual_costs == 20, f"actual costs {actual_costs}"
+    actual_costs = full_reschedule_result.optimization_costs
+    assert actual_costs == 0, f"actual costs {actual_costs}"
 
     assert full_reschedule_trainruns[0][-1].scheduled_at == 66
     assert full_reschedule_trainruns[1][-1].scheduled_at == 29
@@ -275,7 +287,9 @@ def test_rescheduling_bottleneck():
     assert dynamic_env.rail.grid.tolist() == expected_grid
 
     fake_schedule = {
-        0: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=1)),
+        0: [
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(8, 26), direction=1)),
@@ -304,7 +318,9 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+        1: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -336,7 +352,8 @@ def test_rescheduling_bottleneck():
     fake_malfunction = ExperimentMalfunction(time_step=14, agent_id=1, malfunction_duration=20)
     expected_reschedule = {
         0: [
-            TrainrunWaypoint(scheduled_at=14 + 3, waypoint=Waypoint(position=(8, 23), direction=1)),
+            TrainrunWaypoint(scheduled_at=14 + 3, waypoint=Waypoint(position=(8, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=15 + 3, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=16 + 3, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=17 + 3, waypoint=Waypoint(position=(8, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=18 + 3, waypoint=Waypoint(position=(8, 26), direction=1)),
@@ -367,7 +384,9 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=43 + 3, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=44 + 3, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=45 + 3, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+        1: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -398,30 +417,23 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 23), direction=3))]}
     verify_trainruns_dict(static_env, fake_schedule)
 
-    k = 10
-    agents_paths_dict = {
-        i: get_k_shortest_paths(static_env,
-                                agent.initial_position,
-                                agent.initial_direction,
-                                agent.target,
-                                k) for i, agent in enumerate(static_env.agents)
-    }
     # we derive the re-schedule problem from the schedule problem
-    schedule_problem = ASPProblemDescription(env=static_env,
-                                             agents_path_dict=agents_paths_dict)
-
-    freeze_dict: ExperimentFreezeDict = get_freeze_for_full_rescheduling(
+    k = 10
+    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
+    tc_reschedule_problem: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                   for agent in static_env.agents},
-        agents_path_dict=agents_paths_dict,
+        topo_dict=tc_schedule_problem.topo_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )
+    freeze_dict: RouteDAGConstraintsDict = tc_reschedule_problem.route_dag_constraints_dict
 
     assert freeze_dict[0].freeze_visit == []
     for trainrun_waypoint in [
-        TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+        TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
+        TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
         TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
         TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
         TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -448,39 +460,46 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():
-        verify_experiment_freeze_for_agent(agent_id, freeze_dict[agent_id],
-                                           topo_from_agent_paths(agents_paths_dict[agent_id]), )
+        verify_route_dag_constraints_for_agent(agent_id=agent_id,
+                                               route_dag_constraints=freeze_dict[agent_id],
+                                               topo=tc_reschedule_problem.topo_dict[agent_id])
 
-    schedule_problem.get_copy_for_experiment_freeze(
-        experiment_freeze_dict=freeze_dict,
-        schedule_trainruns_to_minimize_for=fake_schedule
+    ASPProblemDescription.factory_rescheduling(
+        tc=tc_reschedule_problem
     )
 
     inject_fake_malfunction_into_dynamic_env(dynamic_env, fake_malfunction)
 
-    _, full_reschedule_result, full_reschedule_solution = reschedule_full_after_malfunction(
+    full_reschedule_result = asp_reschedule_wrapper(
         malfunction=fake_malfunction,
         malfunction_env_reset=lambda *args, **kwargs: None,
         malfunction_rail_env=dynamic_env,
-        schedule_problem=schedule_problem,
-        schedule_trainruns=fake_schedule,
+        tc=get_freeze_for_full_rescheduling(
+            malfunction=fake_malfunction,
+            schedule_trainruns=fake_schedule,
+            minimum_travel_time_dict=tc_reschedule_problem.minimum_travel_time_dict,
+            latest_arrival=dynamic_env._max_episode_steps,
+            topo_dict=tc_reschedule_problem.topo_dict
+        ),
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
 
-    assert len(agents_paths_dict[0][0]) == 29, f"found {len(agents_paths_dict[0][0])}"
-    assert len(agents_paths_dict[1][0]) == 29, f"found {len(agents_paths_dict[1][0])}"
     assert full_reschedule_trainruns[0][-1].scheduled_at == 48, f"found {full_reschedule_trainruns[0][-1].scheduled_at}"
     assert full_reschedule_trainruns[1][-1].scheduled_at == 49, f"found {full_reschedule_trainruns[1][-1].scheduled_at}"
 
     # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
-    actual_costs = full_reschedule_solution.asp_solution.stats['summary']['costs'][0]
+    actual_costs = full_reschedule_result.optimization_costs
 
-    expected_delay = 22
-    assert expected_delay == get_delay_trainruns_dict(fake_schedule, expected_reschedule)
-    actual_delay = get_delay_trainruns_dict(fake_schedule, full_reschedule_trainruns)
-    assert actual_delay == expected_delay, f"actual delay {actual_delay}"
-    assert actual_costs == expected_delay, f"actual costs {actual_costs} from solver"
+    expected_delay_wr_schedule = 22
+    assert expected_delay_wr_schedule == get_delay_trainruns_dict(fake_schedule, expected_reschedule)
+    actual_delay_wr_schedule = get_delay_trainruns_dict(fake_schedule, full_reschedule_trainruns)
+    assert actual_delay_wr_schedule == expected_delay_wr_schedule, \
+        f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
+
+    # the solver returns the delay with respect to the defined earliest time (which is 20 after the scheduled arrival)
+    expected_costs = expected_delay_wr_schedule - 20
+    assert actual_costs == expected_costs, f"actual costs {actual_costs} from solver, expected {expected_costs}"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -493,7 +512,9 @@ def test_rescheduling_delta_no_bottleneck():
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
 
     fake_schedule = {
-        0: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=1)),
+        0: [
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(8, 26), direction=1)),
@@ -522,7 +543,9 @@ def test_rescheduling_delta_no_bottleneck():
             TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+        1: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -553,7 +576,9 @@ def test_rescheduling_delta_no_bottleneck():
             TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
     full_reschedule_trainruns = {
-        0: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=1)),
+        0: [
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(8, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(8, 26), direction=1)),
@@ -582,7 +607,9 @@ def test_rescheduling_delta_no_bottleneck():
             TrainrunWaypoint(scheduled_at=64, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=1)),
+        1: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -629,7 +656,9 @@ def test_rescheduling_delta_bottleneck():
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
 
     fake_schedule = {
-        0: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=1)),
+        0: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(8, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(8, 26), direction=1)),
@@ -658,7 +687,9 @@ def test_rescheduling_delta_bottleneck():
             TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(23, 23), direction=1)),
+        1: [
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(23, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(23, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -688,7 +719,9 @@ def test_rescheduling_delta_bottleneck():
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 23), direction=3))]}
     fake_full_reschedule_trainruns = {
-        0: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=1)),
+        0: [
+            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(8, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(8, 26), direction=1)),
@@ -717,7 +750,9 @@ def test_rescheduling_delta_bottleneck():
             TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(23, 23), direction=1)),
+        1: [
+            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(23, 23), direction=5)),
+            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(23, 25), direction=1)),
             TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(23, 26), direction=1)),
@@ -756,18 +791,26 @@ def test_rescheduling_delta_bottleneck():
                                expected_arrivals={0: 29 + 20, 1: 46 + 20}, expected_delay=40)
 
 
-def _verify_rescheduling_delta(fake_malfunction: Malfunction,
+def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
                                fake_schedule: TrainrunDict,
                                fake_full_reschedule_trainruns: TrainrunDict,
                                expected_arrivals, expected_delay):
     dynamic_env, fake_malfunction, schedule_problem = _dummy_test_case(fake_malfunction)
-    _, delta_reschedule_result, delta_reschedule_solution = reschedule_delta_after_malfunction(
-        full_reschedule_trainruns=fake_full_reschedule_trainruns,
-        schedule_trainruns=fake_full_reschedule_trainruns,
+    tc_delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle(
+        full_reschedule_trainrun_waypoints_dict=fake_full_reschedule_trainruns,
         malfunction=fake_malfunction,
-        # TODO SIM-146 code smell: why do we need env????
+        # TODO SIM-239 code smell: why do we need env????
+        max_episode_steps=schedule_problem.tc.max_episode_steps,
+        schedule_topo_dict=schedule_problem.tc.topo_dict,
+        schedule_trainrun_dict=fake_schedule,
+        minimum_travel_time_dict=schedule_problem.tc.minimum_travel_time_dict
+    )
+    delta_reschedule_result = asp_reschedule_wrapper(
+        tc=tc_delta_reschedule_problem,
+        malfunction=fake_malfunction,
+        # TODO SIM-239 code smell: why do we need env????
         malfunction_rail_env=dynamic_env,
-        schedule_problem=schedule_problem
+        malfunction_env_reset=lambda *args, **kwargs: None
     )
     delta_reschedule_trainruns = delta_reschedule_result.trainruns_dict
     for train, expected_arrival in expected_arrivals.items():
@@ -779,10 +822,10 @@ def _verify_rescheduling_delta(fake_malfunction: Malfunction,
     assert delay_in_delta_reschedule == expected_delay, f"found {delay_in_delta_reschedule}, expected={expected_delay}"
     delay_in_full_reschedule = get_delay_trainruns_dict(fake_schedule, fake_full_reschedule_trainruns)
     assert delay_in_full_reschedule == expected_delay, f"found {delay_in_full_reschedule}, expected {expected_delay}"
-    asp_costs = delta_reschedule_solution.asp_solution.stats['summary']['costs'][0]
+    asp_costs = delta_reschedule_result.optimization_costs
 
-    # TODO SIM-174 semantics of costs in ASP differ in full vs. Delta re-scheduling: analyse and streamline
-    expected_asp_costs = expected_delay - delay_in_full_reschedule
+    # the delta model does not count the malfunction as costs
+    expected_asp_costs = expected_delay - fake_malfunction.malfunction_duration
     assert asp_costs == expected_asp_costs, f"found asp_costs={asp_costs}, expected={expected_asp_costs}"
 
 
@@ -847,15 +890,8 @@ def _dummy_test_case(fake_malfunction: Malfunction):
                                            number_of_shortest_paths_per_agent=10)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
     k = 10
-    agents_paths_dict = {
-        i: get_k_shortest_paths(static_env,
-                                agent.initial_position,
-                                agent.initial_direction,
-                                agent.target,
-                                k) for i, agent in enumerate(static_env.agents)
-    }
-    schedule_problem = ASPProblemDescription(env=static_env,
-                                             agents_path_dict=agents_paths_dict)
+    schedule_problem = ASPProblemDescription.factory_scheduling(
+        tc=schedule_problem_description_from_rail_env(static_env, k))
 
     inject_fake_malfunction_into_dynamic_env(dynamic_env, fake_malfunction)
     return dynamic_env, fake_malfunction, schedule_problem

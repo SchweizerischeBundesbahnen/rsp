@@ -4,7 +4,7 @@ import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.solvers.asp.asp_experiment_solver import ASPExperimentSolver
+from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -122,7 +122,7 @@ def test_regression_experiment_agenda():
         print(result_dict)
 
     expected_result_dict = {
-        'costs_delta_after_malfunction': {0: 22.0}, 'costs_full': {0: 2.0}, 'costs_full_after_malfunction': {0: 22.0},
+        'costs_delta_after_malfunction': {0: 20.0}, 'costs_full': {0: 0.0}, 'costs_full_after_malfunction': {0: 20.0},
         'delta': {0: {0: [TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(21, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(22, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(23, 29), direction=2)),
@@ -335,15 +335,14 @@ def test_regression_experiment_agenda():
                 TrainrunWaypoint(scheduled_at=64, waypoint=Waypoint(position=(7, 25), direction=3)),
                 TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(7, 24), direction=3)),
                 TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3))]}},
-        'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257},
-        'agents_paths_dict': {}}
+        'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257}}
 
     for key in expected_result_dict:
         # TODO remove keys in expected_result_dict instead
         skip = key.startswith("time")
         skip = skip or key.startswith("solution")
         skip = skip or key.startswith("delta")
-        skip = skip or key == 'agents_paths_dict'
+        skip = skip or key == 'topo_dict'
         if not skip:
             assert expected_result_dict[key] == result_dict[key], \
                 f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"
@@ -378,7 +377,7 @@ def test_save_and_load_experiment_results():
         experiment_results_dict = experiment_results.to_dict()
 
     for key in experiment_results_dict:
-        if not key.startswith("time") and key != 'agents_paths_dict':
+        if not key.startswith("time") and key != 'topo_dict':
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
 
@@ -421,6 +420,6 @@ def test_parallel_experiment_execution():
         experiment_results_dict = experiment_results.to_dict()
 
     for key in experiment_results_dict:
-        if not key.startswith("time"):
+        if not key.startswith("time") and key != 'topo_dict':
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"

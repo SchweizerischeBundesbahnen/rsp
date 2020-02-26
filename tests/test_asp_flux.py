@@ -4,17 +4,16 @@ from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.observations import TreeObsForRailEnv
 from flatland.envs.predictions import ShortestPathPredictorForRailEnv
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_generators import rail_from_grid_transition_map
-from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail
 from importlib_resources import path
 
-from rsp.solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.solvers.asp.asp_solution_description import ASPSolutionDescription
-from rsp.solvers.asp.asp_solver import _asp_helper
-from rsp.solvers.asp.asp_solver import flux_helper
+from rsp.experiment_solvers.asp.asp_helper import _asp_helper
+from rsp.experiment_solvers.asp.asp_helper import flux_helper
+from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 
 
 def test_asp_helper():
@@ -76,16 +75,11 @@ def test_simple_rail_asp_one_agent():
     env.agents[0].target = (3, 5)
     env.reset(False, False, True)
 
-    agents_paths_dict = {
-        i: get_k_shortest_paths(env,
-                                agent.initial_position,
-                                agent.initial_direction,
-                                agent.target,
-                                1) for i, agent in enumerate(env.agents)
-    }
-
     start_solver = time.time()
-    problem = ASPProblemDescription(env=env, agents_path_dict=agents_paths_dict)
+
+    k = 1
+    tc = schedule_problem_description_from_rail_env(env, k)
+    problem = ASPProblemDescription.factory_scheduling(tc=tc)
 
     print(problem.asp_program)
     models, stats, _, _ = flux_helper(problem.asp_program)
@@ -96,17 +90,15 @@ def test_simple_rail_asp_one_agent():
     assert int(stats['summary']['models']['enumerated']) == 1
     actual_answer_set = list(models)[0]
 
-    expected = set(["dl((t0,((3,1),1)),0)",
-                    "dl((t0,((3,2),1)),2)",
-                    "dl((t0,((3,3),1)),3)",
-                    "dl((t0,((3,4),1)),4)",
-                    "dl((t0,((3,5),1)),5)",
-                    "dl((t0,((3,5),5)),6)"
-                    ])
-    agent_path = agents_paths_dict[0][0]
-    assert agent_path == (Waypoint(position=(3, 1), direction=1), Waypoint(position=(3, 2), direction=1),
-                          Waypoint(position=(3, 3), direction=1), Waypoint(position=(3, 4), direction=1),
-                          Waypoint(position=(3, 5), direction=1))
+    expected = set([
+        "dl((t0,((3,1),5)),0)",
+        "dl((t0,((3,1),1)),1)",
+        "dl((t0,((3,2),1)),2)",
+        "dl((t0,((3,3),1)),3)",
+        "dl((t0,((3,4),1)),4)",
+        "dl((t0,((3,5),1)),5)",
+        "dl((t0,((3,5),5)),6)"
+    ])
 
     assert actual_answer_set.issuperset(expected), \
         "expected={} should be subset of actual={}".format(expected, actual_answer_set)

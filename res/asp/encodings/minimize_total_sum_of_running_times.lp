@@ -1,5 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PENALTY MODEL FOR SCHEDULING
+% OBJECTIVE FOR SCHEDULING
+% This file is an addition (not part of Flux)!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % penalty model trains:  linear up to 30 seconds and then huge penalty
 % TODO SIM-171 refine: not for every 30 seconds, but only at intervall 5? discuss with Erik

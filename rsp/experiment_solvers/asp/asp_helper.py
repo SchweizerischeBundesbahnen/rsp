@@ -11,7 +11,7 @@ import clingo
 import numpy as np
 from importlib_resources import path
 
-from rsp.solvers.asp import theory
+from rsp.experiment_solvers.asp import theory
 
 
 class ASPObjective(Enum):
@@ -57,7 +57,8 @@ def flux_helper(
         bound_all_events: Optional[int] = None,
         asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
         asp_heurisics: List[ASPHeuristics] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        debug: bool = False
 ) -> FluxHelperResult:
     """Includes the necessary encodings and calls `_asp_helper` with them.
 
@@ -76,6 +77,8 @@ def flux_helper(
     -------
     """
     prg_text_joined = "\n".join(asp_data)
+    if debug:
+        print(prg_text_joined)
 
     with path('res.asp.encodings', 'encoding.lp') as encoding_path:
         paths = [encoding_path]
@@ -90,13 +93,18 @@ def flux_helper(
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
                 paths.append(heuristic_routes_path)
     if asp_objective:
-        with path('res.asp.encodings', f'{asp_objective.value}.lp') as bound_path:
-            paths.append(bound_path)
+        with path('res.asp.encodings', f'{asp_objective.value}.lp') as objetive_path:
+            paths.append(objetive_path)
+        if asp_objective == ASPObjective.MINIMIZE_DELAY:
+            with path('res.asp.encodings', f'delay_linear_within_one_minute.lp') as delay_model_path:
+                paths.append(delay_model_path)
+
     flux_result = _asp_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,
         plain_encoding=prg_text_joined,
-        verbose=False
+        verbose=verbose,
+        debug=debug
     )
 
     return flux_result
@@ -106,6 +114,7 @@ def flux_helper(
 def _asp_helper(encoding_files: List[str],
                 plain_encoding: Optional[str] = None,
                 verbose: bool = False,
+                debug: bool = False,
                 bound_all_events: Optional[int] = None,
                 deterministic_mode: bool = True) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
@@ -161,7 +170,7 @@ def _asp_helper(encoding_files: List[str],
 
     if bound_all_events:
         ctl.ground([("bound_all_events", [int(bound_all_events)])])
-    all_answers = _asp_loop(ctl, dl, verbose)
+    all_answers = _asp_loop(ctl, dl, verbose, debug)
     statistics: Dict = ctl.statistics
 
     if verbose:
@@ -172,7 +181,7 @@ def _asp_helper(encoding_files: List[str],
     return FluxHelperResult(all_answers, statistics, ctl, dl)
 
 
-def _asp_loop(ctl, dl, verbose):
+def _asp_loop(ctl, dl, verbose, debug):
     all_answers = []
     min_cost = np.inf
     with ctl.solve(yield_=True) as handle:
@@ -186,8 +195,14 @@ def _asp_loop(ctl, dl, verbose):
                     all_answers = []
             # TODO SIM-121 convert to handable data structures instead of strings!
             sol = str(model).split(" ")
+            if debug:
+                for v in sol:
+                    print(v)
             for name, value in dl.assignment(model.thread_id):
-                sol.append(f"dl({name},{value})")
+                v = f"dl({name},{value})"
+                sol.append(v)
+                if debug:
+                    print(v)
             all_answers.append(frozenset(sol))
     return all_answers
 

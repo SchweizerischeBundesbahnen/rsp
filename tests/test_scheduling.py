@@ -1,9 +1,10 @@
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.abstract_problem_description import AbstractProblemDescription
-from rsp.solvers.asp.asp_experiment_solver import schedule_full
+from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
+from rsp.experiment_solvers.experiment_solver_utils import get_summ_running_times_trainruns_dict
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
 
@@ -68,93 +69,32 @@ def test_scheduling():
     assert static_env.rail.grid.tolist() == expected_grid
     assert dynamic_env.rail.grid.tolist() == expected_grid
 
-    expected_schedule_train_runs = {
-        0: [TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=1)),
-            TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(8, 24), direction=1)),
-            TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(8, 25), direction=1)),
-            TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(8, 26), direction=1)),
-            TrainrunWaypoint(scheduled_at=5, waypoint=Waypoint(position=(8, 27), direction=1)),
-            TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(8, 28), direction=1)),
-            TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(8, 29), direction=1)),
-            TrainrunWaypoint(scheduled_at=8, waypoint=Waypoint(position=(9, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=9, waypoint=Waypoint(position=(10, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=10, waypoint=Waypoint(position=(11, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(12, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(13, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(14, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(15, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=15, waypoint=Waypoint(position=(16, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=16, waypoint=Waypoint(position=(17, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(18, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(19, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(20, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(21, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(22, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=22, waypoint=Waypoint(position=(23, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=23, waypoint=Waypoint(position=(24, 29), direction=2)),
-            TrainrunWaypoint(scheduled_at=24, waypoint=Waypoint(position=(24, 28), direction=3)),
-            TrainrunWaypoint(scheduled_at=25, waypoint=Waypoint(position=(24, 27), direction=3)),
-            TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(24, 26), direction=3)),
-            TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(24, 25), direction=3)),
-            TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(24, 23), direction=3))],
-        1: [TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(23, 23), direction=1)),
-            TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(23, 24), direction=1)),
-            TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(23, 25), direction=1)),
-            TrainrunWaypoint(scheduled_at=21, waypoint=Waypoint(position=(23, 26), direction=1)),
-            TrainrunWaypoint(scheduled_at=22, waypoint=Waypoint(position=(23, 27), direction=1)),
-            TrainrunWaypoint(scheduled_at=23, waypoint=Waypoint(position=(23, 28), direction=1)),
-            TrainrunWaypoint(scheduled_at=24, waypoint=Waypoint(position=(23, 29), direction=1)),
-            TrainrunWaypoint(scheduled_at=25, waypoint=Waypoint(position=(22, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(21, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(20, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(19, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(18, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=30, waypoint=Waypoint(position=(17, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=31, waypoint=Waypoint(position=(16, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=32, waypoint=Waypoint(position=(15, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=33, waypoint=Waypoint(position=(14, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=34, waypoint=Waypoint(position=(13, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(12, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=36, waypoint=Waypoint(position=(11, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=37, waypoint=Waypoint(position=(10, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=38, waypoint=Waypoint(position=(9, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=39, waypoint=Waypoint(position=(8, 29), direction=0)),
-            TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(8, 28), direction=3)),
-            TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(8, 27), direction=3)),
-            TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(8, 26), direction=3)),
-            TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(7, 26), direction=0)),
-            TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(7, 25), direction=3)),
-            TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 23), direction=3))]}
-
-    schedule_problem, schedule_result, schedule_solution = schedule_full(10, static_env)
+    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, 10)
+    schedule_result = asp_schedule_wrapper(tc=tc_schedule_problem, static_rail_env=static_env)
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # sanity check for our expected data
     for agent in static_env.agents:
-        assert schedule_trainruns[agent.handle][0].waypoint.position == agent.initial_position
-        assert schedule_trainruns[agent.handle][0].waypoint.direction == agent.initial_direction
+        # first element is dummy node
+        assert schedule_trainruns[agent.handle][1].waypoint.position == agent.initial_position
+        assert schedule_trainruns[agent.handle][1].waypoint.direction == agent.initial_direction
         assert schedule_trainruns[agent.handle][-1].waypoint.position == agent.target
 
-    # sanity check for our expected data
-    agent_running_times = [
-        expected_schedule_train_runs[agent_id][-1].scheduled_at - expected_schedule_train_runs[agent_id][0].scheduled_at
-        for agent_id in expected_schedule_train_runs.keys()]
-    expected_total_running_times = sum(agent_running_times)
-    assert expected_total_running_times == 58, f"found {expected_total_running_times}"
+    expected_total_running_times = 58
 
+    # sanity check for earliest at target (one time step before arrival at dummy target node)
     agent_minimum_running_times = sum([
-        AbstractProblemDescription.get_agent_minimum_running_time(
-            agent,
-            schedule_problem.agents_path_dict[agent.handle])
-        for agent in static_env.agents])
+        tc_schedule_problem.route_dag_constraints_dict[agent.handle].freeze_earliest[
+            Waypoint(position=agent.target, direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)]
+        for agent in static_env.agents]) - len(static_env.agents)
     assert expected_total_running_times == agent_minimum_running_times, \
         f"expected expected_total_running_times={expected_total_running_times}" + \
-        "==agent_minimum_running_times={agent_minimum_running_times}"
+        f"==agent_minimum_running_times={agent_minimum_running_times}"
 
-    # optimization costs are minimum running times + 1 because of the last dummy segment (occupies the target cell for one step)
-    expected_objective = 2
-    assert len(static_env.agents) == expected_objective
-    assert schedule_solution.get_objective_value() == expected_objective
-    assert schedule_solution.get_sum_running_times() == expected_total_running_times
+    # optimization costs must be zero since we have no delay with respect to earliest
+    expected_objective = 0
+    actual_objective = schedule_result.optimization_costs
+    assert actual_objective == expected_objective, f"actual_objective={actual_objective}, expected_objective={expected_objective}"
+    actual_sum_running_times = get_summ_running_times_trainruns_dict(schedule_result.trainruns_dict)
+    assert actual_sum_running_times == expected_total_running_times, \
+        f"actual_sum_running_times={actual_sum_running_times}, expected_total_running_times={expected_total_running_times}"

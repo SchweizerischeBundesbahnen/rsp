@@ -12,7 +12,6 @@ Hypothesis 2:
     after re-scheduling.
 """
 import os
-from functools import partial
 from typing import List
 from typing import Set
 
@@ -23,24 +22,24 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
-from rsp.rescheduling.rescheduling_analysis_utils import _extract_path_search_space
-from rsp.rescheduling.rescheduling_analysis_utils import analyze_experiment
-from rsp.rescheduling.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.solvers.solve_problem import replay
+from rsp.experiment_solvers.asp.asp_solve_problem import replay
+from rsp.route_dag.analysis.rescheduling_analysis_utils import _extract_path_search_space
+from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
+from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentFreezeDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import RouteDAGConstraintsDict
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.route_graph_analysis import visualize_experiment_freeze
 
 
 def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: str = None):
@@ -166,7 +165,7 @@ def render_experiment(
     convert_to_mpeg
         Converts the rendering to mpeg
     """
-    from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvRender, RendererForEnvCleanup
+    from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup
 
     # find first row for this experiment (iloc[0]
     rows = data_frame.loc[data_frame['experiment_id'] == experiment.experiment_id]
@@ -176,33 +175,35 @@ def render_experiment(
     train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
     train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
 
-    experiment_freeze_rsp_full: ExperimentFreezeDict = rows['experiment_freeze_full_after_malfunction'].iloc[0]
-    experiment_freeze_rsp_delta: ExperimentFreezeDict = rows['experiment_freeze_delta_after_malfunction'].iloc[0]
+    route_dag_constraints_rsp_full: RouteDAGConstraintsDict = rows['route_dag_constraints_full_after_malfunction'].iloc[
+        0]
+    route_dag_constraints_rsp_delta: RouteDAGConstraintsDict = \
+        rows['route_dag_constraints_delta_after_malfunction'].iloc[0]
     malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
     n_agents: int = rows['n_agents'].iloc[0]
 
     agents_paths_dict = rows['agents_paths_dict'].iloc[0]
 
-    for agent_id in experiment_freeze_rsp_delta:
+    for agent_id in route_dag_constraints_rsp_delta:
         experiment_output_folder = f"{data_folder}/experiment_{experiment.experiment_id:04d}_analysis"
         check_create_folder(experiment_output_folder)
-        visualize_experiment_freeze(
+        visualize_route_dag_constraints(
             agent_paths=agents_paths_dict[agent_id],
             train_run_input=train_runs_input[agent_id],
             train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
             train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
-            f=experiment_freeze_rsp_delta[agent_id],
+            f=route_dag_constraints_rsp_delta[agent_id],
             title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}",
             file_name=(os.path.join(experiment_output_folder,
                                     f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
                        if data_folder is not None else None)
         )
-        visualize_experiment_freeze(
+        visualize_route_dag_constraints(
             agent_paths=agents_paths_dict[agent_id],
             train_run_input=train_runs_input[agent_id],
             train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
             train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
-            f=experiment_freeze_rsp_full[agent_id],
+            f=route_dag_constraints_rsp_full[agent_id],
             title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}",
             file_name=(os.path.join(experiment_output_folder,
                                     f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
@@ -214,24 +215,18 @@ def render_experiment(
 
     if rendering:
         from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
-        from rsp.utils.experiment_render_utils import render_env
         from rsp.utils.experiment_render_utils import init_renderer_for_env
 
         init_renderer_for_env = init_renderer_for_env
         image_output_directory = os.path.join(data_folder, f"experiment_{experiment.experiment_id:04d}_analysis",
                                               f"experiment_{experiment.experiment_id}_rendering_output")
         check_create_folder(image_output_directory)
-        render_renderer_for_env = partial(render_env, image_output_directory=image_output_directory)
         cleanup_renderer_for_env = cleanup_renderer_for_env
     else:
         init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
-        render_renderer_for_env: RendererForEnvRender = lambda *args, **kwargs: None
         cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
 
     renderer = init_renderer_for_env(malfunction_rail_env, rendering)
-
-    def rendering_call_back(test_id: int, solver_name, i_step: int):
-        render_renderer_for_env(renderer, test_id, solver_name, i_step)
 
     replay(
         controller_from_train_runs=controller_from_train_runs_rsp_full,
@@ -239,7 +234,7 @@ def render_experiment(
         stop_on_malfunction=False,
         solver_name='data_analysis',
         disable_verification_in_replay=False,
-        rendering_call_back=rendering_call_back
+        rendering=False
     )
     cleanup_renderer_for_env(renderer)
     if convert_to_mpeg:
