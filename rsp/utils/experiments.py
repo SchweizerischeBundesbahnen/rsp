@@ -187,7 +187,7 @@ def run_experiment_agenda(solver: AbstractSolver,
     Returns the name of the experiment folder
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
-    save_experiment_agenda_to_file(experiment_folder_name, experiment_agenda)
+    save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda)
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
@@ -203,6 +203,20 @@ def run_experiment_agenda(solver: AbstractSolver,
                                         experiment_folder_name)
 
     return experiment_folder_name
+
+
+def _write_sha_txt(folder_name: str):
+    """
+    Write the current commit hash to a file "sha.txt" in the given folder
+    Parameters
+    ----------
+    folder_name
+    """
+    import git
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    with open(os.path.join(folder_name, 'sha.txt'), 'w') as out:
+        out.write(sha)
 
 
 def run_and_save_one_experiment(current_experiment_parameters,
@@ -261,7 +275,7 @@ def run_specific_experiments_from_research_agenda(solver: AbstractSolver,
         experiment_name=experiment_agenda.experiment_name,
         experiments=list(experiments_filtered)
     )
-    save_experiment_agenda_to_file(experiment_folder_name, experiment_agenda_filtered)
+    save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda_filtered)
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
@@ -449,8 +463,9 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     return env_static, env_malfunction
 
 
-def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agenda: ExperimentAgenda):
-    """Save experiment agenda to the folder with the experiments.
+def save_experiment_agenda_and_hash_to_file(experiment_folder_name: str, experiment_agenda: ExperimentAgenda):
+    """Save experiment agenda and current git hash to the folder with the
+    experiments.
 
     Parameters
     ----------
@@ -463,6 +478,9 @@ def save_experiment_agenda_to_file(experiment_folder_name: str, experiment_agend
     check_create_folder(experiment_folder_name)
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # write current hash to sha.txt to experiment folder
+    _write_sha_txt(experiment_folder_name)
 
 
 def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
