@@ -11,32 +11,24 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
-import os
 from typing import List
 from typing import Set
 
 import numpy as np
-from flatland.action_plan.action_plan import ControllerFromTrainruns
-from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
-from rsp.experiment_solvers.asp.asp_solve_problem import replay
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _extract_path_search_space
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentMalfunction
-from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.data_types import RouteDAGConstraintsDict
-from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 from rsp.utils.file_utils import check_create_folder
@@ -144,112 +136,6 @@ def _3d_analysis(averaged_data: DataFrame, std_data: DataFrame):
     plt.show()
 
 
-def render_experiment(
-        experiment: ExperimentParameters,
-        data_frame: DataFrame,
-        data_folder: str = None,
-        rendering: bool = False,
-        convert_to_mpeg: bool = True):
-    """Render the experiment in the analysis.
-
-    Parameters
-    ----------
-    experiment: ExperimentParameters
-        experiment parameters for all trials
-    data_frame: DataFrame
-        Pandas data frame with one ore more trials of this experiment.
-    data_folder
-        Folder to store FLATland pngs and mpeg to
-    rendering
-        Flatland rendering?
-    convert_to_mpeg
-        Converts the rendering to mpeg
-    """
-    from rsp.utils.experiment_solver import RendererForEnvInit, RendererForEnvCleanup
-
-    # find first row for this experiment (iloc[0]
-    rows = data_frame.loc[data_frame['experiment_id'] == experiment.experiment_id]
-
-    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment)
-    train_runs_input: TrainrunDict = rows['solution_full'].iloc[0]
-    train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
-    train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
-
-    route_dag_constraints_rsp_full: RouteDAGConstraintsDict = rows['route_dag_constraints_full_after_malfunction'].iloc[
-        0]
-    route_dag_constraints_rsp_delta: RouteDAGConstraintsDict = \
-        rows['route_dag_constraints_delta_after_malfunction'].iloc[0]
-    malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
-    n_agents: int = rows['n_agents'].iloc[0]
-
-    agents_paths_dict = rows['agents_paths_dict'].iloc[0]
-
-    for agent_id in route_dag_constraints_rsp_delta:
-        experiment_output_folder = f"{data_folder}/experiment_{experiment.experiment_id:04d}_analysis"
-        check_create_folder(experiment_output_folder)
-        visualize_route_dag_constraints(
-            agent_paths=agents_paths_dict[agent_id],
-            train_run_input=train_runs_input[agent_id],
-            train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
-            train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
-            f=route_dag_constraints_rsp_delta[agent_id],
-            title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}",
-            file_name=(os.path.join(experiment_output_folder,
-                                    f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
-                       if data_folder is not None else None)
-        )
-        visualize_route_dag_constraints(
-            agent_paths=agents_paths_dict[agent_id],
-            train_run_input=train_runs_input[agent_id],
-            train_run_full_after_malfunction=train_runs_full_after_malfunction[agent_id],
-            train_run_delta_after_malfunction=train_runs_delta_after_malfunction[agent_id],
-            f=route_dag_constraints_rsp_full[agent_id],
-            title=f"experiment {experiment.experiment_id}\nagent {agent_id}/{n_agents}\n{malfunction}",
-            file_name=(os.path.join(experiment_output_folder,
-                                    f"experiment_{experiment.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
-                       if data_folder is not None else None)
-        )
-
-    controller_from_train_runs_rsp_full = ControllerFromTrainruns(malfunction_rail_env,
-                                                                  train_runs_full_after_malfunction)
-
-    if rendering:
-        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
-        from rsp.utils.experiment_render_utils import init_renderer_for_env
-
-        init_renderer_for_env = init_renderer_for_env
-        image_output_directory = os.path.join(data_folder, f"experiment_{experiment.experiment_id:04d}_analysis",
-                                              f"experiment_{experiment.experiment_id}_rendering_output")
-        check_create_folder(image_output_directory)
-        cleanup_renderer_for_env = cleanup_renderer_for_env
-    else:
-        init_renderer_for_env: RendererForEnvInit = lambda *args, **kwargs: None
-        cleanup_renderer_for_env: RendererForEnvCleanup = lambda *args, **kwargs: None
-
-    renderer = init_renderer_for_env(malfunction_rail_env, rendering)
-
-    replay(
-        controller_from_train_runs=controller_from_train_runs_rsp_full,
-        env=malfunction_rail_env,
-        stop_on_malfunction=False,
-        solver_name='data_analysis',
-        disable_verification_in_replay=False,
-        rendering=False
-    )
-    cleanup_renderer_for_env(renderer)
-    if convert_to_mpeg:
-        experiment_output_folder = f"{data_folder}/experiment_{experiment.experiment_id:04d}_analysis"
-        check_create_folder(experiment_output_folder)
-        import ffmpeg
-        (ffmpeg
-         .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s='1920x1080')
-         .output(f'{experiment_output_folder}/experiment_{experiment.experiment_id}_flatland_data_analysis.mp4', crf=15,
-                 pix_fmt='yuv420p', vcodec='libx264')
-         .overwrite_output()
-         .run()
-         )
-
-
 # TODO SIM-250 we should work with malfunction ranges instead of repeating the same experiment under different ids
 def _malfunction_analysis(experiment_data: DataFrame):
     # add column 'malfunction_time_step'
@@ -292,7 +178,9 @@ def hypothesis_one_data_analysis(data_folder: str,
                                  analysis_2d: bool = False,
                                  analysis_3d: bool = False,
                                  malfunction_analysis: bool = False,
-                                 qualitative_analysis_experiment_ids: List[str] = None):
+                                 qualitative_analysis_experiment_ids: List[str] = None,
+                                 flatland_rendering: bool = True
+                                 ):
     """
 
     Parameters
@@ -339,10 +227,11 @@ def hypothesis_one_data_analysis(data_folder: str,
         experiment_data.at[index, 'path_search_space_rsp_delta'] = path_search_space_rsp_delta
         experiment_data.at[index, 'factor_path_search_space'] = factor_path_search_space
 
-        used_cells: Set[Waypoint] = {waypoint.position for agent_id, agent_paths in
-                                     experiment_results.agents_paths_dict.items()
-                                     for agent_path in agent_paths
-                                     for waypoint in agent_path}
+        used_cells: Set[Waypoint] = {
+            waypoint for agent_id, topo in
+            experiment_results.topo_dict.items()
+            for waypoint in topo.nodes
+        }
         experiment_data.at[index, 'size_used'] = len(used_cells)
 
     # Plausibility tests on experiment data
@@ -378,10 +267,10 @@ def hypothesis_one_data_analysis(data_folder: str,
             experiment_agenda.experiments))
         for experiment in filtered_experiments:
             analyze_experiment(experiment=experiment, data_frame=experiment_data)
-            render_experiment(experiment=experiment,
-                              data_frame=experiment_data,
-                              data_folder=data_folder,
-                              rendering=True)
+            visualize_experiment(experiment=experiment,
+                                 data_frame=experiment_data,
+                                 data_folder=data_folder,
+                                 flatland_rendering=flatland_rendering)
 
 
 def _run_plausibility_tests_on_experiment_data(experiment_data):
@@ -394,7 +283,7 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_11T13_41_02',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_19T19_13_25',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,

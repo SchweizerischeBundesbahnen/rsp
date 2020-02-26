@@ -9,11 +9,10 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.route_dag import topo_from_agent_paths, AgentPaths
 from rsp.utils.data_types import RouteDAGConstraints
 
 
-def visualize_route_dag_constraints(agent_paths: AgentPaths,
+def visualize_route_dag_constraints(topo: nx.DiGraph,
                                     f: RouteDAGConstraints,
                                     train_run_input: Trainrun,
                                     train_run_full_after_malfunction: Trainrun,
@@ -40,7 +39,6 @@ def visualize_route_dag_constraints(agent_paths: AgentPaths,
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
 
     # nx directed graph
-    topo = topo_from_agent_paths(agent_paths)
     all_waypoints: List[Waypoint] = list(topo.nodes)
 
     # figsize
@@ -63,6 +61,8 @@ def visualize_route_dag_constraints(agent_paths: AgentPaths,
         2: np.array([-offset, 0]),
         # heading west = coming from east: +col
         3: np.array([0, offset]),
+        # dummy heading = no offset
+        5: np.array([0, 0])
     }
     flatland_pos_with_offset = {wp: np.array(wp.position) + flatland_offset_pattern[wp.direction] for wp in
                                 all_waypoints}
