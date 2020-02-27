@@ -7,6 +7,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import replay
+from rsp.experiment_solvers.asp.asp_solve_problem import replay_and_verify_asp_solution
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
@@ -93,17 +94,16 @@ class ASPExperimentSolver(AbstractSolver):
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
+        full_reschedule_problem = get_freeze_for_full_rescheduling(malfunction=malfunction,
+                                                                   schedule_trainruns=schedule_trainruns,
+                                                                   minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+                                                                   latest_arrival=malfunction_rail_env._max_episode_steps,
+                                                                   topo_dict=tc_schedule_problem.topo_dict)
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
             malfunction_rail_env=malfunction_rail_env,
-            tc=get_freeze_for_full_rescheduling(
-                malfunction=malfunction,
-                schedule_trainruns=schedule_trainruns,
-                minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
-                latest_arrival=malfunction_rail_env._max_episode_steps,
-                topo_dict=tc_schedule_problem.topo_dict
-            ),
+            reschedule_problem_description=full_reschedule_problem,
             rendering=rendering,
             debug=debug
         )
@@ -129,7 +129,7 @@ class ASPExperimentSolver(AbstractSolver):
         delta_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_rail_env=malfunction_rail_env,
-            tc=delta_reschedule_problem,
+            reschedule_problem_description=delta_reschedule_problem,
             rendering=rendering,
             debug=debug,
             malfunction_env_reset=lambda *args, **kwargs: None
@@ -152,11 +152,10 @@ class ASPExperimentSolver(AbstractSolver):
                                             costs_full=schedule_result.optimization_costs,
                                             costs_full_after_malfunction=full_reschedule_result.optimization_costs,
                                             costs_delta_after_malfunction=delta_reschedule_result.optimization_costs,
-                                            route_dag_constraints_full=schedule_result.route_dag_constraints,
-                                            route_dag_constraints_full_after_malfunction=full_reschedule_result.route_dag_constraints,
-                                            route_dag_constraints_delta_after_malfunction=delta_reschedule_result.route_dag_constraints,
+                                            problem_full=tc_schedule_problem,
+                                            problem_full_after_malfunction=full_reschedule_problem,
+                                            problem_delta_after_malfunction=delta_reschedule_problem,
                                             malfunction=malfunction,
-                                            topo_dict=tc_schedule_problem.topo_dict,
                                             nb_resource_conflicts_full=schedule_result.nb_conflicts,
                                             nb_resource_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
                                             nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
@@ -167,7 +166,7 @@ class ASPExperimentSolver(AbstractSolver):
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def asp_schedule_wrapper(tc: ScheduleProblemDescription,
+def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescription,
                          static_rail_env: RailEnv,
                          rendering: bool = False,
                          debug: bool = False,
@@ -193,19 +192,22 @@ def asp_schedule_wrapper(tc: ScheduleProblemDescription,
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
     schedule_problem = ASPProblemDescription.factory_scheduling(
-        tc=tc)
+        tc=schedule_problem_description)
 
     schedule_result, schedule_solution = solve_problem(
-        env=static_rail_env,
         problem=schedule_problem,
-        rendering=rendering,
         debug=debug)
+    replay_and_verify_asp_solution(env=static_rail_env,
+                                   problem_description=schedule_problem_description,
+                                   asp_solution=schedule_solution,
+                                   rendering=rendering,
+                                   debug=debug)
 
     return schedule_result
 
 
 def asp_reschedule_wrapper(
-        tc: ScheduleProblemDescription,
+        reschedule_problem_description: ScheduleProblemDescription,
         malfunction: ExperimentMalfunction,
         malfunction_rail_env: RailEnv,
         malfunction_env_reset: Callable[[], None],
@@ -224,26 +226,33 @@ def asp_reschedule_wrapper(
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
     full_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-        tc=tc
+        tc=reschedule_problem_description
     )
 
     if debug:
         print("###reschedule")
-        experimentFreezeDictPrettyPrint(tc.route_dag_constraints_dict)
+        experimentFreezeDictPrettyPrint(reschedule_problem_description.route_dag_constraints_dict)
 
-    full_reschedule_result, full_reschedule_solution = solve_problem(
-        env=malfunction_rail_env,
+    full_reschedule_result, asp_solution = solve_problem(
         problem=full_reschedule_problem,
-        rendering=rendering,
-        debug=debug,
-        expected_malfunction=malfunction,
-        # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
-        disable_verification_in_replay=True
+        debug=debug
     )
-    malfunction_env_reset()
-
     if debug:
+        print("###lates")
+        print(asp_solution.extract_list_of_lates())
+        print("###route penalties")
+        print(asp_solution.extract_list_of_active_penalty())
         print("###reschedule")
-        print(_pp.pformat(full_reschedule_result.solution.get_trainruns_dict()))
+        print(_pp.pformat(full_reschedule_result.trainruns_dict))
+
+    replay_and_verify_asp_solution(env=malfunction_rail_env,
+                                   problem_description=reschedule_problem_description,
+                                   asp_solution=asp_solution,
+                                   rendering=rendering,
+                                   debug=debug,
+                                   expected_malfunction=malfunction,
+                                   # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
+                                   disable_verification_in_replay=True)
+    malfunction_env_reset()
 
     return full_reschedule_result

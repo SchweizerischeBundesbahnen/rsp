@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict
 from typing import Optional
 
@@ -301,7 +302,11 @@ def replay(env: RailEnv,  # noqa: C901
         time_step += 1
     if rendering:
         from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
-        cleanup_renderer_for_env(renderer)
+        try:
+            cleanup_renderer_for_env(renderer)
+        except AttributeError as e:
+            # TODO why does this happen?
+            warnings.warn(e)
     if stop_on_malfunction:
         return None
     else:

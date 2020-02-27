@@ -33,12 +33,11 @@ class ASPProblemDescription():
 
     @staticmethod
     def factory_rescheduling(
-            # TODO SIM-190 penalize re-routing
             tc: ScheduleProblemDescription,
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
-            asp_objective=ASPObjective.MINIMIZE_DELAY,
+            asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
             # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
         )
@@ -164,8 +163,8 @@ class ASPProblemDescription():
                                          self._sanitize_waypoint(exit_waypoint),
                                          int(minimum_travel_time)))
         # minimum running time: m(E,M)
-        self.asp_program.append("m({}, ({},{}),{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
-                                                            self._sanitize_waypoint(exit_waypoint), 0))
+        self.asp_program.append("m(({},{}),{}).".format(self._sanitize_waypoint(entry_waypoint),
+                                                        self._sanitize_waypoint(exit_waypoint), 0))
 
         # declare resource
         # TODO SIM-144 resource may be declared multiple times, maybe we should declare resource by
@@ -177,12 +176,12 @@ class ASPProblemDescription():
         # TODO SIM-129: release time = 1 to allow for synchronization in FLATland - can we get rid of it?
         self.asp_program.append("b(resource_{}_{},1).".format(*resource_id))
 
-        # penalty for objective minimize_routes.lp and heuristic_ROUTES.lp (used only if activated)
-        # TODO SIM-190
+        # add train-specific route penalty (T,E,P) for minimize_delay_and_routes_combined.lp
+        # N.B. we do not use penalty(E,P) as for objective minimize_routes.lp and heuristic_ROUTES.lp
         if route_section_penalty > 0:
-            # penalty(E,P) # noqa: E800
-            self.asp_program.append("penalty(({},{}),{})."
-                                    .format(self._sanitize_waypoint(entry_waypoint),
+            # penalty(T,E,P) # noqa: E800
+            self.asp_program.append("penalty(t{},({},{}),{})."
+                                    .format(agent_id, self._sanitize_waypoint(entry_waypoint),
                                             self._sanitize_waypoint(exit_waypoint), route_section_penalty))
 
     def solve(self, verbose: bool = False) -> ASPSolutionDescription:
@@ -196,8 +195,14 @@ class ASPProblemDescription():
         self.asp_program.append("m(0,1).")
         self.asp_program.append("connection(0,(0,0),0,(0,0),0).")
         self.asp_program.append("penalty(0,0).")
+        self.asp_program.append("penalty(0,0,0).")
         # initially, not act_penalty_for_train activated
         self.asp_program.append("act_penalty_for_train(0,0,0).")
+
+        # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
+        # TODO SIM-322 hard-coded value 1
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), visit(T,V), visit(T,V'), edge(T,V,V').")
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), visit(T,V), visit(T,V'), edge(T,V,V').")
 
         asp_solution = flux_helper(self.asp_program,
                                    bound_all_events=self.tc.max_episode_steps,
@@ -244,18 +249,21 @@ class ASPProblemDescription():
                                   )
 
             for (entry_waypoint, exit_waypoint) in topo.edges:
+                # TODO SIM-322 hard-coded assumptions on dummy edges
                 is_dummy_edge = (
                         entry_waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or exit_waypoint.direction ==
                         MAGIC_DIRECTION_FOR_SOURCE_TARGET)
-                self._implement_route_section(agent_id=agent_id,
-                                              entry_waypoint=entry_waypoint,
-                                              exit_waypoint=exit_waypoint,
-                                              resource_id=entry_waypoint.position,
-                                              minimum_travel_time=(1
-                                                                   if is_dummy_edge
-                                                                   else tc.minimum_travel_time_dict[agent_id]),
-                                              # TODO SIM-190 route section penalty
-                                              )
+                self._implement_route_section(
+                    agent_id=agent_id,
+                    entry_waypoint=entry_waypoint,
+                    exit_waypoint=exit_waypoint,
+                    resource_id=entry_waypoint.position,
+                    minimum_travel_time=(1
+                                         if is_dummy_edge
+                                         else tc.minimum_travel_time_dict[agent_id]),
+                    route_section_penalty=tc.route_section_penalties[agent_id].get(
+                        (entry_waypoint, exit_waypoint), 0) if not is_dummy_edge else 0
+                )
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,
                                                                              freeze=tc.route_dag_constraints_dict[

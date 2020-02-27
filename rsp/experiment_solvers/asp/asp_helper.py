@@ -24,6 +24,12 @@ class ASPObjective(Enum):
     # minimize delay with respect to earliest constraints
     MINIMIZE_DELAY = "minimize_delay"
 
+    # minimize route section penalties
+    MINIMIZE_ROUTES = "minimize_routes"
+
+    # minimize linear combination of route section penalties and delay
+    MINIMIZE_DELAY_ROUTES_COMBINED = "minimize_delay_and_routes_combined"
+
 
 class ASPHeuristics(Enum):
     """enum value (key arbitrary) must be the same as encoding to be
@@ -95,7 +101,7 @@ def flux_helper(
     if asp_objective:
         with path('res.asp.encodings', f'{asp_objective.value}.lp') as objetive_path:
             paths.append(objetive_path)
-        if asp_objective == ASPObjective.MINIMIZE_DELAY:
+        if asp_objective in [ASPObjective.MINIMIZE_DELAY, ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED]:
             with path('res.asp.encodings', f'delay_linear_within_one_minute.lp') as delay_model_path:
                 paths.append(delay_model_path)
 

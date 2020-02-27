@@ -8,6 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
+from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import convert_data_frame_row_to_experiment_results
 from rsp.utils.data_types import ExperimentParameters
@@ -102,11 +103,14 @@ def _analyze_paths(experiment_results: ExperimentResults, experiment_id: int, de
 
 
 def _extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
-    route_dag_constraints_delta_afer_malfunction = experiment_results.route_dag_constraints_delta_after_malfunction
-    route_dag_constraints_full_after_malfunction = experiment_results.route_dag_constraints_full_after_malfunction
-    topo_dict = experiment_results.topo_dict
+    route_dag_constraints_delta_afer_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
+    route_dag_constraints_full_after_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
+    route_dag_constraints_schedule = experiment_results.problem_full.route_dag_constraints_dict
+    topo_dict = experiment_results.problem_full.topo_dict
     all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = _extract_number_of_path_alternatives(
-        topo_dict, route_dag_constraints_delta_afer_malfunction,
+        topo_dict,
+        route_dag_constraints_schedule,
+        route_dag_constraints_delta_afer_malfunction,
         route_dag_constraints_full_after_malfunction)
     path_search_space_schedule = _prod(all_nb_alternatives_schedule)
     path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
@@ -116,8 +120,10 @@ def _extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[i
 
 def _extract_number_of_path_alternatives(
         topo_dict: TopoDict,
-        route_dag_constraints_delta_afer_malfunction,
-        route_dag_constraints_full_after_malfunction) -> Tuple[List[int], List[int], List[int]]:
+        route_dag_constraints_schedule: RouteDAGConstraintsDict,
+        route_dag_constraints_delta_afer_malfunction: RouteDAGConstraintsDict,
+        route_dag_constraints_full_after_malfunction: RouteDAGConstraintsDict
+) -> Tuple[List[int], List[int], List[int]]:
     """Extract number of path alternatives for schedule, rsp full and rsp delta
     for each agent."""
     all_nb_alternatives_schedule = []
@@ -127,8 +133,7 @@ def _extract_number_of_path_alternatives(
     for agent_id in route_dag_constraints_delta_afer_malfunction:
         alternatives_schedule = get_paths_for_route_dag_constraints(
             topo=topo_dict[agent_id],
-            # TODO SIM-239 this is not correct, there may not be enough time for all paths; use route_dag_constraints for scheduling
-            route_dag_constraints=None
+            route_dag_constraints=route_dag_constraints_schedule[agent_id]
         )
         alternatives_rsp_full = get_paths_for_route_dag_constraints(
             topo=topo_dict[agent_id],

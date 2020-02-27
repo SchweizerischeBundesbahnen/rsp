@@ -115,6 +115,15 @@ def test_regression_experiment_agenda():
     solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False, verbose=True)
 
+    hypothesis_one_data_analysis(
+        data_folder=experiment_folder_name,
+        analysis_2d=True,
+        analysis_3d=False,
+        malfunction_analysis=False,
+        qualitative_analysis_experiment_ids=[0],
+        flatland_rendering=False
+    )
+
     # load results
     result = load_experiment_results_from_folder(experiment_folder_name)
 
@@ -126,7 +135,9 @@ def test_regression_experiment_agenda():
         print(result_dict)
 
     expected_result_dict = {
-        'costs_delta_after_malfunction': {0: 20.0}, 'costs_full': {0: 0.0}, 'costs_full_after_malfunction': {0: 20.0},
+        # costs in full and delta are delay with respect to constraints induced by malfunction,
+        # i.e. malfunction has to be added to get delay with respect to initial schedule!
+        'costs_delta_after_malfunction': {0: 0.0}, 'costs_full': {0: 0.0}, 'costs_full_after_malfunction': {0: 0.0},
         'delta': {0: {0: [TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(21, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=41, waypoint=Waypoint(position=(22, 29), direction=2)),
                           TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(23, 29), direction=2)),
@@ -342,11 +353,12 @@ def test_regression_experiment_agenda():
         'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257}}
 
     for key in expected_result_dict:
+        # TODO SIM-239 make ticket
         # TODO remove keys in expected_result_dict instead
         skip = key.startswith("time")
         skip = skip or key.startswith("solution")
         skip = skip or key.startswith("delta")
-        skip = skip or key == 'topo_dict'
+        skip = skip or key.startswith('problem')
         if not skip:
             assert expected_result_dict[key] == result_dict[key], \
                 f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"
@@ -392,7 +404,7 @@ def test_save_and_load_experiment_results():
                 for agent_id in topo_dict:
                     assert results_topo_dict[exp_id][agent_id].nodes == loaded_topo_dict[exp_id][agent_id].nodes
                     assert results_topo_dict[exp_id][agent_id].edges == loaded_topo_dict[exp_id][agent_id].edges
-        elif not key.startswith("time"):
+        elif not key.startswith("time") and not key.startswith('problem_'):
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
 
@@ -418,10 +430,13 @@ def test_run_full_pipeline():
         flatland_rendering=False
     )
 
+    # cleanup
+    delete_experiment_folder(experiment_folder_name)
+
 
 def test_parallel_experiment_execution():
     """Run a parallel experiment agenda."""
-    agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
+    agenda = ExperimentAgenda(experiment_name="test_parallel_experiment_execution", experiments=[
         ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
@@ -457,6 +472,6 @@ def test_parallel_experiment_execution():
         experiment_results_dict = experiment_results.to_dict()
 
     for key in experiment_results_dict:
-        if not key.startswith("time") and key != 'topo_dict':
+        if not key.startswith("time") and not key.startswith('problem_'):
             assert experiment_results_dict[key] == loaded_result_dict[key], \
                 f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"

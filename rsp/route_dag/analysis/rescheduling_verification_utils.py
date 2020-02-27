@@ -15,9 +15,10 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults,
           b) same waypoint and time in schedule and re-schedule -> same waypoint and ant time also in delta-re-schedule
 
     """
-    route_dag_constraints_delta_afer_malfunction = experiment_results.route_dag_constraints_delta_after_malfunction
-    route_dag_constraints_full_after_malfunction = experiment_results.route_dag_constraints_full_after_malfunction
-    topo_dict = experiment_results.topo_dict
+    route_dag_constraints_delta_afer_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
+    route_dag_constraints_schedule = experiment_results.problem_full.route_dag_constraints_dict
+    route_dag_constraints_full_after_malfunction = experiment_results.problem_full_after_malfunction.route_dag_constraints_dict
+    topo_dict = experiment_results.problem_full.topo_dict
 
     # 1. plausibility check
     # a) same waypoint in schedule and re-schedule -> waypoint also in delta re-schedule
@@ -46,15 +47,17 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults,
 
     # 2. plausibility test: number of alternatives should be decreasing
     all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = _extract_number_of_path_alternatives(
-        topo_dict, route_dag_constraints_delta_afer_malfunction,
+        topo_dict, route_dag_constraints_schedule, route_dag_constraints_delta_afer_malfunction,
         route_dag_constraints_full_after_malfunction)
 
     for agent_id in route_dag_constraints_delta_afer_malfunction:
         nb_alternatives_schedule = all_nb_alternatives_schedule[agent_id]
         nb_alternatives_rsp_full = all_nb_alternatives_rsp_full[agent_id]
         nb_alternatives_rsp_delta = all_nb_alternatives_rsp_delta[agent_id]
-        assert nb_alternatives_schedule >= nb_alternatives_rsp_full
-        assert nb_alternatives_rsp_full >= nb_alternatives_rsp_delta
+        assert nb_alternatives_schedule >= nb_alternatives_rsp_full, \
+            f"nb_alternatives_schedule={nb_alternatives_schedule}, nb_alternatives_rsp_full={nb_alternatives_rsp_full}"
+        assert nb_alternatives_rsp_full >= nb_alternatives_rsp_delta, \
+            f"nb_alternatives_rsp_full={nb_alternatives_rsp_full}, nb_alternatives_rsp_delta={nb_alternatives_rsp_delta}"
 
     assert len(all_nb_alternatives_schedule) == len(topo_dict.keys())
     assert len(all_nb_alternatives_rsp_full) == len(topo_dict.keys())

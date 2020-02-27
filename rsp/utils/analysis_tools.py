@@ -6,19 +6,34 @@ average_over_trials
     Average over all the experiment trials
 """
 import os
+from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 from matplotlib import axes
 from mpl_toolkits.mplot3d import Axes3D
 from pandas import DataFrame
 from pandas import Series
 
+from rsp.route_dag.analysis.rescheduling_analysis_utils import _extract_path_search_space
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
+from rsp.utils.data_types import COLUMNS_ANALYSIS
+from rsp.utils.data_types import convert_experiment_results_analysis_to_data_frame
+from rsp.utils.data_types import convert_pandas_series_experiment_results
+from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import extend_experiment_results_for_analysis
+
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
+
 if 'WORKSPACE' not in os.environ:
     matplotlib.use('Qt5Agg')
 # Dummy import currently because otherwise the import is removed all the time but used by 3d scatter plot
@@ -252,3 +267,158 @@ def _2d_plot_baseline(ax: axes.Axes, baseline: DataFrame, x_values: Series, y_va
     for i in np.arange(0, len(y_values)):
         ax.plot([x_values[i], x_values[i]],
                 [baseline[i], y_values[i]], marker="_")
+
+
+def expand_experiment_data_for_analysis(
+        experiment_data: DataFrame,
+        experiment_agenda_dict: Dict[int, ExperimentParameters], debug: bool = False
+) -> DataFrame:
+    """Derive additional fields from the computed results without.
+
+    Do it here for the following reasons:
+    1. no need to re-run the experiments for new derived properties;
+    2. re-run new analysis logic on existing experiment data
+    3. keep experiment logic as simple as possible
+    """
+    data = []
+
+    for _, row in experiment_data.iterrows():
+
+        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
+        experiment_id = row['experiment_id']
+
+        # derive speed up
+        speed_up = experiment_results.time_full_after_malfunction / experiment_results.time_delta_after_malfunction
+
+        # search space indiciators
+        factor_resource_conflicts = \
+            experiment_results.nb_resource_conflicts_delta_after_malfunction / \
+            experiment_results.nb_resource_conflicts_full_after_malfunction
+        path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = _extract_path_search_space(
+            experiment_results=experiment_results)
+        factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
+        used_cells: Set[Waypoint] = {
+            waypoint for agent_id, topo in
+            experiment_results.problem_full.topo_dict.items()
+            for waypoint in topo.nodes
+        }
+
+        # costs: lateness and routing penalties
+        lateness_full_after_malfunction = {}
+        sum_route_section_penalties_full_after_malfunction = {}
+        lateness_delta_after_malfunction = {}
+        sum_route_section_penalties_delta_after_malfunction = {}
+        vertex_eff_lateness_full_after_malfunction = {}
+        edge_eff_route_penalties_full_after_malfunction = {}
+        vertex_eff_lateness_delta_after_malfunction = {}
+        edge_eff_route_penalties_delta_after_malfunction = {}
+
+        for agent_id in experiment_results.solution_full.keys():
+            # full re-scheduling
+            train_run_full_after_malfunction_agent = experiment_results.solution_full_after_malfunction[agent_id]
+            dummy_target_vertex = Waypoint(
+                position=train_run_full_after_malfunction_agent[-1].waypoint.position,
+                direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+
+            train_run_full_after_malfunction_target_agent = train_run_full_after_malfunction_agent[-1]
+            train_run_full_after_malfunction_constraints_agent = \
+                experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
+            train_run_full_after_malfunction_target_earliest_agent = \
+                train_run_full_after_malfunction_constraints_agent.freeze_earliest[
+                    train_run_full_after_malfunction_target_agent.waypoint]
+            lateness_full_after_malfunction[agent_id] = \
+                max(
+                    train_run_full_after_malfunction_agent[-1].scheduled_at -
+                    train_run_full_after_malfunction_target_earliest_agent,
+                    0)
+            # TODO SIM-325 extend to all vertices
+            vertex_eff_lateness_full_after_malfunction[agent_id] = {
+                dummy_target_vertex: lateness_full_after_malfunction[agent_id]
+            }
+            edges_full_after_malfunction_agent = {
+                (wp1.waypoint, wp2.waypoint)
+                for wp1, wp2 in zip(train_run_full_after_malfunction_agent, train_run_full_after_malfunction_agent[1:])
+            }
+            edge_eff_route_penalties_full_after_malfunction_agent = {
+                edge: penalty
+                for edge, penalty in
+                experiment_results.problem_full_after_malfunction.route_section_penalties[agent_id].items()
+                if edge in edges_full_after_malfunction_agent
+            }
+            edge_eff_route_penalties_full_after_malfunction[
+                agent_id] = edge_eff_route_penalties_full_after_malfunction_agent
+            sum_route_section_penalties_full_after_malfunction[agent_id] = sum(
+                edge_eff_route_penalties_full_after_malfunction_agent.values())
+
+            # delta re-scheduling
+            train_run_delta_after_malfunction_agent = experiment_results.solution_delta_after_malfunction[agent_id]
+            train_run_delta_after_malfunction_target_agent = train_run_delta_after_malfunction_agent[-1]
+            train_run_delta_after_malfunction_constraints_agent = \
+                experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
+            train_run_delta_after_malfunction_target_earliest_agent = \
+                train_run_delta_after_malfunction_constraints_agent.freeze_earliest[
+                    train_run_delta_after_malfunction_target_agent.waypoint]
+            lateness_delta_after_malfunction[agent_id] = \
+                max(
+                    train_run_delta_after_malfunction_target_agent.scheduled_at - train_run_delta_after_malfunction_target_earliest_agent,
+                    0)
+            # TODO SIM-325 extend to all vertices
+            vertex_eff_lateness_delta_after_malfunction[agent_id] = {
+                dummy_target_vertex: lateness_delta_after_malfunction[agent_id]
+            }
+            edges_delta_after_malfunction_agent = {
+                (wp1.waypoint, wp2.waypoint)
+                for wp1, wp2 in
+                zip(train_run_delta_after_malfunction_agent, train_run_delta_after_malfunction_agent[1:])
+            }
+            edge_eff_route_penalties_delta_after_malfunction_agent = {
+                edge: penalty
+                for edge, penalty in
+                experiment_results.problem_delta_after_malfunction.route_section_penalties[agent_id].items()
+                if edge in edges_delta_after_malfunction_agent
+            }
+            edge_eff_route_penalties_delta_after_malfunction[
+                agent_id] = edge_eff_route_penalties_delta_after_malfunction_agent
+            sum_route_section_penalties_delta_after_malfunction[agent_id] = sum(
+                edge_eff_route_penalties_delta_after_malfunction_agent.values())
+
+        if debug:
+            print(f"[{experiment_id}] lateness_full_after_malfunction={lateness_full_after_malfunction}")
+            print(
+                f"[{experiment_id}] sum_route_section_penalties_full_after_malfunction={sum_route_section_penalties_full_after_malfunction}")
+            print(f"[{experiment_id}] lateness_delta_after_malfunction={lateness_delta_after_malfunction}")
+            print(
+                f"[{experiment_id}] sum_route_section_penalties_delta_after_malfunction={sum_route_section_penalties_delta_after_malfunction}")
+
+        expanded_experiment_results: ExperimentResultsAnalysis = extend_experiment_results_for_analysis(
+            experiment_results,
+            speed_up=speed_up,
+            factor_resource_conflicts=factor_resource_conflicts,
+            path_search_space_schedule=path_search_space_schedule,
+            path_search_space_rsp_full=path_search_space_rsp_full,
+            path_search_space_rsp_delta=path_search_space_rsp_delta,
+            size_used=len(used_cells),
+            factor_path_search_space=factor_path_search_space,
+            lateness_full_after_malfunction=lateness_full_after_malfunction,
+            sum_route_section_penalties_full_after_malfunction=sum_route_section_penalties_full_after_malfunction,
+            lateness_delta_after_malfunction=lateness_delta_after_malfunction,
+            sum_route_section_penalties_delta_after_malfunction=sum_route_section_penalties_delta_after_malfunction,
+            vertex_eff_lateness_full_after_malfunction=vertex_eff_lateness_full_after_malfunction,
+            edge_eff_route_penalties_full_after_malfunction=edge_eff_route_penalties_full_after_malfunction,
+            vertex_eff_lateness_delta_after_malfunction=vertex_eff_lateness_delta_after_malfunction,
+            edge_eff_route_penalties_delta_after_malfunction=edge_eff_route_penalties_delta_after_malfunction,
+        )
+        data.append(convert_experiment_results_analysis_to_data_frame(
+            experiment_results=expanded_experiment_results,
+            experiment_parameters=experiment_agenda_dict[experiment_id]
+        ))
+
+    data_frame = pd.DataFrame(columns=COLUMNS_ANALYSIS, data=data)
+    for key in ['speed_up', 'size', 'n_agents', 'max_num_cities', 'max_rail_between_cities', 'max_rail_in_city',
+                'nb_resource_conflicts_full',
+                'nb_resource_conflicts_full_after_malfunction',
+                'nb_resource_conflicts_delta_after_malfunction', 'path_search_space_schedule',
+                'path_search_space_rsp_full', 'path_search_space_rsp_delta',
+                'factor_path_search_space', 'size_used']:
+        data_frame[key] = data_frame[key].astype(float)
+    return data_frame

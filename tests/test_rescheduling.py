@@ -204,15 +204,13 @@ def test_rescheduling_no_bottleneck():
     full_reschedule_result = asp_reschedule_wrapper(
         malfunction=fake_malfunction,
         malfunction_rail_env=dynamic_env,
-        tc=get_freeze_for_full_rescheduling(
+        reschedule_problem_description=get_freeze_for_full_rescheduling(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
             latest_arrival=dynamic_env._max_episode_steps,
             topo_dict=tc_schedule_problem.topo_dict
         ),
-        rendering=False,
-        debug=False,
         malfunction_env_reset=lambda *args, **kwargs: None
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
@@ -220,6 +218,7 @@ def test_rescheduling_no_bottleneck():
     # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 0 (equals malfunction delay)
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
     actual_costs = full_reschedule_result.optimization_costs
+
     assert actual_costs == 0, f"actual costs {actual_costs}"
 
     assert full_reschedule_trainruns[0][-1].scheduled_at == 66
@@ -474,13 +473,13 @@ def test_rescheduling_bottleneck():
         malfunction=fake_malfunction,
         malfunction_env_reset=lambda *args, **kwargs: None,
         malfunction_rail_env=dynamic_env,
-        tc=get_freeze_for_full_rescheduling(
+        reschedule_problem_description=get_freeze_for_full_rescheduling(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=tc_reschedule_problem.minimum_travel_time_dict,
             latest_arrival=dynamic_env._max_episode_steps,
             topo_dict=tc_reschedule_problem.topo_dict
-        ),
+        )
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
 
@@ -498,7 +497,8 @@ def test_rescheduling_bottleneck():
         f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
 
     # the solver returns the delay with respect to the defined earliest time (which is 20 after the scheduled arrival)
-    expected_costs = expected_delay_wr_schedule - 20
+    expected_rerouting_penalty = 1
+    expected_costs = expected_delay_wr_schedule - 20 + expected_rerouting_penalty
     assert actual_costs == expected_costs, f"actual costs {actual_costs} from solver, expected {expected_costs}"
 
 
@@ -806,7 +806,7 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
         minimum_travel_time_dict=schedule_problem.tc.minimum_travel_time_dict
     )
     delta_reschedule_result = asp_reschedule_wrapper(
-        tc=tc_delta_reschedule_problem,
+        reschedule_problem_description=tc_delta_reschedule_problem,
         malfunction=fake_malfunction,
         # TODO SIM-239 code smell: why do we need env????
         malfunction_rail_env=dynamic_env,

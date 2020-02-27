@@ -1,4 +1,5 @@
 import re
+from typing import List
 from typing import Set
 
 from flatland.envs.rail_trainrun_data_structures import Trainrun
@@ -81,14 +82,21 @@ class ASPSolutionDescription():
         # remove the transition from the target waypoint to the dummy
         assert path[-1].waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET, \
             f"{path[-1]}"
+        # TODO SIM-3222 hard-coded assumption that last segment is 1
+        assert path[-1].scheduled_at - path[-2].scheduled_at == 1, f"{path[-2:]}"
         path = path[:-1]
         return path
 
     def get_objective_value(self) -> float:
         return self.asp_solution.stats['summary']['costs'][0]
 
-    def get_list_of_lates(self):
-        return len(list(filter(lambda s: s.startswith('late('), self.answer_set)))
+    # TODO SIM-190: extract values
+    def extract_list_of_lates(self) -> List[str]:
+        return list(filter(lambda s: s.startswith('late('), self.answer_set))
+
+    # TODO SIM-190: extract values
+    def extract_list_of_active_penalty(self) -> List[str]:
+        return list(filter(lambda s: s.startswith('active_penalty('), self.answer_set))
 
     def extract_nb_resource_conflicts(self) -> int:
         return len(list(filter(lambda s: s.startswith('shared('), self.answer_set)))
