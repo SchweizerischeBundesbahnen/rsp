@@ -59,7 +59,8 @@ from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.tee import multifile
+from rsp.utils.tee import reset_tee
+from rsp.utils.tee import tee_stdout_to_file
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -234,10 +235,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     check_create_folder(experiment_folder_name)
 
     # tee stdout to log file
-    log_file = os.path.join(experiment_folder_name, "log.txt")
-    print(f"log_file={log_file}")
-    stdout_orig = sys.stdout
-    sys.stdout = multifile([sys.stdout, open(log_file, 'w')])
+    stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_folder_name, "log.txt"))
 
     if experiment_ids is not None:
         filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
@@ -269,7 +267,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                         experiment_folder_name,
                                         rendering=rendering)
 
-    sys.stdout = stdout_orig
+    # remove tee
+    reset_tee(stdout_orig)
     return experiment_folder_name
 
 
