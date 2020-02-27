@@ -156,16 +156,14 @@ class ASPProblemDescription():
         self.asp_program.append("edge(t{}, {},{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
                                                            self._sanitize_waypoint(exit_waypoint)))
 
-        # minimum waiting time: w(T,E,W)
-        # TODO workaround we use waiting times to model train-specific minimum travel time;
-        #      instead we should use train-specific route graphs which are linked by resources only!
+        # minimum waiting time: w(T,(V,V'),W)
         self.asp_program.append(
             "w(t{}, ({},{}),{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
                                          self._sanitize_waypoint(exit_waypoint),
-                                         int(minimum_travel_time)))
-        # minimum running time: m(E,M)
-        self.asp_program.append("m(({},{}),{}).".format(self._sanitize_waypoint(entry_waypoint),
-                                                        self._sanitize_waypoint(exit_waypoint), 0))
+                                         0))
+        # minimum running time: m(T,(V,V'),M)
+        self.asp_program.append("m(t{},({},{}),{}).".format(agent_id,self._sanitize_waypoint(entry_waypoint),
+                                                        self._sanitize_waypoint(exit_waypoint), int(minimum_travel_time)))
 
         # declare resource
         # TODO SIM-144 resource may be declared multiple times, maybe we should declare resource by
@@ -188,22 +186,6 @@ class ASPProblemDescription():
     def solve(self, verbose: bool = False) -> ASPSolutionDescription:
         """Return the solver and return solver-specific solution
         description."""
-        # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
-        # (we don't use all features in encoding.lp)
-        self.asp_program.append("bridge(0,0,0).")
-        self.asp_program.append("edge(0,0,0,0).")
-        self.asp_program.append("relevant(0,0,0).")
-        self.asp_program.append("m(0,1).")
-        self.asp_program.append("connection(0,(0,0),0,(0,0),0).")
-        self.asp_program.append("penalty(0,0).")
-        self.asp_program.append("penalty(0,0,0).")
-        # initially, not act_penalty_for_train activated
-        self.asp_program.append("act_penalty_for_train(0,0,0).")
-
-        # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
-        # TODO SIM-322 hard-coded value 1
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), visit(T,V), visit(T,V'), edge(T,V,V').")
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), visit(T,V), visit(T,V'), edge(T,V,V').")
 
         asp_solution = flux_helper(self.asp_program,
                                    bound_all_events=self.tc.max_episode_steps,
@@ -282,6 +264,29 @@ class ASPProblemDescription():
         if self.asp_objective == ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED:
             _new_asp_program.append(f"#const weight_lateness_seconds = {tc.weight_lateness_seconds}.")
 
+        # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
+        # (we don't use all features in encoding.lp)
+        self.asp_program.append("bridge(0,0,0).")
+        self.asp_program.append("edge(0,0,0,0).")
+        self.asp_program.append("relevant(0,0,0).")
+        self.asp_program.append("m(0,1).")
+        self.asp_program.append("connection(0,(0,0),0,(0,0),0).")
+        self.asp_program.append("penalty(0,0).")
+        self.asp_program.append("penalty(0,0,0).")
+        self.asp_program.append("act_penalty_for_train(0,0,0).")
+
+        self.asp_program.append("collision_free_connection(0,0,0,0,0).")
+        self.asp_program.append("collision_free_connection(0,0,0,0).")
+        self.asp_program.append("json_resource_chunk(0,0,0,0).")
+        self.asp_program.append("timed_connection(0,0,0,0,0,0,0,0).")
+        self.asp_program.append("delta(0,0).")
+        self.asp_program.append("bridge(0,0).")
+
+        # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
+        # TODO SIM-322 hard-coded value 1
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), visit(T,V), visit(T,V'), edge(T,V,V').")
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), visit(T,V), visit(T,V'), edge(T,V,V').")
+
         # cleanup
         return _new_asp_program
 
@@ -326,7 +331,9 @@ class ASPProblemDescription():
 
             # add earliest constraint
             # l(t1,1,2).
+            # relevant(l,t1,1).
             frozen.append(f"l({train},{vertex},{time}).")
+            frozen.append(f"relevant(l,{train},{vertex}).")
 
         for waypoint, scheduled_at in freeze.freeze_earliest.items():
             vertex = self._sanitize_waypoint(waypoint)
@@ -334,7 +341,9 @@ class ASPProblemDescription():
 
             # add earliest constraint
             # e(t1,1,2).
+            # relevant(e,t1,2).
             frozen.append(f"e({train},{vertex},{time}).")
+            frozen.append(f"relevant(e,{train},{vertex}).")
 
         for waypoint in freeze.freeze_banned:
             vertex = self._sanitize_waypoint(waypoint)

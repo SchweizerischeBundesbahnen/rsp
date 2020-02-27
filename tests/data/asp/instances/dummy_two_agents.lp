@@ -1,31 +1,45 @@
 % train t1 runs 1 -> 4
 train(t1).
 edge(t1,1,4).
+edge(t1,(0,(1,4)),1,4).
+
+
 start(t1,1).
 end(t1,4).
 e(t1,1,0),
+l(t1,1,6),
+relevant(e,t1,1).
+relevant(l,t1,1).
 l(t1,4,6).
 e(t1,4,0),
-l(t1,4,6).
-m((1,4),2).
+relevant(e,t1,4).
+relevant(l,t1,4).
+m(t1,(1,4),2).
 w(t1,(1,4),0).
 
 
 % train t2 runs opposite 4 -> 1
 train(t2).
 edge(t2,4,1).
+edge(t2,(0,(4,1)),4,1).
 start(t2,4).
 end(t2,1).
 e(t2,1,0).
 l(t2,1,6).
+relevant(e,t2,1).
+relevant(l,t2,1).
 e(t2,4,0).
 l(t2,4,6).
-m((4,1),1).
+relevant(e,t2,4).
+relevant(l,t2,4).
+m(t2,(4,1),1).
 w(t2,(4,1),0).
 
-% common resource r1 without release time 1
+% common resource r without release time 5
 resource(r,(1,4)).
 resource(r,(4,1)).
+json_resource_chunk(t1,r,r,(1,4)).
+json_resource_chunk(t2,r,r,(4,1)).
 b(r,5).
 
 

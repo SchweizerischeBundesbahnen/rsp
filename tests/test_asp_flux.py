@@ -1,5 +1,8 @@
-import time
+import os
+from pathlib import Path
+from typing import Set
 
+import time
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.observations import TreeObsForRailEnv
 from flatland.envs.predictions import ShortestPathPredictorForRailEnv
@@ -15,11 +18,18 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 
+ENCODING_LP = [os.path.join(Path(os.path.abspath(__file__)).parents[1], 'train-scheduling-with-hybrid-asp', "encodings",
+                            "encoding",
+                            'encoding.lp'),
+               os.path.join(Path(os.path.abspath(__file__)).parents[1], 'train-scheduling-with-hybrid-asp', "encodings",
+                            "encoding",
+                            'preprocessing.lp')
+               ]
+
 
 def test_asp_helper():
     with path('tests.data.asp.instances', 'dummy.lp') as instance_in:
-        with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-            models, _, _, _ = _asp_helper([instance_in, encoding_in])
+        models, _, _, _ = _asp_helper([instance_in] + ENCODING_LP)
 
     print(models)
     assert len(models) == 1
@@ -27,34 +37,54 @@ def test_asp_helper():
 
     expected = set([
         'start(t1,1)',
-        'm((1,4),1)',
+        'm(t1,(1,4),1)',
         'visit(t1,4)',
         'e(t1,1,0)',
         'l(t1,1,6)',
+        'relevant(e,t1,1)',
+        'relevant(l,t1,1)',
         'visit(t1,1)',
         'edge(t1,1,4)',
         'route(t1,(1,4))',
         'w(t1,(1,4),0)',
         'e(t1,4,0)',
         'l(t1,4,6)',
-        'dl((t1,4),1)',
+        'relevant(e,t1,4)',
+        'relevant(l,t1,4)',
         'end(t1,4)',
         'train(t1)',
-        'dl((t1,1),0)'
+        'dl((t1,0),0)',
+        'dl((t1,1),1)'
     ])
-    assert actual == expected, "actual {}, expected {}".format(actual, expected)
+    dls = list(filter(lambda x: x.startswith("dl"), actual))
+    visits = list(filter(lambda x: x.startswith("visit"), actual))
+    node_pos = list(filter(lambda x: x.startswith("node_pos"), actual))
+    print(dls)
+    print(visits)
+    print(node_pos)
+    assert actual.issuperset(expected), \
+        "\nactual={},\nexpected={},\nmissing={},\nnot expeccted={}".format(
+            actual,
+            expected,
+            expected.difference(actual),
+            actual.difference(expected)
+        )
 
 
 def test_mutual_exclusion():
     with path('tests.data.asp.instances', 'dummy_two_agents.lp') as instance_in:
-        with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-            models, statistics, _, _ = _asp_helper([instance_in, encoding_in])
+        models, statistics, _, _ = _asp_helper([instance_in] + ENCODING_LP)
 
     # we do not optimize, we get two models!
-    assert len(models) == 2
+    # assert len(models) == 2
     print(models)
     expected_dl1 = set(['dl((t1,4),8)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),6)'])
     expected_dl2 = set(['dl((t1,4),2)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),0)'])
+    for actual in models:
+        dls = list(filter(lambda x: x.startswith("dl"), actual))
+        visits = list(filter(lambda x: x.startswith("visit"), actual))
+        print(dls)
+        print(visits)
     for actual in models:
         assert actual.issuperset(expected_dl1) or actual.issuperset(expected_dl2), \
             "actual {} expected to be superset of {} or of {}".format(actual, expected_dl1, expected_dl2)
@@ -83,14 +113,13 @@ def test_simple_rail_asp_one_agent():
 
     print(problem.asp_program)
     models, stats, _, _ = flux_helper(problem.asp_program)
-
     solve_time = (time.time() - start_solver)
     print("solve_time={:5.3f}ms".format(solve_time))
 
     assert int(stats['summary']['models']['enumerated']) == 1
-    actual_answer_set = list(models)[0]
+    actual_answer_set: Set[str] = list(models)[0]
 
-    expected = set([
+    expected: Set[str] = set([
         "dl((t0,((3,1),5)),0)",
         "dl((t0,((3,1),1)),1)",
         "dl((t0,((3,2),1)),2)",
@@ -100,8 +129,10 @@ def test_simple_rail_asp_one_agent():
         "dl((t0,((3,5),5)),6)"
     ])
 
+    print({dl for dl in actual_answer_set if dl.startswith("dl(")})
     assert actual_answer_set.issuperset(expected), \
-        "expected={} should be subset of actual={}".format(expected, actual_answer_set)
+        "expected={} should be subset of \nactual={}, \nmissing={}".format(
+            expected, actual_answer_set, expected.difference(actual_answer_set))
 
     solution: ASPSolutionDescription = problem.solve()
     print(solution.asp_solution.answer_sets)
@@ -110,8 +141,7 @@ def test_simple_rail_asp_one_agent():
 def test_asp_helper_forcing():
     """Case study to freeze variables by adding facts."""
     with path('tests.data.asp.instances', 'dummy_forced.lp') as instance_in:
-        with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-            models, _, _, _ = _asp_helper([instance_in, encoding_in])
+        models, _, _, _ = _asp_helper([instance_in] + ENCODING_LP)
 
     print(models)
     assert len(models) == 1
@@ -119,8 +149,12 @@ def test_asp_helper_forcing():
 
     expected = set([
         'e(t1,1,0)',
+        'relevant(e,t1,1)',
+        'relevant(l,t1,1)',
         'l(t1,1,6)',
         'l(t1,4,6)',
+        'relevant(e,t1,4)',
+        'relevant(l,t1,4)',
         'start(t1,1)',
         'dl((t1,1),2)',
         'w(t1,(1,4),0)',
@@ -143,8 +177,7 @@ def test_minimize_sum_of_running_times_scheduling():
     encodings = []
     with path('tests.data.asp.instances', 'dummy_two_agents_minimize_sum_of_running_times.lp') as instance_in:
         encodings.append(instance_in)
-    with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-        encodings.append(encoding_in)
+    encodings += ENCODING_LP
     with path('res.asp.encodings', 'minimize_total_sum_of_running_times.lp') as encoding_in:
         encodings.append(encoding_in)
     models, all_statistics, _, _ = _asp_helper(encodings)
@@ -175,8 +208,7 @@ def test_minimize_delay_rescheduling():
     encodings = []
     with path('tests.data.asp.instances', 'dummy_two_agents_rescheduling.lp') as instance_in:
         encodings.append(instance_in)
-    with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-        encodings.append(encoding_in)
+    encodings += ENCODING_LP
     with path('res.asp.encodings', 'minimize_delay.lp') as encoding_in:
         encodings.append(encoding_in)
     models, all_statistics, _, _ = _asp_helper(encoding_files=encodings)

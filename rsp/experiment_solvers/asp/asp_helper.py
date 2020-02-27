@@ -1,6 +1,7 @@
 import json
-import time
+import os
 from enum import Enum
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -9,6 +10,7 @@ from typing import Set
 
 import clingo
 import numpy as np
+import time
 from importlib_resources import path
 
 from rsp.experiment_solvers.asp import theory
@@ -83,11 +85,14 @@ def flux_helper(
     -------
     """
     prg_text_joined = "\n".join(asp_data)
-    if debug:
+    if debug or True:
         print(prg_text_joined)
-
-    with path('res.asp.encodings', 'encoding.lp') as encoding_path:
-        paths = [encoding_path]
+    # with open(, encoding='utf-8') as encoding_path:
+    paths = [os.path.join(Path(os.path.abspath(__file__)).parents[3], 'train-scheduling-with-hybrid-asp', "encodings", "encoding",
+                              'encoding.lp'),
+             os.path.join(Path(os.path.abspath(__file__)).parents[3], 'train-scheduling-with-hybrid-asp', "encodings", "encoding",
+                          'preprocessing.lp')
+             ]
 
     if asp_heurisics:
         for asp_heurisic in asp_heurisics:
@@ -164,7 +169,10 @@ def _asp_helper(encoding_files: List[str],
         if plain_encoding:
             print("taking plain_encoding={}".format(plain_encoding))
     for enc in encoding_files:
-        ctl.load(str(enc))
+        print(enc)
+        # ctl.load(enc)
+        with open(enc) as text:
+            ctl.add("base", [], text.read())
     if plain_encoding:
         ctl.add("base", [], plain_encoding)
     if verbose:
