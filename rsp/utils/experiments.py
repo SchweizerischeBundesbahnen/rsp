@@ -36,6 +36,7 @@ import time
 import traceback
 from functools import partial
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
@@ -58,6 +59,8 @@ from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.tee import reset_tee
+from rsp.utils.tee import tee_stdout_to_file
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -125,7 +128,6 @@ def run_experiment(solver: ASPExperimentSolver,
         print(f"schedule_and_malfunction={schedule_and_malfunction}")
         current_results: ExperimentResults = solver.run_experiment_trial(
             schedule_and_malfunction=schedule_and_malfunction,
-            static_rail_env=static_rail_env,
             malfunction_rail_env=malfunction_rail_env,
             malfunction_env_reset=malfunction_env_reset,
             experiment_parameters=experiment_parameters,
@@ -168,50 +170,6 @@ def run_experiment(solver: ASPExperimentSolver,
     return data_frame
 
 
-def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
-                          run_experiments_parallel: bool = True,
-                          show_results_without_details: bool = True,
-                          verbose: bool = False) -> str:
-    """Run a given experiment_agenda with a suitable solver, return the name of
-    the experiment folder.
-
-    Parameters
-    ----------
-    experiment_agenda: ExperimentAgenda
-        List of ExperimentParameters
-    run_experiments_parallel: bool
-        run experiments in parallel
-    show_results_without_details: bool
-        Print results
-    verbose: bool
-        Print additional information
-
-    Returns
-    -------
-    Returns the name of the experiment folder
-    """
-    experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
-    save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda)
-
-    # Import the solver for the experiments
-    solver = ASPExperimentSolver()
-
-    if run_experiments_parallel:
-        pool = multiprocessing.Pool()
-        run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
-                                                      solver=solver,
-                                                      verbose=verbose,
-                                                      show_results_without_details=show_results_without_details,
-                                                      experiment_folder_name=experiment_folder_name)
-        pool.map(run_and_save_one_experiment_partial, experiment_agenda.experiments)
-    else:
-        for current_experiment_parameters in experiment_agenda.experiments:
-            run_and_save_one_experiment(current_experiment_parameters, solver, verbose, show_results_without_details,
-                                        experiment_folder_name)
-
-    return experiment_folder_name
-
-
 def _write_sha_txt(folder_name: str):
     """
     Write the current commit hash to a file "sha.txt" in the given folder
@@ -222,7 +180,9 @@ def _write_sha_txt(folder_name: str):
     import git
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha
-    with open(os.path.join(folder_name, 'sha.txt'), 'w') as out:
+    out_file = os.path.join(folder_name, 'sha.txt')
+    print(f"writing {sha} to {out_file}")
+    with open(out_file, 'w') as out:
         out.write(sha)
 
 
@@ -245,23 +205,20 @@ def run_and_save_one_experiment(current_experiment_parameters,
         traceback.print_exc(file=sys.stdout)
 
 
-def run_specific_experiments_from_research_agenda(solver: ASPExperimentSolver,
-                                                  experiment_agenda: ExperimentAgenda,
-                                                  experiment_ids: List[int],
-                                                  run_experiments_parallel: bool = True,
-                                                  show_results_without_details: bool = True,
-                                                  rendering: bool = False,
-                                                  verbose: bool = False) -> str:
+def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
+                          experiment_ids: Optional[List[int]] = None,
+                          run_experiments_parallel: bool = True,
+                          show_results_without_details: bool = True,
+                          rendering: bool = False,
+                          verbose: bool = False) -> str:
     """Run a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
 
     Parameters
     ----------
-    solver: ASPExperimentSolver
-        ASPExperimentSolver to be used for the experiments
     experiment_agenda: ExperimentAgenda
         Full list of experiments
-    experiment_ids: List[int]
+    experiment_ids: Optional[List[int]]
         List of experiment IDs we want to run
     run_experiments_parallel: bool
         run experiments in parallel
@@ -275,14 +232,22 @@ def run_specific_experiments_from_research_agenda(solver: ASPExperimentSolver,
     Returns the name of the experiment folder
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
+    check_create_folder(experiment_folder_name)
 
-    filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
-    experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
-    experiment_agenda_filtered = ExperimentAgenda(
-        experiment_name=experiment_agenda.experiment_name,
-        experiments=list(experiments_filtered)
-    )
-    save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda_filtered)
+    # tee stdout to log file
+    stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_folder_name, "log.txt"))
+
+    if experiment_ids is not None:
+        filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
+        experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+        experiment_agenda = ExperimentAgenda(
+            experiment_name=experiment_agenda.experiment_name,
+            experiments=list(experiments_filtered)
+        )
+
+    save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda)
+
+    solver = ASPExperimentSolver()
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
@@ -292,9 +257,9 @@ def run_specific_experiments_from_research_agenda(solver: ASPExperimentSolver,
                                                       show_results_without_details=show_results_without_details,
                                                       experiment_folder_name=experiment_folder_name
                                                       )
-        pool.map(run_and_save_one_experiment_partial, experiment_agenda_filtered.experiments)
+        pool.map(run_and_save_one_experiment_partial, experiment_agenda.experiments)
     else:
-        for current_experiment_parameters in experiment_agenda_filtered.experiments:
+        for current_experiment_parameters in experiment_agenda.experiments:
             run_and_save_one_experiment(current_experiment_parameters,
                                         solver,
                                         verbose,
@@ -302,6 +267,8 @@ def run_specific_experiments_from_research_agenda(solver: ASPExperimentSolver,
                                         experiment_folder_name,
                                         rendering=rendering)
 
+    # remove tee
+    reset_tee(stdout_orig)
     return experiment_folder_name
 
 
