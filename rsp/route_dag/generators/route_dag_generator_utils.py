@@ -106,7 +106,8 @@ def propagate_latest(banned_set: Set[Waypoint],
 def get_delayed_trainrun_waypoint_after_malfunction(
         agent_id: int,
         trainrun: Trainrun,
-        malfunction: ExperimentMalfunction) -> TrainrunWaypoint:
+        malfunction: ExperimentMalfunction,
+        minimum_travel_time: int) -> TrainrunWaypoint:
     """Returns the trainrun waypoint after the malfunction that needs to be re.
 
     Parameters
@@ -124,10 +125,8 @@ def get_delayed_trainrun_waypoint_after_malfunction(
             if agent_id == malfunction.agent_id:
                 return TrainrunWaypoint(
                     waypoint=trainrun_waypoint.waypoint,
-                    # TODO + 1?
-                    scheduled_at=previous_scheduled + malfunction.malfunction_duration + 1)
+                    scheduled_at=previous_scheduled + malfunction.malfunction_duration + minimum_travel_time)
             else:
-                # TODO may this be to pessimistic? should earliest be previous_scheduled + minimum_running_time?
                 return trainrun_waypoint
         previous_scheduled = trainrun_waypoint.scheduled_at
     return trainrun[-1]
@@ -209,7 +208,8 @@ def verify_route_dag_constraints_for_agent(
                 assert route_dag_constraints.freeze_latest[waypoint] == earliest
                 assert waypoint in route_dag_constraints.freeze_visit
             else:
-                assert earliest >= malfunction.time_step + malfunction.malfunction_duration, f"{agent_id} {malfunction}"
+                assert earliest >= malfunction.time_step + malfunction.malfunction_duration, \
+                    f"{agent_id} {malfunction}. found earliest={earliest} for {waypoint}"
 
     # verify that scheduled train run is in the solution space
     if scheduled_trainrun:
