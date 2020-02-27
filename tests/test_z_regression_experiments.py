@@ -6,12 +6,14 @@ import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.data_types import ExperimentResults
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import load_experiment_results_from_folder
@@ -84,7 +86,9 @@ def test_created_env_tuple():
                                            earliest_malfunction=10,
                                            malfunction_duration=20,
                                            speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10)
+                                           number_of_shortest_paths_per_agent=10,
+                                           weight_route_change=1,
+                                           weight_lateness_seconds=1)
 
     # Generate the tuple of environments
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
@@ -109,11 +113,12 @@ def test_regression_experiment_agenda():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
+                             weight_route_change=1, weight_lateness_seconds=1
+                             )])
 
     # Import the solver for the experiments
-    solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False, verbose=True)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False, verbose=True)
 
     hypothesis_one_data_analysis(
         data_folder=experiment_folder_name,
@@ -353,7 +358,6 @@ def test_regression_experiment_agenda():
         'time_delta_after_malfunction': {0: 0.208}, 'time_full': {0: 0.205}, 'time_full_after_malfunction': {0: 0.257}}
 
     for key in expected_result_dict:
-        # TODO SIM-239 make ticket
         # TODO remove keys in expected_result_dict instead
         skip = key.startswith("time")
         skip = skip or key.startswith("solution")
@@ -374,10 +378,11 @@ def test_save_and_load_experiment_results():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
+                             weight_route_change=1, weight_lateness_seconds=1)])
 
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     # load results
     loaded_results = load_experiment_results_from_folder(experiment_folder_name)
@@ -416,10 +421,10 @@ def test_run_full_pipeline():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10)])
+                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
+                             weight_route_change=1, weight_lateness_seconds=1)])
 
-    solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=False)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     hypothesis_one_data_analysis(
         data_folder=experiment_folder_name,
@@ -434,6 +439,73 @@ def test_run_full_pipeline():
     delete_experiment_folder(experiment_folder_name)
 
 
+def test_run_alpha_beta():
+    """Ensure that we get the exact same solution if we multiply the weights
+    for route change and lateness by the same factor."""
+
+    # TODO SIM-339: skip this test in ci under Linux
+    from sys import platform
+    if platform == "linux" or platform == "linux2":
+        return
+
+    experiment_parameters = ExperimentParameters(
+        experiment_id=9, experiment_group=0, trials_in_experiment=1, number_of_agents=11,
+        speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30, seed_value=12,
+        max_num_cities=20, grid_mode=False, max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
+        malfunction_duration=20, number_of_shortest_paths_per_agent=10,
+        weight_route_change=20, weight_lateness_seconds=1
+    )
+    scale = 5
+    experiment_parameters_scaled = ExperimentParameters(**dict(
+        experiment_parameters._asdict(),
+        **{
+            'weight_route_change': experiment_parameters.weight_route_change * scale,
+            'weight_lateness_seconds': experiment_parameters.weight_lateness_seconds * scale
+        }))
+
+    solver = ASPExperimentSolver()
+
+    # since Linux and Windows do not produce do not produces the same results with the same seed,
+    #  we want to at least control the environments (the schedule will not be the same!)
+    # environments not correctly initialized if not created the same way, therefore use create_env_pair_for_experiment
+    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+    # override grid from loaded file
+    static_rail_env.load_resource('tests.data.alpha_beta', "static_env_alpha_beta.pkl")
+    malfunction_rail_env.load_resource('tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
+
+    def malfunction_env_reset():
+        malfunction_rail_env.reset(False, False, False, experiment_parameters.seed_value)
+
+    schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+        static_rail_env=static_rail_env,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters
+    )
+
+    experiment_result_scaled: ExperimentResults = solver.run_experiment_trial(
+        schedule_and_malfunction=schedule_and_malfunction,
+        static_rail_env=static_rail_env,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters_scaled,
+    )
+
+    experiment_result: ExperimentResults = solver.run_experiment_trial(
+        schedule_and_malfunction=schedule_and_malfunction,
+        static_rail_env=static_rail_env,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters,
+    )
+
+    assert experiment_result.costs_full_after_malfunction > 0
+    assert (experiment_result.costs_full_after_malfunction * scale ==
+            experiment_result_scaled.costs_full_after_malfunction)
+    assert (experiment_result.solution_full_after_malfunction ==
+            experiment_result_scaled.solution_full_after_malfunction)
+
+
 def test_parallel_experiment_execution():
     """Run a parallel experiment agenda."""
     agenda = ExperimentAgenda(experiment_name="test_parallel_experiment_execution", experiments=[
@@ -441,20 +513,20 @@ def test_parallel_experiment_execution():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10),
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1),
         ExperimentParameters(experiment_id=1, experiment_group=0, trials_in_experiment=3, number_of_agents=3, width=30,
                              height=30,
                              seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10),
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1),
         ExperimentParameters(experiment_id=2, experiment_group=0, trials_in_experiment=3, number_of_agents=4, width=30,
                              height=30,
                              seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10)])
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1)])
 
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(solver, agenda, run_experiments_parallel=True)
+    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=True)
 
     # load results
     loaded_results = load_experiment_results_from_folder(experiment_folder_name)

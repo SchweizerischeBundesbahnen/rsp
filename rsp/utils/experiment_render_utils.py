@@ -101,28 +101,28 @@ def visualize_experiment(
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
                        if data_folder is not None else None)
         )
-        # full_after_malfunction
+        # delta after malfunction
         visualize_route_dag_constraints(
             topo=topo,
             train_run_input=train_runs_input[agent_id],
             train_run_full_after_malfunction=train_run_full_after_malfunction,
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
-            vertex_eff_lateness=experiment_results.vertex_eff_lateness_full_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results.edge_eff_route_penalties_full_after_malfunction[agent_id],
+            vertex_eff_lateness=experiment_results.vertex_eff_lateness_delta_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results.edge_eff_route_penalties_delta_after_malfunction[agent_id],
             route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
                 problem_rsp_delta.route_dag_constraints_dict[agent_id],
                 k=experiment_parameters.number_of_shortest_paths_per_agent,
-                costs=costs_full_after_malfunction,
-                eff_lateness_agent=lateness_full_after_malfunction[agent_id],
-                eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
+                costs=costs_delta_after_malfunction,
+                eff_lateness_agent=lateness_delta_after_malfunction[agent_id],
+                eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[agent_id]),
             file_name=(os.path.join(experiment_output_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
                        if data_folder is not None else None)
         )
-        # delta_after_malfunction
+        # full rescheduling
         visualize_route_dag_constraints(
             topo=topo,
             train_run_input=train_runs_input[agent_id],
@@ -136,9 +136,9 @@ def visualize_experiment(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
                 problem_rsp_full.route_dag_constraints_dict[agent_id],
                 k=experiment_parameters.number_of_shortest_paths_per_agent,
-                costs=costs_delta_after_malfunction,
-                eff_lateness_agent=lateness_delta_after_malfunction[agent_id],
-                eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[agent_id]),
+                costs=costs_full_after_malfunction,
+                eff_lateness_agent=lateness_full_after_malfunction[agent_id],
+                eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
             file_name=(os.path.join(experiment_output_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
                        if data_folder is not None else None)

@@ -1,7 +1,6 @@
 from typing import Dict
 from typing import Tuple
 
-from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_experiment_agenda
@@ -46,24 +45,21 @@ def get_first_agenda_pipeline_params() -> Tuple[ParameterRanges, Dict[float, flo
 if __name__ == '__main__':
     parameter_ranges, speed_data = get_first_agenda_pipeline_params()
 
-    # Create an experiment agenda out of the parameter ranges blabla
+    # A. Experiment Planning: Create an experiment agenda out of the parameter ranges
     experiment_agenda = create_experiment_agenda(experiment_name="exp_hypothesis_one",
                                                  speed_data=speed_data,
                                                  parameter_ranges=parameter_ranges,
                                                  trials_per_experiment=1
                                                  )
 
-    # Import the solver for the experiments
-    solver = ASPExperimentSolver()
-
-    # Run experiments
+    # B. Experiments: setup, then run
     experiment_folder_name = run_experiment_agenda(
-        solver=solver,
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=True,
         show_results_without_details=False,
         verbose=False)
 
+    # C. Experiment Analysis
     hypothesis_one_data_analysis(
         data_folder=experiment_folder_name,
         analysis_2d=True,

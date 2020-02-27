@@ -90,11 +90,9 @@ class ASPSolutionDescription():
     def get_objective_value(self) -> float:
         return self.asp_solution.stats['summary']['costs'][0]
 
-    # TODO SIM-190: extract values
     def extract_list_of_lates(self) -> List[str]:
         return list(filter(lambda s: s.startswith('late('), self.answer_set))
 
-    # TODO SIM-190: extract values
     def extract_list_of_active_penalty(self) -> List[str]:
         return list(filter(lambda s: s.startswith('active_penalty('), self.answer_set))
 

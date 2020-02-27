@@ -17,7 +17,6 @@ from rsp.utils.data_types import ExperimentResults
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-# TODO SIM-151: use in plots instead of log output
 def _analyze_times(experiment_results: ExperimentResults):
     time_delta_after_m = experiment_results.time_delta_after_malfunction
     time_full_after_m = experiment_results.time_full_after_malfunction
@@ -49,10 +48,10 @@ def _analyze_times(experiment_results: ExperimentResults):
     # TODO SIM-151 do we need absolute counts as well as below?
     print(
         f"**** full schedule -> full re-schedule: {schedule_full_reschedule_freeze_percentage}%"
-        " of waypoints in the full schedule stay the same in the full re-schedule")
+        " of trainrun waypoints in the full schedule stay the same in the full re-schedule")
     print(
         f"**** full schedule -> full re-schedule: {schedule_full_reschedule_delta_percentage}% "
-        "of waypoints in the full re-schedule are different from the initial full schedule")
+        "of trainrun waypoints in the full re-schedule are different from the initial full schedule")
     all_full_reschedule_trainrunwaypoints = {
         full_reschedule_trainrunwaypoint
         for full_reschedule_trainrunwaypoints in full_reschedule_trainrunwaypoints_dict.values()

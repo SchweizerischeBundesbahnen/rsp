@@ -33,7 +33,8 @@ ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
     ('minimum_travel_time_dict', Dict[int, int]),
     ('topo_dict', Dict[int, nx.DiGraph]),
     ('max_episode_steps', int),
-    ('route_section_penalties', RouteSectionPenaltiesDict)
+    ('route_section_penalties', RouteSectionPenaltiesDict),
+    ('weight_lateness_seconds', int),
 ])
 
 
@@ -156,3 +157,36 @@ def _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict: Agen
         for sink in sinks:
             topo.add_edge(sink, dummy_sink_waypoint)
     return dummy_source_dict, topo_dict
+
+
+def apply_weight_route_change(
+        schedule_problem: ScheduleProblemDescription,
+        weight_route_change: int,
+        weight_lateness_seconds: int
+):
+    """Returns a new `ScheduleProblemDescription` with all route section
+    penalties scaled by the factor and with `weight_lateness_seconds`set as
+    given.
+
+    Parameters
+    ----------
+    schedule_problem: ScheduleProblemDescription
+    weight_route_change: int
+    weight_lateness_seconds: int
+
+    Returns
+    -------
+    ScheduleProblemDescription
+    """
+    problem_weights = dict(
+        schedule_problem._asdict(),
+        **{
+            'route_section_penalties': {agent_id: {
+                edge: penalty * weight_route_change
+                for edge, penalty in agent_route_section_penalties.items()
+            } for agent_id, agent_route_section_penalties in
+                schedule_problem.route_section_penalties.items()},
+            'weight_lateness_seconds': weight_lateness_seconds
+        })
+    schedule_problem = ScheduleProblemDescription(**problem_weights)
+    return schedule_problem

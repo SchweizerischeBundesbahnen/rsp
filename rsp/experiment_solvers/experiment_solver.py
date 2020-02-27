@@ -9,20 +9,22 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import replay
 from rsp.experiment_solvers.asp.asp_solve_problem import replay_and_verify_asp_solution
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
+from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag import apply_weight_route_change
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.experiment_solver import AbstractSolver
 
 
-class ASPExperimentSolver(AbstractSolver):
-    """Implements `AbstractSolver` for ASP.
+class ASPExperimentSolver():
+    """Implements `ASPExperimentSolver` for ASP.
 
     Methods
     -------
@@ -31,12 +33,60 @@ class ASPExperimentSolver(AbstractSolver):
     """
     _pp = pprint.PrettyPrinter(indent=4)
 
+    def gen_schedule_and_malfunction(self,
+                                     static_rail_env: RailEnv,
+                                     malfunction_rail_env: RailEnv,
+                                     malfunction_env_reset,
+                                     experiment_parameters: ExperimentParameters,
+                                     disable_verification_by_replay: bool = False,
+                                     verbose: bool = False,
+                                     debug: bool = False,
+                                     rendering: bool = False
+                                     ) -> ScheduleAndMalfunction:
+        tc_schedule_problem = schedule_problem_description_from_rail_env(
+            env=static_rail_env,
+            k=experiment_parameters.number_of_shortest_paths_per_agent
+        )
+        schedule_result = asp_schedule_wrapper(tc_schedule_problem,
+                                               rendering=rendering,
+                                               static_rail_env=static_rail_env,
+                                               debug=debug)
+
+        schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
+
+        if verbose:
+            print(f"  **** schedule_solution={schedule_trainruns}")
+
+        # --------------------------------------------------------------------------------------
+        # 1. Generate malfuntion
+        # --------------------------------------------------------------------------------------
+        malfunction_env_reset()
+        controller_from_train_runs: ControllerFromTrainruns = create_action_plan(
+            train_runs_dict=schedule_trainruns,
+            env=malfunction_rail_env)
+        malfunction_env_reset()
+        malfunction = replay(
+            controller_from_train_runs=controller_from_train_runs,
+            env=malfunction_rail_env,
+            stop_on_malfunction=True,
+            solver_name="ASP",
+            disable_verification_in_replay=True)
+        malfunction_env_reset()
+        # replay may return None (if the given malfunction does not happen during the agents time in the grid
+        if malfunction is None:
+            raise Exception("Could not produce a malfunction")
+
+        if verbose:
+            print(f"  **** malfunction={malfunction}")
+        return ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
+
     def run_experiment_trial(
             self,
+            schedule_and_malfunction: ScheduleAndMalfunction,
             static_rail_env: RailEnv,
             malfunction_rail_env: RailEnv,
             malfunction_env_reset,
-            k: int = 10,
+            experiment_parameters: ExperimentParameters,
             disable_verification_by_replay: bool = False,
             verbose: bool = False,
             debug: bool = False,
@@ -55,50 +105,25 @@ class ASPExperimentSolver(AbstractSolver):
         -------
         ExperimentResults
         """
-        tc_schedule_problem = schedule_problem_description_from_rail_env(static_rail_env, k)
-        schedule_result = asp_schedule_wrapper(tc_schedule_problem,
-                                               rendering=rendering,
-                                               static_rail_env=static_rail_env,
-                                               debug=debug)
+        tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
 
         schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
-
-        if verbose:
-            print(f"  **** schedule_solution={schedule_trainruns}")
-
-        # --------------------------------------------------------------------------------------
-        # 1. Generate malfuntion
-        # --------------------------------------------------------------------------------------
-
-        malfunction_env_reset()
-        controller_from_train_runs: ControllerFromTrainruns = create_action_plan(
-            train_runs_dict=schedule_trainruns,
-            env=malfunction_rail_env)
-        malfunction_env_reset()
-        malfunction = replay(
-            controller_from_train_runs=controller_from_train_runs,
-            env=malfunction_rail_env,
-            stop_on_malfunction=True,
-            solver_name="ASP",
-            disable_verification_in_replay=True)
-        if malfunction is None:
-            return None
-        malfunction_env_reset()
-        # replay may return None (if the given malfunction does not happen during the agents time in the grid
-        if malfunction is None:
-            raise Exception("Could not produce a malfunction")
-
-        if verbose:
-            print(f"  **** malfunction={malfunction}")
 
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
-        full_reschedule_problem = get_freeze_for_full_rescheduling(malfunction=malfunction,
-                                                                   schedule_trainruns=schedule_trainruns,
-                                                                   minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
-                                                                   latest_arrival=malfunction_rail_env._max_episode_steps,
-                                                                   topo_dict=tc_schedule_problem.topo_dict)
+        full_reschedule_problem: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
+            malfunction=malfunction,
+            schedule_trainruns=schedule_trainruns,
+            minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+            latest_arrival=malfunction_rail_env._max_episode_steps,
+            topo_dict=tc_schedule_problem.topo_dict
+        )
+        full_reschedule_problem = apply_weight_route_change(
+            schedule_problem=full_reschedule_problem,
+            weight_route_change=experiment_parameters.weight_route_change,
+            weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+        )
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
             malfunction_env_reset=malfunction_env_reset,
@@ -120,11 +145,15 @@ class ASPExperimentSolver(AbstractSolver):
         delta_reschedule_problem = perfect_oracle(
             full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
             malfunction=malfunction,
-            # TODO SIM-239 code smell: why do we need env????
             max_episode_steps=tc_schedule_problem.max_episode_steps,
             schedule_topo_dict=tc_schedule_problem.topo_dict,
             schedule_trainrun_dict=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict
+        )
+        delta_reschedule_problem = apply_weight_route_change(
+            schedule_problem=delta_reschedule_problem,
+            weight_route_change=experiment_parameters.weight_route_change,
+            weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
         delta_reschedule_result = asp_reschedule_wrapper(
             malfunction=malfunction,
