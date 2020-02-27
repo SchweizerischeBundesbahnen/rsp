@@ -40,6 +40,11 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
         }
+        stage("Init git submodule") {
+            steps {
+                sh "git submodule update --init"
+            }
+        }
         stage('test') {
             steps {
                 tox_conda_wrapper(

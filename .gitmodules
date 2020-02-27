@@ -1,0 +1,3 @@
+[submodule "train-scheduling-with-hybrid-asp"]
+	path = train-scheduling-with-hybrid-asp
+	url = https://github.com/potassco/train-scheduling-with-hybrid-asp.git
