@@ -51,6 +51,7 @@ from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_times
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import convert_experiment_results_to_data_frame
+from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
@@ -156,8 +157,14 @@ def run_experiment(solver: ASPExperimentSolver,
                 if not key.startswith('solution_') and not key.startswith('problem_')
             })
 
-            _analyze_times(experiment_results=current_results)
-            _analyze_paths(experiment_results=current_results, experiment_id=experiment_parameters.experiment_id)
+            experiment_results_analysis = expand_experiment_results_for_analysis(
+                experiment_id=experiment_parameters.experiment_id,
+                experiment_results=current_results)
+            _analyze_times(experiment_results=current_results,
+                           experiment_results_analysis=experiment_results_analysis)
+            _analyze_paths(experiment_results=current_results,
+                           experiment_results_analysis=experiment_results_analysis,
+                           experiment_id=experiment_parameters.experiment_id)
         if rendering:
             from flatland.utils.rendertools import RenderTool, AgentRenderVariant
             env_renderer.close_window()

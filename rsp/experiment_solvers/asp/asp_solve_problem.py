@@ -14,8 +14,8 @@ from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.experiment_solvers.experiment_solver_utils import verify_trainruns_dict
-from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import get_paths_in_route_dag
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
 

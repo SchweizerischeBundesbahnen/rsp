@@ -1,12 +1,19 @@
-from typing import Callable, Set, Dict
+from typing import Callable
+from typing import Dict
 from typing import NamedTuple
 from typing import Optional
+from typing import Set
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.data_types import ExperimentMalfunction
+
+ExperimentMalfunction = NamedTuple('ExperimentMalfunction', [
+    ('time_step', int),
+    ('agent_id', int),
+    ('malfunction_duration', int)
+])
 
 SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                         [('total_reward', int),
@@ -30,6 +37,19 @@ SchedulingExperimentResult.__doc__ = """
     nb_conflicts: int
     route_dag_constraints: Optional[RouteDAGConstraintsDict]
 """
+
+
+def schedule_experiment_results_equals_modulo_solve_time(s1: SchedulingExperimentResult,
+                                                         s2: SchedulingExperimentResult):
+    """Tests whether two `ScheduleExperimentResults' are the equal except for
+    solve_time."""
+    for index, slot in enumerate(s1._fields):
+        if slot in ['solve_time', 'solver_statistics']:
+            continue
+        elif s1[index] != s2[index]:
+            return False
+    return True
+
 
 # test_id: int, solver_name: str, i_step: int
 SolveProblemRenderCallback = Callable[[int, str, int], None]
