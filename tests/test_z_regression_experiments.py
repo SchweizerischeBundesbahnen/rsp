@@ -401,6 +401,10 @@ def test_save_and_load_experiment_results():
         loaded_result_dict = loaded_results.to_dict()
         experiment_results_dict = experiment_results.to_dict()
 
+    _assert_results_dict_equals(experiment_results_dict, loaded_result_dict)
+
+
+def _assert_results_dict_equals(experiment_results_dict, loaded_result_dict):
     for key in experiment_results_dict:
         print(f"key={key}")
         if key.startswith("problem_"):
@@ -506,11 +510,13 @@ def test_run_alpha_beta():
         experiment_parameters=experiment_parameters,
     )
 
-    assert experiment_result.costs_full_after_malfunction > 0
-    assert (experiment_result.costs_full_after_malfunction * scale ==
-            experiment_result_scaled.costs_full_after_malfunction)
-    assert (experiment_result.solution_full_after_malfunction ==
-            experiment_result_scaled.solution_full_after_malfunction)
+    costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
+    assert costs_full_after_malfunction > 0
+    costs_full_after_malfunction_scaled = experiment_result_scaled.results_full_after_malfunction.optimization_costs
+    assert (costs_full_after_malfunction * scale ==
+            costs_full_after_malfunction_scaled)
+    assert (experiment_result.results_full_after_malfunction.trainruns_dict ==
+            experiment_result_scaled.results_full_after_malfunction.trainruns_dict)
 
 
 def test_parallel_experiment_execution():
@@ -550,7 +556,4 @@ def test_parallel_experiment_execution():
         loaded_result_dict = loaded_results.to_dict()
         experiment_results_dict = experiment_results.to_dict()
 
-    for key in experiment_results_dict:
-        if not key.startswith("time") and not key.startswith('problem_'):
-            assert experiment_results_dict[key] == loaded_result_dict[key], \
-                f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
+    _assert_results_dict_equals(experiment_results_dict, loaded_result_dict)
