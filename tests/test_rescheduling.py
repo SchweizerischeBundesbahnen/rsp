@@ -18,12 +18,12 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import verify_trainruns_dict
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver_utils import get_delay_trainruns_dict
-from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
-from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.route_dag.generators.route_dag_generator_utils import verify_route_dag_constraints_for_agent
+from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import topo_from_agent_paths
 from rsp.utils.data_types import ExperimentMalfunction
@@ -188,7 +188,7 @@ def test_rescheduling_no_bottleneck():
 
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
                                 static_env.agents}
-    tc: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
+    tc: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict=minimum_travel_time_dict,
@@ -204,9 +204,9 @@ def test_rescheduling_no_bottleneck():
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
 
     full_reschedule_result = asp_reschedule_wrapper(
-        malfunction=fake_malfunction,
-        malfunction_rail_env=dynamic_env,
-        reschedule_problem_description=get_freeze_for_full_rescheduling(
+        malfunction_for_verification=fake_malfunction,
+        malfunction_rail_env_for_verification=dynamic_env,
+        reschedule_problem_description=get_schedule_problem_for_full_rescheduling(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
@@ -422,7 +422,7 @@ def test_rescheduling_bottleneck():
     # we derive the re-schedule problem from the schedule problem
     k = 10
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
-    tc_reschedule_problem: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
+    tc_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
@@ -473,10 +473,10 @@ def test_rescheduling_bottleneck():
     inject_fake_malfunction_into_dynamic_env(dynamic_env, fake_malfunction)
 
     full_reschedule_result = asp_reschedule_wrapper(
-        malfunction=fake_malfunction,
+        malfunction_for_verification=fake_malfunction,
         malfunction_env_reset=lambda *args, **kwargs: None,
-        malfunction_rail_env=dynamic_env,
-        reschedule_problem_description=get_freeze_for_full_rescheduling(
+        malfunction_rail_env_for_verification=dynamic_env,
+        reschedule_problem_description=get_schedule_problem_for_full_rescheduling(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=tc_reschedule_problem.minimum_travel_time_dict,
@@ -809,9 +809,9 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
     )
     delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=tc_delta_reschedule_problem,
-        malfunction=fake_malfunction,
+        malfunction_for_verification=fake_malfunction,
         # TODO SIM-324 code smell: why do we need to pass env? -> extract validation with env
-        malfunction_rail_env=dynamic_env,
+        malfunction_rail_env_for_verification=dynamic_env,
         malfunction_env_reset=lambda *args, **kwargs: None
     )
     delta_reschedule_trainruns = delta_reschedule_result.trainruns_dict
