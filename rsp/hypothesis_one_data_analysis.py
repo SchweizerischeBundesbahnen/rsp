@@ -26,8 +26,8 @@ from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
+from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
@@ -199,21 +199,16 @@ def hypothesis_one_data_analysis(data_folder: str,
     # Import the desired experiment results
     experiment_data: DataFrame = load_experiment_results_from_folder(data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
-    experiment_agenda_dict: Dict[int, ExperimentParameters] = {
-        experiment.experiment_id: experiment
-        for experiment in experiment_agenda.experiments
-    }
 
     print(data_folder)
     print(experiment_agenda)
 
-    # derive additional data columns
-    experiment_data = expand_experiment_data_for_analysis(
-        experiment_data=experiment_data,
-        experiment_agenda_dict=experiment_agenda_dict, debug=debug)
-
     # Plausibility tests on experiment data
     _run_plausibility_tests_on_experiment_data(experiment_data)
+
+    # derive additional data columns
+    experiment_data = expand_experiment_data_for_analysis(
+        experiment_data=experiment_data, debug=debug)
 
     # Average over the trials of each experiment
     print("Averaging...")
@@ -258,16 +253,21 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
     print("Running plausibility tests on experiment data...")
     for _, row in experiment_data.iterrows():
         experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
-        experiment_id = row['experiment_id']
-        plausibility_check_experiment_results(experiment_results=experiment_results, experiment_id=experiment_id)
-        costs_full_after_malfunction: int = row['costs_full_after_malfunction']
-        lateness_full_after_malfunction: Dict[int, int] = row['lateness_full_after_malfunction']
-        sum_route_section_penalties_full_after_malfunction: Dict[int, int] = row[
-            'sum_route_section_penalties_full_after_malfunction']
-        costs_delta_after_malfunction: int = row['costs_delta_after_malfunction']
-        lateness_delta_after_malfunction: Dict[int, int] = row['lateness_delta_after_malfunction']
-        sum_route_section_penalties_delta_after_malfunction: Dict[int, int] = row[
-            'sum_route_section_penalties_delta_after_malfunction']
+        experiment_id = experiment_results.experiment_parameters.experiment_id
+        experiment_results_analysis: ExperimentResultsAnalysis = expand_experiment_results_for_analysis(
+            experiment_id=experiment_id,
+            experiment_results=experiment_results)
+
+        plausibility_check_experiment_results(experiment_results=experiment_results,
+                                              experiment_id=experiment_id)
+        costs_full_after_malfunction: int = experiment_results_analysis.costs_full_after_malfunction
+        lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_full_after_malfunction
+        sum_route_section_penalties_full_after_malfunction: Dict[
+            int, int] = experiment_results_analysis.sum_route_section_penalties_full_after_malfunction
+        costs_delta_after_malfunction: int = experiment_results_analysis.costs_delta_after_malfunction
+        lateness_delta_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_delta_after_malfunction
+        sum_route_section_penalties_delta_after_malfunction: Dict[
+            int, int] = experiment_results_analysis.sum_route_section_penalties_delta_after_malfunction
 
         sum_lateness_full_after_malfunction: int = sum(lateness_full_after_malfunction.values())
         sum_all_route_section_penalties_full_after_malfunction: int = sum(
