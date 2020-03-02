@@ -105,7 +105,6 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         force_freeze: List[TrainrunWaypoint],
         subdag_source: TrainrunWaypoint,
         latest_arrival: int
-
 ) -> RouteDAGConstraints:
     """Construct route DAG constraints for this agent. Consider only case where
     malfunction happens during schedule or if there is a (force freeze from the
@@ -116,35 +115,32 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
 
     minimum_travel_time
         the constant cell running time of trains
-    agent_paths
-        the paths spanning the agent's route DAG.
-    force_freeze
+    topo: nx.DiGraph
+        the agent's route DAG without constraints
+    force_freeze: List[TrainrunWaypoint]
         vertices that need be visited and be visited at the given time
-    subdag_source
-        the entry point into the dag that needs to be visited (the vertex after malfunction that is delayed)
-    subdag_targets
+    subdag_source: TrainrunWaypoint
+        the entry point into the dag that needs to be visited (the vertex after malfunction that is delayed);
+        scheduled_at is interpreted as earliest
+    latest_arrival: int
 
     Returns
     -------
+    RouteDAGConstraints
+        constraints for the situation
     """
 
-    # force freeze in Delta re-scheduling
+    # force freeze
     force_freeze_dict = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
                          for trainrun_waypoint in force_freeze}
     force_freeze_waypoints_set = {trainrun_waypoint.waypoint for trainrun_waypoint in force_freeze}
 
-    # remove duplicates but deterministc (hashes of dict)
+    # remove duplicates but deterministic (hashes of dict)
     all_waypoints: List[Waypoint] = topo.nodes
 
-    # span a sub-dag for the problem
-    # - for full scheduling, this is source vertex and time 0
-    # - for full re-scheduling, this is the next waypoint after the malfunction (delayed for the agent in malfunction)
-    # - for delta re-scheduling, if the Oracle tells that more can be freezed than up to malfunction, we use this!
-    #   If the force freeze is not contiguous, we need to consider what can be reached given the freezes.
-
+    # initialize visit, earliest, latest
     freeze_visit = []
     freeze_visit_waypoint_set: Set[Waypoint] = set()
-
     reachable_earliest_dict: [Waypoint, int] = OrderedDict()
     reachable_latest_dict: [Waypoint, int] = OrderedDict()
 
@@ -155,24 +151,27 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         if waypoint in reachable_latest_dict:
             reachable_latest_dict.pop(waypoint)
 
-    # sub dag source must be visited (point after malfunction)
+    # 1. sub dag source must be visited (point after malfunction)
     freeze_visit.append(subdag_source.waypoint)
     freeze_visit_waypoint_set.add(subdag_source.waypoint)
     reachable_earliest_dict[subdag_source.waypoint] = subdag_source.scheduled_at
 
+    # 2. latest for sinks
     # there may be multiple vertices by which the last cell may be entered!
-    sinks = get_sinks_for_topo(topo)
+    sinks = list(get_sinks_for_topo(topo))
+    assert len(sinks) == 1
     for sink in sinks:
-        # TODO SIM-322 hard-coded assumption
-        # -1 for occupying the cell for one time step!
+        # TODO SIM-322 hard-coded assumption; actually this is even wrong, since the sink is the dummy target; fix tests!
         reachable_latest_dict[sink] = latest_arrival - 1
 
+    # 3. visit, earliest and latest for force_freeze
     for trainrun_waypoint in force_freeze:
         reachable_earliest_dict[trainrun_waypoint.waypoint] = trainrun_waypoint.scheduled_at
         reachable_latest_dict[trainrun_waypoint.waypoint] = trainrun_waypoint.scheduled_at
         freeze_visit.append(trainrun_waypoint.waypoint)
         freeze_visit_waypoint_set.add(trainrun_waypoint.waypoint)
 
+    # 4. ban all that are not reachable in topology given the force_freeze
     reachable_set = _get_reachable_given_frozen_set(force_freeze=force_freeze, topo=topo)
     reachable_set.add(subdag_source.waypoint)
     for trainrun_waypoint in force_freeze:
@@ -184,13 +183,13 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
     for waypoint in banned_set:
         _remove_from_reachable(waypoint)
 
-    # collect earliest and latest in the sub-DAG
+    # 5. propagate earliest and latest in the sub-DAG
     # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
     propagate_earliest(banned_set, reachable_earliest_dict, force_freeze_dict, minimum_travel_time, subdag_source,
                        topo)
     propagate_latest(banned_set, force_freeze_dict, latest_arrival, reachable_latest_dict, minimum_travel_time, topo)
 
-    # ban all waypoints that are reachable in the toplogy but not in time (i.e. where earliest > latest)
+    # 6. ban all waypoints that are reachable in the toplogy but not in time (i.e. where earliest > latest)
     for waypoint in all_waypoints:
         if (waypoint not in reachable_earliest_dict or waypoint not in reachable_latest_dict or  # noqa: W504
             reachable_earliest_dict[waypoint] > reachable_latest_dict[waypoint]) \

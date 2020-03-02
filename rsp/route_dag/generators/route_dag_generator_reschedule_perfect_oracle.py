@@ -31,17 +31,25 @@ def perfect_oracle(
 
     Parameters
     ----------
-    full_reschedule_trainrun_waypoints_dict
-    malfunction
-    minimum_travel_time_dict
-    max_episode_steps
-    agents_paths_dict
-    schedule_trainrun_dict
+    full_reschedule_trainrun_waypoints_dict: TrainrunDict
+        the magic information of the full re-schedule
+    malfunction: ExperimentMalfunction
+        the malfunction; used to determine the waypoint after the malfunction
+    minimum_travel_time_dict: Dict[int,int]
+        the minimumum travel times for the agents
+    max_episode_steps:
+        latest arrival
+    schedule_topo_dict:
+        the topologies used for scheduling
+    schedule_trainrun_dict: TrainrunDict
+        the schedule S0
 
     Returns
     -------
+    ScheduleProblemDesccription
     """
 
+    # (PO-1) FREEZE WHERE LOCATION AND TIME ARE THE SAME
     # Delta is all train run way points in the re-schedule that are not also in the schedule
     delta: TrainrunDict = {
         agent_id: sorted(list(
@@ -68,7 +76,7 @@ def perfect_oracle(
             f"  **** schedule={schedule_trainrun_dict[agent_id]}.\n\n"
             f"  **** full re-schedule={full_reschedule_trainrun_waypoints_dict[agent_id]}"
 
-    # ban all that are neither in schedule nor re-schedule
+    # (PO-2) BAN ALL THAT ARE NEITHER IN SCHEDULE NOR RE-SCHEDULE
     full_reschedule_waypoints: Dict[int, Set[Waypoint]] = \
         {agent_id: {trainrun_waypoint.waypoint
                     for trainrun_waypoint in full_reschedule_trainrun_waypoints_dict[agent_id]}
@@ -92,7 +100,8 @@ def perfect_oracle(
         }
         for agent_id in delta.keys()}
 
-    # build topos without banned
+    # (PO-3) BUILD CONSTRAINTS GIVEN THE TOPOS, THE FORCE_FREEZES
+    # (PO-3.1) build topos without banned
     topo_dict: Dict[int, nx.DiGraph] = {}
     for agent_id, schedule_topo in schedule_topo_dict.items():
         new_topo = nx.DiGraph()
@@ -110,7 +119,7 @@ def perfect_oracle(
                 new_topo.add_edge(from_node, to_node)
         topo_dict[agent_id] = new_topo
 
-    # build constraints given the topos, the force_freezes
+    # (PO-3.2) propagate earliest and latest
     tc: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
         schedule_trainruns=schedule_trainrun_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
@@ -119,6 +128,8 @@ def perfect_oracle(
         malfunction=malfunction,
         latest_arrival=max_episode_steps
     )
+
+    # (PO-3.3) add force_banned again to propagation constraints
     freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
     freeze_dict_all: RouteDAGConstraintsDict = {
         agent_id: RouteDAGConstraints(
