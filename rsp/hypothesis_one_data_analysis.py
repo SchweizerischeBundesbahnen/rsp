@@ -239,12 +239,12 @@ def hypothesis_one_data_analysis(data_folder: str,
             lambda experiment: experiment.experiment_id in qualitative_analysis_experiment_ids,
             experiment_agenda.experiments))
         for experiment in filtered_experiments:
-            analyze_experiment(experiment=experiment, data_frame=experiment_data)
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
-            experiment_results: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(row)
+            experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(row)
+            analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
-                                 experiment_results=experiment_results,
+                                 experiment_results_analysis=experiment_results_analysis,
                                  data_folder=data_folder,
                                  flatland_rendering=flatland_rendering)
 
@@ -257,6 +257,14 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
         experiment_results_analysis: ExperimentResultsAnalysis = expand_experiment_results_for_analysis(
             experiment_id=experiment_id,
             experiment_results=experiment_results)
+
+        print("costs full rsp:")
+        print(list(filter(lambda s: s.startswith("active_penalty(") or s.startswith("late("),
+                          experiment_results_analysis.results_full_after_malfunction.solver_result)))
+
+        print("costs delta:")
+        print(list(filter(lambda s: s.startswith("active_penalty(") or s.startswith("late("),
+                          experiment_results_analysis.results_delta_after_malfunction.solver_result)))
 
         plausibility_check_experiment_results(experiment_results=experiment_results,
                                               experiment_id=experiment_id)

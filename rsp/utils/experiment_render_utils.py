@@ -27,7 +27,7 @@ from rsp.utils.file_utils import check_create_folder
 
 def visualize_experiment(
         experiment_parameters: ExperimentParameters,
-        experiment_results: ExperimentResultsAnalysis,
+        experiment_results_analysis: ExperimentResultsAnalysis,
         data_frame: DataFrame,
         data_folder: str = None,
         flatland_rendering: bool = False,
@@ -108,8 +108,8 @@ def visualize_experiment(
             train_run_full_after_malfunction=train_run_full_after_malfunction,
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
-            vertex_eff_lateness=experiment_results.vertex_eff_lateness_delta_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results.edge_eff_route_penalties_delta_after_malfunction[agent_id],
+            vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[agent_id],
             route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
@@ -129,8 +129,8 @@ def visualize_experiment(
             train_run_full_after_malfunction=train_run_full_after_malfunction,
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_full.route_dag_constraints_dict[agent_id],
-            vertex_eff_lateness=experiment_results.vertex_eff_lateness_full_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results.edge_eff_route_penalties_full_after_malfunction[agent_id],
+            vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_full_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[agent_id],
             route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
