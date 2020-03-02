@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Set, Dict
 from typing import NamedTuple
 from typing import Optional
 
@@ -15,7 +15,9 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('build_problem_time', float),
                                          ('trainruns_dict', TrainrunDict),
                                          ('nb_conflicts', int),
-                                         ('route_dag_constraints', Optional[RouteDAGConstraintsDict])
+                                         ('route_dag_constraints', Optional[RouteDAGConstraintsDict]),
+                                         ('solver_statistics', Dict),
+                                         ('solver_result', Set[str])
                                          ])
 SchedulingExperimentResult.__doc__ = """
     Parameters

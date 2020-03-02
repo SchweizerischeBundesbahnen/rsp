@@ -14,8 +14,8 @@ from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.experiment_solvers.experiment_solver_utils import verify_trainruns_dict
-from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
 
@@ -120,4 +120,7 @@ def solve_problem(
                                       build_problem_time=build_problem_time,
                                       nb_conflicts=solution.extract_nb_resource_conflicts(),
                                       trainruns_dict=solution.get_trainruns_dict(),
-                                      route_dag_constraints=problem.tc.route_dag_constraints_dict), solution
+                                      route_dag_constraints=problem.tc.route_dag_constraints_dict,
+                                      solver_statistics=solution.asp_solution.stats,
+                                      solver_result=solution.answer_set
+                                      ), solution

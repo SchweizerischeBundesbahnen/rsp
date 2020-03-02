@@ -38,6 +38,25 @@ ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
 ])
 
 
+def schedule_problem_description_equals(s1: ScheduleProblemDescription, s2: ScheduleProblemDescription):
+    """Tests whether two schedule_problem_descriptions are the equal.
+    We cannot test by == since we have `nx.DiGraph` objects as values."""
+    for index, slot in enumerate(s1._fields):
+        if slot == 'topo_dict':
+            if s1.topo_dict.keys() != s2.topo_dict.keys():
+                return False
+            for agent_id in s1.topo_dict:
+                s1_topo = s1.topo_dict[agent_id]
+                s2_topo = s2.topo_dict[agent_id]
+                if set(s1_topo.nodes) != set(s2_topo.nodes):
+                    return False
+                if set(s1_topo.edges) != set(s2_topo.edges):
+                    return False
+        elif s1[index] != s2[index]:
+            return False
+    return True
+
+
 def route_dag_constraints_dict_from_list_of_train_run_waypoint(
         l: List[TrainrunWaypoint]
 ) -> Dict[TrainrunWaypoint, int]:
