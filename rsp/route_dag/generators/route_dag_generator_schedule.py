@@ -30,10 +30,10 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> Schedule
                                 for agent in env.agents}
     dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
     schedule_problem_description = ScheduleProblemDescription(
-        route_dag_constraints_dict=_get_freeze_for_scheduling(minimum_travel_time_dict=minimum_travel_time_dict,
-                                                              topo_dict=topo_dict,
-                                                              dummy_source_dict=dummy_source_dict,
-                                                              latest_arrival=env._max_episode_steps),
+        route_dag_constraints_dict=_get_route_dag_constraints_for_scheduling(minimum_travel_time_dict=minimum_travel_time_dict,
+                                                                             topo_dict=topo_dict,
+                                                                             dummy_source_dict=dummy_source_dict,
+                                                                             latest_arrival=env._max_episode_steps),
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
         max_episode_steps=env._max_episode_steps,
@@ -44,7 +44,7 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> Schedule
     return schedule_problem_description
 
 
-def _get_freeze_for_scheduling(
+def _get_route_dag_constraints_for_scheduling(
         topo_dict: TopoDict,
         dummy_source_dict: Dict[int, Waypoint],
         minimum_travel_time_dict: Dict[int, int],

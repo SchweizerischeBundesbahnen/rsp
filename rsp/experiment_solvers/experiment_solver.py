@@ -12,7 +12,7 @@ from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
-from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.route_dag.route_dag import apply_weight_route_change
@@ -114,7 +114,7 @@ class ASPExperimentSolver():
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
-        full_reschedule_problem: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
+        full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
             malfunction=malfunction,
             schedule_trainruns=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
@@ -127,9 +127,9 @@ class ASPExperimentSolver():
             weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
         full_reschedule_result = asp_reschedule_wrapper(
-            malfunction=malfunction,
+            malfunction_for_verification=malfunction,
             malfunction_env_reset=malfunction_env_reset,
-            malfunction_rail_env=malfunction_rail_env,
+            malfunction_rail_env_for_verification=malfunction_rail_env,
             reschedule_problem_description=full_reschedule_problem,
             rendering=rendering,
             debug=debug
@@ -158,8 +158,8 @@ class ASPExperimentSolver():
             weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
         delta_reschedule_result = asp_reschedule_wrapper(
-            malfunction=malfunction,
-            malfunction_rail_env=malfunction_rail_env,
+            malfunction_for_verification=malfunction,
+            malfunction_rail_env_for_verification=malfunction_rail_env,
             reschedule_problem_description=delta_reschedule_problem,
             rendering=rendering,
             debug=debug,
@@ -239,8 +239,8 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
 
 def asp_reschedule_wrapper(
         reschedule_problem_description: ScheduleProblemDescription,
-        malfunction: ExperimentMalfunction,
-        malfunction_rail_env: RailEnv,
+        malfunction_for_verification: ExperimentMalfunction,
+        malfunction_rail_env_for_verification: RailEnv,
         malfunction_env_reset: Callable[[], None],
         debug: bool = False,
         rendering: bool = False
@@ -276,12 +276,12 @@ def asp_reschedule_wrapper(
         print("###reschedule")
         print(_pp.pformat(full_reschedule_result.trainruns_dict))
 
-    replay_and_verify_asp_solution(env=malfunction_rail_env,
+    replay_and_verify_asp_solution(env=malfunction_rail_env_for_verification,
                                    problem_description=reschedule_problem_description,
                                    asp_solution=asp_solution,
                                    rendering=rendering,
                                    debug=debug,
-                                   expected_malfunction=malfunction,
+                                   expected_malfunction=malfunction_for_verification,
                                    # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
                                    disable_verification_in_replay=True)
     malfunction_env_reset()

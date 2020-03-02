@@ -6,8 +6,8 @@ from typing import Dict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.generators.route_dag_generator_reschedule_full import generic_route_dag_constraints_for_rescheduling
-from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_freeze_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import generic_schedule_problem_description_for_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
     _generic_route_dag_constraints_for_rescheduling_agent_while_running
 from rsp.route_dag.generators.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
@@ -567,7 +567,7 @@ def test_get_freeze_for_full_rescheduling():
 
         ])
     _, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict({2: agent_paths})
-    tc: ScheduleProblemDescription = get_freeze_for_full_rescheduling(
+    tc: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         minimum_travel_time_dict={2: 1},
         topo_dict=topo_dict,
         malfunction=malfunction,
@@ -1448,7 +1448,7 @@ def test_get_freeze_for_delta():
                 Waypoint(position=(23, 27), direction=0), Waypoint(position=(24, 28), direction=1),
                 Waypoint(position=(24, 29), direction=1), Waypoint(position=(23, 29), direction=0)
             ])}
-    tc: ScheduleProblemDescription = generic_route_dag_constraints_for_rescheduling(
+    tc: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
         topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
