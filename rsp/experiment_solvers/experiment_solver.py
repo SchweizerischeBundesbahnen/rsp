@@ -43,6 +43,10 @@ class ASPExperimentSolver():
                                      debug: bool = False,
                                      rendering: bool = False
                                      ) -> ScheduleAndMalfunction:
+        """B1.
+
+        Experiment Setup
+        """
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
             k=experiment_parameters.number_of_shortest_paths_per_agent
@@ -83,16 +87,14 @@ class ASPExperimentSolver():
     def run_experiment_trial(
             self,
             schedule_and_malfunction: ScheduleAndMalfunction,
-            static_rail_env: RailEnv,
             malfunction_rail_env: RailEnv,
             malfunction_env_reset,
             experiment_parameters: ExperimentParameters,
-            disable_verification_by_replay: bool = False,
             verbose: bool = False,
             debug: bool = False,
             rendering: bool = False
     ) -> ExperimentResults:
-        """Runs the experiment.
+        """B2. Runs the experiment.
 
         Parameters
         ----------

@@ -485,7 +485,6 @@ def test_run_alpha_beta():
 
     experiment_result_scaled: ExperimentResults = solver.run_experiment_trial(
         schedule_and_malfunction=schedule_and_malfunction,
-        static_rail_env=static_rail_env,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters_scaled,
@@ -493,7 +492,6 @@ def test_run_alpha_beta():
 
     experiment_result: ExperimentResults = solver.run_experiment_trial(
         schedule_and_malfunction=schedule_and_malfunction,
-        static_rail_env=static_rail_env,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters,
