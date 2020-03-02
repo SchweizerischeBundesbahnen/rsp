@@ -6,7 +6,7 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
-from rsp.route_dag.generators.route_dag_generator_schedule import _get_freeze_for_scheduling
+from rsp.route_dag.generators.route_dag_generator_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 
@@ -24,7 +24,7 @@ def test_costs_forced_rerouting_one_agent():
         latest_arrival = 300
 
         schedule_problem_description = ScheduleProblemDescription(
-            route_dag_constraints_dict=_get_freeze_for_scheduling(
+            route_dag_constraints_dict=_get_route_dag_constraints_for_scheduling(
                 topo_dict=topo_dict,
                 dummy_source_dict={0: dummy_source},
                 minimum_travel_time_dict=minimum_travel_time_dict,
@@ -60,10 +60,10 @@ def test_costs_forced_delay_one_agent():
         minimum_travel_time_dict = {0: 2}
         latest_arrival = 300
 
-        route_dag_constraints_dict = _get_freeze_for_scheduling(topo_dict=topo_dict,
-                                                                dummy_source_dict={0: dummy_source},
-                                                                minimum_travel_time_dict=minimum_travel_time_dict,
-                                                                latest_arrival=latest_arrival)
+        route_dag_constraints_dict = _get_route_dag_constraints_for_scheduling(topo_dict=topo_dict,
+                                                                               dummy_source_dict={0: dummy_source},
+                                                                               minimum_travel_time_dict=minimum_travel_time_dict,
+                                                                               latest_arrival=latest_arrival)
         forced_delay = 5
         route_dag_constraints_dict[0].freeze_earliest[dummy_source] = forced_delay
         schedule_problem_description = ScheduleProblemDescription(
@@ -111,7 +111,7 @@ def test_costs_forced_delay_two_agents():
         minimum_travel_time_dict = {0: minimum_travel_time, 1: minimum_travel_time}
         latest_arrival = 300
 
-        route_dag_constraints_dict = _get_freeze_for_scheduling(
+        route_dag_constraints_dict = _get_route_dag_constraints_for_scheduling(
             topo_dict=topo_dict,
             dummy_source_dict={
                 0: dummy_source,
@@ -168,7 +168,7 @@ def test_costs_forced_rerouting_two_agents():
     latest_arrival = 300
 
     for edge_penalty in range(1, 8):
-        route_dag_constraints_dict = _get_freeze_for_scheduling(
+        route_dag_constraints_dict = _get_route_dag_constraints_for_scheduling(
             topo_dict=topo_dict,
             dummy_source_dict={
                 0: dummy_source1,

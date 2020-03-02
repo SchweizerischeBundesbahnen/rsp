@@ -20,7 +20,7 @@ from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
 
 
-def generic_route_dag_constraints_for_rescheduling(
+def generic_schedule_problem_description_for_rescheduling(
         schedule_trainruns: TrainrunDict,
         minimum_travel_time_dict: Dict[int, int],
         topo_dict: TopoDict,

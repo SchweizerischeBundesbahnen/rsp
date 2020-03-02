@@ -8,7 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
-    generic_route_dag_constraints_for_rescheduling
+    generic_schedule_problem_description_for_rescheduling
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import TopoDict
@@ -111,7 +111,7 @@ def perfect_oracle(
         topo_dict[agent_id] = new_topo
 
     # build constraints given the topos, the force_freezes
-    tc: ScheduleProblemDescription = generic_route_dag_constraints_for_rescheduling(
+    tc: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
         schedule_trainruns=schedule_trainrun_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,

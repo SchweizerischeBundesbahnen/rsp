@@ -34,6 +34,6 @@ SolveProblemRenderCallback = Callable[[int, str, int], None]
 
 ScheduleAndMalfunction = NamedTuple('ScheduleAndMalfunction', [
     ('schedule_problem_description', ScheduleProblemDescription),
-    ('schedule_experiemnt_result', SchedulingExperimentResult),
+    ('schedule_experiment_result', SchedulingExperimentResult),
     ('experiment_malfunction', ExperimentMalfunction)
 ])
