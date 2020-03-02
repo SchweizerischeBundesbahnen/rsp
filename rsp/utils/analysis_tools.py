@@ -289,11 +289,15 @@ def expand_experiment_data_for_analysis(
 
         # derive speed up
         speed_up = experiment_results.time_full_after_malfunction / experiment_results.time_delta_after_malfunction
-
         # search space indiciators
-        factor_resource_conflicts = \
-            experiment_results.nb_resource_conflicts_delta_after_malfunction / \
-            experiment_results.nb_resource_conflicts_full_after_malfunction
+        factor_resource_conflicts = 0
+        try:
+            factor_resource_conflicts = \
+                experiment_results.nb_resource_conflicts_delta_after_malfunction / \
+                experiment_results.nb_resource_conflicts_full_after_malfunction
+        except ZeroDivisionError as e:
+            print(f"experiment {experiment_id}: {str(e)}:\n  {experiment_results}")
+
         path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = _extract_path_search_space(
             experiment_results=experiment_results)
         factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
