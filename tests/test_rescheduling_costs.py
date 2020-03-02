@@ -24,12 +24,12 @@ def test_costs_forced_rerouting_one_agent():
         latest_arrival = 300
 
         schedule_problem_description = ScheduleProblemDescription(
-            route_dag_constraints_dict=_get_route_dag_constraints_for_scheduling(
-                topo_dict=topo_dict,
-                dummy_source_dict={0: dummy_source},
-                minimum_travel_time_dict=minimum_travel_time_dict,
+            route_dag_constraints_dict={0: _get_route_dag_constraints_for_scheduling(
+                topo=topo_dict[0],
+                dummy_source=dummy_source,
+                minimum_travel_time=minimum_travel_time_dict[0],
                 latest_arrival=latest_arrival,
-            ),
+            )},
             minimum_travel_time_dict=minimum_travel_time_dict,
             topo_dict=topo_dict,
             max_episode_steps=latest_arrival,
@@ -60,14 +60,15 @@ def test_costs_forced_delay_one_agent():
         minimum_travel_time_dict = {0: 2}
         latest_arrival = 300
 
-        route_dag_constraints_dict = _get_route_dag_constraints_for_scheduling(topo_dict=topo_dict,
-                                                                               dummy_source_dict={0: dummy_source},
-                                                                               minimum_travel_time_dict=minimum_travel_time_dict,
-                                                                               latest_arrival=latest_arrival)
+        route_dag_constraints = _get_route_dag_constraints_for_scheduling(
+            topo=topo_dict[0],
+            dummy_source=dummy_source,
+            minimum_travel_time=minimum_travel_time_dict[0],
+            latest_arrival=latest_arrival)
         forced_delay = 5
-        route_dag_constraints_dict[0].freeze_earliest[dummy_source] = forced_delay
+        route_dag_constraints.freeze_earliest[dummy_source] = forced_delay
         schedule_problem_description = ScheduleProblemDescription(
-            route_dag_constraints_dict,
+            route_dag_constraints_dict={0: route_dag_constraints},
             minimum_travel_time_dict=minimum_travel_time_dict,
             topo_dict=topo_dict,
             max_episode_steps=latest_arrival,
@@ -111,13 +112,13 @@ def test_costs_forced_delay_two_agents():
         minimum_travel_time_dict = {0: minimum_travel_time, 1: minimum_travel_time}
         latest_arrival = 300
 
-        route_dag_constraints_dict = _get_route_dag_constraints_for_scheduling(
-            topo_dict=topo_dict,
-            dummy_source_dict={
-                0: dummy_source,
-                1: dummy_source},
-            minimum_travel_time_dict=minimum_travel_time_dict,
+        route_dag_constraints_dict = {agent_id: _get_route_dag_constraints_for_scheduling(
+            topo=topo,
+            dummy_source=dummy_source,
+            minimum_travel_time=minimum_travel_time_dict[agent_id],
             latest_arrival=latest_arrival)
+            for agent_id, topo in topo_dict.items()
+        }
         edge_penalty = 5
         schedule_problem_description = ScheduleProblemDescription(
             route_dag_constraints_dict,
@@ -126,7 +127,7 @@ def test_costs_forced_delay_two_agents():
             max_episode_steps=latest_arrival,
             route_section_penalties={0: {penalized_edge: edge_penalty}, 1: {penalized_edge: edge_penalty}},
             weight_lateness_seconds=1
-            )
+        )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
             tc=schedule_problem_description
@@ -155,10 +156,7 @@ def test_costs_forced_delay_two_agents():
 
 
 def test_costs_forced_rerouting_two_agents():
-    """Two trains were schedule to run one after the other on the same path.
-
-    They can
-    """
+    """Two trains were schedule to run one after the other on the same path."""
     topo1, edge_on_first_path1, _, dummy_source1, dummy_target1 = _make_topo2(dummy_offset=55)
     topo2, edge_on_first_path2, _, dummy_source2, dummy_target2 = _make_topo2(dummy_offset=56)
 
@@ -168,14 +166,14 @@ def test_costs_forced_rerouting_two_agents():
     latest_arrival = 300
 
     for edge_penalty in range(1, 8):
-        route_dag_constraints_dict = _get_route_dag_constraints_for_scheduling(
-            topo_dict=topo_dict,
-            dummy_source_dict={
-                0: dummy_source1,
-                1: dummy_source2},
-            minimum_travel_time_dict=minimum_travel_time_dict,
-            latest_arrival=latest_arrival
-        )
+        route_dag_constraints_dict = {
+            agent_id: _get_route_dag_constraints_for_scheduling(
+                topo=topo,
+                dummy_source=dummy_source1 if agent_id == 0 else dummy_source2,
+                minimum_travel_time=minimum_travel_time_dict[agent_id],
+                latest_arrival=latest_arrival
+            )
+            for agent_id, topo in topo_dict.items()}
         schedule_problem_description = ScheduleProblemDescription(
             route_dag_constraints_dict,
             minimum_travel_time_dict=minimum_travel_time_dict,

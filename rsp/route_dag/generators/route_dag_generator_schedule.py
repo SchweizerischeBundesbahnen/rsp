@@ -1,5 +1,4 @@
-from typing import Dict
-
+import networkx as nx
 import numpy as np
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
@@ -11,9 +10,7 @@ from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
 from rsp.route_dag.route_dag import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import RouteDAGConstraints
-from rsp.utils.data_types import RouteDAGConstraintsDict
 
 
 def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> ScheduleProblemDescription:
@@ -30,10 +27,13 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> Schedule
                                 for agent in env.agents}
     dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
     schedule_problem_description = ScheduleProblemDescription(
-        route_dag_constraints_dict=_get_route_dag_constraints_for_scheduling(minimum_travel_time_dict=minimum_travel_time_dict,
-                                                                             topo_dict=topo_dict,
-                                                                             dummy_source_dict=dummy_source_dict,
-                                                                             latest_arrival=env._max_episode_steps),
+        route_dag_constraints_dict={
+            agent_id: _get_route_dag_constraints_for_scheduling(
+                minimum_travel_time=minimum_travel_time_dict[agent_id],
+                topo=topo_dict[agent_id],
+                dummy_source=dummy_source_dict[agent_id],
+                latest_arrival=env._max_episode_steps)
+            for agent_id, topo in topo_dict.items()},
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
         max_episode_steps=env._max_episode_steps,
@@ -45,30 +45,28 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> Schedule
 
 
 def _get_route_dag_constraints_for_scheduling(
-        topo_dict: TopoDict,
-        dummy_source_dict: Dict[int, Waypoint],
-        minimum_travel_time_dict: Dict[int, int],
+        topo: nx.DiGraph,
+        dummy_source: Waypoint,
+        minimum_travel_time: int,
         latest_arrival: int
-) -> RouteDAGConstraintsDict:
-    return {
-        agent_id: RouteDAGConstraints(
-            freeze_visit=[],
-            freeze_earliest=propagate_earliest(
-                banned_set=set(),
-                earliest_dict={dummy_source_dict[agent_id]: 0},
-                minimum_travel_time=minimum_travel_time_dict[agent_id],
-                force_freeze_dict={},
-                subdag_source=TrainrunWaypoint(waypoint=dummy_source_dict[agent_id], scheduled_at=0),
-                topo=topo_dict[agent_id],
-            ),
-            freeze_latest=propagate_latest(
-                banned_set=set(),
-                latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[agent_id])},
-                latest_arrival=latest_arrival,
-                minimum_travel_time=minimum_travel_time_dict[agent_id],
-                force_freeze_dict={},
-                topo=topo_dict[agent_id],
-            ),
-            freeze_banned=[],
-        )
-        for agent_id in topo_dict}
+) -> RouteDAGConstraints:
+    return RouteDAGConstraints(
+        freeze_visit=[],
+        freeze_earliest=propagate_earliest(
+            banned_set=set(),
+            earliest_dict={dummy_source: 0},
+            minimum_travel_time=minimum_travel_time,
+            force_freeze_dict={},
+            subdag_source=TrainrunWaypoint(waypoint=dummy_source, scheduled_at=0),
+            topo=topo,
+        ),
+        freeze_latest=propagate_latest(
+            banned_set=set(),
+            latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)},
+            latest_arrival=latest_arrival,
+            minimum_travel_time=minimum_travel_time,
+            force_freeze_dict={},
+            topo=topo,
+        ),
+        freeze_banned=[],
+    )
