@@ -1,15 +1,15 @@
 """Run tests for different experiment methods."""
-from typing import Dict
-
 import pandas
 import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.experiment_solvers.data_types import schedule_experiment_results_equals_modulo_solve_time
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
-from rsp.route_dag.route_dag import TopoDict
+from rsp.route_dag.route_dag import schedule_problem_description_equals
+from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -131,6 +131,7 @@ def test_regression_experiment_agenda():
 
     # load results
     result = load_experiment_results_from_folder(experiment_folder_name)
+    result = expand_experiment_data_for_analysis(result)
 
     delete_experiment_folder(experiment_folder_name)
 
@@ -400,18 +401,30 @@ def test_save_and_load_experiment_results():
         loaded_result_dict = loaded_results.to_dict()
         experiment_results_dict = experiment_results.to_dict()
 
+    _assert_results_dict_equals(experiment_results_dict, loaded_result_dict)
+
+
+def _assert_results_dict_equals(experiment_results_dict, loaded_result_dict):
     for key in experiment_results_dict:
-        if key == 'topo_dict':
-            results_topo_dict: Dict[int, TopoDict] = experiment_results_dict[key]
-            loaded_topo_dict: Dict[int, TopoDict] = loaded_result_dict[key]
-            assert results_topo_dict.keys() == loaded_topo_dict.keys()
-            for exp_id, topo_dict in results_topo_dict.items():
-                for agent_id in topo_dict:
-                    assert results_topo_dict[exp_id][agent_id].nodes == loaded_topo_dict[exp_id][agent_id].nodes
-                    assert results_topo_dict[exp_id][agent_id].edges == loaded_topo_dict[exp_id][agent_id].edges
-        elif not key.startswith("time") and not key.startswith('problem_'):
+        print(f"key={key}")
+        if key.startswith("problem_"):
+            assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
+            for index in loaded_result_dict[key]:
+                assert schedule_problem_description_equals(loaded_result_dict[key][index],
+                                                           experiment_results_dict[key][index])
+        elif key.startswith('results_'):
+            assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
+            for index in loaded_result_dict[key]:
+                assert schedule_experiment_results_equals_modulo_solve_time(experiment_results_dict[key][index],
+                                                                            loaded_result_dict[key][index]), \
+                    f"{key}{index} should be equal modulo solve_time; \n" \
+                    f"  expected{experiment_results_dict[key][index]}, \n" \
+                    f"  actual {loaded_result_dict[key][index]}"
+        else:
             assert experiment_results_dict[key] == loaded_result_dict[key], \
-                f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
+                f"{key} should be equal; \n" \
+                f"  expected{experiment_results_dict[key]}, \n" \
+                f"  actual {loaded_result_dict[key]}"
 
 
 def test_run_full_pipeline():
@@ -497,11 +510,13 @@ def test_run_alpha_beta():
         experiment_parameters=experiment_parameters,
     )
 
-    assert experiment_result.costs_full_after_malfunction > 0
-    assert (experiment_result.costs_full_after_malfunction * scale ==
-            experiment_result_scaled.costs_full_after_malfunction)
-    assert (experiment_result.solution_full_after_malfunction ==
-            experiment_result_scaled.solution_full_after_malfunction)
+    costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
+    assert costs_full_after_malfunction > 0
+    costs_full_after_malfunction_scaled = experiment_result_scaled.results_full_after_malfunction.optimization_costs
+    assert (costs_full_after_malfunction * scale ==
+            costs_full_after_malfunction_scaled)
+    assert (experiment_result.results_full_after_malfunction.trainruns_dict ==
+            experiment_result_scaled.results_full_after_malfunction.trainruns_dict)
 
 
 def test_parallel_experiment_execution():
@@ -541,7 +556,4 @@ def test_parallel_experiment_execution():
         loaded_result_dict = loaded_results.to_dict()
         experiment_results_dict = experiment_results.to_dict()
 
-    for key in experiment_results_dict:
-        if not key.startswith("time") and not key.startswith('problem_'):
-            assert experiment_results_dict[key] == loaded_result_dict[key], \
-                f"{key} should be equal; expected{experiment_results_dict[key]}, but got {loaded_result_dict[key]}"
+    _assert_results_dict_equals(experiment_results_dict, loaded_result_dict)

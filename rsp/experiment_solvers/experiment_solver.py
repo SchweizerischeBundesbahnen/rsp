@@ -174,23 +174,16 @@ class ASPExperimentSolver():
         # --------------------------------------------------------------------------------------
         # 4. Result
         # --------------------------------------------------------------------------------------
-        current_results = ExperimentResults(time_full=schedule_result.solve_time,
-                                            time_full_after_malfunction=full_reschedule_result.solve_time,
-                                            time_delta_after_malfunction=delta_reschedule_result.solve_time,
-                                            solution_full=schedule_result.trainruns_dict,
-                                            solution_full_after_malfunction=full_reschedule_result.trainruns_dict,
-                                            solution_delta_after_malfunction=delta_reschedule_result.trainruns_dict,
-                                            costs_full=schedule_result.optimization_costs,
-                                            costs_full_after_malfunction=full_reschedule_result.optimization_costs,
-                                            costs_delta_after_malfunction=delta_reschedule_result.optimization_costs,
-                                            problem_full=tc_schedule_problem,
-                                            problem_full_after_malfunction=full_reschedule_problem,
-                                            problem_delta_after_malfunction=delta_reschedule_problem,
-                                            malfunction=malfunction,
-                                            nb_resource_conflicts_full=schedule_result.nb_conflicts,
-                                            nb_resource_conflicts_full_after_malfunction=full_reschedule_result.nb_conflicts,
-                                            nb_resource_conflicts_delta_after_malfunction=delta_reschedule_result.nb_conflicts
-                                            )
+        current_results = ExperimentResults(
+            experiment_parameters=experiment_parameters,
+            malfunction=malfunction,
+            problem_full=tc_schedule_problem,
+            problem_full_after_malfunction=full_reschedule_problem,
+            problem_delta_after_malfunction=delta_reschedule_problem,
+            results_full=schedule_result,
+            results_full_after_malfunction=full_reschedule_result,
+            results_delta_after_malfunction=delta_reschedule_result
+        )
         return current_results
 
 

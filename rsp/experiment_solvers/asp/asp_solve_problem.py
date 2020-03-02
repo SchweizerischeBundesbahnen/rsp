@@ -120,4 +120,7 @@ def solve_problem(
                                       build_problem_time=build_problem_time,
                                       nb_conflicts=solution.extract_nb_resource_conflicts(),
                                       trainruns_dict=solution.get_trainruns_dict(),
-                                      route_dag_constraints=problem.tc.route_dag_constraints_dict), solution
+                                      route_dag_constraints=problem.tc.route_dag_constraints_dict,
+                                      solver_statistics=solution.asp_solution.stats,
+                                      solver_result=solution.answer_set
+                                      ), solution

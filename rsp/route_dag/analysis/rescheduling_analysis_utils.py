@@ -1,28 +1,24 @@
 import pprint
-from functools import reduce
-from operator import mul
-from typing import List
-from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
-from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
-from rsp.route_dag.route_dag import RouteDAGConstraintsDict
-from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import convert_data_frame_row_to_experiment_results
+from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import extract_path_search_space
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def _analyze_times(experiment_results: ExperimentResults):
-    time_delta_after_m = experiment_results.time_delta_after_malfunction
-    time_full_after_m = experiment_results.time_full_after_malfunction
+def _analyze_times(experiment_results: ExperimentResults, experiment_results_analysis: ExperimentResultsAnalysis):
+    time_delta_after_m = experiment_results_analysis.time_delta_after_malfunction
+    time_full_after_m = experiment_results_analysis.time_full_after_malfunction
     # Delta is all train run way points in the re-schedule that are not also in the schedule
-    schedule_trainrunwaypoints = experiment_results.solution_full
-    full_reschedule_trainrunwaypoints_dict = experiment_results.solution_full_after_malfunction
+    schedule_trainrunwaypoints = experiment_results_analysis.solution_full
+    full_reschedule_trainrunwaypoints_dict = experiment_results_analysis.solution_full_after_malfunction
     schedule_full_reschedule_delta: TrainrunDict = {
         agent_id: sorted(list(
             set(full_reschedule_trainrunwaypoints_dict[agent_id]).difference(
@@ -59,7 +55,8 @@ def _analyze_times(experiment_results: ExperimentResults):
     }
     all_delta_reschedule_trainrunwaypoints = {
         full_reschedule_trainrunwaypoint
-        for full_reschedule_trainrunwaypoints in experiment_results.solution_delta_after_malfunction.values()
+        for full_reschedule_trainrunwaypoints in
+        experiment_results_analysis.solution_full_after_malfunction.values()
         for full_reschedule_trainrunwaypoint in full_reschedule_trainrunwaypoints
     }
     full_delta_same_counts = len(
@@ -79,73 +76,22 @@ def _analyze_times(experiment_results: ExperimentResults):
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
-# numpy produces overflow -> python ints are unbounded, see https://stackoverflow.com/questions/2104782/returning-the-product-of-a-list
-def _prod(l: List[int]):
-    return reduce(mul, l, 1)
-
-
-# TODO SIM-151: use in plots instead of log output
-def _analyze_paths(experiment_results: ExperimentResults, experiment_id: int, debug: bool = False):
-    _rsp_delta, _rsp_full, _schedule = _extract_path_search_space(
+def _analyze_paths(experiment_results: ExperimentResults,
+                   experiment_results_analysis: ExperimentResultsAnalysis,
+                   experiment_id: int):
+    _rsp_delta, _rsp_full, _schedule = extract_path_search_space(
         experiment_results=experiment_results)
-    print("**** path search space: "
+    print(f"**** (experiment {experiment_id}) path search space: "
           f"path_search_space_schedule={_schedule:.2E}, "
           f"path_search_space_rsp_full={_rsp_full:.2E}, "
           f"path_search_space_rsp_delta={_rsp_delta:.2E}")
-    resource_conflicts_search_space_schedule = experiment_results.nb_resource_conflicts_full
-    resource_conflicts_search_space_rsp_full = experiment_results.nb_resource_conflicts_full_after_malfunction
-    resource_conflicts_search_space_rsp_delta = experiment_results.nb_resource_conflicts_delta_after_malfunction
-    print("**** resource conflicts search space: "
+    resource_conflicts_search_space_schedule = experiment_results_analysis.nb_resource_conflicts_full
+    resource_conflicts_search_space_rsp_full = experiment_results_analysis.nb_resource_conflicts_full_after_malfunction
+    resource_conflicts_search_space_rsp_delta = experiment_results_analysis.nb_resource_conflicts_delta_after_malfunction
+    print(f"**** (experiment {experiment_id}) resource conflicts search space: "
           f"resource_conflicts_search_space_schedule={resource_conflicts_search_space_schedule :.2E}, "
           f"resource_conflicts_search_space_rsp_full={resource_conflicts_search_space_rsp_full :.2E}, "
           f"resource_conflicts_search_space_rsp_delta={resource_conflicts_search_space_rsp_delta :.2E}")
-
-
-def _extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
-    route_dag_constraints_delta_afer_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
-    route_dag_constraints_full_after_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
-    route_dag_constraints_schedule = experiment_results.problem_full.route_dag_constraints_dict
-    topo_dict = experiment_results.problem_full.topo_dict
-    all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = _extract_number_of_path_alternatives(
-        topo_dict,
-        route_dag_constraints_schedule,
-        route_dag_constraints_delta_afer_malfunction,
-        route_dag_constraints_full_after_malfunction)
-    path_search_space_schedule = _prod(all_nb_alternatives_schedule)
-    path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
-    path_search_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
-    return path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule
-
-
-def _extract_number_of_path_alternatives(
-        topo_dict: TopoDict,
-        route_dag_constraints_schedule: RouteDAGConstraintsDict,
-        route_dag_constraints_delta_afer_malfunction: RouteDAGConstraintsDict,
-        route_dag_constraints_full_after_malfunction: RouteDAGConstraintsDict
-) -> Tuple[List[int], List[int], List[int]]:
-    """Extract number of path alternatives for schedule, rsp full and rsp delta
-    for each agent."""
-    all_nb_alternatives_schedule = []
-    all_nb_alternatives_rsp_full = []
-    all_nb_alternatives_rsp_delta = []
-
-    for agent_id in route_dag_constraints_delta_afer_malfunction:
-        alternatives_schedule = get_paths_for_route_dag_constraints(
-            topo=topo_dict[agent_id],
-            route_dag_constraints=route_dag_constraints_schedule[agent_id]
-        )
-        alternatives_rsp_full = get_paths_for_route_dag_constraints(
-            topo=topo_dict[agent_id],
-            route_dag_constraints=route_dag_constraints_full_after_malfunction[agent_id]
-        )
-        alternatives_rsp_delta = get_paths_for_route_dag_constraints(
-            topo=topo_dict[agent_id],
-            route_dag_constraints=route_dag_constraints_delta_afer_malfunction[agent_id]
-        )
-        all_nb_alternatives_schedule.append(len(alternatives_schedule))
-        all_nb_alternatives_rsp_full.append(len(alternatives_rsp_full))
-        all_nb_alternatives_rsp_delta.append(len(alternatives_rsp_delta))
-    return all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule
 
 
 def analyze_experiment(experiment: ExperimentParameters,
@@ -155,6 +101,10 @@ def analyze_experiment(experiment: ExperimentParameters,
 
     experiment_results: ExperimentResults = convert_data_frame_row_to_experiment_results(rows)
 
-    # TODO SIM-151: use in plots instead of only printing
-    _analyze_times(experiment_results)
-    _analyze_paths(experiment_results=experiment_results, experiment_id=experiment.experiment_id)
+    experiment_results_analysis = expand_experiment_results_for_analysis(
+        experiment_id=experiment.experiment_id,
+        experiment_results=experiment_results)
+    _analyze_times(experiment_results=experiment_results, experiment_results_analysis=experiment_results_analysis)
+    _analyze_paths(experiment_results=experiment_results,
+                   experiment_results_analysis=experiment_results_analysis,
+                   experiment_id=experiment.experiment_id)
