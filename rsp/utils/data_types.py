@@ -108,9 +108,9 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('path_search_space_rsp_delta', int),
     ('factor_path_search_space', int),
     ('size_used', int),
-    ('lateness_full_after_malfunction', int),
+    ('lateness_full_after_malfunction', Dict[int, int]),
     ('sum_route_section_penalties_full_after_malfunction', int),
-    ('lateness_delta_after_malfunction', int),
+    ('lateness_delta_after_malfunction', Dict[int, int]),
     ('sum_route_section_penalties_delta_after_malfunction', int),
     ('vertex_eff_lateness_full_after_malfunction', Dict[Waypoint, int]),
     ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
@@ -234,16 +234,15 @@ def expand_experiment_results_for_analysis(
             position=train_run_full_after_malfunction_agent[-1].waypoint.position,
             direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
 
-        train_run_full_after_malfunction_target_agent = train_run_full_after_malfunction_agent[-1]
         train_run_full_after_malfunction_constraints_agent = \
             experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_full_after_malfunction_target_earliest_agent = \
-            train_run_full_after_malfunction_constraints_agent.freeze_earliest[
-                train_run_full_after_malfunction_target_agent.waypoint]
+        train_run_full_after_malfunction_dummy_target_earliest_agent = \
+            train_run_full_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
+        train_run_full_after_malfunction_scheduled_at_dummy_target = train_run_full_after_malfunction_agent[-1].scheduled_at + 1
         lateness_full_after_malfunction[agent_id] = \
             max(
-                train_run_full_after_malfunction_agent[-1].scheduled_at -
-                train_run_full_after_malfunction_target_earliest_agent,
+                train_run_full_after_malfunction_scheduled_at_dummy_target -
+                train_run_full_after_malfunction_dummy_target_earliest_agent,
                 0)
         # TODO SIM-325 extend to all vertices
         vertex_eff_lateness_full_after_malfunction[agent_id] = {
@@ -270,12 +269,13 @@ def expand_experiment_results_for_analysis(
         train_run_delta_after_malfunction_target_agent = train_run_delta_after_malfunction_agent[-1]
         train_run_delta_after_malfunction_constraints_agent = \
             experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_delta_after_malfunction_target_earliest_agent = \
-            train_run_delta_after_malfunction_constraints_agent.freeze_earliest[
-                train_run_delta_after_malfunction_target_agent.waypoint]
+        train_run_delta_after_malfunction_dummy_target_earliest_agent = \
+            train_run_delta_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
+        train_run_delta_after_malfunction_scheduled_at_dummy_target = \
+            train_run_delta_after_malfunction_target_agent.scheduled_at + 1
         lateness_delta_after_malfunction[agent_id] = \
             max(
-                train_run_delta_after_malfunction_target_agent.scheduled_at - train_run_delta_after_malfunction_target_earliest_agent,
+                train_run_delta_after_malfunction_scheduled_at_dummy_target - train_run_delta_after_malfunction_dummy_target_earliest_agent,
                 0)
         # TODO SIM-325 extend to all vertices
         vertex_eff_lateness_delta_after_malfunction[agent_id] = {
