@@ -10,8 +10,8 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
+from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.utils.data_types import ExperimentMalfunction
 
 

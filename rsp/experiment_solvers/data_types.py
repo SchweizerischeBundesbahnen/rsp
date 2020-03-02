@@ -4,7 +4,7 @@ from typing import Optional
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraintsDict
+from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 
