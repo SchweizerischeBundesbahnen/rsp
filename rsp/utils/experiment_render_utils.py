@@ -21,8 +21,26 @@ from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import TrainSchedule
+from rsp.utils.data_types import TrainScheduleDict
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
+
+
+def convert_trainrundict_to_positions_for_all_timesteps(trainrun_dict: TrainrunDict):
+    train_schedule_dict: TrainScheduleDict = {}
+    for agent_id, trainrun in trainrun_dict.items():
+        train_schedule: TrainSchedule = {}
+        train_schedule_dict[agent_id] = train_schedule
+        time_step = 0
+        current_position = None
+        for trainrun_waypoint in trainrun:
+            while time_step < trainrun_waypoint.scheduled_at:
+                train_schedule[time_step] = current_position
+                time_step += 1
+            current_position = trainrun_waypoint.waypoint
+            train_schedule[time_step] = current_position
+    return train_schedule_dict
 
 
 def visualize_experiment(
