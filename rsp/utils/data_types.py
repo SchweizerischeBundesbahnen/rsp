@@ -108,9 +108,9 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('path_search_space_rsp_delta', int),
     ('factor_path_search_space', int),
     ('size_used', int),
-    ('lateness_full_after_malfunction', int),
+    ('lateness_full_after_malfunction', Dict[int, int]),
     ('sum_route_section_penalties_full_after_malfunction', int),
-    ('lateness_delta_after_malfunction', int),
+    ('lateness_delta_after_malfunction', Dict[int, int]),
     ('sum_route_section_penalties_delta_after_malfunction', int),
     ('vertex_eff_lateness_full_after_malfunction', Dict[Waypoint, int]),
     ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
@@ -198,11 +198,17 @@ def expand_experiment_results_for_analysis(
     time_full = experiment_results.results_full.solve_time
     time_full_after_malfunction = experiment_results.results_full_after_malfunction.solve_time
     time_delta_after_malfunction = experiment_results.results_delta_after_malfunction.solve_time
+    nb_resource_conflicts_delta_after_malfunction = experiment_results.results_delta_after_malfunction.nb_conflicts
+    nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
     speed_up = time_full_after_malfunction / time_delta_after_malfunction
     # search space indiciators
-    factor_resource_conflicts = \
-        experiment_results.results_delta_after_malfunction.nb_conflicts / \
-        experiment_results.results_full_after_malfunction.nb_conflicts
+    factor_resource_conflicts = 0
+    try:
+        factor_resource_conflicts = \
+            nb_resource_conflicts_delta_after_malfunction / \
+            nb_resource_conflicts_full_after_malfunction
+    except ZeroDivisionError as e:
+        print(f"experiment {experiment_id}: {str(e)}:\n  {experiment_results}")
     path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = extract_path_search_space(
         experiment_results=experiment_results)
     factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
@@ -228,16 +234,15 @@ def expand_experiment_results_for_analysis(
             position=train_run_full_after_malfunction_agent[-1].waypoint.position,
             direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
 
-        train_run_full_after_malfunction_target_agent = train_run_full_after_malfunction_agent[-1]
         train_run_full_after_malfunction_constraints_agent = \
             experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_full_after_malfunction_target_earliest_agent = \
-            train_run_full_after_malfunction_constraints_agent.freeze_earliest[
-                train_run_full_after_malfunction_target_agent.waypoint]
+        train_run_full_after_malfunction_dummy_target_earliest_agent = \
+            train_run_full_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
+        train_run_full_after_malfunction_scheduled_at_dummy_target = train_run_full_after_malfunction_agent[-1].scheduled_at + 1
         lateness_full_after_malfunction[agent_id] = \
             max(
-                train_run_full_after_malfunction_agent[-1].scheduled_at -
-                train_run_full_after_malfunction_target_earliest_agent,
+                train_run_full_after_malfunction_scheduled_at_dummy_target -
+                train_run_full_after_malfunction_dummy_target_earliest_agent,
                 0)
         # TODO SIM-325 extend to all vertices
         vertex_eff_lateness_full_after_malfunction[agent_id] = {
@@ -264,12 +269,13 @@ def expand_experiment_results_for_analysis(
         train_run_delta_after_malfunction_target_agent = train_run_delta_after_malfunction_agent[-1]
         train_run_delta_after_malfunction_constraints_agent = \
             experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_delta_after_malfunction_target_earliest_agent = \
-            train_run_delta_after_malfunction_constraints_agent.freeze_earliest[
-                train_run_delta_after_malfunction_target_agent.waypoint]
+        train_run_delta_after_malfunction_dummy_target_earliest_agent = \
+            train_run_delta_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
+        train_run_delta_after_malfunction_scheduled_at_dummy_target = \
+            train_run_delta_after_malfunction_target_agent.scheduled_at + 1
         lateness_delta_after_malfunction[agent_id] = \
             max(
-                train_run_delta_after_malfunction_target_agent.scheduled_at - train_run_delta_after_malfunction_target_earliest_agent,
+                train_run_delta_after_malfunction_scheduled_at_dummy_target - train_run_delta_after_malfunction_dummy_target_earliest_agent,
                 0)
         # TODO SIM-325 extend to all vertices
         vertex_eff_lateness_delta_after_malfunction[agent_id] = {

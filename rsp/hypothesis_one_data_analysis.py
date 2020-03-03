@@ -239,12 +239,13 @@ def hypothesis_one_data_analysis(data_folder: str,
             lambda experiment: experiment.experiment_id in qualitative_analysis_experiment_ids,
             experiment_agenda.experiments))
         for experiment in filtered_experiments:
-            analyze_experiment(experiment=experiment, data_frame=experiment_data)
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
-            experiment_results: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(row)
+            experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
+                row)
+            analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
-                                 experiment_results=experiment_results,
+                                 experiment_results_analysis=experiment_results_analysis,
                                  data_folder=data_folder,
                                  flatland_rendering=flatland_rendering)
 
@@ -290,7 +291,7 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_21T11_11_10',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_27T10_51_23',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,

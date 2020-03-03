@@ -1,19 +1,14 @@
 import pprint
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from pandas import DataFrame
 
-from rsp.utils.data_types import convert_data_frame_row_to_experiment_results
-from rsp.utils.data_types import expand_experiment_results_for_analysis
-from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import extract_path_search_space
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def _analyze_times(experiment_results: ExperimentResults, experiment_results_analysis: ExperimentResultsAnalysis):
+def _analyze_times(experiment_results_analysis: ExperimentResultsAnalysis):
     time_delta_after_m = experiment_results_analysis.time_delta_after_malfunction
     time_full_after_m = experiment_results_analysis.time_full_after_malfunction
     # Delta is all train run way points in the re-schedule that are not also in the schedule
@@ -76,11 +71,10 @@ def _analyze_times(experiment_results: ExperimentResults, experiment_results_ana
           f"{time_full_after_m}s -> {time_delta_after_m}s")
 
 
-def _analyze_paths(experiment_results: ExperimentResults,
-                   experiment_results_analysis: ExperimentResultsAnalysis,
+def _analyze_paths(experiment_results_analysis: ExperimentResultsAnalysis,
                    experiment_id: int):
     _rsp_delta, _rsp_full, _schedule = extract_path_search_space(
-        experiment_results=experiment_results)
+        experiment_results=experiment_results_analysis)
     print(f"**** (experiment {experiment_id}) path search space: "
           f"path_search_space_schedule={_schedule:.2E}, "
           f"path_search_space_rsp_full={_rsp_full:.2E}, "
@@ -94,17 +88,7 @@ def _analyze_paths(experiment_results: ExperimentResults,
           f"resource_conflicts_search_space_rsp_delta={resource_conflicts_search_space_rsp_delta :.2E}")
 
 
-def analyze_experiment(experiment: ExperimentParameters,
-                       data_frame: DataFrame):
-    # find first row for this experiment (iloc[0]
-    rows = data_frame.loc[data_frame['experiment_id'] == experiment.experiment_id]
-
-    experiment_results: ExperimentResults = convert_data_frame_row_to_experiment_results(rows)
-
-    experiment_results_analysis = expand_experiment_results_for_analysis(
-        experiment_id=experiment.experiment_id,
-        experiment_results=experiment_results)
-    _analyze_times(experiment_results=experiment_results, experiment_results_analysis=experiment_results_analysis)
-    _analyze_paths(experiment_results=experiment_results,
-                   experiment_results_analysis=experiment_results_analysis,
-                   experiment_id=experiment.experiment_id)
+def analyze_experiment(experiment_results_analysis: ExperimentResultsAnalysis):
+    _analyze_times(experiment_results_analysis=experiment_results_analysis)
+    _analyze_paths(experiment_results_analysis=experiment_results_analysis,
+                   experiment_id=experiment_results_analysis.experiment_id)

@@ -406,7 +406,6 @@ def test_save_and_load_experiment_results():
 
 def _assert_results_dict_equals(experiment_results_dict, loaded_result_dict):
     for key in experiment_results_dict:
-        print(f"key={key}")
         if key.startswith("problem_"):
             assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
             for index in loaded_result_dict[key]:
@@ -415,8 +414,11 @@ def _assert_results_dict_equals(experiment_results_dict, loaded_result_dict):
         elif key.startswith('results_'):
             assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
             for index in loaded_result_dict[key]:
-                assert schedule_experiment_results_equals_modulo_solve_time(experiment_results_dict[key][index],
-                                                                            loaded_result_dict[key][index]), \
+                equals_modulo_solve_time = schedule_experiment_results_equals_modulo_solve_time(
+                    experiment_results_dict[key][index],
+                    loaded_result_dict[key][index])
+
+                assert equals_modulo_solve_time, \
                     f"{key}{index} should be equal modulo solve_time; \n" \
                     f"  expected{experiment_results_dict[key][index]}, \n" \
                     f"  actual {loaded_result_dict[key][index]}"

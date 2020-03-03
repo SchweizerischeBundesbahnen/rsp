@@ -126,7 +126,6 @@ def run_experiment(solver: ASPExperimentSolver,
             verbose=verbose,
             debug=debug
         )
-        print(f"schedule_and_malfunction={schedule_and_malfunction}")
         current_results: ExperimentResults = solver.run_experiment_trial(
             schedule_and_malfunction=schedule_and_malfunction,
             malfunction_rail_env=malfunction_rail_env,
@@ -160,10 +159,8 @@ def run_experiment(solver: ASPExperimentSolver,
             experiment_results_analysis = expand_experiment_results_for_analysis(
                 experiment_id=experiment_parameters.experiment_id,
                 experiment_results=current_results)
-            _analyze_times(experiment_results=current_results,
-                           experiment_results_analysis=experiment_results_analysis)
-            _analyze_paths(experiment_results=current_results,
-                           experiment_results_analysis=experiment_results_analysis,
+            _analyze_times(experiment_results_analysis=experiment_results_analysis)
+            _analyze_paths(experiment_results_analysis=experiment_results_analysis,
                            experiment_id=experiment_parameters.experiment_id)
         if rendering:
             from flatland.utils.rendertools import RenderTool, AgentRenderVariant
