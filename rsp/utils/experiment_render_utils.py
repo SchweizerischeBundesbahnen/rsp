@@ -10,6 +10,8 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
+import numpy as np
+import matplotlib.pyplot as plt
 
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
@@ -23,6 +25,29 @@ from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
+
+def visualize_agent_density(rows,output_folder):
+
+    train_runs_input: TrainrunDict = rows['solution_full']
+    problem_description: ScheduleProblemDescription = rows['problem_full']
+    max_episode_steps = problem_description.max_episode_steps
+    #train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction']
+    #train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction']
+    agent_density = np.zeros(max_episode_steps)
+
+    for train_run in train_runs_input:
+        start_time = train_runs_input[train_run][0][0]
+        end_time = train_runs_input[train_run][-1][0]
+        agent_density[start_time:end_time + 1] += 1
+
+    fig = plt.figure()
+    fig.set_size_inches(w=15, h=15)
+    ax: plt.axes.Axes = fig.add_subplot(111)
+    ax.set_title('Agent density during schedule')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Nr. active Agents')
+    plt.plot(agent_density)
+    plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
 
 
 def visualize_experiment(

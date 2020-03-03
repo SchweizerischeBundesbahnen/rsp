@@ -15,6 +15,7 @@ from typing import Dict
 from typing import List
 
 import numpy as np
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
@@ -30,7 +31,7 @@ from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiment_render_utils import visualize_experiment
+from rsp.utils.experiment_render_utils import visualize_experiment, visualize_agent_density
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 from rsp.utils.file_utils import check_create_folder
@@ -202,9 +203,8 @@ def hypothesis_one_data_analysis(data_folder: str,
 
     print(data_folder)
     print(experiment_agenda)
-
     # Plausibility tests on experiment data
-    _run_plausibility_tests_on_experiment_data(experiment_data)
+    #_run_plausibility_tests_on_experiment_data(experiment_data)
 
     # derive additional data columns
     experiment_data = expand_experiment_data_for_analysis(
@@ -242,12 +242,14 @@ def hypothesis_one_data_analysis(data_folder: str,
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
             experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
                 row)
+            visualize_agent_density(row, output_folder=data_folder)
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
                                  experiment_results_analysis=experiment_results_analysis,
                                  data_folder=data_folder,
                                  flatland_rendering=flatland_rendering)
+
 
 
 def _run_plausibility_tests_on_experiment_data(experiment_data):
@@ -291,9 +293,9 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_27T10_51_23',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_03_03T08_01_36',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[]
+                                 qualitative_analysis_experiment_ids=[12]
                                  )
