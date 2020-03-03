@@ -291,9 +291,9 @@ def _run_plausibility_tests_on_experiment_data(experiment_data):
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_02_27T10_51_23',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_03_03T08_01_36',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[]
+                                 qualitative_analysis_experiment_ids=[12]
                                  )

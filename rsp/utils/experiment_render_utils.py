@@ -48,9 +48,7 @@ def visualize_experiment(
     convert_to_mpeg
         Converts the rendering to mpeg
     """
-    # TODO remove iloc[0] stuff
 
-    # find first row for this experiment (iloc[0]
     rows = data_frame.loc[data_frame['experiment_id'] == experiment_parameters.experiment_id]
 
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
@@ -248,12 +246,31 @@ def init_renderer_for_env(env: RailEnv, rendering: bool = False):
                           screen_width=1000)
 
 
-def render_env(renderer, test_id: int, solver_name, i_step: int,
+def render_env(renderer,
+               test_id: int,
+               solver_name, i_step: int,
+               show=True,
                image_output_directory: Optional[str] = './rendering_output'):
+    """
+
+    Parameters
+    ----------
+    renderer: Optional[RenderTool]
+    test_id: int
+        id in file name
+    solver_name:
+        solver name for file name
+    i_step: int
+        used in file name
+    show:
+        render without showing?
+    image_output_directory: Optional[str]
+        store files to this directory if given
+    """
     if renderer is not None:
         from flatland.utils.rendertools import RenderTool
         renderer: RenderTool = renderer
-        renderer.render_env(show=True, show_observations=False, show_predictions=False)
+        renderer.render_env(show=show, show_observations=False, show_predictions=False)
         if image_output_directory is not None:
             if not os.path.exists(image_output_directory):
                 os.makedirs(image_output_directory)
