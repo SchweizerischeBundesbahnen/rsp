@@ -19,7 +19,7 @@ def propagate_earliest(banned_set: Set[Waypoint],
                        force_freeze_dict: Dict[Waypoint, int],
                        minimum_travel_time: int,
                        subdag_source: TrainrunWaypoint,
-                       topo: nx.DiGraph):
+                       topo: nx.DiGraph) -> Dict[Waypoint, int]:
     """Extract earliest times at nodes by moving forward from source. Earliest
     time for the agent to reach this vertex given the freezed times.
 
@@ -58,33 +58,82 @@ def propagate_earliest(banned_set: Set[Waypoint],
     return earliest_dict
 
 
-def propagate_latest_constant(latest_arrival: int,
-                              latest_dict: Dict[Waypoint, int],
-                              earliest_dict: Dict[Waypoint, int],
-                              latest_constant: int):
+def propagate_latest(banned_set: Set[Waypoint],
+                     force_freeze_dict: Dict[Waypoint, int],
+                     earliest_dict: Dict[Waypoint, int],
+                     latest_dict: Dict[Waypoint, int],
+                     latest_arrival: int,
+                     minimum_travel_time: int,
+                     topo: nx.DiGraph,
+                     earliest_latest_time_window: int = np.inf
+                     ) -> Dict[Waypoint, int]:
+    """If earliest_latest_time_window is 0, then extract latest by moving
+    backwards from sinks. Latest time for the agent to pass here in order to
+    reach the target in time. Otherwise take the minimum of moving backwards or
+    earliest + earliest_latest_time_window.
+
+    Parameters
+    ----------
+    banned_set
+    force_freeze_dict
+    earliest_dict
+    latest_dict
+    latest_arrival
+    minimum_travel_time
+    topo
+    earliest_latest_time_window: int
+        window size of latest = earliest + earliest_latest_time_window
+    """
+
+    latest_backwards = _propagate_latest_backwards(banned_set=banned_set,
+                                                   force_freeze_dict=force_freeze_dict,
+                                                   latest_arrival=latest_arrival,
+                                                   latest_dict=latest_dict,
+                                                   minimum_travel_time=minimum_travel_time,
+                                                   topo=topo)
+    if earliest_latest_time_window == np.inf:
+        return latest_backwards
+    else:
+        latest_forward = _propagate_latest_forward_constant(earliest_dict=earliest_dict,
+                                                            latest_dict={},
+                                                            latest_arrival=latest_arrival,
+                                                            earliest_latest_time_window=earliest_latest_time_window)
+
+        latest = dict()
+        for waypoint, latest_forward_time in latest_forward.items():
+            latest_backward_time = latest_backwards.get(waypoint)
+            latest[waypoint] = min(latest_forward_time, latest_backward_time)
+        return latest
+
+
+def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
+                                       latest_dict: Dict[Waypoint, int],
+                                       latest_arrival: int,
+                                       earliest_latest_time_window: int) -> Dict[Waypoint, int]:
     """Extract latest by adding a constant value to earliest.
 
     Parameters
     ----------
-    latest_arrival
-    latest_dict
     earliest_dict
-    latest_constant
+    latest_dict
+    latest_arrival
+    earliest_latest_time_window: int
+        window size of latest = earliest + earliest_latest_time_window
     """
 
     for waypoint, earliest in earliest_dict.items():
-        latest = earliest + latest_constant
+        latest = earliest + earliest_latest_time_window
         latest = latest_arrival if latest > latest_arrival else latest
         latest_dict[waypoint] = latest
     return latest_dict
 
 
-def propagate_latest(banned_set: Set[Waypoint],
-                     force_freeze_dict: Dict[Waypoint, int],
-                     latest_arrival: int,
-                     latest_dict: Dict[Waypoint, int],
-                     minimum_travel_time: int,
-                     topo: nx.DiGraph):
+def _propagate_latest_backwards(banned_set: Set[Waypoint],
+                                force_freeze_dict: Dict[Waypoint, int],
+                                latest_arrival: int,
+                                latest_dict: Dict[Waypoint, int],
+                                minimum_travel_time: int,
+                                topo: nx.DiGraph):
     """Extract latest by moving backwards from sinks. Latest time for the agent
     to pass here in order to reach the target in time.
 

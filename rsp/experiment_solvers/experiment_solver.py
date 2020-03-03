@@ -119,6 +119,7 @@ class ASPExperimentSolver():
             schedule_trainruns=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
             latest_arrival=malfunction_rail_env._max_episode_steps,
+            earliest_latest_time_window=experiment_parameters.earliest_latest_time_window,
             topo_dict=tc_schedule_problem.topo_dict
         )
         full_reschedule_problem = apply_weight_route_change(
@@ -150,7 +151,8 @@ class ASPExperimentSolver():
             max_episode_steps=tc_schedule_problem.max_episode_steps,
             schedule_topo_dict=tc_schedule_problem.topo_dict,
             schedule_trainrun_dict=schedule_trainruns,
-            minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict
+            minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+            earliest_latest_time_window=experiment_parameters.earliest_latest_time_window
         )
         delta_reschedule_problem = apply_weight_route_change(
             schedule_problem=delta_reschedule_problem,

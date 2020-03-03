@@ -4,6 +4,7 @@ from typing import Set
 from typing import Tuple
 
 import networkx as nx
+import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
@@ -25,7 +26,8 @@ def perfect_oracle(
         minimum_travel_time_dict: Dict[int, int],
         max_episode_steps: int,
         schedule_topo_dict: TopoDict,
-        schedule_trainrun_dict: TrainrunDict) -> ScheduleProblemDescription:
+        schedule_trainrun_dict: TrainrunDict,
+        earliest_latest_time_window: int = np.inf) -> ScheduleProblemDescription:
     """The perfect oracle only opens up the differences between the schedule
     and the imaginary re-schedule. It gives no additional routing flexibility!
 
@@ -43,6 +45,8 @@ def perfect_oracle(
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
+    earliest_latest_time_window: int
+        window size of latest = earliest + earliest_latest_time_window
 
     Returns
     -------
@@ -126,7 +130,8 @@ def perfect_oracle(
         topo_dict=topo_dict,
         force_freeze=force_freeze,
         malfunction=malfunction,
-        latest_arrival=max_episode_steps
+        latest_arrival=max_episode_steps,
+        earliest_latest_time_window=earliest_latest_time_window
     )
 
     # (PO-3.3) add force_banned again to propagation constraints

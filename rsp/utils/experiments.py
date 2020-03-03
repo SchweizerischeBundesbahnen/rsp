@@ -354,7 +354,7 @@ def create_experiment_agenda(experiment_name: str,
                 # route change is penalized the same as 60 seconds delay
                 weight_route_change=60,
                 weight_lateness_seconds=1,
-
+                earliest_latest_time_window=parameter_set[8],
             )
 
             experiment_list.append(current_experiment)
