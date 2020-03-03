@@ -19,7 +19,7 @@ def test_scheduling():
                                            number_of_shortest_paths_per_agent=10,
                                            weight_route_change=1,
                                            weight_lateness_seconds=1,
-                                           earliest_latest_time_window=np.inf)
+                                           max_window_size_from_earliest=np.inf)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

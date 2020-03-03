@@ -27,7 +27,7 @@ def perfect_oracle(
         max_episode_steps: int,
         schedule_topo_dict: TopoDict,
         schedule_trainrun_dict: TrainrunDict,
-        earliest_latest_time_window: int = np.inf) -> ScheduleProblemDescription:
+        max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
     """The perfect oracle only opens up the differences between the schedule
     and the imaginary re-schedule. It gives no additional routing flexibility!
 
@@ -45,8 +45,9 @@ def perfect_oracle(
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
-    earliest_latest_time_window: int
-        window size of latest = earliest + earliest_latest_time_window
+    max_window_size_from_earliest: int
+        maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
+        back propagation of latest"
 
     Returns
     -------
@@ -131,7 +132,7 @@ def perfect_oracle(
         force_freeze=force_freeze,
         malfunction=malfunction,
         latest_arrival=max_episode_steps,
-        earliest_latest_time_window=earliest_latest_time_window
+        max_window_size_from_earliest=max_window_size_from_earliest
     )
 
     # (PO-3.3) add force_banned again to propagation constraints

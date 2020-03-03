@@ -65,12 +65,12 @@ def propagate_latest(banned_set: Set[Waypoint],
                      latest_arrival: int,
                      minimum_travel_time: int,
                      topo: nx.DiGraph,
-                     earliest_latest_time_window: int = np.inf
+                     max_window_size_from_earliest: int = np.inf
                      ) -> Dict[Waypoint, int]:
-    """If earliest_latest_time_window is 0, then extract latest by moving
+    """If max_window_size_from_earliest is 0, then extract latest by moving
     backwards from sinks. Latest time for the agent to pass here in order to
     reach the target in time. Otherwise take the minimum of moving backwards or
-    earliest + earliest_latest_time_window.
+    earliest + max_window_size_from_earliest.
 
     Parameters
     ----------
@@ -81,8 +81,9 @@ def propagate_latest(banned_set: Set[Waypoint],
     latest_arrival
     minimum_travel_time
     topo
-    earliest_latest_time_window: int
-        window size of latest = earliest + earliest_latest_time_window
+    max_window_size_from_earliest: int
+        maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
+        back propagation of latest"
     """
 
     latest_backwards = _propagate_latest_backwards(banned_set=banned_set,
@@ -91,13 +92,13 @@ def propagate_latest(banned_set: Set[Waypoint],
                                                    latest_dict=latest_dict,
                                                    minimum_travel_time=minimum_travel_time,
                                                    topo=topo)
-    if earliest_latest_time_window == np.inf:
+    if max_window_size_from_earliest == np.inf:
         return latest_backwards
     else:
         latest_forward = _propagate_latest_forward_constant(earliest_dict=earliest_dict,
                                                             latest_dict={},
                                                             latest_arrival=latest_arrival,
-                                                            earliest_latest_time_window=earliest_latest_time_window)
+                                                            max_window_size_from_earliest=max_window_size_from_earliest)
 
         latest = dict()
         for waypoint, latest_forward_time in latest_forward.items():
@@ -109,7 +110,7 @@ def propagate_latest(banned_set: Set[Waypoint],
 def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
                                        latest_dict: Dict[Waypoint, int],
                                        latest_arrival: int,
-                                       earliest_latest_time_window: int) -> Dict[Waypoint, int]:
+                                       max_window_size_from_earliest: int) -> Dict[Waypoint, int]:
     """Extract latest by adding a constant value to earliest.
 
     Parameters
@@ -117,12 +118,13 @@ def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
     earliest_dict
     latest_dict
     latest_arrival
-    earliest_latest_time_window: int
-        window size of latest = earliest + earliest_latest_time_window
+    max_window_size_from_earliest: int
+        maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
+        back propagation of latest"
     """
 
     for waypoint, earliest in earliest_dict.items():
-        latest = earliest + earliest_latest_time_window
+        latest = earliest + max_window_size_from_earliest
         latest = latest_arrival if latest > latest_arrival else latest
         latest_dict[waypoint] = latest
     return latest_dict

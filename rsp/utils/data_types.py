@@ -34,7 +34,7 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('earliest_malfunction', List[int]),
                                                  ('malfunction_duration', List[int]),
                                                  ('number_of_shortest_paths_per_agent', List[int]),
-                                                 ('earliest_latest_time_window', List[int])
+                                                 ('max_window_size_from_earliest', List[int])
                                                  ])
 
 # experiment_group (future use): if we want use a range of values on the same infrastructure and want to identify them
@@ -56,7 +56,7 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
                                    ('number_of_shortest_paths_per_agent', int),
                                    ('weight_route_change', int),
                                    ('weight_lateness_seconds', int),
-                                   ('earliest_latest_time_window', int),
+                                   ('max_window_size_from_earliest', int),
                                    ])
 
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),

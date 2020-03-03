@@ -15,7 +15,7 @@ def get_schedule_problem_for_full_rescheduling(malfunction: ExperimentMalfunctio
                                                minimum_travel_time_dict: Dict[int, int],
                                                topo_dict: Dict[int, nx.DiGraph],
                                                latest_arrival: int,
-                                               earliest_latest_time_window: int = np.inf
+                                               max_window_size_from_earliest: int = np.inf
                                                ) -> ScheduleProblemDescription:
     """Returns the experiment freeze for the full re-scheduling problem. Wraps
     the generic freeze by freezing everything up to and including the
@@ -35,5 +35,5 @@ def get_schedule_problem_for_full_rescheduling(malfunction: ExperimentMalfunctio
                       },
         topo_dict=topo_dict,
         latest_arrival=latest_arrival,
-        earliest_latest_time_window=earliest_latest_time_window
+        max_window_size_from_earliest=max_window_size_from_earliest
     )

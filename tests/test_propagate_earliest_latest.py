@@ -149,7 +149,7 @@ def test_scheduling_propagate_latest_backwards():
         earliest_dict={},
         latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
         latest_arrival=latest_arrival,
-        earliest_latest_time_window=np.inf,
+        max_window_size_from_earliest=np.inf,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
     )
@@ -171,21 +171,21 @@ def test_scheduling_propagate_latest_forward():
         topo=topo_dict[0],
     )
 
-    earliest_latest_time_window = 180
+    max_window_size_from_earliest = 180
     latest = propagate_latest(
         banned_set=set(),
         force_freeze_dict={},
         earliest_dict=earliest,
         latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
         latest_arrival=latest_arrival,
-        earliest_latest_time_window=earliest_latest_time_window,
+        max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
     )
 
     for waypoint, earliest_time in earliest.items():
         latest_time = latest.get(waypoint)
-        assert latest_time == earliest_time + earliest_latest_time_window
+        assert latest_time == earliest_time + max_window_size_from_earliest
 
 
 def test_scheduling_propagate_latest_forward_backward_min():
@@ -246,14 +246,14 @@ def test_scheduling_propagate_latest_forward_backward_min():
         topo=topo_dict[0],
     )
 
-    earliest_latest_time_window = 600
+    max_window_size_from_earliest = 600
     latest = propagate_latest(
         banned_set=set(),
         force_freeze_dict={},
         earliest_dict=earliest,
         latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
         latest_arrival=latest_arrival,
-        earliest_latest_time_window=earliest_latest_time_window,
+        max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
     )
