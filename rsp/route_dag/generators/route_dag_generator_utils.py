@@ -58,6 +58,27 @@ def propagate_earliest(banned_set: Set[Waypoint],
     return earliest_dict
 
 
+def propagate_latest_constant(latest_arrival: int,
+                              latest_dict: Dict[Waypoint, int],
+                              earliest_dict: Dict[Waypoint, int],
+                              latest_constant: int):
+    """Extract latest by adding a constant value to earliest.
+
+    Parameters
+    ----------
+    latest_arrival
+    latest_dict
+    earliest_dict
+    latest_constant
+    """
+
+    for waypoint, earliest in earliest_dict.items():
+        latest = earliest + latest_constant
+        latest = latest_arrival if latest > latest_arrival else latest
+        latest_dict[waypoint] = latest
+    return latest_dict
+
+
 def propagate_latest(banned_set: Set[Waypoint],
                      force_freeze_dict: Dict[Waypoint, int],
                      latest_arrival: int,
