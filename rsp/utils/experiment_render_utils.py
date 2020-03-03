@@ -26,13 +26,11 @@ from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
 
-def visualize_agent_density(rows,output_folder):
+def visualize_agent_density(rows : ExperimentResultsAnalysis,output_folder : str):
 
     train_runs_input: TrainrunDict = rows['solution_full']
     problem_description: ScheduleProblemDescription = rows['problem_full']
     max_episode_steps = problem_description.max_episode_steps
-    #train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction']
-    #train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction']
     agent_density = np.zeros(max_episode_steps)
 
     for train_run in train_runs_input:

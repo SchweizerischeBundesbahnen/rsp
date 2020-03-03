@@ -204,7 +204,7 @@ def hypothesis_one_data_analysis(data_folder: str,
     print(data_folder)
     print(experiment_agenda)
     # Plausibility tests on experiment data
-    #_run_plausibility_tests_on_experiment_data(experiment_data)
+    _run_plausibility_tests_on_experiment_data(experiment_data)
 
     # derive additional data columns
     experiment_data = expand_experiment_data_for_analysis(
