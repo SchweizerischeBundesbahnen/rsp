@@ -21,7 +21,7 @@ from pandas import DataFrame
 
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.analysis_tools import average_over_trials
+from rsp.utils.analysis_tools import average_over_trials, visualize_agent_density
 from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
@@ -31,7 +31,7 @@ from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiment_render_utils import visualize_experiment, visualize_agent_density
+from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiment_results_from_folder
 from rsp.utils.file_utils import check_create_folder
@@ -297,5 +297,5 @@ if __name__ == '__main__':
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[12]
+                                 qualitative_analysis_experiment_ids=[14]
                                  )

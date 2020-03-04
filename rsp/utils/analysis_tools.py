@@ -14,12 +14,14 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from matplotlib import axes
 from mpl_toolkits.mplot3d import Axes3D
 from pandas import DataFrame
 from pandas import Series
 
-from rsp.utils.data_types import COLUMNS_ANALYSIS
+from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.utils.data_types import COLUMNS_ANALYSIS, ExperimentResultsAnalysis
 from rsp.utils.data_types import convert_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import expand_experiment_results_for_analysis
@@ -308,3 +310,38 @@ def expand_experiment_data_for_analysis(
         print(data_frame[key])
         data_frame[key] = data_frame[key].astype(float)
     return data_frame
+
+def visualize_agent_density(rows : ExperimentResultsAnalysis,output_folder : str):
+    """
+    Method to visualize the density of agents in the full schedule.
+
+    Parameters
+    ----------
+    rows : ExperimentResultsAnalysis
+    output_folder
+
+    Returns
+    -------
+
+    """
+    train_runs_input: TrainrunDict = rows['solution_full']
+    problem_description: ScheduleProblemDescription = rows['problem_full']
+    max_episode_steps = problem_description.max_episode_steps
+    agent_density = np.zeros(max_episode_steps)
+
+    for train_run in train_runs_input:
+        start_time = train_runs_input[train_run][0][0]
+        end_time = train_runs_input[train_run][-1][0]
+        agent_density[start_time:end_time + 1] += 1
+
+    fig = plt.figure()
+    fig.set_size_inches(w=15, h=15)
+    ax: plt.axes.Axes = fig.add_subplot(111)
+    ax.set_title('Agent density during schedule')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Nr. active Agents')
+    plt.plot(agent_density)
+    plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
+
+def weg_zeit_diagramm(schedule: TrainrunDict):
+    for train_run in schedule:
