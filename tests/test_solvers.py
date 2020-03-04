@@ -17,11 +17,9 @@ from flatland.utils.simple_rail import make_simple_rail
 from flatland.utils.simple_rail import make_simple_rail_with_alternatives
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.experiment_solvers.asp.asp_solve_problem import create_action_plan
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
-from rsp.utils.experiment_render_utils import make_render_call_back_for_replay
-
-
+from rsp.utils.flatland_replay_utils import create_action_plan
+from rsp.utils.flatland_replay_utils import make_render_call_back_for_replay
 # ----- EXPECTATIONS (solver-specific) ----------------
 
 
