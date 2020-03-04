@@ -56,8 +56,8 @@ def test_convert_trainrundict_to_positions_for_flatland_timesteps():
             3: Waypoint(position=(0, 1), direction=0),
             # not moved further after time step 4 yet!
             4: Waypoint(position=(0, 1), direction=0),
-            # moved to next cell after time step 5!
-            5: Waypoint(position=(0, 2), direction=0)
+            # reached target at next step -> FLATland already has None after step 5!
+            5: None
         }
     }
     actual = convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict)
