@@ -1,22 +1,20 @@
 import os
-import time
 from typing import Dict
 from typing import Optional
 
 import networkx as nx
+import time
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayerRenderCallback
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.experiment_solver_utils import replay
-from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
-from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
-from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
+from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
@@ -27,7 +25,21 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
 
 
-def convert_trainrundict_to_positions_for_all_timesteps(trainrun_dict: TrainrunDict):
+def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
+    """
+    Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and agent time step.
+    The positions are the new positions the agents ent
+    Parameters
+    ----------
+    trainrun_dict: TrainrunDict
+        for each agent, a list of time steps with new position
+
+    Returns
+    -------
+    TrainScheduleDict
+        for each agent and time step, the current position (not considering release times)
+
+    """
     train_schedule_dict: TrainScheduleDict = {}
     for agent_id, trainrun in trainrun_dict.items():
         train_schedule: TrainSchedule = {}
@@ -40,6 +52,58 @@ def convert_trainrundict_to_positions_for_all_timesteps(trainrun_dict: TrainrunD
                 time_step += 1
             current_position = trainrun_waypoint.waypoint
             train_schedule[time_step] = current_position
+    return train_schedule_dict
+
+
+def convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
+    """
+    Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and time step.
+    Parameters
+    ----------
+    trainrun_dict: TrainrunDict
+        for each agent, a list of time steps with new position
+
+    Returns
+    -------
+    TrainScheduleDict
+        for each agent and time step, the current position (not considering release times)
+
+    """
+    train_schedule_dict: TrainScheduleDict = {}
+    for agent_id, trainrun in trainrun_dict.items():
+        train_schedule: TrainSchedule = {}
+        train_schedule_dict[agent_id] = train_schedule
+        time_step = 0
+        current_position = None
+        end_time_step=trainrun[-1].scheduled_at
+        for trainrun_waypoint, next_trainrun_waypoint in zip(trainrun, trainrun[1:]):
+            print("(1)")
+
+            while time_step+1 < next_trainrun_waypoint.scheduled_at:
+                train_schedule[time_step] = current_position
+                print(f"train_schedule[{time_step}] = {current_position}")
+                time_step += 1
+            print("(2)")
+            #print(
+            #        f"update {time_step}: {trainrun_waypoint} {next_trainrun_waypoint} {next_trainrun_waypoint.scheduled_at == time_step + 1}")
+            # FLATland semantics: if next scheduled_at is at next time_step, at the end of the time step, we're already in the next cell at fraction 0!
+            # if next_trainrun_waypoint.scheduled_at == time_step + 1:
+            #     current_position = next_trainrun_waypoint.waypoint
+            # else:
+            #     current_position = trainrun_waypoint.waypoint
+
+            assert time_step+1 == next_trainrun_waypoint.scheduled_at
+            current_position = next_trainrun_waypoint.waypoint
+            train_schedule[time_step] = current_position
+            print(f"train_schedule[{time_step}] = {current_position}")
+            if time_step+1 == end_time_step:
+                break
+            time_step += 1
+            print("(3)")
+        # while time_step < trainrun[-1].scheduled_at:
+        #     train_schedule[time_step] = current_position
+        #     print(f"train_schedule[{time_step}] = {current_position}")
+        #     time_step += 1
     return train_schedule_dict
 
 
@@ -93,74 +157,74 @@ def visualize_experiment(
     experiment_output_folder = f"{data_folder}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
     check_create_folder(experiment_output_folder)
 
-    for agent_id in problem_rsp_delta.route_dag_constraints_dict.keys():
-        # IMPORTANT: we visualize with respect to the full schedule DAG,
-        #            but the banned elements are not passed to solver any more!
-        # TODO SIM-190 documentation about this
-        topo = problem_schedule.topo_dict[agent_id]
-        train_run_full_after_malfunction = train_runs_full_after_malfunction[agent_id]
-        train_run_delta_after_malfunction = train_runs_delta_after_malfunction[agent_id]
-        train_run_input: Trainrun = train_runs_input[agent_id]
-
-        # schedule input
-        visualize_route_dag_constraints(
-            topo=topo,
-            train_run_input=train_run_input,
-            train_run_full_after_malfunction=train_run_full_after_malfunction,
-            train_run_delta_after_malfunction=train_run_delta_after_malfunction,
-            f=problem_schedule.route_dag_constraints_dict[agent_id],
-            vertex_eff_lateness={},
-            edge_eff_route_penalties={},
-            route_section_penalties=problem_schedule.route_section_penalties[agent_id],
-            title=_make_title(agent_id, experiment_parameters, malfunction, n_agents, topo,
-                              problem_schedule.route_dag_constraints_dict[agent_id],
-                              k=experiment_parameters.number_of_shortest_paths_per_agent),
-            file_name=(os.path.join(experiment_output_folder,
-                                    f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
-                       if data_folder is not None else None)
-        )
-        # delta after malfunction
-        visualize_route_dag_constraints(
-            topo=topo,
-            train_run_input=train_runs_input[agent_id],
-            train_run_full_after_malfunction=train_run_full_after_malfunction,
-            train_run_delta_after_malfunction=train_run_delta_after_malfunction,
-            f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
-            vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[agent_id],
-            route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
-            title=_make_title(
-                agent_id, experiment_parameters, malfunction, n_agents, topo,
-                problem_rsp_delta.route_dag_constraints_dict[agent_id],
-                k=experiment_parameters.number_of_shortest_paths_per_agent,
-                costs=costs_delta_after_malfunction,
-                eff_lateness_agent=lateness_delta_after_malfunction[agent_id],
-                eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[agent_id]),
-            file_name=(os.path.join(experiment_output_folder,
-                                    f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
-                       if data_folder is not None else None)
-        )
-        # full rescheduling
-        visualize_route_dag_constraints(
-            topo=topo,
-            train_run_input=train_runs_input[agent_id],
-            train_run_full_after_malfunction=train_run_full_after_malfunction,
-            train_run_delta_after_malfunction=train_run_delta_after_malfunction,
-            f=problem_rsp_full.route_dag_constraints_dict[agent_id],
-            vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_full_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[agent_id],
-            route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
-            title=_make_title(
-                agent_id, experiment_parameters, malfunction, n_agents, topo,
-                problem_rsp_full.route_dag_constraints_dict[agent_id],
-                k=experiment_parameters.number_of_shortest_paths_per_agent,
-                costs=costs_full_after_malfunction,
-                eff_lateness_agent=lateness_full_after_malfunction[agent_id],
-                eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
-            file_name=(os.path.join(experiment_output_folder,
-                                    f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
-                       if data_folder is not None else None)
-        )
+    # for agent_id in problem_rsp_delta.route_dag_constraints_dict.keys():
+    #     # IMPORTANT: we visualize with respect to the full schedule DAG,
+    #     #            but the banned elements are not passed to solver any more!
+    #     # TODO SIM-190 documentation about this
+    #     topo = problem_schedule.topo_dict[agent_id]
+    #     train_run_full_after_malfunction = train_runs_full_after_malfunction[agent_id]
+    #     train_run_delta_after_malfunction = train_runs_delta_after_malfunction[agent_id]
+    #     train_run_input: Trainrun = train_runs_input[agent_id]
+    #
+    #     # schedule input
+    #     visualize_route_dag_constraints(
+    #         topo=topo,
+    #         train_run_input=train_run_input,
+    #         train_run_full_after_malfunction=train_run_full_after_malfunction,
+    #         train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+    #         f=problem_schedule.route_dag_constraints_dict[agent_id],
+    #         vertex_eff_lateness={},
+    #         edge_eff_route_penalties={},
+    #         route_section_penalties=problem_schedule.route_section_penalties[agent_id],
+    #         title=_make_title(agent_id, experiment_parameters, malfunction, n_agents, topo,
+    #                           problem_schedule.route_dag_constraints_dict[agent_id],
+    #                           k=experiment_parameters.number_of_shortest_paths_per_agent),
+    #         file_name=(os.path.join(experiment_output_folder,
+    #                                 f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
+    #                    if data_folder is not None else None)
+    #     )
+    #     # delta after malfunction
+    #     visualize_route_dag_constraints(
+    #         topo=topo,
+    #         train_run_input=train_runs_input[agent_id],
+    #         train_run_full_after_malfunction=train_run_full_after_malfunction,
+    #         train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+    #         f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
+    #         vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
+    #         edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[agent_id],
+    #         route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
+    #         title=_make_title(
+    #             agent_id, experiment_parameters, malfunction, n_agents, topo,
+    #             problem_rsp_delta.route_dag_constraints_dict[agent_id],
+    #             k=experiment_parameters.number_of_shortest_paths_per_agent,
+    #             costs=costs_delta_after_malfunction,
+    #             eff_lateness_agent=lateness_delta_after_malfunction[agent_id],
+    #             eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[agent_id]),
+    #         file_name=(os.path.join(experiment_output_folder,
+    #                                 f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
+    #                    if data_folder is not None else None)
+    #     )
+    #     # full rescheduling
+    #     visualize_route_dag_constraints(
+    #         topo=topo,
+    #         train_run_input=train_runs_input[agent_id],
+    #         train_run_full_after_malfunction=train_run_full_after_malfunction,
+    #         train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+    #         f=problem_rsp_full.route_dag_constraints_dict[agent_id],
+    #         vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_full_after_malfunction[agent_id],
+    #         edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[agent_id],
+    #         route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
+    #         title=_make_title(
+    #             agent_id, experiment_parameters, malfunction, n_agents, topo,
+    #             problem_rsp_full.route_dag_constraints_dict[agent_id],
+    #             k=experiment_parameters.number_of_shortest_paths_per_agent,
+    #             costs=costs_full_after_malfunction,
+    #             eff_lateness_agent=lateness_full_after_malfunction[agent_id],
+    #             eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
+    #         file_name=(os.path.join(experiment_output_folder,
+    #                                 f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
+    #                    if data_folder is not None else None)
+    #     )
 
     _replay_flatland(data_folder=data_folder,
                      experiment=experiment_parameters,
@@ -216,7 +280,9 @@ def _replay_flatland(data_folder: str,
         solver_name='data_analysis',
         disable_verification_in_replay=False,
         rendering=flatland_rendering,
-        image_output_directory=image_output_directory
+        image_output_directory=image_output_directory,
+        debug=True,
+        expected_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainruns)
     )
     if flatland_rendering and convert_to_mpeg:
         import ffmpeg

@@ -12,7 +12,7 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
-from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import ExperimentMalfunction, TrainScheduleDict, _pp
 
 
 def create_action_plan(train_runs_dict: TrainrunDict, env: RailEnv) -> ControllerFromTrainruns:
@@ -231,6 +231,7 @@ def replay(env: RailEnv,  # noqa: C901
            solver_name: str,
            controller_from_train_runs: ControllerFromTrainruns,
            expected_malfunction: Optional[ExperimentMalfunction] = None,
+           expected_positions: Optional[TrainScheduleDict] = None,
            rendering: bool = False,
            debug: bool = False,
            loop_index: int = 0,
@@ -268,6 +269,11 @@ def replay(env: RailEnv,  # noqa: C901
     Optional[Malfunction]
         The malfunction in `stop_on_malfunction` mode, `None` else.
     """
+    print("trainrun_dict")
+    print(_pp.pformat(controller_from_train_runs.trainrun_dict))
+    print("expected_positions")
+    print(_pp.pformat(expected_positions))
+
     total_reward = 0
     time_step = 0
     if rendering:
@@ -313,8 +319,24 @@ def replay(env: RailEnv,  # noqa: C901
             print(f"env._elapsed_steps={env._elapsed_steps}")
             print("actions [{}]->[{}] actions={}".format(time_step, time_step + 1, actions))
 
+
+
         obs, all_rewards, done, _ = env.step(actions)
         total_reward += sum(np.array(list(all_rewards.values())))
+
+        if expected_positions is not None:
+            for agent_id, train_schedule in expected_positions.items():
+                actual_position = env.agents[agent_id].position
+                print(f"agent {agent_id} speed_data={env.agents[agent_id].speed_data}")
+                if train_schedule.get(time_step,None) is None:
+                    assert actual_position == None, \
+                        f"[{time_step}] agent {agent_id} expected to have left already/note have departed, actual position={actual_position}"
+                else:
+                    waypoint = train_schedule[time_step]
+                    expected_position = waypoint.position
+
+                    assert actual_position == expected_position, \
+                        f"[{time_step}] agent {agent_id} expected position={expected_position}, actual position={actual_position}"
 
         if stop_on_malfunction:
             for agent in env.agents:
