@@ -348,13 +348,14 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
     plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
 
 
-def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensional: bool):
+def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensional: bool, volumetric: bool = False):
     schedule = experiment_data.solution_full
     reschedule = experiment_data.solution_full_after_malfunction
     max_episode_steps = experiment_data.problem_full.max_episode_steps
 
     width = experiment_data.experiment_parameters.width
     height = experiment_data.experiment_parameters.height
+
     if not three_dimensional:
         weg_zeit_matrize_schedule, sorting = weg_zeit_matrix_from_schedule(schedule=schedule, width=width,
                                                                            height=height,
@@ -363,21 +364,32 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensio
         weg_zeit_matrize_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
                                                                        max_episode_steps=max_episode_steps,
                                                                        sorting=sorting)
+        fig = plt.figure()
+        ax: plt.axes.Axes = fig.add_subplot(111)
+        ax.set_title('Time-Ressource-Diagram')
+        ax.set_xlabel('Ressource')
+        ax.set_ylabel('Time')
         plt.matshow(np.transpose(weg_zeit_matrize_schedule), cmap='gist_ncar')
         plt.matshow(np.transpose(weg_zeit_matrize_reschedule), cmap='gist_ncar')
         plt.show()
     else:
-        train_time_paths = weg_zeit_3d_path(schedule=reschedule)
         fig = plt.figure()
         ax = fig.gca(projection='3d')
-        ax.set_xlim([0, width])
-        ax.set_ylim([0, height])
-        ax.set_zlim([0, max_episode_steps])
-        for train_path in train_time_paths:
-            x, y, z = zip(*train_path)
-            pc = plotCubeAt(train_path, colors='r', edgecolor="k",sizes=[(1,1,0.1)]*len(train_path))
-            ax.add_collection3d(pc)
-        plt.show()
+        ax.set_title('Time-Ressource-Diagram 3D')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('Time')
+        if volumetric:
+            voxels = weg_zeit_3d_voxels(schedule=schedule, width=width, height=height,
+                                        max_episode_steps=max_episode_steps)
+            ax.voxels(voxels)
+            plt.show()
+        else:
+            train_time_paths = weg_zeit_3d_path(schedule=reschedule)
+            for train_path in train_time_paths:
+                x, y, z = zip(*train_path)
+                ax.plot(x, y, z, linewidth=2)
+            plt.show()
 
 
 def weg_zeit_matrix_from_schedule(schedule, width, height, max_episode_steps, sorting=None):
@@ -399,7 +411,6 @@ def weg_zeit_matrix_from_schedule(schedule, width, height, max_episode_steps, so
 
 
 def weg_zeit_3d_path(schedule):
-
     all_train_time_paths = []
     for train_run in schedule:
         train_time_path = []
@@ -414,44 +425,15 @@ def weg_zeit_3d_path(schedule):
         all_train_time_paths.append(train_time_path)
     return all_train_time_paths
 
-def cuboid_data(o, size=(1,1,1)):
-    """
-    https://stackoverflow.com/questions/42611342/representing-voxels-with-matplotlib
-    Parameters
-    ----------
-    schedule
 
-    Returns
-    -------
-
-    """
-    X = [[[0, 1, 0], [0, 0, 0], [1, 0, 0], [1, 1, 0]],
-         [[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]],
-         [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]],
-         [[0, 0, 1], [0, 0, 0], [0, 1, 0], [0, 1, 1]],
-         [[0, 1, 0], [0, 1, 1], [1, 1, 1], [1, 1, 0]],
-         [[0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]]
-    X = np.array(X).astype(float)
-    for i in range(3):
-        X[:,:,i] *= size[i]
-    X += np.array(o)
-    return X
-
-def plotCubeAt(positions,sizes=None,colors=None, **kwargs):
-    """
-    https://stackoverflow.com/questions/42611342/representing-voxels-with-matplotlib
-    Parameters
-    ----------
-    schedule
-
-    Returns
-    -------
-
-    """
-    if not isinstance(colors,(list,np.ndarray)): colors=["C0"]*len(positions)
-    if not isinstance(sizes,(list,np.ndarray)): sizes=[(1,1,1)]*len(positions)
-    g = []
-    for p,s,c in zip(positions,sizes,colors):
-        g.append( cuboid_data(p, size=s) )
-    return Poly3DCollection(np.concatenate(g),
-                            facecolors=np.repeat(colors,6, axis=0), **kwargs)
+def weg_zeit_3d_voxels(schedule, width, height, max_episode_steps):
+    voxels = np.zeros(shape=(width, height, max_episode_steps), dtype=int)
+    for train_run in schedule:
+        pre_waypoint = schedule[train_run][0]
+        for waypoint in schedule[train_run][1:]:
+            pre_time = pre_waypoint.scheduled_at
+            time = waypoint.scheduled_at
+            (x, y) = pre_waypoint.waypoint.position
+            voxels[x, y, pre_time:time] = 1
+            pre_waypoint = waypoint
+    return voxels
