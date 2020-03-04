@@ -18,7 +18,7 @@ from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.flatland_replay_utils import create_action_plan
+from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
 from rsp.utils.flatland_replay_utils import replay
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
@@ -65,8 +65,8 @@ class ASPExperimentSolver():
         # 1. Generate malfuntion
         # --------------------------------------------------------------------------------------
         malfunction_env_reset()
-        controller_from_train_runs: ControllerFromTrainruns = create_action_plan(
-            train_runs_dict=schedule_trainruns,
+        controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
+            trainrun_dict=schedule_trainruns,
             env=malfunction_rail_env)
         malfunction_env_reset()
         malfunction = replay(

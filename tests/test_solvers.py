@@ -18,7 +18,7 @@ from flatland.utils.simple_rail import make_simple_rail_with_alternatives
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
-from rsp.utils.flatland_replay_utils import create_action_plan
+from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
 from rsp.utils.flatland_replay_utils import make_render_call_back_for_replay
 # ----- EXPECTATIONS (solver-specific) ----------------
 
@@ -364,8 +364,9 @@ def _extract_controller_from_train_runs(env: RailEnv,
     solve_time = (time.time() - start_solver)
     print("solve_time={:5.3f}ms".format(solve_time))
     print(f"solution={solution.get_trainruns_dict()}")
-    actual_action_plan: ControllerFromTrainruns = create_action_plan(train_runs_dict=solution.get_trainruns_dict(),
-                                                                     env=env)
+    actual_action_plan: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
+        trainrun_dict=solution.get_trainruns_dict(),
+        env=env)
     return actual_action_plan
 
 
