@@ -290,9 +290,11 @@ def replay(env: RailEnv,  # noqa: C901
             controller_from_train_runs.trainrun_dict[expected_malfunction.agent_id]
             if (trainrun_waypoint.scheduled_at >=
                 (expected_malfunction.time_step + expected_malfunction.malfunction_duration)))
+        print(f"expected_malfunction={expected_malfunction}")
         malfunction_agent_time_step_to_take_action_before_malfunction = \
             trainrun_waypoint_after_malfunction.scheduled_at - expected_malfunction.malfunction_duration - \
             malfunction_agent_minimum_travel_time
+        print(f"malfunction_agent_time_step_to_take_action_before_malfunction={malfunction_agent_time_step_to_take_action_before_malfunction}")
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
         if disable_verification_in_replay:
@@ -310,9 +312,9 @@ def replay(env: RailEnv,  # noqa: C901
         if expected_malfunction and time_step == malfunction_agent_time_step_to_take_action_before_malfunction:
             time_step_to_tweak = trainrun_waypoint_after_malfunction.scheduled_at - malfunction_agent_minimum_travel_time
             alt_actions = controller_from_train_runs.act(time_step_to_tweak)
-            if debug:
+            if debug or True:
                 print(
-                    f"agent {expected_malfunction.agent_id} at: "
+                    f"tweaking agent {expected_malfunction.agent_id} at: "
                     f"action {time_step} {actions[expected_malfunction.agent_id]} -> "
                     f"{alt_actions[expected_malfunction.agent_id]}")
             actions[expected_malfunction.agent_id] = alt_actions[expected_malfunction.agent_id]
@@ -330,7 +332,7 @@ def replay(env: RailEnv,  # noqa: C901
                 print(f"agent {agent_id} speed_data={env.agents[agent_id].speed_data} position={env.agents[agent_id].position} direction={env.agents[agent_id].direction}")
                 if agent_id == 9 and time_step == 37:
                     for agent in env.agents:
-                        print(f"agent {agent.handle} speed_data={env.agents[agent_id].speed_data} position={agent.position} direction={agent.direction}")
+                        print(f"agent {agent.handle} speed_data={env.agents[agent_id].speed_data} position={agent.position} direction={agent.direction} malfunction_data={agent.malfunction_data}")
                 if train_schedule.get(time_step, None) is None:
                     assert actual_position == None, \
                         f"[{time_step}] agent {agent_id} expected to have left already/note have departed, actual position={actual_position}"

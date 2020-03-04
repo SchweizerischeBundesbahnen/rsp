@@ -1,9 +1,9 @@
 import os
+import time
 from typing import Dict
 from typing import Optional
 
 import networkx as nx
-import time
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayerRenderCallback
 from flatland.envs.rail_env import RailEnv
@@ -11,10 +11,10 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.experiment_solver_utils import replay
-from rsp.route_dag.route_dag import RouteDAGConstraints
-from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_in_route_dag
+from rsp.route_dag.route_dag import RouteDAGConstraints
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
@@ -227,7 +227,7 @@ def visualize_experiment(
     #     )
 
     _replay_flatland(data_folder=data_folder,
-                     experiment=experiment_parameters,
+                     experiment_results_analysis=experiment_results_analysis,
                      flatland_rendering=flatland_rendering,
                      rail_env=malfunction_rail_env,
                      trainruns=train_runs_full_after_malfunction,
@@ -261,7 +261,7 @@ def _make_title(agent_id: str,
 
 
 def _replay_flatland(data_folder: str,
-                     experiment: ExperimentResults,
+                     experiment_results_analysis: ExperimentResultsAnalysis,
                      rail_env: RailEnv,
                      trainruns: TrainrunDict,
                      convert_to_mpeg: bool = False,
@@ -270,8 +270,8 @@ def _replay_flatland(data_folder: str,
                                                          trainruns)
     image_output_directory = None
     if flatland_rendering:
-        image_output_directory = os.path.join(data_folder, f"experiment_{experiment.experiment_id:04d}_analysis",
-                                              f"experiment_{experiment.experiment_id}_rendering_output")
+        image_output_directory = os.path.join(data_folder, f"experiment_{experiment_results_analysis.experiment_id:04d}_analysis",
+                                              f"experiment_{experiment_results_analysis.experiment_id}_rendering_output")
         check_create_folder(image_output_directory)
     replay(
         controller_from_train_runs=controller_from_train_runs,
@@ -282,13 +282,14 @@ def _replay_flatland(data_folder: str,
         rendering=flatland_rendering,
         image_output_directory=image_output_directory,
         debug=True,
+        expected_malfunction=experiment_results_analysis.malfunction,
         expected_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainruns)
     )
     if flatland_rendering and convert_to_mpeg:
         import ffmpeg
         (ffmpeg
          .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s='1920x1080')
-         .output(f'{image_output_directory}/experiment_{experiment.experiment_id}_flatland_data_analysis.mp4', crf=15,
+         .output(f'{image_output_directory}/experiment_{experiment_results_analysis.experiment_id}_flatland_data_analysis.mp4', crf=15,
                  pix_fmt='yuv420p', vcodec='libx264')
          .overwrite_output()
          .run()
