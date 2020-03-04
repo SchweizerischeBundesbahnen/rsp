@@ -222,7 +222,6 @@ def hypothesis_one_data_analysis(data_folder: str,
         print(preview_col)
         print(experiment_data[preview_col])
         print(averaged_data[preview_col])
-    print(experiment_data.loc[experiment_data['experiment_id'] == 58].to_json())
     print(experiment_data.dtypes)
 
     # quantitative analysis
