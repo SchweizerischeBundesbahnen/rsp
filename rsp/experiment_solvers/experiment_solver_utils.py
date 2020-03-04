@@ -327,10 +327,10 @@ def replay(env: RailEnv,  # noqa: C901
         if expected_positions is not None:
             for agent_id, train_schedule in expected_positions.items():
                 actual_position = env.agents[agent_id].position
-                print(f"agent {agent_id} speed_data={env.agents[agent_id].speed_data} position={agent.position} direction={agent.direction}")
+                print(f"agent {agent_id} speed_data={env.agents[agent_id].speed_data} position={env.agents[agent_id].position} direction={env.agents[agent_id].direction}")
                 if agent_id == 9 and time_step == 37:
                     for agent in env.agents:
-                        print(f"agent {agent_id} speed_data={env.agents[agent_id].speed_data} position={agent.position} direction={agent.direction}")
+                        print(f"agent {agent.handle} speed_data={env.agents[agent_id].speed_data} position={agent.position} direction={agent.direction}")
                 if train_schedule.get(time_step, None) is None:
                     assert actual_position == None, \
                         f"[{time_step}] agent {agent_id} expected to have left already/note have departed, actual position={actual_position}"
