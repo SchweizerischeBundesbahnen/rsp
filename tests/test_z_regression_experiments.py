@@ -555,7 +555,8 @@ def test_deterministic_1():
                              height=30,
                              seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1))
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
+                             max_window_size_from_earliest=np.inf))
 
 
 def test_deterministic_2():
@@ -564,7 +565,8 @@ def test_deterministic_2():
                              height=30,
                              seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1))
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
+                             max_window_size_from_earliest=np.inf))
 
 
 def test_deterministic_3():
@@ -573,7 +575,8 @@ def test_deterministic_3():
                              height=30,
                              seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1))
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
+                             max_window_size_from_earliest=np.inf))
 
 
 def _test_deterministic(params: ExperimentParameters):
