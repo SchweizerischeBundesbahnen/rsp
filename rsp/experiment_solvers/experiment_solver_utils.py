@@ -235,6 +235,7 @@ def replay(env: RailEnv,  # noqa: C901
            expected_malfunction: Optional[ExperimentMalfunction] = None,
            expected_positions: Optional[TrainScheduleDict] = None,
            rendering: bool = False,
+           show: bool = False,
            debug: bool = False,
            loop_index: int = 0,
            stop_on_malfunction: bool = False,
@@ -265,6 +266,13 @@ def replay(env: RailEnv,  # noqa: C901
         If true, stops and returns upon entering into malfunction; in this case returns the malfunction
     controller_from_train_runs: ActionPlanDict
         The action plan to replay
+    rendering: bool
+        render in replay?
+    show: bool
+        if rendering=True, show or only save to files?
+    image_output_directory: str
+        write png files to this directory
+
 
     Returns
     -------
@@ -353,7 +361,11 @@ def replay(env: RailEnv,  # noqa: C901
 
         if rendering:
             from rsp.utils.experiment_render_utils import render_env
-            render_env(renderer, test_id=loop_index, solver_name=solver_name, i_step=time_step,
+            render_env(renderer,
+                       test_id=loop_index,
+                       solver_name=solver_name,
+                       i_step=time_step,
+                       show=show,
                        image_output_directory=image_output_directory)
 
         # if all agents have reached their goals, break
