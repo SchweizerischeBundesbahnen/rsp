@@ -12,6 +12,8 @@ from typing import Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Qt4Agg')
+
 import numpy as np
 import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
@@ -380,9 +382,9 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensio
         ax.set_ylabel('y')
         ax.set_zlabel('Time')
         if volumetric:
-            voxels = weg_zeit_3d_voxels(schedule=schedule, width=width, height=height,
+            voxels, colors = weg_zeit_3d_voxels(schedule=schedule, width=width, height=height,
                                         max_episode_steps=max_episode_steps)
-            ax.voxels(voxels)
+            ax.voxels(voxels,facecolors=colors)
             plt.show()
         else:
             train_time_paths = weg_zeit_3d_path(schedule=reschedule)
@@ -428,12 +430,16 @@ def weg_zeit_3d_path(schedule):
 
 def weg_zeit_3d_voxels(schedule, width, height, max_episode_steps):
     voxels = np.zeros(shape=(width, height, max_episode_steps), dtype=int)
+    cmap = matplotlib.cm.get_cmap('gist_ncar')
+    colors = np.empty(voxels.shape, dtype=object)
     for train_run in schedule:
         pre_waypoint = schedule[train_run][0]
+        color = cmap(train_run/len(schedule))
         for waypoint in schedule[train_run][1:]:
             pre_time = pre_waypoint.scheduled_at
             time = waypoint.scheduled_at
             (x, y) = pre_waypoint.waypoint.position
             voxels[x, y, pre_time:time] = 1
+            colors[x, y, pre_time:time] = [color]
             pre_waypoint = waypoint
-    return voxels
+    return voxels, colors
