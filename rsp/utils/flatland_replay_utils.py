@@ -233,7 +233,7 @@ def cleanup_renderer_for_env(renderer):
             renderer.close_window()
         except AttributeError as e:
             # TODO why does this happen?
-            warnings.warn(e)
+            warnings.warn(str(e))
 
 
 def replay(env: RailEnv,  # noqa: C901
@@ -352,7 +352,7 @@ def replay(env: RailEnv,  # noqa: C901
             cleanup_renderer_for_env(renderer)
         except AttributeError as e:
             # TODO why does this happen?
-            warnings.warn(e)
+            warnings.warn(str(e))
     if stop_on_malfunction:
         return None
     else:
