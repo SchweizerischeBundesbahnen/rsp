@@ -27,6 +27,8 @@ from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentResults
 
+from flatland.core.grid.grid_utils import coordinate_to_position
+
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
 
 if 'WORKSPACE' not in os.environ:
@@ -311,7 +313,8 @@ def expand_experiment_data_for_analysis(
         data_frame[key] = data_frame[key].astype(float)
     return data_frame
 
-def visualize_agent_density(rows : ExperimentResultsAnalysis,output_folder : str):
+
+def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_folder: str):
     """
     Method to visualize the density of agents in the full schedule.
 
@@ -324,8 +327,8 @@ def visualize_agent_density(rows : ExperimentResultsAnalysis,output_folder : str
     -------
 
     """
-    train_runs_input: TrainrunDict = rows['solution_full']
-    problem_description: ScheduleProblemDescription = rows['problem_full']
+    train_runs_input: TrainrunDict = experiment_data.solution_full
+    problem_description: ScheduleProblemDescription = experiment_data.problem_full
     max_episode_steps = problem_description.max_episode_steps
     agent_density = np.zeros(max_episode_steps)
 
@@ -343,5 +346,64 @@ def visualize_agent_density(rows : ExperimentResultsAnalysis,output_folder : str
     plt.plot(agent_density)
     plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
 
-def weg_zeit_diagramm(schedule: TrainrunDict):
+
+def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensional: bool):
+    schedule = experiment_data.solution_full
+    reschedule = experiment_data.solution_full_after_malfunction
+    max_episode_steps = experiment_data.problem_full.max_episode_steps
+
+    width = experiment_data.experiment_parameters.width
+    height = experiment_data.experiment_parameters.height
+    if not three_dimensional:
+        weg_zeit_matrize_schedule, sorting = weg_zeit_matrix_from_schedule(schedule=schedule, width=width,
+                                                                           height=height,
+                                                                           max_episode_steps=max_episode_steps,
+                                                                           sorting=None)
+        weg_zeit_matrize_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
+                                                                       max_episode_steps=max_episode_steps,
+                                                                       sorting=sorting)
+        plt.matshow(np.transpose(weg_zeit_matrize_schedule), cmap='gist_ncar')
+        plt.matshow(np.transpose(weg_zeit_matrize_reschedule), cmap='gist_ncar')
+        plt.show()
+    else:
+        train_time_paths = weg_zeit_3d_path(schedule=reschedule)
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        for train_path in train_time_paths:
+            x, y, z = zip(*train_path)
+            ax.voxels(np.transpose(np.array(x, y, z)))
+        plt.show()
+
+
+def weg_zeit_matrix_from_schedule(schedule, width, height, max_episode_steps, sorting=None):
+    weg_zeit_matrize = np.zeros(shape=(width * height, max_episode_steps))
+    if sorting is None:
+        sorting = []
     for train_run in schedule:
+        pre_waypoint = schedule[train_run][0]
+        for waypoint in schedule[train_run][1:]:
+            pre_time = pre_waypoint.scheduled_at
+            time = waypoint.scheduled_at
+            position = coordinate_to_position(width, [pre_waypoint.waypoint.position])  # or is it height?
+            weg_zeit_matrize[position, pre_time:time] += train_run
+            pre_waypoint = waypoint
+            if position not in sorting:
+                sorting.append(position)
+    weg_zeit_matrize = weg_zeit_matrize[sorting][:, 0, :]
+    return weg_zeit_matrize, sorting
+
+
+def weg_zeit_3d_path(schedule):
+    all_train_time_paths = []
+    for train_run in schedule:
+        train_time_path = []
+        pre_waypoint = schedule[train_run][0]
+        for waypoint in schedule[train_run][1:]:
+            time_pre = pre_waypoint.scheduled_at
+            (x_pre, y_pre) = pre_waypoint.waypoint.position
+            time = waypoint.scheduled_at
+            train_time_path.append((x_pre, y_pre, time_pre))
+            train_time_path.append((x_pre, y_pre, time))
+            pre_waypoint = waypoint
+        all_train_time_paths.append(train_time_path)
+    return all_train_time_paths

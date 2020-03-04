@@ -21,7 +21,7 @@ from pandas import DataFrame
 
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.analysis_tools import average_over_trials, visualize_agent_density
+from rsp.utils.analysis_tools import average_over_trials, visualize_agent_density, weg_zeit_diagramm
 from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
@@ -242,7 +242,8 @@ def hypothesis_one_data_analysis(data_folder: str,
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
             experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
                 row)
-            visualize_agent_density(row, output_folder=data_folder)
+            weg_zeit_diagramm(experiment_data=experiment_results_analysis, three_dimensional=True)
+            visualize_agent_density(experiment_results_analysis, output_folder=data_folder)
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
@@ -297,5 +298,5 @@ if __name__ == '__main__':
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[14]
+                                 qualitative_analysis_experiment_ids=[12]
                                  )
