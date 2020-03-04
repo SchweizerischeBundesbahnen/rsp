@@ -281,7 +281,7 @@ def replay(env: RailEnv,  # noqa: C901
     total_reward = 0
     time_step = 0
     if rendering:
-        from rsp.utils.experiment_render_utils import init_renderer_for_env
+        from rsp.utils.flatland_replay_utils import init_renderer_for_env
         renderer = init_renderer_for_env(env, rendering)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
@@ -330,7 +330,7 @@ def replay(env: RailEnv,  # noqa: C901
                     return ExperimentMalfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
 
         if rendering:
-            from rsp.utils.experiment_render_utils import render_env
+            from rsp.utils.flatland_replay_utils import render_env
             render_env(renderer,
                        test_id=loop_index,
                        solver_name=solver_name,
@@ -343,7 +343,7 @@ def replay(env: RailEnv,  # noqa: C901
             break
         time_step += 1
     if rendering:
-        from rsp.utils.experiment_render_utils import cleanup_renderer_for_env
+        from rsp.utils.flatland_replay_utils import cleanup_renderer_for_env
         try:
             cleanup_renderer_for_env(renderer)
         except AttributeError as e:
@@ -388,7 +388,7 @@ def create_controller_from_trainruns_and_malfunction(trainrun_dict: TrainrunDict
     # with malfunction, instead of travel_time before the first point after the malfunction ends,
     # take that action at that time - malfunction_duration - travel_time!
     # TODO should we move this to FLATland?
-    if expected_malfunction:
+    if expected_malfunction is not None:
         malfunction_agent_minimum_travel_time = int(
             np.ceil(1 / env.agents[expected_malfunction.agent_id].speed_data['speed']))
 
@@ -402,23 +402,19 @@ def create_controller_from_trainruns_and_malfunction(trainrun_dict: TrainrunDict
             malfunction_agent_minimum_travel_time
 
         time_step_to_tweak = trainrun_waypoint_after_malfunction.scheduled_at - malfunction_agent_minimum_travel_time
-        action_to_move = controller_from_train_runs.get_action_at_step(expected_malfunction.agent_id,
-                                                                       time_step_to_tweak)
+        dict_to_tweak = {action_plan_element.scheduled_at: action_plan_element.action
+                         for action_plan_element in
+                         controller_from_train_runs.action_plan[expected_malfunction.agent_id]}
+        if debug:
+            print(
+                f"tweaking agent {expected_malfunction.agent_id} for {expected_malfunction}: "
+                f"action at {malfunction_agent_time_step_to_take_action_before_malfunction} "
+                f" ->  {dict_to_tweak[time_step_to_tweak]}")
 
-        tweaked_actions = []
-        for action_plan_element in controller_from_train_runs.action_plan[expected_malfunction.agent_id]:
-            if action_plan_element.scheduled_at == time_step_to_tweak:
-                tweaked_action_plan_element = ActionPlanElement(
-                    scheduled_at=malfunction_agent_time_step_to_take_action_before_malfunction,
-                    action=action_to_move)
-                tweaked_actions.append(tweaked_action_plan_element)
-                if debug:
-                    print(
-                        f"tweaking agent {expected_malfunction.agent_id} at: "
-                        f"action {action_plan_element} -> ")
-            else:
-                tweaked_actions.append(action_plan_element)
-
-        controller_from_train_runs.action_plan[expected_malfunction.agent_id] = tweaked_actions
+        dict_to_tweak[malfunction_agent_time_step_to_take_action_before_malfunction] = dict_to_tweak[time_step_to_tweak]
+        controller_from_train_runs.action_plan[expected_malfunction.agent_id] = [
+            ActionPlanElement(scheduled_at=scheduled_at, action=action)
+            for scheduled_at, action in dict_to_tweak.items()
+        ]
 
     return controller_from_train_runs

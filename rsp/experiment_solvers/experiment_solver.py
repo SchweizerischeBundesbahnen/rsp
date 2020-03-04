@@ -269,6 +269,7 @@ def asp_reschedule_wrapper(
         print("###reschedule")
         print(_pp.pformat(full_reschedule_result.trainruns_dict))
 
+    malfunction_env_reset()
     replay_and_verify_trainruns(rail_env=malfunction_rail_env_for_verification,
                                 trainruns=asp_solution.get_trainruns_dict(),
                                 rendering=rendering,
