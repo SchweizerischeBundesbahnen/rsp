@@ -370,13 +370,17 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder:
                                                                        sorting=sorting)
         fig, ax = plt.subplots(1, 3)
         fig.set_size_inches(w=45, h=15)
-        #ax.set_title('Time-Ressource-Diagram')
-        #ax.set_xlabel('Ressource')
-        #ax.set_ylabel('Time')
+        ax[0].set_title('Time-Ressource-Diagram: Full Schedule')
+        ax[0].set_xlabel('Ressource')
+        ax[0].set_ylabel('Time')
         ax[0].matshow(np.transpose(weg_zeit_matrize_schedule), cmap='gist_ncar')
-
+        ax[1].set_title('Time-Ressource-Diagram: Re-Schedule')
+        ax[1].set_xlabel('Ressource')
+        ax[1].set_ylabel('Time')
         ax[1].matshow(np.transpose(weg_zeit_matrize_reschedule), cmap='gist_ncar')
-
+        ax[2].set_title('Time-Ressource-Diagram: Changes')
+        ax[2].set_xlabel('Ressource')
+        ax[2].set_ylabel('Time')
         ax[2].matshow(np.abs(np.transpose(weg_zeit_matrize_reschedule) - np.transpose(weg_zeit_matrize_schedule)), cmap='gist_ncar')
         plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
     else:
