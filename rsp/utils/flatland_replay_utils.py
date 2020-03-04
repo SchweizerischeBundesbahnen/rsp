@@ -229,7 +229,11 @@ def cleanup_renderer_for_env(renderer):
         from flatland.utils.rendertools import RenderTool
         renderer: RenderTool = renderer
         # close renderer window
-        renderer.close_window()
+        try:
+            renderer.close_window()
+        except AttributeError as e:
+            # TODO why does this happen?
+            warnings.warn(e)
 
 
 def replay(env: RailEnv,  # noqa: C901
