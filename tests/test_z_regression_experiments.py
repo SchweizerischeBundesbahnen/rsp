@@ -540,22 +540,46 @@ def test_parallel_experiment_execution():
                              max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1)])
 
-    solver = ASPExperimentSolver()
     experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=True)
-
-    # load results
-    loaded_results = load_experiment_results_from_folder(experiment_folder_name)
     delete_experiment_folder(experiment_folder_name)
 
-    experiment_results = pd.DataFrame(columns=COLUMNS)
-    for current_experiment_parameters in agenda.experiments:
-        single_experiment_result = run_experiment(solver=solver, experiment_parameters=current_experiment_parameters,
-                                                  verbose=False)
-        experiment_results = experiment_results.append(single_experiment_result, ignore_index=True)
 
-    with pandas.option_context('display.max_rows', None, 'display.max_columns',
-                               None):  # more options can be specified also
-        loaded_result_dict = loaded_results.to_dict()
-        experiment_results_dict = experiment_results.to_dict()
+def test_deterministic_1():
+    _test_deterministic(
+        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
+                             height=30,
+                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1))
 
-    _assert_results_dict_equals(experiment_results_dict, loaded_result_dict)
+
+def test_deterministic_2():
+    _test_deterministic(
+        ExperimentParameters(experiment_id=1, experiment_group=0, trials_in_experiment=3, number_of_agents=3, width=30,
+                             height=30,
+                             seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1))
+
+
+def test_deterministic_3():
+    _test_deterministic(
+        ExperimentParameters(experiment_id=2, experiment_group=0, trials_in_experiment=3, number_of_agents=4, width=30,
+                             height=30,
+                             seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1))
+
+
+def _test_deterministic(params: ExperimentParameters):
+    """Ensure that two runs of the same experiment yields the same result."""
+
+    solver = ASPExperimentSolver()
+    experiment_results_dict_1 = pd.DataFrame(columns=COLUMNS)
+    single_experiment_result1 = run_experiment(solver=solver, experiment_parameters=params, verbose=False)
+    experiment_results_dict_1.append(single_experiment_result1, ignore_index=True)
+    experiment_results_dict_2 = pd.DataFrame(columns=COLUMNS)
+    single_experiment_result2 = run_experiment(solver=solver, experiment_parameters=params, verbose=False)
+    experiment_results_dict_2.append(single_experiment_result2, ignore_index=True)
+
+    _assert_results_dict_equals(experiment_results_dict_1.to_dict(), experiment_results_dict_2.to_dict())
