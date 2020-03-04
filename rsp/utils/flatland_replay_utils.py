@@ -119,7 +119,7 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
 
     """
     controller_from_train_runs = create_controller_from_trainruns_and_malfunction(
-        rail_env=rail_env,
+        env=rail_env,
         trainrun_dict=trainruns,
         expected_malfunction=expected_malfunction,
         debug=debug)
