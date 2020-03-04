@@ -371,7 +371,7 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensio
         ax = fig.gca(projection='3d')
         for train_path in train_time_paths:
             x, y, z = zip(*train_path)
-            ax.voxels(np.transpose(np.array(x, y, z)))
+            ax.voxels(np.transpose(np.array([x, y, z])))
         plt.show()
 
 
