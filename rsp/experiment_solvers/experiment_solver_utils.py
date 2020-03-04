@@ -12,7 +12,9 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
+from rsp.utils.data_types import _pp
 from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types import TrainScheduleDict
 
 
 def create_action_plan(train_runs_dict: TrainrunDict, env: RailEnv) -> ControllerFromTrainruns:
@@ -231,6 +233,7 @@ def replay(env: RailEnv,  # noqa: C901
            solver_name: str,
            controller_from_train_runs: ControllerFromTrainruns,
            expected_malfunction: Optional[ExperimentMalfunction] = None,
+           expected_positions: Optional[TrainScheduleDict] = None,
            rendering: bool = False,
            debug: bool = False,
            loop_index: int = 0,
@@ -304,7 +307,7 @@ def replay(env: RailEnv,  # noqa: C901
             alt_actions = controller_from_train_runs.act(time_step_to_tweak)
             if debug:
                 print(
-                    f"agent {expected_malfunction.agent_id} at: "
+                    f"tweaking agent {expected_malfunction.agent_id} at: "
                     f"action {time_step} {actions[expected_malfunction.agent_id]} -> "
                     f"{alt_actions[expected_malfunction.agent_id]}")
             actions[expected_malfunction.agent_id] = alt_actions[expected_malfunction.agent_id]
@@ -315,6 +318,32 @@ def replay(env: RailEnv,  # noqa: C901
 
         obs, all_rewards, done, _ = env.step(actions)
         total_reward += sum(np.array(list(all_rewards.values())))
+        if debug:
+            for agent in env.agents:
+                print(f"agent {agent.handle} "
+                      f"speed_data={agent.speed_data} "
+                      f"position={agent.position} "
+                      f"direction={agent.direction} "
+                      f"malfunction_data={agent.malfunction_data} "
+                      f"target={agent.target}")
+        if expected_positions is not None:
+            for agent_id, train_schedule in expected_positions.items():
+                actual_position = env.agents[agent_id].position
+                if train_schedule.get(time_step, None) is None:
+                    assert actual_position is None, \
+                        f"[{time_step}] agent {agent_id} expected to have left already/note have departed, actual position={actual_position}"
+                else:
+                    waypoint = train_schedule[time_step]
+                    expected_position = waypoint.position
+                    if actual_position != expected_position:
+                        print(f"expected trainrun for {agent_id}")
+                        print(_pp.pformat(controller_from_train_runs.trainrun_dict[agent_id]))
+                        print(f"expected positions for agent {agent_id}")
+                        print(_pp.pformat(expected_positions[agent_id]))
+                        print(f"action plan for agent {agent_id}")
+                        print(_pp.pformat(controller_from_train_runs.action_plan[agent_id]))
+                    assert actual_position == expected_position, \
+                        f"[{time_step}] agent {agent_id} expected position={expected_position}, actual position={actual_position}"
 
         if stop_on_malfunction:
             for agent in env.agents:

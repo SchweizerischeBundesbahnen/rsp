@@ -19,7 +19,6 @@ from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
@@ -27,7 +26,21 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
 
 
-def convert_trainrundict_to_positions_for_all_timesteps(trainrun_dict: TrainrunDict):
+def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
+    """
+    Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and agent time step.
+    The positions are the new positions the agents ent
+    Parameters
+    ----------
+    trainrun_dict: TrainrunDict
+        for each agent, a list of time steps with new position
+
+    Returns
+    -------
+    TrainScheduleDict
+        for each agent and time step, the current position (not considering release times)
+
+    """
     train_schedule_dict: TrainScheduleDict = {}
     for agent_id, trainrun in trainrun_dict.items():
         train_schedule: TrainSchedule = {}
@@ -40,6 +53,41 @@ def convert_trainrundict_to_positions_for_all_timesteps(trainrun_dict: TrainrunD
                 time_step += 1
             current_position = trainrun_waypoint.waypoint
             train_schedule[time_step] = current_position
+    return train_schedule_dict
+
+
+def convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
+    """
+    Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and time step.
+    Parameters
+    ----------
+    trainrun_dict: TrainrunDict
+        for each agent, a list of time steps with new position
+
+    Returns
+    -------
+    TrainScheduleDict
+        for each agent and time step, the current position (not considering release times)
+
+    """
+    train_schedule_dict: TrainScheduleDict = {}
+    for agent_id, trainrun in trainrun_dict.items():
+        train_schedule: TrainSchedule = {}
+        train_schedule_dict[agent_id] = train_schedule
+        time_step = 0
+        current_position = None
+        end_time_step = trainrun[-1].scheduled_at
+        for next_trainrun_waypoint in trainrun[1:]:
+            while time_step + 1 < next_trainrun_waypoint.scheduled_at:
+                train_schedule[time_step] = current_position
+                time_step += 1
+            assert time_step + 1 == next_trainrun_waypoint.scheduled_at
+            if time_step + 1 == end_time_step:
+                train_schedule[time_step] = None
+                break
+            current_position = next_trainrun_waypoint.waypoint
+            train_schedule[time_step] = current_position
+            time_step += 1
     return train_schedule_dict
 
 
@@ -127,7 +175,8 @@ def visualize_experiment(
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
             vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[
+                agent_id],
             route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
@@ -148,7 +197,8 @@ def visualize_experiment(
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_full.route_dag_constraints_dict[agent_id],
             vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_full_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[
+                agent_id],
             route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
@@ -163,7 +213,7 @@ def visualize_experiment(
         )
 
     _replay_flatland(data_folder=data_folder,
-                     experiment=experiment_parameters,
+                     experiment_results_analysis=experiment_results_analysis,
                      flatland_rendering=flatland_rendering,
                      rail_env=malfunction_rail_env,
                      trainruns=train_runs_full_after_malfunction,
@@ -197,7 +247,7 @@ def _make_title(agent_id: str,
 
 
 def _replay_flatland(data_folder: str,
-                     experiment: ExperimentResults,
+                     experiment_results_analysis: ExperimentResultsAnalysis,
                      rail_env: RailEnv,
                      trainruns: TrainrunDict,
                      convert_to_mpeg: bool = False,
@@ -206,8 +256,9 @@ def _replay_flatland(data_folder: str,
                                                          trainruns)
     image_output_directory = None
     if flatland_rendering:
-        image_output_directory = os.path.join(data_folder, f"experiment_{experiment.experiment_id:04d}_analysis",
-                                              f"experiment_{experiment.experiment_id}_rendering_output")
+        image_output_directory = os.path.join(data_folder,
+                                              f"experiment_{experiment_results_analysis.experiment_id:04d}_analysis",
+                                              f"experiment_{experiment_results_analysis.experiment_id}_rendering_output")
         check_create_folder(image_output_directory)
     replay(
         controller_from_train_runs=controller_from_train_runs,
@@ -216,14 +267,19 @@ def _replay_flatland(data_folder: str,
         solver_name='data_analysis',
         disable_verification_in_replay=False,
         rendering=flatland_rendering,
-        image_output_directory=image_output_directory
+        image_output_directory=image_output_directory,
+        debug=True,
+        expected_malfunction=experiment_results_analysis.malfunction,
+        expected_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainruns)
     )
     if flatland_rendering and convert_to_mpeg:
         import ffmpeg
         (ffmpeg
          .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s='1920x1080')
-         .output(f'{image_output_directory}/experiment_{experiment.experiment_id}_flatland_data_analysis.mp4', crf=15,
-                 pix_fmt='yuv420p', vcodec='libx264')
+         .output(
+            f'{image_output_directory}/experiment_{experiment_results_analysis.experiment_id}_flatland_data_analysis.mp4',
+            crf=15,
+            pix_fmt='yuv420p', vcodec='libx264')
          .overwrite_output()
          .run()
          )
