@@ -242,7 +242,7 @@ def hypothesis_one_data_analysis(data_folder: str,
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
             experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
                 row)
-            weg_zeit_diagramm(experiment_data=experiment_results_analysis, three_dimensional=True, volumetric=True)
+            weg_zeit_diagramm(experiment_data=experiment_results_analysis ,output_folder=data_folder, three_dimensional=False, volumetric=True)
             visualize_agent_density(experiment_results_analysis, output_folder=data_folder)
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,

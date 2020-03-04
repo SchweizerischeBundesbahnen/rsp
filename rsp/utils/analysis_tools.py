@@ -12,6 +12,7 @@ from typing import Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
+
 matplotlib.use('Qt4Agg')
 
 import numpy as np
@@ -350,7 +351,8 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
     plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
 
 
-def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensional: bool, volumetric: bool = False):
+def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder: str, three_dimensional: bool,
+                      volumetric: bool = False):
     schedule = experiment_data.solution_full
     reschedule = experiment_data.solution_full_after_malfunction
     max_episode_steps = experiment_data.problem_full.max_episode_steps
@@ -366,14 +368,17 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensio
         weg_zeit_matrize_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
                                                                        max_episode_steps=max_episode_steps,
                                                                        sorting=sorting)
-        fig = plt.figure()
-        ax: plt.axes.Axes = fig.add_subplot(111)
-        ax.set_title('Time-Ressource-Diagram')
-        ax.set_xlabel('Ressource')
-        ax.set_ylabel('Time')
-        plt.matshow(np.transpose(weg_zeit_matrize_schedule), cmap='gist_ncar')
-        plt.matshow(np.transpose(weg_zeit_matrize_reschedule), cmap='gist_ncar')
-        plt.show()
+        fig, ax = plt.subplots(1, 3)
+        fig.set_size_inches(w=45, h=15)
+        #ax.set_title('Time-Ressource-Diagram')
+        #ax.set_xlabel('Ressource')
+        #ax.set_ylabel('Time')
+        ax[0].matshow(np.transpose(weg_zeit_matrize_schedule), cmap='gist_ncar')
+
+        ax[1].matshow(np.transpose(weg_zeit_matrize_reschedule), cmap='gist_ncar')
+
+        ax[2].matshow(np.abs(np.transpose(weg_zeit_matrize_reschedule) - np.transpose(weg_zeit_matrize_schedule)), cmap='gist_ncar')
+        plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
     else:
         fig = plt.figure()
         ax = fig.gca(projection='3d')
@@ -383,8 +388,8 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensio
         ax.set_zlabel('Time')
         if volumetric:
             voxels, colors = weg_zeit_3d_voxels(schedule=schedule, width=width, height=height,
-                                        max_episode_steps=max_episode_steps)
-            ax.voxels(voxels,facecolors=colors)
+                                                max_episode_steps=max_episode_steps)
+            ax.voxels(voxels, facecolors=colors)
             plt.show()
         else:
             train_time_paths = weg_zeit_3d_path(schedule=reschedule)
@@ -434,7 +439,7 @@ def weg_zeit_3d_voxels(schedule, width, height, max_episode_steps):
     colors = np.empty(voxels.shape, dtype=object)
     for train_run in schedule:
         pre_waypoint = schedule[train_run][0]
-        color = cmap(train_run/len(schedule))
+        color = cmap(train_run / len(schedule))
         for waypoint in schedule[train_run][1:]:
             pre_time = pre_waypoint.scheduled_at
             time = waypoint.scheduled_at
