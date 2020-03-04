@@ -17,6 +17,7 @@ import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from matplotlib import axes
 from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from pandas import DataFrame
 from pandas import Series
 
@@ -369,9 +370,13 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, three_dimensio
         train_time_paths = weg_zeit_3d_path(schedule=reschedule)
         fig = plt.figure()
         ax = fig.gca(projection='3d')
+        ax.set_xlim([0, width])
+        ax.set_ylim([0, height])
+        ax.set_zlim([0, max_episode_steps])
         for train_path in train_time_paths:
             x, y, z = zip(*train_path)
-            ax.voxels(np.transpose(np.array([x, y, z])))
+            pc = plotCubeAt(train_path, colors='r', edgecolor="k",sizes=[(1,1,0.1)]*len(train_path))
+            ax.add_collection3d(pc)
         plt.show()
 
 
@@ -394,6 +399,7 @@ def weg_zeit_matrix_from_schedule(schedule, width, height, max_episode_steps, so
 
 
 def weg_zeit_3d_path(schedule):
+
     all_train_time_paths = []
     for train_run in schedule:
         train_time_path = []
@@ -407,3 +413,45 @@ def weg_zeit_3d_path(schedule):
             pre_waypoint = waypoint
         all_train_time_paths.append(train_time_path)
     return all_train_time_paths
+
+def cuboid_data(o, size=(1,1,1)):
+    """
+    https://stackoverflow.com/questions/42611342/representing-voxels-with-matplotlib
+    Parameters
+    ----------
+    schedule
+
+    Returns
+    -------
+
+    """
+    X = [[[0, 1, 0], [0, 0, 0], [1, 0, 0], [1, 1, 0]],
+         [[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]],
+         [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]],
+         [[0, 0, 1], [0, 0, 0], [0, 1, 0], [0, 1, 1]],
+         [[0, 1, 0], [0, 1, 1], [1, 1, 1], [1, 1, 0]],
+         [[0, 1, 1], [0, 0, 1], [1, 0, 1], [1, 1, 1]]]
+    X = np.array(X).astype(float)
+    for i in range(3):
+        X[:,:,i] *= size[i]
+    X += np.array(o)
+    return X
+
+def plotCubeAt(positions,sizes=None,colors=None, **kwargs):
+    """
+    https://stackoverflow.com/questions/42611342/representing-voxels-with-matplotlib
+    Parameters
+    ----------
+    schedule
+
+    Returns
+    -------
+
+    """
+    if not isinstance(colors,(list,np.ndarray)): colors=["C0"]*len(positions)
+    if not isinstance(sizes,(list,np.ndarray)): sizes=[(1,1,1)]*len(positions)
+    g = []
+    for p,s,c in zip(positions,sizes,colors):
+        g.append( cuboid_data(p, size=s) )
+    return Poly3DCollection(np.concatenate(g),
+                            facecolors=np.repeat(colors,6, axis=0), **kwargs)
