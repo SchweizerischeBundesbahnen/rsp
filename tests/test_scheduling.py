@@ -1,3 +1,4 @@
+import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
@@ -17,7 +18,8 @@ def test_scheduling():
                                            malfunction_duration=20, speed_data={1: 1.0},
                                            number_of_shortest_paths_per_agent=10,
                                            weight_route_change=1,
-                                           weight_lateness_seconds=1)
+                                           weight_lateness_seconds=1,
+                                           max_window_size_from_earliest=np.inf)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
