@@ -242,15 +242,17 @@ def hypothesis_one_data_analysis(data_folder: str,
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
             experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
                 row)
-            weg_zeit_diagramm(experiment_data=experiment_results_analysis ,output_folder=data_folder, three_dimensional=False, volumetric=True)
-            visualize_agent_density(experiment_results_analysis, output_folder=data_folder)
+            experiment_output_folder = f"{data_folder}/experiment_{experiment_results_analysis.experiment_parameters.experiment_id:04d}_analysis"
+
+            weg_zeit_diagramm(experiment_data=experiment_results_analysis, output_folder=experiment_output_folder,
+                              three_dimensional=False, volumetric=True)
+            visualize_agent_density(experiment_results_analysis, output_folder=experiment_output_folder)
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
                                  experiment_results_analysis=experiment_results_analysis,
                                  data_folder=data_folder,
                                  flatland_rendering=flatland_rendering)
-
 
 
 def _run_plausibility_tests_on_experiment_data(experiment_data):

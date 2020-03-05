@@ -353,20 +353,40 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
 
 def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder: str, three_dimensional: bool,
                       volumetric: bool = False):
+    """
+    Method to draw ressource-time diagrams in 2d or 3d
+
+    Parameters
+    ----------
+    experiment_data : ExperimentResultsAnalysis
+        Data from experiment for plot
+    output_folder : str
+        Folder to store plots
+    three_dimensional : bool
+        Flag to choose 3D plot
+    volumetric : bool
+        Flat to choose volumetric plot in 3D
+
+    Returns
+    -------
+
+    """
     schedule = experiment_data.solution_full
     reschedule = experiment_data.solution_full_after_malfunction
     max_episode_steps = experiment_data.problem_full.max_episode_steps
-
+    malfunction_agent = experiment_data.malfunction.agent_id
     width = experiment_data.experiment_parameters.width
     height = experiment_data.experiment_parameters.height
 
     if not three_dimensional:
         weg_zeit_matrize_schedule, sorting = weg_zeit_matrix_from_schedule(schedule=schedule, width=width,
                                                                            height=height,
+                                                                           malfunction_agent_id=malfunction_agent,
                                                                            max_episode_steps=max_episode_steps,
                                                                            sorting=None)
         weg_zeit_matrize_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
                                                                        max_episode_steps=max_episode_steps,
+                                                                       malfunction_agent_id=malfunction_agent,
                                                                        sorting=sorting)
         fig, ax = plt.subplots(1, 3)
         fig.set_size_inches(w=45, h=15)
@@ -381,7 +401,8 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder:
         ax[2].set_title('Time-Ressource-Diagram: Changes')
         ax[2].set_xlabel('Ressource')
         ax[2].set_ylabel('Time')
-        ax[2].matshow(np.abs(np.transpose(weg_zeit_matrize_reschedule) - np.transpose(weg_zeit_matrize_schedule)), cmap='gist_ncar')
+        ax[2].matshow(np.abs(np.transpose(weg_zeit_matrize_reschedule) - np.transpose(weg_zeit_matrize_schedule)),
+                      cmap='gist_ncar')
         plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
     else:
         fig = plt.figure()
@@ -403,10 +424,41 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder:
             plt.show()
 
 
-def weg_zeit_matrix_from_schedule(schedule, width, height, max_episode_steps, sorting=None):
+def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
+                                  malfunction_agent_id: int = -1, sorting: List[int] = None):
+    """
+    Method to produce sorted matrix of all train runs. Each train run is given an individual value for better
+    visualization. The matrix can besorted according to a predefined soring or accordin to first agent or
+    malfunction_agent
+
+    Parameters
+    ----------
+    schedule :TrainrunDict
+        Contains all the trainruns of the provided schedule
+    width : Int
+        Width of Flatland env used to span matrix
+    height: Int
+        Height of Flatland env used to span matrix
+    max_episode_steps : Int
+        Number of time steps in epsidoed used to span matrix
+    malfunction_agent_id : Int
+        ID of malfunctin agent used for sorting
+    sorting: List[Int]
+        Predefined sorting used to maintain soring
+
+    Returns
+    -------
+    Matrix of Int containing all the reserved ressoruces of all trains.
+
+    """
     weg_zeit_matrize = np.zeros(shape=(width * height, max_episode_steps))
     if sorting is None:
         sorting = []
+        if malfunction_agent_id >= 0:
+            for waypoint in schedule[malfunction_agent_id]:
+                position = coordinate_to_position(width, [waypoint.waypoint.position])  # or is it height?
+                if position not in sorting:
+                    sorting.append(position)
     for train_run in schedule:
         pre_waypoint = schedule[train_run][0]
         for waypoint in schedule[train_run][1:]:
@@ -421,7 +473,19 @@ def weg_zeit_matrix_from_schedule(schedule, width, height, max_episode_steps, so
     return weg_zeit_matrize, sorting
 
 
-def weg_zeit_3d_path(schedule):
+def weg_zeit_3d_path(schedule: TrainrunDict):
+    """
+    Method to define the time-space paths of each train in three dimensions
+
+    Parameters
+    ----------
+    schedule: TrainrunDict
+        Contains all the trainruns
+
+    Returns
+    -------
+    List of List of coordinate tuples (x,y,z)
+    """
     all_train_time_paths = []
     for train_run in schedule:
         train_time_path = []
@@ -437,7 +501,24 @@ def weg_zeit_3d_path(schedule):
     return all_train_time_paths
 
 
-def weg_zeit_3d_voxels(schedule, width, height, max_episode_steps):
+def weg_zeit_3d_voxels(schedule:TrainrunDict, width:int, height:int, max_episode_steps:int):
+    """
+
+    Parameters
+    ----------
+    schedule :TrainrunDict
+        Contains all the trainruns of the provided schedule
+    width : Int
+        Width of Flatland env used to span matrix
+    height: Int
+        Height of Flatland env used to span matrix
+    max_episode_steps : Int
+        Number of time steps in epsidoed used to span matrix
+
+    Returns
+    -------
+    Binary matric (widht,height,max_episode_steps) of occupied ressources, Color for each occupied ressoruce
+    """
     voxels = np.zeros(shape=(width, height, max_episode_steps), dtype=int)
     cmap = matplotlib.cm.get_cmap('gist_ncar')
     colors = np.empty(voxels.shape, dtype=object)
