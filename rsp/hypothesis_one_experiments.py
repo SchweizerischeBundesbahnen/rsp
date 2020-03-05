@@ -1,6 +1,8 @@
 from typing import Dict
 from typing import Tuple
 
+import numpy as np
+
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_experiment_agenda
@@ -16,7 +18,8 @@ def get_pipeline_params() -> Tuple[ParameterRanges, Dict[float, float]]:
                                        city_range=[20, 20, 1],
                                        earliest_malfunction=[20, 20, 1],
                                        malfunction_duration=[20, 20, 1],
-                                       number_of_shortest_paths_per_agent=[10, 10, 1])
+                                       number_of_shortest_paths_per_agent=[10, 10, 1],
+                                       max_window_size_from_earliest=[np.inf, np.inf, 1])
     # Define the desired speed profiles
     speed_data = {1.: 0.25,  # Fast passenger train
                   1. / 2.: 0.25,  # Fast freight train
@@ -33,7 +36,8 @@ def get_first_agenda_pipeline_params() -> Tuple[ParameterRanges, Dict[float, flo
                                        city_range=[20, 20, 1],
                                        earliest_malfunction=[20, 20, 1],
                                        malfunction_duration=[20, 20, 1],
-                                       number_of_shortest_paths_per_agent=[10, 10, 1])
+                                       number_of_shortest_paths_per_agent=[10, 10, 1],
+                                       max_window_size_from_earliest=[np.inf, np.inf, 1])
     # Define the desired speed profiles
     speed_data = {1.: 0.25,  # Fast passenger train
                   1. / 2.: 0.25,  # Fast freight train

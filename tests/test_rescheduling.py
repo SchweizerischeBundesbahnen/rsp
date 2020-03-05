@@ -15,9 +15,9 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from numpy.random.mtrand import RandomState
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.experiment_solvers.asp.asp_solve_problem import verify_trainruns_dict
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
-from rsp.experiment_solvers.experiment_solver_utils import get_delay_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
@@ -53,7 +53,8 @@ def test_rescheduling_no_bottleneck():
         speed_data={1: 1.0},
         number_of_shortest_paths_per_agent=10,
         weight_route_change=1,
-        weight_lateness_seconds=1
+        weight_lateness_seconds=1,
+        max_window_size_from_earliest=np.inf
     )
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
@@ -234,7 +235,7 @@ def test_rescheduling_bottleneck():
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
                                            malfunction_duration=20, speed_data={1: 1.0},
                                            number_of_shortest_paths_per_agent=10, weight_route_change=1,
-                                           weight_lateness_seconds=1)
+                                           weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -890,7 +891,7 @@ def _dummy_test_case(fake_malfunction: Malfunction):
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
                                            malfunction_duration=20, speed_data={1: 1.0},
                                            number_of_shortest_paths_per_agent=10, weight_route_change=1,
-                                           weight_lateness_seconds=1)
+                                           weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
     k = 10
     schedule_problem = ASPProblemDescription.factory_scheduling(

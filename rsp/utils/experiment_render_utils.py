@@ -1,17 +1,12 @@
 import os
-import time
 from typing import Dict
 from typing import Optional
 
 import networkx as nx
-from flatland.action_plan.action_plan import ControllerFromTrainruns
-from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayerRenderCallback
-from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
-from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_in_route_dag
@@ -19,10 +14,10 @@ from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 
 def visualize_experiment(
@@ -107,7 +102,8 @@ def visualize_experiment(
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
             vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[
+                agent_id],
             route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
@@ -128,7 +124,8 @@ def visualize_experiment(
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_full.route_dag_constraints_dict[agent_id],
             vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_full_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[
+                agent_id],
             route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
@@ -142,12 +139,13 @@ def visualize_experiment(
                        if data_folder is not None else None)
         )
 
-    _replay_flatland(data_folder=data_folder,
-                     experiment=experiment_parameters,
-                     flatland_rendering=flatland_rendering,
-                     rail_env=malfunction_rail_env,
-                     trainruns=train_runs_full_after_malfunction,
-                     convert_to_mpeg=convert_to_mpeg)
+    replay_and_verify_trainruns(data_folder=data_folder,
+                                experiment_id=experiment_results_analysis.experiment_id,
+                                expected_malfunction=experiment_results_analysis.malfunction,
+                                rendering=flatland_rendering,
+                                rail_env=malfunction_rail_env,
+                                trainruns=train_runs_full_after_malfunction,
+                                convert_to_mpeg=convert_to_mpeg)
 
 
 def _make_title(agent_id: str,
@@ -174,115 +172,3 @@ def _make_title(agent_id: str,
     if eff_sum_route_section_penalties_agent is not None:
         title += f"sum_route_section_penalties (agent)={eff_sum_route_section_penalties_agent}\n"
     return title
-
-
-def _replay_flatland(data_folder: str,
-                     experiment: ExperimentResults,
-                     rail_env: RailEnv,
-                     trainruns: TrainrunDict,
-                     convert_to_mpeg: bool = False,
-                     flatland_rendering: bool = False):
-    controller_from_train_runs = ControllerFromTrainruns(rail_env,
-                                                         trainruns)
-    image_output_directory = None
-    if flatland_rendering:
-        image_output_directory = os.path.join(data_folder, f"experiment_{experiment.experiment_id:04d}_analysis",
-                                              f"experiment_{experiment.experiment_id}_rendering_output")
-        check_create_folder(image_output_directory)
-    replay(
-        controller_from_train_runs=controller_from_train_runs,
-        env=rail_env,
-        stop_on_malfunction=False,
-        solver_name='data_analysis',
-        disable_verification_in_replay=False,
-        rendering=flatland_rendering,
-        image_output_directory=image_output_directory
-    )
-    if flatland_rendering and convert_to_mpeg:
-        import ffmpeg
-        (ffmpeg
-         .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s='1920x1080')
-         .output(f'{image_output_directory}/experiment_{experiment.experiment_id}_flatland_data_analysis.mp4', crf=15,
-                 pix_fmt='yuv420p', vcodec='libx264')
-         .overwrite_output()
-         .run()
-         )
-
-
-# --------------------------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------------------------
-
-
-def make_render_call_back_for_replay(env: RailEnv,
-                                     rendering: bool = False) -> ControllerFromTrainrunsReplayerRenderCallback:
-    if rendering:
-        from flatland.utils.rendertools import AgentRenderVariant
-        from flatland.utils.rendertools import RenderTool
-        renderer = RenderTool(env, gl="PILSVG",
-                              agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                              show_debug=True,
-                              clear_debug_text=True,
-                              screen_height=1000,
-                              screen_width=1000)
-
-    def render(*argv):
-        if rendering:
-            renderer.render_env(show=True, show_observations=False, show_predictions=False)
-            time.sleep(2)
-
-    return render
-
-
-def init_renderer_for_env(env: RailEnv, rendering: bool = False):
-    if rendering:
-        from flatland.utils.rendertools import AgentRenderVariant
-        from flatland.utils.rendertools import RenderTool
-        return RenderTool(env, gl="PILSVG",
-                          agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                          show_debug=True,
-                          clear_debug_text=True,
-                          screen_height=1000,
-                          screen_width=1000)
-
-
-def render_env(renderer,
-               test_id: int,
-               solver_name, i_step: int,
-               show=True,
-               image_output_directory: Optional[str] = './rendering_output'):
-    """
-
-    Parameters
-    ----------
-    renderer: Optional[RenderTool]
-    test_id: int
-        id in file name
-    solver_name:
-        solver name for file name
-    i_step: int
-        used in file name
-    show:
-        render without showing?
-    image_output_directory: Optional[str]
-        store files to this directory if given
-    """
-    if renderer is not None:
-        from flatland.utils.rendertools import RenderTool
-        renderer: RenderTool = renderer
-        renderer.render_env(show=show, show_observations=False, show_predictions=False)
-        if image_output_directory is not None:
-            if not os.path.exists(image_output_directory):
-                os.makedirs(image_output_directory)
-            renderer.gl.save_image(os.path.join(image_output_directory,
-                                                "flatland_frame_{:04d}_{:04d}_{}.png".format(test_id,
-                                                                                             i_step,
-                                                                                             solver_name)))
-
-
-def cleanup_renderer_for_env(renderer):
-    if renderer:
-        from flatland.utils.rendertools import RenderTool
-        renderer: RenderTool = renderer
-        # close renderer window
-        renderer.close_window()

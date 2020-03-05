@@ -1,8 +1,9 @@
+import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
-from rsp.experiment_solvers.experiment_solver_utils import get_summ_running_times_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import get_sum_running_times_trainruns_dict
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.data_types import ExperimentParameters
@@ -17,7 +18,8 @@ def test_scheduling():
                                            malfunction_duration=20, speed_data={1: 1.0},
                                            number_of_shortest_paths_per_agent=10,
                                            weight_route_change=1,
-                                           weight_lateness_seconds=1)
+                                           weight_lateness_seconds=1,
+                                           max_window_size_from_earliest=np.inf)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -97,6 +99,6 @@ def test_scheduling():
     expected_objective = 0
     actual_objective = schedule_result.optimization_costs
     assert actual_objective == expected_objective, f"actual_objective={actual_objective}, expected_objective={expected_objective}"
-    actual_sum_running_times = get_summ_running_times_trainruns_dict(schedule_result.trainruns_dict)
+    actual_sum_running_times = get_sum_running_times_trainruns_dict(schedule_result.trainruns_dict)
     assert actual_sum_running_times == expected_total_running_times, \
         f"actual_sum_running_times={actual_sum_running_times}, expected_total_running_times={expected_total_running_times}"

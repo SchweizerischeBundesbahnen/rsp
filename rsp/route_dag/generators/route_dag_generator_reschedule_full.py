@@ -1,6 +1,7 @@
 from typing import Dict
 
 import networkx as nx
+import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
@@ -13,7 +14,8 @@ def get_schedule_problem_for_full_rescheduling(malfunction: ExperimentMalfunctio
                                                schedule_trainruns: TrainrunDict,
                                                minimum_travel_time_dict: Dict[int, int],
                                                topo_dict: Dict[int, nx.DiGraph],
-                                               latest_arrival: int
+                                               latest_arrival: int,
+                                               max_window_size_from_earliest: int = np.inf
                                                ) -> ScheduleProblemDescription:
     """Returns the experiment freeze for the full re-scheduling problem. Wraps
     the generic freeze by freezing everything up to and including the
@@ -32,5 +34,6 @@ def get_schedule_problem_for_full_rescheduling(malfunction: ExperimentMalfunctio
                       for agent_id, schedule_trainrun in schedule_trainruns.items()
                       },
         topo_dict=topo_dict,
-        latest_arrival=latest_arrival
+        latest_arrival=latest_arrival,
+        max_window_size_from_earliest=max_window_size_from_earliest
     )
