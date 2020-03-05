@@ -5,6 +5,7 @@ from typing import Tuple
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
+from rsp.experiment_solvers.asp.asp_helper import configuration_as_dict_from_control
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
@@ -64,14 +65,16 @@ def solve_problem(
     if debug:
         print("####train runs dict")
         print(_pp.pformat(trainruns_dict))
-
-    return SchedulingExperimentResult(total_reward=-np.inf,
-                                      solve_time=solve_time,
-                                      optimization_costs=solution.get_objective_value(),
-                                      build_problem_time=build_problem_time,
-                                      nb_conflicts=solution.extract_nb_resource_conflicts(),
-                                      trainruns_dict=solution.get_trainruns_dict(),
-                                      route_dag_constraints=problem.tc.route_dag_constraints_dict,
-                                      solver_statistics=solution.asp_solution.stats,
-                                      solver_result=solution.answer_set
-                                      ), solution
+    return SchedulingExperimentResult(
+        total_reward=-np.inf,
+        solve_time=solve_time,
+        optimization_costs=solution.get_objective_value(),
+        build_problem_time=build_problem_time,
+        nb_conflicts=solution.extract_nb_resource_conflicts(),
+        trainruns_dict=solution.get_trainruns_dict(),
+        route_dag_constraints=problem.tc.route_dag_constraints_dict,
+        solver_statistics=solution.asp_solution.stats,
+        solver_result=solution.answer_set,
+        solver_configuration=configuration_as_dict_from_control(solution.asp_solution.ctl),
+        solver_seed=solution.asp_solution.asp_seed_value
+    ), solution

@@ -14,7 +14,7 @@ def _get_test_env():
     env = create_flatland_environment(number_of_agents=1,
                                       width=30,
                                       height=30,
-                                      seed_value=12,
+                                      flatland_seed_value=12,
                                       max_num_cities=20,
                                       grid_mode=True,
                                       max_rails_between_cities=2,
