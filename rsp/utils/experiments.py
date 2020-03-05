@@ -40,20 +40,18 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
 from flatland.envs.rail_env import RailEnv
-from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_paths
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_times
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
@@ -137,7 +135,6 @@ def run_experiment(solver: ASPExperimentSolver,
         print("*** experiment result of experiment {}".format(experiment_parameters.experiment_id))
 
         experiment_results_analysis = expand_experiment_results_for_analysis(
-            experiment_id=experiment_parameters.experiment_id,
             experiment_results=experiment_results)
         _analyze_times(experiment_results_analysis=experiment_results_analysis)
         _analyze_paths(experiment_results_analysis=experiment_results_analysis,
@@ -149,8 +146,7 @@ def run_experiment(solver: ASPExperimentSolver,
     print("Running experiment {}: took {:5.3f}s"
           .format(experiment_parameters.experiment_id, trial_time))
 
-    plausibility_check_experiment_results(experiment_results=experiment_results,
-                                          experiment_id=experiment_parameters.experiment_id)
+    plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
 
 
@@ -474,27 +470,7 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_experiment_results_from_file(file_name: str) -> List:
-    """Load results as List to do further analysis.
-
-    Parameters
-    ----------
-    file_name: str
-        File name containing path to file that we want to load
-
-    Returns
-    -------
-    List containing the loaded experiment results
-    """
-    experiment_results = pd.DataFrame(columns=COLUMNS)
-
-    with open(file_name, 'rb') as handle:
-        file_data = pickle.load(handle)
-    experiment_results = experiment_results.append(file_data, ignore_index=True)
-    return experiment_results
-
-
-def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFrame:
+def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
 
     Parameters
@@ -507,7 +483,7 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     DataFrame containing the loaded experiment results
     """
 
-    experiment_results = pd.DataFrame(columns=COLUMNS)
+    experiment_results_list = []
 
     files = os.listdir(experiment_folder_name)
     for file in [file for file in files if 'agenda' not in file]:
@@ -516,11 +492,9 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
-        # TODO SIM-250 malfunction data files may be empty
-        if len(file_data) > 0:
-            experiment_results = experiment_results.append([file_data._asdict()], ignore_index=True)
+            experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
 
-    return experiment_results
+    return experiment_results_list
 
 
 def delete_experiment_folder(experiment_folder_name: str):

@@ -1,6 +1,7 @@
 """Run tests for different experiment methods."""
+from typing import List
+
 import numpy as np
-import pandas
 import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
@@ -10,16 +11,18 @@ from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.route_dag.route_dag import schedule_problem_description_equals
-from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.data_types import COLUMNS
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.utils.data_types import convert_list_of_experiment_results_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import delete_experiment_folder
-from rsp.utils.experiments import load_experiment_results_from_folder
+from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
 from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
 
@@ -135,15 +138,9 @@ def test_regression_experiment_agenda():
     )
 
     # load results
-    result = load_experiment_results_from_folder(experiment_folder_name)
-    result = expand_experiment_data_for_analysis(result)
-
+    experiment_results_for_analysis = load_and_expand_experiment_results_from_folder(experiment_folder_name)
     delete_experiment_folder(experiment_folder_name)
-
-    with pandas.option_context('display.max_rows', None, 'display.max_columns',
-                               None):  # more options can be specified also
-        result_dict = result.to_dict()
-        print(result_dict)
+    result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
     expected_result_dict = {
         # costs in full and delta are delay with respect to constraints induced by malfunction,
@@ -392,25 +389,24 @@ def test_save_and_load_experiment_results():
     experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     # load results
-    loaded_results = load_experiment_results_from_folder(experiment_folder_name)
+    loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        experiment_folder_name)
     delete_experiment_folder(experiment_folder_name)
 
-    experiment_results = pd.DataFrame(columns=COLUMNS)
+    experiment_results_list = []
     for current_experiment_parameters in agenda.experiments:
-        single_experiment_result = run_experiment(solver=solver,
-                                                  experiment_parameters=current_experiment_parameters,
-                                                  verbose=False)
-        experiment_results = experiment_results.append(single_experiment_result._asdict(), ignore_index=True)
+        single_experiment_result: ExperimentResults = run_experiment(solver=solver,
+                                                                     experiment_parameters=current_experiment_parameters,
+                                                                     verbose=False)
+        experiment_results_list.append(single_experiment_result)
 
-    with pandas.option_context('display.max_rows', None, 'display.max_columns',
-                               None):  # more options can be specified also
-        loaded_result_dict = loaded_results.to_dict()
-        experiment_results_dict = experiment_results.to_dict()
-
-    _assert_results_dict_equals(experiment_results_dict, loaded_result_dict)
+    _assert_results_dict_equals(experiment_results_list, loaded_results)
 
 
-def _assert_results_dict_equals(experiment_results_dict, loaded_result_dict):
+def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
+                                loaded_results: List[ExperimentResultsAnalysis]):
+    loaded_result_dict = convert_list_of_experiment_results_analysis_to_data_frame(loaded_results).to_dict()
+    experiment_results_dict = convert_list_of_experiment_results_to_data_frame(experiment_results).to_dict()
     for key in experiment_results_dict:
         if key.startswith("problem_"):
             assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
