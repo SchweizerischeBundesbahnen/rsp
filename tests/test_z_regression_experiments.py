@@ -2,7 +2,6 @@
 from typing import List
 
 import numpy as np
-import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
@@ -11,7 +10,6 @@ from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.route_dag.route_dag import schedule_problem_description_equals
-from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_list_of_experiment_results_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
@@ -642,11 +640,8 @@ def _test_deterministic(params: ExperimentParameters):
     """Ensure that two runs of the same experiment yields the same result."""
 
     solver = ASPExperimentSolver()
-    experiment_results_dict_1 = pd.DataFrame(columns=COLUMNS)
-    single_experiment_result1 = run_experiment(solver=solver, experiment_parameters=params, verbose=False)
-    experiment_results_dict_1.append(single_experiment_result1._asdict(), ignore_index=True)
-    experiment_results_dict_2 = pd.DataFrame(columns=COLUMNS)
+    single_experiment_result1: ExperimentResults = run_experiment(solver=solver, experiment_parameters=params,
+                                                                  verbose=False)
     single_experiment_result2 = run_experiment(solver=solver, experiment_parameters=params, verbose=False)
-    experiment_results_dict_2.append(single_experiment_result2._asdict(), ignore_index=True)
 
-    _assert_results_dict_equals(experiment_results_dict_1.to_dict(), experiment_results_dict_2.to_dict())
+    _assert_results_dict_equals([single_experiment_result1], [single_experiment_result2])
