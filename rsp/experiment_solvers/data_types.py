@@ -24,7 +24,9 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('nb_conflicts', int),
                                          ('route_dag_constraints', Optional[RouteDAGConstraintsDict]),
                                          ('solver_statistics', Dict),
-                                         ('solver_result', Set[str])
+                                         ('solver_result', Set[str]),
+                                         ('solver_configuration', Dict),
+                                         ('solver_seed', int)
                                          ])
 SchedulingExperimentResult.__doc__ = """
     Parameters

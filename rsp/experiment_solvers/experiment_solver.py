@@ -1,5 +1,6 @@
 import pprint
 from typing import Callable
+from typing import Optional
 
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
@@ -52,6 +53,7 @@ class ASPExperimentSolver():
             k=experiment_parameters.number_of_shortest_paths_per_agent
         )
         schedule_result = asp_schedule_wrapper(tc_schedule_problem,
+                                               asp_seed_value=experiment_parameters.asp_seed_value,
                                                rendering=rendering,
                                                static_rail_env=static_rail_env,
                                                debug=debug)
@@ -84,7 +86,7 @@ class ASPExperimentSolver():
             print(f"  **** malfunction={malfunction}")
         return ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
 
-    def run_experiment_trial(
+    def _run_experiment_from_environment(
             self,
             schedule_and_malfunction: ScheduleAndMalfunction,
             malfunction_rail_env: RailEnv,
@@ -133,7 +135,8 @@ class ASPExperimentSolver():
             malfunction_rail_env_for_verification=malfunction_rail_env,
             reschedule_problem_description=full_reschedule_problem,
             rendering=rendering,
-            debug=debug
+            debug=debug,
+            asp_seed_value=experiment_parameters.asp_seed_value
         )
         malfunction_env_reset()
 
@@ -165,7 +168,8 @@ class ASPExperimentSolver():
             reschedule_problem_description=delta_reschedule_problem,
             rendering=rendering,
             debug=debug,
-            malfunction_env_reset=lambda *args, **kwargs: None
+            malfunction_env_reset=lambda *args, **kwargs: None,
+            asp_seed_value=experiment_parameters.asp_seed_value
         )
         malfunction_env_reset()
 
@@ -194,6 +198,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescription,
                          static_rail_env: RailEnv,
+                         asp_seed_value: Optional[int] = None,
                          rendering: bool = False,
                          debug: bool = False,
                          ) -> SchedulingExperimentResult:
@@ -218,7 +223,9 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
     schedule_problem = ASPProblemDescription.factory_scheduling(
-        tc=schedule_problem_description)
+        tc=schedule_problem_description,
+        asp_seed_value=asp_seed_value
+    )
 
     schedule_result, schedule_solution = solve_problem(
         problem=schedule_problem,
@@ -237,6 +244,7 @@ def asp_reschedule_wrapper(
         malfunction_for_verification: ExperimentMalfunction,
         malfunction_rail_env_for_verification: RailEnv,
         malfunction_env_reset: Callable[[], None],
+        asp_seed_value: Optional[int] = None,
         debug: bool = False,
         rendering: bool = False
 ) -> SchedulingExperimentResult:
@@ -252,7 +260,8 @@ def asp_reschedule_wrapper(
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
     full_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-        tc=reschedule_problem_description
+        tc=reschedule_problem_description,
+        asp_seed_value=asp_seed_value
     )
 
     if debug:

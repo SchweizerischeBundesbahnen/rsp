@@ -37,16 +37,16 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('max_window_size_from_earliest', List[int])
                                                  ])
 
-# experiment_group (future use): if we want use a range of values on the same infrastructure and want to identify them
+# the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
-                                   ('experiment_group', int),
-                                   ('trials_in_experiment', int),
+                                   ('grid_id', int),
                                    ('number_of_agents', int),
                                    ('speed_data', SpeedData),
                                    ('width', int),
                                    ('height', int),
-                                   ('seed_value', int),
+                                   ('flatland_seed_value', int),
+                                   ('asp_seed_value', int),
                                    ('max_num_cities', int),
                                    ('grid_mode', bool),
                                    ('max_rail_between_cities', int),
@@ -83,7 +83,7 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_after_malfunction', SchedulingExperimentResult),
     ('experiment_id', int),
-    ('experiment_group', int),
+    ('grid_id', int),
     ('size', int),
     ('n_agents', int),
     ('max_num_cities', int),
@@ -309,7 +309,7 @@ def expand_experiment_results_for_analysis(
     return ExperimentResultsAnalysis(
         **experiment_results._asdict(),
         experiment_id=experiment_results.experiment_parameters.experiment_id,
-        experiment_group=experiment_results.experiment_parameters.experiment_group,
+        grid_id=experiment_results.experiment_parameters.grid_id,
         size=experiment_results.experiment_parameters.width,
         n_agents=experiment_results.experiment_parameters.number_of_agents,
         max_num_cities=experiment_results.experiment_parameters.max_num_cities,

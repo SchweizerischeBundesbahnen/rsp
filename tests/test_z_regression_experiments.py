@@ -15,7 +15,9 @@ from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import load_experiment_results_from_folder
 from rsp.utils.experiments import run_experiment
@@ -74,12 +76,12 @@ def test_created_env_tuple():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
     test_parameters = ExperimentParameters(experiment_id=0,
-                                           experiment_group=0,
-                                           trials_in_experiment=1,
+                                           grid_id=0,
                                            number_of_agents=7,
                                            width=30,
                                            height=30,
-                                           seed_value=12,
+                                           flatland_seed_value=12,
+                                           asp_seed_value=94,
                                            max_num_cities=5,
                                            grid_mode=True,
                                            max_rail_between_cities=2,
@@ -111,9 +113,10 @@ def test_created_env_tuple():
 def test_regression_experiment_agenda():
     """Run a simple agenda as regression test."""
     agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
-        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=1, number_of_agents=2, width=30,
-                             height=30,
-                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
+                             width=30, height=30,
+                             flatland_seed_value=12, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf
@@ -377,9 +380,10 @@ def test_save_and_load_experiment_results():
     Check that loading gives the same result.
     """
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
-        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
-                             height=30,
-                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
+                             width=30, height=30,
+                             flatland_seed_value=12, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)])
@@ -396,7 +400,7 @@ def test_save_and_load_experiment_results():
         single_experiment_result = run_experiment(solver=solver,
                                                   experiment_parameters=current_experiment_parameters,
                                                   verbose=False)
-        experiment_results = experiment_results.append(single_experiment_result, ignore_index=True)
+        experiment_results = experiment_results.append(single_experiment_result._asdict(), ignore_index=True)
 
     with pandas.option_context('display.max_rows', None, 'display.max_columns',
                                None):  # more options can be specified also
@@ -433,14 +437,20 @@ def _assert_results_dict_equals(experiment_results_dict, loaded_result_dict):
 
 def test_run_full_pipeline():
     """Ensure that the full pipeline runs without error on a simple agenda."""
-    agenda = ExperimentAgenda(experiment_name="test_run_full_pipeline", experiments=[
-        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
-                             height=30,
-                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
-                             weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)])
-
+    agenda = create_experiment_agenda(
+        experiment_name="test_run_full_pipeline",
+        experiments_per_grid_element=3,
+        parameter_ranges=ParameterRanges(agent_range=[2, 2, 1],
+                                         size_range=[30, 30, 1],
+                                         in_city_rail_range=[6, 6, 1],
+                                         out_city_rail_range=[2, 2, 1],
+                                         city_range=[20, 20, 1],
+                                         earliest_malfunction=[20, 20, 1],
+                                         malfunction_duration=[20, 20, 1],
+                                         number_of_shortest_paths_per_agent=[10, 10, 1],
+                                         max_window_size_from_earliest=[np.inf, np.inf, 1]),
+        speed_data={1: 1.0},
+    )
     experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     hypothesis_one_data_analysis(
@@ -466,8 +476,9 @@ def test_run_alpha_beta():
         return
 
     experiment_parameters = ExperimentParameters(
-        experiment_id=9, experiment_group=0, trials_in_experiment=1, number_of_agents=11,
-        speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30, seed_value=12,
+        experiment_id=9, grid_id=0, number_of_agents=11,
+        speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30,
+        flatland_seed_value=12, asp_seed_value=94,
         max_num_cities=20, grid_mode=False, max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
         malfunction_duration=20, number_of_shortest_paths_per_agent=10,
         weight_route_change=20, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf
@@ -491,7 +502,21 @@ def test_run_alpha_beta():
     malfunction_rail_env.load_resource('tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
 
     def malfunction_env_reset():
-        malfunction_rail_env.reset(False, False, False, experiment_parameters.seed_value)
+        malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
+
+    schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+        static_rail_env=static_rail_env,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters_scaled
+    )
+
+    experiment_result_scaled: ExperimentResults = solver._run_experiment_from_environment(
+        schedule_and_malfunction=schedule_and_malfunction_scaled,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters_scaled,
+    )
 
     schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
         static_rail_env=static_rail_env,
@@ -500,14 +525,7 @@ def test_run_alpha_beta():
         experiment_parameters=experiment_parameters
     )
 
-    experiment_result_scaled: ExperimentResults = solver.run_experiment_trial(
-        schedule_and_malfunction=schedule_and_malfunction,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
-        experiment_parameters=experiment_parameters_scaled,
-    )
-
-    experiment_result: ExperimentResults = solver.run_experiment_trial(
+    experiment_result: ExperimentResults = solver._run_experiment_from_environment(
         schedule_and_malfunction=schedule_and_malfunction,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
@@ -523,24 +541,66 @@ def test_run_alpha_beta():
             experiment_result_scaled.results_full_after_malfunction.trainruns_dict)
 
 
+def test_seed():
+    experiment_parameters = ExperimentParameters(
+        experiment_id=0, grid_id=0, number_of_agents=2,
+        width=30, height=30,
+        flatland_seed_value=12, asp_seed_value=77,
+        max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+        max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
+        number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
+        max_window_size_from_earliest=np.inf)
+
+    experiment_results: ExperimentResults = run_experiment(ASPExperimentSolver(),
+                                                           experiment_parameters=experiment_parameters)
+
+    # check that asp seed value is received in solver
+    assert experiment_results.results_full.solver_seed == experiment_parameters.asp_seed_value, \
+        f"actual={experiment_results.results_full.solver_seed}, " \
+        f"expected={experiment_parameters.asp_seed_value}"
+    assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+        f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " \
+        f"expected={experiment_parameters.asp_seed_value}"
+    assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+        f"actual={experiment_results.results_delta_after_malfunction.solver_seed}, " \
+        f"expected={experiment_parameters.asp_seed_value}"
+
+
 def test_parallel_experiment_execution():
     """Run a parallel experiment agenda."""
     agenda = ExperimentAgenda(experiment_name="test_parallel_experiment_execution", experiments=[
-        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
-                             height=30,
-                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
+                             width=30, height=30,
+                             flatland_seed_value=12, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf),
-        ExperimentParameters(experiment_id=1, experiment_group=0, trials_in_experiment=3, number_of_agents=3, width=30,
-                             height=30,
-                             seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+        ExperimentParameters(experiment_id=1, grid_id=0, number_of_agents=2,
+                             width=30, height=30,
+                             flatland_seed_value=13, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
+                             max_window_size_from_earliest=np.inf),
+        ExperimentParameters(experiment_id=2, grid_id=0, number_of_agents=2,
+                             width=30, height=30,
+                             flatland_seed_value=14, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
+                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
+                             max_window_size_from_earliest=np.inf),
+        ExperimentParameters(experiment_id=3, grid_id=0, number_of_agents=3,
+                             width=30, height=30,
+                             flatland_seed_value=11, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf),
-        ExperimentParameters(experiment_id=2, experiment_group=0, trials_in_experiment=3, number_of_agents=4, width=30,
-                             height=30,
-                             seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+        ExperimentParameters(experiment_id=4, grid_id=0, number_of_agents=4,
+                             width=30, height=30,
+                             flatland_seed_value=10, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf)])
@@ -551,9 +611,10 @@ def test_parallel_experiment_execution():
 
 def test_deterministic_1():
     _test_deterministic(
-        ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=3, number_of_agents=2, width=30,
+        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2, width=30,
                              height=30,
-                             seed_value=12, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             flatland_seed_value=12, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf))
@@ -561,9 +622,10 @@ def test_deterministic_1():
 
 def test_deterministic_2():
     _test_deterministic(
-        ExperimentParameters(experiment_id=1, experiment_group=0, trials_in_experiment=3, number_of_agents=3, width=30,
+        ExperimentParameters(experiment_id=1, grid_id=0, number_of_agents=3, width=30,
                              height=30,
-                             seed_value=11, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             flatland_seed_value=11, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf))
@@ -571,9 +633,10 @@ def test_deterministic_2():
 
 def test_deterministic_3():
     _test_deterministic(
-        ExperimentParameters(experiment_id=2, experiment_group=0, trials_in_experiment=3, number_of_agents=4, width=30,
+        ExperimentParameters(experiment_id=2, grid_id=0, number_of_agents=4, width=30,
                              height=30,
-                             seed_value=10, max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
+                             flatland_seed_value=10, asp_seed_value=94,
+                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
                              max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf))
@@ -585,9 +648,9 @@ def _test_deterministic(params: ExperimentParameters):
     solver = ASPExperimentSolver()
     experiment_results_dict_1 = pd.DataFrame(columns=COLUMNS)
     single_experiment_result1 = run_experiment(solver=solver, experiment_parameters=params, verbose=False)
-    experiment_results_dict_1.append(single_experiment_result1, ignore_index=True)
+    experiment_results_dict_1.append(single_experiment_result1._asdict(), ignore_index=True)
     experiment_results_dict_2 = pd.DataFrame(columns=COLUMNS)
     single_experiment_result2 = run_experiment(solver=solver, experiment_parameters=params, verbose=False)
-    experiment_results_dict_2.append(single_experiment_result2, ignore_index=True)
+    experiment_results_dict_2.append(single_experiment_result2._asdict(), ignore_index=True)
 
     _assert_results_dict_equals(experiment_results_dict_1.to_dict(), experiment_results_dict_2.to_dict())
