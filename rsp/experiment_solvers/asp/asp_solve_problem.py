@@ -1,63 +1,17 @@
 """Solve an `asp_problem_description` problem a."""
 import pprint
-from typing import Optional
 from typing import Tuple
 
 import numpy as np
-from flatland.action_plan.action_plan import ControllerFromTrainruns
-from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
-from rsp.experiment_solvers.experiment_solver_utils import replay
-from rsp.experiment_solvers.experiment_solver_utils import verify_trainruns_dict
 from rsp.route_dag.route_dag import get_paths_in_route_dag
-from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.general_utils import current_milli_time
 
 _pp = pprint.PrettyPrinter(indent=4)
-
-
-def replay_and_verify_asp_solution(env: RailEnv,
-                                   problem_description: ScheduleProblemDescription,
-                                   asp_solution: ASPSolutionDescription,
-                                   rendering: bool = False,
-                                   debug: bool = False,
-                                   loop_index: int = 0,
-                                   disable_verification_in_replay: bool = False,
-                                   expected_malfunction: Optional[ExperimentMalfunction] = None) -> int:
-    # --------------------------------------------------------------------------------------
-    # Replay and verifiy the solution
-    # --------------------------------------------------------------------------------------
-    trainruns_dict = asp_solution.get_trainruns_dict()
-    verify_trainruns_dict(env=env,
-                          trainruns_dict=trainruns_dict,
-                          expected_malfunction=expected_malfunction,
-                          expected_route_dag_constraints=problem_description.route_dag_constraints_dict
-                          )
-    controller_from_train_runs: ControllerFromTrainruns = create_action_plan(train_runs_dict=trainruns_dict, env=env)
-    if debug:
-        print("  **** solution to replay:")
-
-        print(_pp.pformat(trainruns_dict))
-        print("  **** action plan to replay:")
-        controller_from_train_runs.print_action_plan()
-        print("  **** expected_malfunction to replay:")
-        print(_pp.pformat(expected_malfunction))
-
-    total_reward = replay(env=env,
-                          loop_index=loop_index,
-                          expected_malfunction=expected_malfunction,
-                          solver_name="ASP",
-                          rendering=rendering,
-                          controller_from_train_runs=controller_from_train_runs,
-                          debug=debug,
-                          disable_verification_in_replay=disable_verification_in_replay)
-    return total_reward
 
 
 def solve_problem(
@@ -70,9 +24,6 @@ def solve_problem(
     Parameters
     ----------
     problem
-    disable_verification_in_replay
-        Whether it is tested the replay corresponds to the problem's solution
-        TODO SIM-105 Should there be option to disable replay completely? Profile experiments to test how much time replay takes in the experiments.
     env
         The env to run the verification with
     rendering_call_back

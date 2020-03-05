@@ -123,6 +123,9 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
+TrainSchedule = Dict[int, Waypoint]
+TrainScheduleDict = Dict[int, TrainSchedule]
+
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
                                              experiment_parameters: ExperimentParameters) -> Dict:

@@ -6,12 +6,9 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.experiment_solvers.asp.asp_solve_problem import replay
-from rsp.experiment_solvers.asp.asp_solve_problem import replay_and_verify_asp_solution
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.experiment_solvers.experiment_solver_utils import create_action_plan
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
@@ -21,6 +18,9 @@ from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
+from rsp.utils.flatland_replay_utils import replay
+from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 
 class ASPExperimentSolver():
@@ -65,16 +65,15 @@ class ASPExperimentSolver():
         # 1. Generate malfuntion
         # --------------------------------------------------------------------------------------
         malfunction_env_reset()
-        controller_from_train_runs: ControllerFromTrainruns = create_action_plan(
-            train_runs_dict=schedule_trainruns,
+        controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
+            trainrun_dict=schedule_trainruns,
             env=malfunction_rail_env)
         malfunction_env_reset()
         malfunction = replay(
             controller_from_train_runs=controller_from_train_runs,
             env=malfunction_rail_env,
             stop_on_malfunction=True,
-            solver_name="ASP",
-            disable_verification_in_replay=True)
+            solver_name="ASP")
         malfunction_env_reset()
         # replay may return None (if the given malfunction does not happen during the agents time in the grid
         if malfunction is None:
@@ -223,11 +222,10 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     schedule_result, schedule_solution = solve_problem(
         problem=schedule_problem,
         debug=debug)
-    replay_and_verify_asp_solution(env=static_rail_env,
-                                   problem_description=schedule_problem_description,
-                                   asp_solution=schedule_solution,
-                                   rendering=rendering,
-                                   debug=debug)
+    replay_and_verify_trainruns(rail_env=static_rail_env,
+                                trainruns=schedule_solution.get_trainruns_dict(),
+                                rendering=rendering,
+                                )
 
     return schedule_result
 
@@ -271,14 +269,12 @@ def asp_reschedule_wrapper(
         print("###reschedule")
         print(_pp.pformat(full_reschedule_result.trainruns_dict))
 
-    replay_and_verify_asp_solution(env=malfunction_rail_env_for_verification,
-                                   problem_description=reschedule_problem_description,
-                                   asp_solution=asp_solution,
-                                   rendering=rendering,
-                                   debug=debug,
-                                   expected_malfunction=malfunction_for_verification,
-                                   # SIM-155 decision: we do not replay against FLATland any more but check the solution on the Trainrun data structure
-                                   disable_verification_in_replay=True)
+    malfunction_env_reset()
+    replay_and_verify_trainruns(rail_env=malfunction_rail_env_for_verification,
+                                trainruns=asp_solution.get_trainruns_dict(),
+                                rendering=rendering,
+                                expected_malfunction=malfunction_for_verification
+                                )
     malfunction_env_reset()
 
     return full_reschedule_result
