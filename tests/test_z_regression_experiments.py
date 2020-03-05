@@ -542,6 +542,8 @@ def test_run_alpha_beta():
 
 
 def test_seed():
+    """Check that asp seed is passed correctly from experiment parameters to
+    solver."""
     experiment_parameters = ExperimentParameters(
         experiment_id=0, grid_id=0, number_of_agents=2,
         width=30, height=30,
