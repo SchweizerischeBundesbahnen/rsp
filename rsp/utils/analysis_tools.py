@@ -324,8 +324,10 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
 
     Parameters
     ----------
-    rows : ExperimentResultsAnalysis
-    output_folder
+    experiment_data : ExperimentResultsAnalysis
+        Data we want to visualize
+    output_folder :
+    Location to store data
 
     Returns
     -------
