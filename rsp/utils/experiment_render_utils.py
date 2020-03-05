@@ -10,8 +10,6 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
-import numpy as np
-import matplotlib.pyplot as plt
 
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
@@ -25,6 +23,7 @@ from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
+
 
 def visualize_experiment(
         experiment_parameters: ExperimentParameters,
@@ -110,7 +109,8 @@ def visualize_experiment(
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
             vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[
+                agent_id],
             route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,
@@ -131,7 +131,8 @@ def visualize_experiment(
             train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             f=problem_rsp_full.route_dag_constraints_dict[agent_id],
             vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_full_after_malfunction[agent_id],
-            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[agent_id],
+            edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[
+                agent_id],
             route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
             title=_make_title(
                 agent_id, experiment_parameters, malfunction, n_agents, topo,

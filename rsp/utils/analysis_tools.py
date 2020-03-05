@@ -12,26 +12,22 @@ from typing import Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
-
-matplotlib.use('Qt4Agg')
-
 import numpy as np
 import pandas as pd
+from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from matplotlib import axes
 from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from pandas import DataFrame
 from pandas import Series
 
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.data_types import COLUMNS_ANALYSIS, ExperimentResultsAnalysis
+from rsp.utils.data_types import COLUMNS_ANALYSIS
 from rsp.utils.data_types import convert_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentResults
-
-from flatland.core.grid.grid_utils import coordinate_to_position
+from rsp.utils.data_types import ExperimentResultsAnalysis
 
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
 
@@ -319,19 +315,17 @@ def expand_experiment_data_for_analysis(
 
 
 def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_folder: str):
-    """
-    Method to visualize the density of agents in the full schedule.
+    """Method to visualize the density of agents in the full schedule.
 
     Parameters
     ----------
     experiment_data : ExperimentResultsAnalysis
         Data we want to visualize
     output_folder :
-    Location to store data
+        Location to store data
 
     Returns
     -------
-
     """
     train_runs_input: TrainrunDict = experiment_data.solution_full
     problem_description: ScheduleProblemDescription = experiment_data.problem_full
@@ -355,8 +349,7 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
 
 def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder: str, three_dimensional: bool,
                       volumetric: bool = False):
-    """
-    Method to draw ressource-time diagrams in 2d or 3d
+    """Method to draw ressource-time diagrams in 2d or 3d.
 
     Parameters
     ----------
@@ -371,7 +364,6 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder:
 
     Returns
     -------
-
     """
     schedule = experiment_data.solution_full
     reschedule = experiment_data.solution_full_after_malfunction
@@ -381,29 +373,29 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder:
     height = experiment_data.experiment_parameters.height
 
     if not three_dimensional:
-        weg_zeit_matrize_schedule, sorting = weg_zeit_matrix_from_schedule(schedule=schedule, width=width,
-                                                                           height=height,
-                                                                           malfunction_agent_id=malfunction_agent,
-                                                                           max_episode_steps=max_episode_steps,
-                                                                           sorting=None)
-        weg_zeit_matrize_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
-                                                                       max_episode_steps=max_episode_steps,
-                                                                       malfunction_agent_id=malfunction_agent,
-                                                                       sorting=sorting)
+        weg_zeit_matrix_schedule, sorting = weg_zeit_matrix_from_schedule(schedule=schedule, width=width,
+                                                                          height=height,
+                                                                          malfunction_agent_id=malfunction_agent,
+                                                                          max_episode_steps=max_episode_steps,
+                                                                          sorting=None)
+        weg_zeit_matrix_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
+                                                                      max_episode_steps=max_episode_steps,
+                                                                      malfunction_agent_id=malfunction_agent,
+                                                                      sorting=sorting)
         fig, ax = plt.subplots(1, 3)
         fig.set_size_inches(w=45, h=15)
         ax[0].set_title('Time-Ressource-Diagram: Full Schedule')
         ax[0].set_xlabel('Ressource')
         ax[0].set_ylabel('Time')
-        ax[0].matshow(np.transpose(weg_zeit_matrize_schedule), cmap='gist_ncar')
+        ax[0].matshow(np.transpose(weg_zeit_matrix_schedule), cmap='gist_ncar')
         ax[1].set_title('Time-Ressource-Diagram: Re-Schedule')
         ax[1].set_xlabel('Ressource')
         ax[1].set_ylabel('Time')
-        ax[1].matshow(np.transpose(weg_zeit_matrize_reschedule), cmap='gist_ncar')
+        ax[1].matshow(np.transpose(weg_zeit_matrix_reschedule), cmap='gist_ncar')
         ax[2].set_title('Time-Ressource-Diagram: Changes')
         ax[2].set_xlabel('Ressource')
         ax[2].set_ylabel('Time')
-        ax[2].matshow(np.abs(np.transpose(weg_zeit_matrize_reschedule) - np.transpose(weg_zeit_matrize_schedule)),
+        ax[2].matshow(np.abs(np.transpose(weg_zeit_matrix_reschedule) - np.transpose(weg_zeit_matrix_schedule)),
                       cmap='gist_ncar')
         plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
     else:
@@ -428,10 +420,10 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder:
 
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
                                   malfunction_agent_id: int = -1, sorting: List[int] = None):
-    """
-    Method to produce sorted matrix of all train runs. Each train run is given an individual value for better
-    visualization. The matrix can besorted according to a predefined soring or accordin to first agent or
-    malfunction_agent
+    """Method to produce sorted matrix of all train runs. Each train run is
+    given an individual value for better visualization. The matrix can besorted
+    according to a predefined soring or accordin to first agent or
+    malfunction_agent.
 
     Parameters
     ----------
@@ -441,19 +433,18 @@ def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: in
         Width of Flatland env used to span matrix
     height: Int
         Height of Flatland env used to span matrix
-    max_episode_steps : Int
+    max_episode_steps : int
         Number of time steps in epsidoed used to span matrix
-    malfunction_agent_id : Int
+    malfunction_agent_id : int
         ID of malfunctin agent used for sorting
-    sorting: List[Int]
+    sorting: List[int]
         Predefined sorting used to maintain soring
 
     Returns
     -------
     Matrix of Int containing all the reserved ressoruces of all trains.
-
     """
-    weg_zeit_matrize = np.zeros(shape=(width * height, max_episode_steps))
+    weg_zeit_matrix = np.zeros(shape=(width * height, max_episode_steps))
     if sorting is None:
         sorting = []
         if malfunction_agent_id >= 0:
@@ -467,17 +458,16 @@ def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: in
             pre_time = pre_waypoint.scheduled_at
             time = waypoint.scheduled_at
             position = coordinate_to_position(width, [pre_waypoint.waypoint.position])  # or is it height?
-            weg_zeit_matrize[position, pre_time:time] += train_run
+            weg_zeit_matrix[position, pre_time:time] += train_run
             pre_waypoint = waypoint
             if position not in sorting:
                 sorting.append(position)
-    weg_zeit_matrize = weg_zeit_matrize[sorting][:, 0, :]
-    return weg_zeit_matrize, sorting
+    weg_zeit_matrix = weg_zeit_matrix[sorting][:, 0, :]
+    return weg_zeit_matrix, sorting
 
 
 def weg_zeit_3d_path(schedule: TrainrunDict):
-    """
-    Method to define the time-space paths of each train in three dimensions
+    """Method to define the time-space paths of each train in three dimensions.
 
     Parameters
     ----------
@@ -503,18 +493,18 @@ def weg_zeit_3d_path(schedule: TrainrunDict):
     return all_train_time_paths
 
 
-def weg_zeit_3d_voxels(schedule:TrainrunDict, width:int, height:int, max_episode_steps:int):
+def weg_zeit_3d_voxels(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int):
     """
 
     Parameters
     ----------
     schedule :TrainrunDict
         Contains all the trainruns of the provided schedule
-    width : Int
+    width : int
         Width of Flatland env used to span matrix
-    height: Int
+    height: int
         Height of Flatland env used to span matrix
-    max_episode_steps : Int
+    max_episode_steps : int
         Number of time steps in epsidoed used to span matrix
 
     Returns
