@@ -4,6 +4,7 @@ from typing import List
 from typing import Set
 
 import networkx as nx
+import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
@@ -27,7 +28,8 @@ def generic_schedule_problem_description_for_rescheduling(
         topo_dict: TopoDict,
         force_freeze: Dict[int, List[TrainrunWaypoint]],
         malfunction: ExperimentMalfunction,
-        latest_arrival: int
+        latest_arrival: int,
+        max_window_size_from_earliest: int = np.inf
 ) -> ScheduleProblemDescription:
     """Derives the experiment freeze given the malfunction and optionally a
     force freeze from an Oracle. The node after the malfunction time has to be
@@ -47,6 +49,9 @@ def generic_schedule_problem_description_for_rescheduling(
         malfunction
     latest_arrival
         end of the global time window
+    max_window_size_from_earliest
+        maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
+        back propagation of latest"
 
     Returns
     -------
@@ -60,7 +65,8 @@ def generic_schedule_problem_description_for_rescheduling(
                 force_freeze=force_freeze[agent_id],
                 malfunction=malfunction,
                 agent_id=agent_id,
-                latest_arrival=latest_arrival
+                latest_arrival=latest_arrival,
+                max_window_size_from_earliest=max_window_size_from_earliest
             )
             for agent_id in schedule_trainruns},
         topo_dict=topo_dict,
@@ -104,7 +110,8 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         topo: nx.DiGraph,
         force_freeze: List[TrainrunWaypoint],
         subdag_source: TrainrunWaypoint,
-        latest_arrival: int
+        latest_arrival: int,
+        max_window_size_from_earliest: int = np.inf
 ) -> RouteDAGConstraints:
     """Construct route DAG constraints for this agent. Consider only case where
     malfunction happens during schedule or if there is a (force freeze from the
@@ -185,9 +192,20 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
 
     # 5. propagate earliest and latest in the sub-DAG
     # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
-    propagate_earliest(banned_set, reachable_earliest_dict, force_freeze_dict, minimum_travel_time, subdag_source,
-                       topo)
-    propagate_latest(banned_set, force_freeze_dict, latest_arrival, reachable_latest_dict, minimum_travel_time, topo)
+    propagate_earliest(banned_set=banned_set,
+                       earliest_dict=reachable_earliest_dict,
+                       force_freeze_dict=force_freeze_dict,
+                       minimum_travel_time=minimum_travel_time,
+                       subdag_source=subdag_source,
+                       topo=topo)
+    propagate_latest(banned_set=banned_set,
+                     force_freeze_dict=force_freeze_dict,
+                     latest_arrival=latest_arrival,
+                     latest_dict=reachable_latest_dict,
+                     earliest_dict=reachable_earliest_dict,
+                     minimum_travel_time=minimum_travel_time,
+                     max_window_size_from_earliest=max_window_size_from_earliest,
+                     topo=topo)
 
     # 6. ban all waypoints that are reachable in the toplogy but not in time (i.e. where earliest > latest)
     for waypoint in all_waypoints:
@@ -273,7 +291,8 @@ def _generic_route_dag_contraints_for_rescheduling(
         force_freeze: List[TrainrunWaypoint],
         malfunction: ExperimentMalfunction,
         agent_id: int,
-        latest_arrival: int
+        latest_arrival: int,
+        max_window_size_from_earliest: int
 ) -> RouteDAGConstraints:
     """Derives the experiment freeze given the malfunction and optionally a
     force freeze from an Oracle. The node after the malfunction time has to be
@@ -293,6 +312,9 @@ def _generic_route_dag_contraints_for_rescheduling(
         malfunction
     latest_arrival
         end of the global time window
+    max_window_size_from_earliest
+        maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
+        back propagation of latest"
 
     Returns
     -------
@@ -310,29 +332,34 @@ def _generic_route_dag_contraints_for_rescheduling(
                 malfunction=malfunction,
                 minimum_travel_time=minimum_travel_time
             ),
-            latest_arrival=latest_arrival
+            latest_arrival=latest_arrival,
+            max_window_size_from_earliest=max_window_size_from_earliest
         )
 
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
+        freeze_earliest = propagate_earliest(
+            banned_set=set(),
+            earliest_dict={schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at},
+            minimum_travel_time=minimum_travel_time,
+            force_freeze_dict={},
+            subdag_source=schedule_trainrun[0],
+            topo=topo,
+        )
+        freeze_latest = propagate_latest(
+            banned_set=set(),
+            earliest_dict=freeze_earliest,
+            latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)},
+            latest_arrival=latest_arrival,
+            max_window_size_from_earliest=max_window_size_from_earliest,
+            minimum_travel_time=minimum_travel_time,
+            force_freeze_dict={},
+            topo=topo,
+        )
         route_dag_constraints = RouteDAGConstraints(
             freeze_visit=[],
-            freeze_earliest=propagate_earliest(
-                banned_set=[],
-                earliest_dict={schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at},
-                minimum_travel_time=minimum_travel_time,
-                force_freeze_dict={},
-                subdag_source=schedule_trainrun[0],
-                topo=topo,
-            ),
-            freeze_latest=propagate_latest(
-                banned_set=[],
-                latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)},
-                latest_arrival=latest_arrival,
-                minimum_travel_time=minimum_travel_time,
-                force_freeze_dict={},
-                topo=topo,
-            ),
+            freeze_earliest=freeze_earliest,
+            freeze_latest=freeze_latest,
             freeze_banned=[],
         )
         freeze: RouteDAGConstraints = route_dag_constraints

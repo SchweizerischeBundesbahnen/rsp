@@ -20,7 +20,7 @@ from rsp.utils.data_types import SpeedData
 def create_flatland_environment(number_of_agents: int,
                                 width: int,
                                 height: int,
-                                seed_value: int,
+                                flatland_seed_value: int,
                                 max_num_cities: int,
                                 grid_mode: bool,
                                 max_rails_between_cities: int,
@@ -34,7 +34,7 @@ def create_flatland_environment(number_of_agents: int,
     number_of_agents
     width
     height
-    seed_value
+    flatland_seed_value
     max_num_cities
     grid_mode
     max_rails_between_cities
@@ -48,7 +48,7 @@ def create_flatland_environment(number_of_agents: int,
                                            grid_mode=grid_mode,
                                            max_rails_between_cities=max_rails_between_cities,
                                            max_rails_in_city=max_rails_in_city,
-                                           seed=seed_value  # Random seed
+                                           seed=flatland_seed_value
                                            )
     schedule_generator = sparse_schedule_generator(speed_data)
 
@@ -59,7 +59,7 @@ def create_flatland_environment(number_of_agents: int,
                           schedule_generator=schedule_generator,
                           remove_agents_at_target=True
                           )
-    environment.reset(random_seed=seed_value)
+    environment.reset(random_seed=flatland_seed_value)
 
     return environment
 
@@ -67,7 +67,7 @@ def create_flatland_environment(number_of_agents: int,
 def create_flatland_environment_with_malfunction(number_of_agents: int,
                                                  width: int,
                                                  height: int,
-                                                 seed_value: int,
+                                                 flatland_seed_value: int,
                                                  max_num_cities: int,
                                                  grid_mode: bool,
                                                  max_rails_between_cities: int,
@@ -83,7 +83,7 @@ def create_flatland_environment_with_malfunction(number_of_agents: int,
     number_of_agents
     width
     height
-    seed_value
+    flatland_seed_value
     max_num_cities
     grid_mode
     max_rails_between_cities
@@ -99,7 +99,7 @@ def create_flatland_environment_with_malfunction(number_of_agents: int,
                                            grid_mode=grid_mode,
                                            max_rails_between_cities=max_rails_between_cities,
                                            max_rails_in_city=max_rails_in_city,
-                                           seed=seed_value  # Random seed
+                                           seed=flatland_seed_value  # Random seed
                                            )
     schedule_generator = sparse_schedule_generator(speed_data)
 
@@ -113,6 +113,6 @@ def create_flatland_environment_with_malfunction(number_of_agents: int,
                               earlierst_malfunction=earliest_malfunction,
                               malfunction_duration=malfunction_duration)
                           )
-    environment.reset(random_seed=seed_value)
+    environment.reset(random_seed=flatland_seed_value)
 
     return environment

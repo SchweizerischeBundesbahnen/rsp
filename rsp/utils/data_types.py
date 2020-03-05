@@ -10,6 +10,7 @@ from typing import NamedTuple
 from typing import Set
 from typing import Tuple
 
+import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
@@ -33,19 +34,20 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('city_range', List[int]),
                                                  ('earliest_malfunction', List[int]),
                                                  ('malfunction_duration', List[int]),
-                                                 ('number_of_shortest_paths_per_agent', List[int])
+                                                 ('number_of_shortest_paths_per_agent', List[int]),
+                                                 ('max_window_size_from_earliest', List[int])
                                                  ])
 
-# experiment_group (future use): if we want use a range of values on the same infrastructure and want to identify them
+# the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
-                                   ('experiment_group', int),
-                                   ('trials_in_experiment', int),
+                                   ('grid_id', int),
                                    ('number_of_agents', int),
                                    ('speed_data', SpeedData),
                                    ('width', int),
                                    ('height', int),
-                                   ('seed_value', int),
+                                   ('flatland_seed_value', int),
+                                   ('asp_seed_value', int),
                                    ('max_num_cities', int),
                                    ('grid_mode', bool),
                                    ('max_rail_between_cities', int),
@@ -55,6 +57,7 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
                                    ('number_of_shortest_paths_per_agent', int),
                                    ('weight_route_change', int),
                                    ('weight_lateness_seconds', int),
+                                   ('max_window_size_from_earliest', int),
                                    ])
 
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
@@ -81,7 +84,7 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_after_malfunction', SchedulingExperimentResult),
     ('experiment_id', int),
-    ('experiment_group', int),
+    ('grid_id', int),
     ('size', int),
     ('n_agents', int),
     ('max_num_cities', int),
@@ -120,6 +123,9 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
 
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
+
+TrainSchedule = Dict[int, Waypoint]
+TrainScheduleDict = Dict[int, TrainSchedule]
 
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
@@ -189,11 +195,24 @@ def convert_pandas_series_experiment_results_analysis(row: Series) -> Experiment
     return ExperimentResultsAnalysis(**row)
 
 
+def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
+    return pd.DataFrame(columns=COLUMNS_ANALYSIS, data=[r._asdict() for r in l])
+
+
+def convert_list_of_experiment_results_to_data_frame(l: List[ExperimentResults]) -> DataFrame:
+    return pd.DataFrame(columns=COLUMNS, data=[r._asdict() for r in l])
+
+
+def expand_experiment_results_list_for_analysis(l: List[ExperimentResults]) -> List[ExperimentResultsAnalysis]:
+    return list(map(expand_experiment_results_for_analysis, l))
+
+
 def expand_experiment_results_for_analysis(
-        experiment_id: int,
         experiment_results: ExperimentResults,
         debug: bool = False
 ) -> ExperimentResultsAnalysis:
+    experiment_id = experiment_results.experiment_parameters.experiment_id
+
     # derive speed up
     time_full = experiment_results.results_full.solve_time
     time_full_after_malfunction = experiment_results.results_full_after_malfunction.solve_time
@@ -238,7 +257,8 @@ def expand_experiment_results_for_analysis(
             experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
         train_run_full_after_malfunction_dummy_target_earliest_agent = \
             train_run_full_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
-        train_run_full_after_malfunction_scheduled_at_dummy_target = train_run_full_after_malfunction_agent[-1].scheduled_at + 1
+        train_run_full_after_malfunction_scheduled_at_dummy_target = \
+            train_run_full_after_malfunction_agent[-1].scheduled_at + 1
         lateness_full_after_malfunction[agent_id] = \
             max(
                 train_run_full_after_malfunction_scheduled_at_dummy_target -
@@ -307,7 +327,7 @@ def expand_experiment_results_for_analysis(
     return ExperimentResultsAnalysis(
         **experiment_results._asdict(),
         experiment_id=experiment_results.experiment_parameters.experiment_id,
-        experiment_group=experiment_results.experiment_parameters.experiment_group,
+        grid_id=experiment_results.experiment_parameters.grid_id,
         size=experiment_results.experiment_parameters.width,
         n_agents=experiment_results.experiment_parameters.number_of_agents,
         max_num_cities=experiment_results.experiment_parameters.max_num_cities,

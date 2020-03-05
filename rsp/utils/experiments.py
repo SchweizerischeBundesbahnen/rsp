@@ -40,21 +40,18 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
 from flatland.envs.rail_env import RailEnv
-from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_paths
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_times
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.data_types import COLUMNS
-from rsp.utils.data_types import convert_experiment_results_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
@@ -72,7 +69,7 @@ def run_experiment(solver: ASPExperimentSolver,
                    rendering: bool = False,
                    verbose: bool = False,
                    debug: bool = False,
-                   ) -> List[dict]:
+                   ) -> ExperimentResults:
     """
 
     Run a single experiment with a given solver and ExperimentParameters
@@ -88,90 +85,69 @@ def run_experiment(solver: ASPExperimentSolver,
     Returns a DataFrame with the experiment results
     """
 
-    # DataFrame to store all results of experiments
-    data_frame = []
     # Run the sequence of experiment
-    for trial in range(experiment_parameters.trials_in_experiment):
-        print("Running trial {} for experiment {}".format(trial + 1, experiment_parameters.experiment_id))
-        start_trial = time.time()
-        if show_results_without_details:
-            print("*** experiment parameters of trial {} for experiment {}".format(trial + 1,
-                                                                                   experiment_parameters.experiment_id))
-            _pp.pprint(experiment_parameters)
+    print("Running experiment {}".format(experiment_parameters.experiment_id))
+    start_trial = time.time()
+    if show_results_without_details:
+        print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
+        _pp.pprint(experiment_parameters)
 
-        # Create experiment environments
-        static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters, trial)
+    # Create experiment environments
+    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
 
-        env = malfunction_rail_env
-        if rendering:
-            from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-            env_renderer = RenderTool(env, gl="PILSVG",
-                                      agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
-                                      show_debug=False,
-                                      screen_height=600,  # Adjust these parameters to fit your resolution
-                                      screen_width=800)
-            env_renderer.reset()
-            env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
+    env = malfunction_rail_env
+    if rendering:
+        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+        env_renderer = RenderTool(env, gl="PILSVG",
+                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
+                                  show_debug=False,
+                                  screen_height=600,  # Adjust these parameters to fit your resolution
+                                  screen_width=800)
+        env_renderer.reset()
+        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
 
-        # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
-        def malfunction_env_reset():
-            env.reset(False, False, False, experiment_parameters.seed_value)
+    # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
+    def malfunction_env_reset():
+        env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
-        # Run experiments
-        schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
-            static_rail_env=static_rail_env,
-            malfunction_rail_env=malfunction_rail_env,
-            malfunction_env_reset=malfunction_env_reset,
-            experiment_parameters=experiment_parameters,
-            verbose=verbose,
-            debug=debug
-        )
-        current_results: ExperimentResults = solver.run_experiment_trial(
-            schedule_and_malfunction=schedule_and_malfunction,
-            malfunction_rail_env=malfunction_rail_env,
-            malfunction_env_reset=malfunction_env_reset,
-            experiment_parameters=experiment_parameters,
-            verbose=verbose,
-            debug=debug
-        )
-        if current_results is None:
-            print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
-            return []
+    # Run experiments
+    schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+        static_rail_env=static_rail_env,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters,
+        verbose=verbose,
+        debug=debug
+    )
+    experiment_results: ExperimentResults = solver._run_experiment_from_environment(
+        schedule_and_malfunction=schedule_and_malfunction,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters,
+        verbose=verbose,
+        debug=debug
+    )
+    if experiment_results is None:
+        print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
+        return []
 
-        # Store results
-        data_frame.append(
-            convert_experiment_results_to_data_frame(
-                experiment_results=current_results,
-                experiment_parameters=experiment_parameters
-            )
-        )
+    if show_results_without_details:
+        print("*** experiment result of experiment {}".format(experiment_parameters.experiment_id))
 
-        if show_results_without_details:
-            print("*** experiment result of trial {} for experiment {}".format(trial + 1,
-                                                                               experiment_parameters.experiment_id))
+        experiment_results_analysis = expand_experiment_results_for_analysis(
+            experiment_results=experiment_results)
+        _analyze_times(experiment_results_analysis=experiment_results_analysis)
+        _analyze_paths(experiment_results_analysis=experiment_results_analysis,
+                       experiment_id=experiment_parameters.experiment_id)
+    if rendering:
+        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+        env_renderer.close_window()
+    trial_time = (time.time() - start_trial)
+    print("Running experiment {}: took {:5.3f}s"
+          .format(experiment_parameters.experiment_id, trial_time))
 
-            _pp.pprint({
-                key: data_frame[-1][key]
-                for key in COLUMNS
-                if not key.startswith('solution_') and not key.startswith('problem_')
-            })
-
-            experiment_results_analysis = expand_experiment_results_for_analysis(
-                experiment_id=experiment_parameters.experiment_id,
-                experiment_results=current_results)
-            _analyze_times(experiment_results_analysis=experiment_results_analysis)
-            _analyze_paths(experiment_results_analysis=experiment_results_analysis,
-                           experiment_id=experiment_parameters.experiment_id)
-        if rendering:
-            from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-            env_renderer.close_window()
-        trial_time = (time.time() - start_trial)
-        print("Running trial {} for experiment {}: took {:5.3f}s"
-              .format(trial + 1, experiment_parameters.experiment_id, trial_time))
-
-        plausibility_check_experiment_results(experiment_results=current_results,
-                                              experiment_id=experiment_parameters.experiment_id)
-    return data_frame
+    plausibility_check_experiment_results(experiment_results=experiment_results)
+    return experiment_results
 
 
 def _write_sha_txt(folder_name: str):
@@ -198,12 +174,12 @@ def run_and_save_one_experiment(current_experiment_parameters,
                                 rendering: bool = False, ):
     try:
         filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
-        experiment_result = run_experiment(solver=solver,
-                                           experiment_parameters=current_experiment_parameters,
-                                           rendering=rendering,
-                                           verbose=verbose,
-                                           show_results_without_details=show_results_without_details)
-        save_experiment_results_to_file(experiment_result, filename)
+        experiment_results: ExperimentResults = run_experiment(solver=solver,
+                                                               experiment_parameters=current_experiment_parameters,
+                                                               rendering=rendering,
+                                                               verbose=verbose,
+                                                               show_results_without_details=show_results_without_details)
+        save_experiment_results_to_file(experiment_results, filename)
     except Exception as e:
         print("XXX failed " + filename + " " + str(e))
         traceback.print_exc(file=sys.stdout)
@@ -283,9 +259,7 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 def create_experiment_agenda(experiment_name: str,
                              parameter_ranges: ParameterRanges,
                              speed_data: SpeedData,
-                             trials_per_experiment: int = 10,
-                             vary_malfunction: int = 1,
-                             vary_malfunction_step: int = 20,
+                             experiments_per_grid_element: int = 10
                              ) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
@@ -297,28 +271,18 @@ def create_experiment_agenda(experiment_name: str,
         Name of the experiment
     parameter_ranges: ParameterRanges
         Ranges of all the parameters we want to vary in our experiments
-
-    trials_per_experiment: int
+    experiments_per_grid_element: int
         Number of trials per parameter set we want to run
-
     speed_data
         Dictionary containing all the desired speeds in the environment
 
-    vary_malfunction
-        Deprecated. Use malfunction range instead.
-        Run the same experiment `vary_malfunction` times with ids <experiment_id>_<0...var_malfunction-1>
-
-    vary_malfunction_step
-        Deprecated. Use malfunction range instead.
-        If the same experiment is run multiple times (`vary_malfunction > 1`), the earliest malfunction is set to
-        `parameter_set[5] + i * vary_malfunction_step` at the `i`th iteration.
 
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges
     """
     number_of_dimensions = len(parameter_ranges)
-    parameter_values = [[] for i in range(number_of_dimensions)]
+    parameter_values = [[] for _ in range(number_of_dimensions)]
 
     # Setup experiment parameters
     for dim_idx, dimensions in enumerate(parameter_ranges):
@@ -329,21 +293,19 @@ def create_experiment_agenda(experiment_name: str,
             parameter_values[dim_idx] = [dimensions[0]]
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
-    for param_id, parameter_set in enumerate(full_param_set):
-        for i in range(vary_malfunction):
-            earliest_malfunction = parameter_set[5] + i * vary_malfunction_step
-            experiment_id = param_id
-            if vary_malfunction > 1:
-                experiment_id = f"{param_id}_{earliest_malfunction}"
+    for grid_id, parameter_set in enumerate(full_param_set):
+        for trial in range(experiments_per_grid_element):
+            earliest_malfunction = parameter_set[5]
+            experiment_id = grid_id * experiments_per_grid_element + trial
             current_experiment = ExperimentParameters(
                 experiment_id=experiment_id,
-                experiment_group=0,
-                trials_in_experiment=trials_per_experiment,
+                grid_id=grid_id,
                 number_of_agents=parameter_set[1],
                 speed_data=speed_data,
                 width=parameter_set[0],
                 height=parameter_set[0],
-                seed_value=12,
+                flatland_seed_value=12 + trial,
+                asp_seed_value=94,
                 max_num_cities=parameter_set[4],
                 grid_mode=False,
                 max_rail_between_cities=parameter_set[3],
@@ -354,7 +316,7 @@ def create_experiment_agenda(experiment_name: str,
                 # route change is penalized the same as 60 seconds delay
                 weight_route_change=60,
                 weight_lateness_seconds=1,
-
+                max_window_size_from_earliest=parameter_set[8],
             )
 
             experiment_list.append(current_experiment)
@@ -405,7 +367,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     number_of_agents = params.number_of_agents
     width = params.width
     height = params.height
-    seed_value = params.seed_value
+    flatland_seed_value = params.flatland_seed_value
     max_num_cities = params.max_num_cities
     grid_mode = params.grid_mode
     max_rails_between_cities = params.max_rail_between_cities
@@ -418,19 +380,19 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     env_static = create_flatland_environment(number_of_agents=number_of_agents,
                                              width=width,
                                              height=height,
-                                             seed_value=seed_value + trial,
+                                             flatland_seed_value=flatland_seed_value + trial,
                                              max_num_cities=max_num_cities,
                                              grid_mode=grid_mode,
                                              max_rails_between_cities=max_rails_between_cities,
                                              max_rails_in_city=max_rails_in_city,
                                              speed_data=speed_data)
-    env_static.reset(random_seed=seed_value)
+    env_static.reset(random_seed=flatland_seed_value)
 
     # Generate dynamic environment with single malfunction
     env_malfunction = create_flatland_environment_with_malfunction(number_of_agents=number_of_agents,
                                                                    width=width,
                                                                    height=height,
-                                                                   seed_value=seed_value + trial,
+                                                                   flatland_seed_value=flatland_seed_value + trial,
                                                                    max_num_cities=max_num_cities,
                                                                    grid_mode=grid_mode,
                                                                    max_rails_between_cities=max_rails_between_cities,
@@ -438,7 +400,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
                                                                    malfunction_duration=malfunction_duration,
                                                                    earliest_malfunction=earliest_malfunction,
                                                                    speed_data=speed_data)
-    env_malfunction.reset(random_seed=seed_value)
+    env_malfunction.reset(random_seed=flatland_seed_value)
     return env_static, env_malfunction
 
 
@@ -508,27 +470,7 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_experiment_results_from_file(file_name: str) -> List:
-    """Load results as List to do further analysis.
-
-    Parameters
-    ----------
-    file_name: str
-        File name containing path to file that we want to load
-
-    Returns
-    -------
-    List containing the loaded experiment results
-    """
-    experiment_results = pd.DataFrame(columns=COLUMNS)
-
-    with open(file_name, 'rb') as handle:
-        file_data = pickle.load(handle)
-    experiment_results = experiment_results.append(file_data, ignore_index=True)
-    return experiment_results
-
-
-def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFrame:
+def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
 
     Parameters
@@ -541,7 +483,7 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     DataFrame containing the loaded experiment results
     """
 
-    experiment_results = pd.DataFrame(columns=COLUMNS)
+    experiment_results_list = []
 
     files = os.listdir(experiment_folder_name)
     for file in [file for file in files if 'agenda' not in file]:
@@ -550,11 +492,9 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
-        # TODO SIM-250 malfunction data files may be empty
-        if len(file_data) > 0:
-            experiment_results = experiment_results.append(file_data, ignore_index=True)
+            experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
 
-    return experiment_results
+    return experiment_results_list
 
 
 def delete_experiment_folder(experiment_folder_name: str):

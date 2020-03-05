@@ -280,11 +280,9 @@ def expand_experiment_data_for_analysis(
 
     for _, row in experiment_data.iterrows():
         experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
-        experiment_id = experiment_results.experiment_parameters.experiment_id
 
         expanded_experiment_results = expand_experiment_results_for_analysis(
             experiment_results=experiment_results,
-            experiment_id=experiment_id,
             debug=debug
         )
         data.append(convert_experiment_results_analysis_to_data_frame(

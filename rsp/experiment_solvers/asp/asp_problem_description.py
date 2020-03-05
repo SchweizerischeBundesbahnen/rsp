@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
@@ -22,9 +23,11 @@ class ASPProblemDescription():
     def __init__(self,
                  tc: ScheduleProblemDescription,
                  asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-                 asp_heuristics: List[ASPHeuristics] = None
+                 asp_heuristics: List[ASPHeuristics] = None,
+                 asp_seed_value: Optional[int] = None,
                  ):
         self.tc = tc
+        self.asp_seed_value = asp_seed_value
         self.asp_objective: ASPObjective = asp_objective
         if asp_heuristics is None:
             self.asp_heuristics: List[ASPHeuristics] = [ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ]
@@ -34,12 +37,15 @@ class ASPProblemDescription():
     @staticmethod
     def factory_rescheduling(
             tc: ScheduleProblemDescription,
+            asp_seed_value: Optional[int] = None
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
             asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
             # TODO SIM-167 switch on heuristics
-            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
+            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
+            asp_seed_value=asp_seed_value
+
         )
         asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
             tc=tc,
@@ -49,13 +55,15 @@ class ASPProblemDescription():
 
     @staticmethod
     def factory_scheduling(
-            tc: ScheduleProblemDescription
+            tc: ScheduleProblemDescription,
+            asp_seed_value: Optional[int] = None
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
             asp_objective=ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
             # TODO SIM-167 switch on heuristics
-            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY]
+            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
+            asp_seed_value=asp_seed_value
         )
         asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
             tc=tc,
@@ -209,6 +217,7 @@ class ASPProblemDescription():
                                    bound_all_events=self.tc.max_episode_steps,
                                    asp_objective=self.asp_objective,
                                    asp_heurisics=self.asp_heuristics,
+                                   asp_seed_value=self.asp_seed_value,
                                    verbose=verbose)
         return ASPSolutionDescription(asp_solution=asp_solution, tc=self.tc)
 
