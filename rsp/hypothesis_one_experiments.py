@@ -50,11 +50,12 @@ if __name__ == '__main__':
     parameter_ranges, speed_data = get_first_agenda_pipeline_params()
 
     # A. Experiment Planning: Create an experiment agenda out of the parameter ranges
-    experiment_agenda = create_experiment_agenda(experiment_name="exp_hypothesis_one",
-                                                 speed_data=speed_data,
-                                                 parameter_ranges=parameter_ranges,
-                                                 trials_per_experiment=1
-                                                 )
+    experiment_agenda = create_experiment_agenda(
+        experiment_name="exp_hypothesis_one",
+        speed_data=speed_data,
+        parameter_ranges=parameter_ranges,
+        experiments_per_grid_element=1
+    )
 
     # B. Experiments: setup, then run
     experiment_folder_name = run_experiment_agenda(

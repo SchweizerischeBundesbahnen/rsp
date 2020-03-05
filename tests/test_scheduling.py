@@ -11,9 +11,11 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 
 
 def test_scheduling():
-    test_parameters = ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=10,
+    test_parameters = ExperimentParameters(experiment_id=0, grid_id=0,
                                            number_of_agents=2, width=30,
-                                           height=30, seed_value=12, max_num_cities=20, grid_mode=True,
+                                           height=30, flatland_seed_value=12,
+                                           asp_seed_value=94, max_num_cities=20,
+                                           grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
                                            malfunction_duration=20, speed_data={1: 1.0},
                                            number_of_shortest_paths_per_agent=10,
@@ -74,7 +76,9 @@ def test_scheduling():
     assert dynamic_env.rail.grid.tolist() == expected_grid
 
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, 10)
-    schedule_result = asp_schedule_wrapper(schedule_problem_description=tc_schedule_problem, static_rail_env=static_env)
+    schedule_result = asp_schedule_wrapper(
+        schedule_problem_description=tc_schedule_problem, static_rail_env=static_env, asp_seed_value=94
+    )
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # sanity check for our expected data

@@ -55,6 +55,7 @@ FluxHelperResult = NamedTuple('FluxHelperResult', [
     # future use for incremental solving?
     ('ctl', clingo.Control),
     ('dl', theory.Theory),
+    ('asp_seed_value', Optional[int])
 ])
 
 
@@ -63,6 +64,7 @@ def flux_helper(
         bound_all_events: Optional[int] = None,
         asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
         asp_heurisics: List[ASPHeuristics] = None,
+        asp_seed_value: int = 94,
         verbose: bool = False,
         debug: bool = False
 ) -> FluxHelperResult:
@@ -109,6 +111,7 @@ def flux_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,
         plain_encoding=prg_text_joined,
+        asp_seed_value=asp_seed_value,
         verbose=verbose,
         debug=debug
     )
@@ -122,7 +125,7 @@ def _asp_helper(encoding_files: List[str],
                 verbose: bool = False,
                 debug: bool = False,
                 bound_all_events: Optional[int] = None,
-                deterministic_mode: bool = True) -> FluxHelperResult:
+                asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
 
     Parameters
@@ -137,8 +140,6 @@ def _asp_helper(encoding_files: List[str],
         should the times have a global upper bound?
     asp_objective
         does multi or one-shot optimization depending on the objective
-    deterministic_mode
-        in deterministic mode, a seed is injected and multi-threading is deactivated
     """
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
@@ -149,8 +150,8 @@ def _asp_helper(encoding_files: List[str],
     dl.configure_propagator("propagate", "partial")
     ctl_args = [f"-t1", "--lookahead=no"]
 
-    if deterministic_mode:
-        ctl_args = ["--seed=94", "-c use_decided=1", "-t1", "--lookahead=no"]
+    if asp_seed_value is not None:
+        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", "-t1", "--lookahead=no"]
     ctl = clingo.Control(ctl_args)
 
     # find optimal model; if not optimizing, find all models!
@@ -184,7 +185,7 @@ def _asp_helper(encoding_files: List[str],
         _print_configuration(ctl)
         _print_stats(statistics)
 
-    return FluxHelperResult(all_answers, statistics, ctl, dl)
+    return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
 def _asp_loop(ctl, dl, verbose, debug):
@@ -274,3 +275,9 @@ def _print_configuration(ctl):
                       getattr(ctl.configuration.solve, "__desc_" + k))
               )
     print("")
+
+
+def configuration_as_dict_from_control(ctl):
+    configuration_as_dict = {k: str(getattr(ctl.configuration.solve, k)) for _, k in
+                             enumerate(ctl.configuration.solve.keys)}
+    return configuration_as_dict

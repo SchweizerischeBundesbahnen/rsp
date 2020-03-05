@@ -3,15 +3,15 @@ from typing import List
 from pandas import DataFrame
 
 from rsp.utils.analysis_tools import average_over_trials
-from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
-from rsp.utils.experiments import load_experiment_results_from_folder
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
 
 
 def _load_and_average(data_folder):
-    experiment_data = load_experiment_results_from_folder(data_folder)
-    experiment_data = expand_experiment_data_for_analysis(
-        experiment_data=experiment_data)
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(data_folder)
+    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
     averaged_data, std_data = average_over_trials(experiment_data)
     return averaged_data
 

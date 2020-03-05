@@ -19,7 +19,7 @@ from rsp.route_dag.generators.route_dag_generator_schedule import schedule_probl
 def test_asp_helper():
     with path('tests.data.asp.instances', 'dummy.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-            models, _, _, _ = _asp_helper([instance_in, encoding_in])
+            models, _, _, _, _ = _asp_helper([instance_in, encoding_in])
 
     print(models)
     assert len(models) == 1
@@ -48,7 +48,7 @@ def test_asp_helper():
 def test_mutual_exclusion():
     with path('tests.data.asp.instances', 'dummy_two_agents.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-            models, statistics, _, _ = _asp_helper([instance_in, encoding_in])
+            models, statistics, _, _, _ = _asp_helper([instance_in, encoding_in])
 
     # we do not optimize, we get two models!
     assert len(models) == 2
@@ -82,7 +82,7 @@ def test_simple_rail_asp_one_agent():
     problem = ASPProblemDescription.factory_scheduling(tc=tc)
 
     print(problem.asp_program)
-    models, stats, _, _ = flux_helper(problem.asp_program)
+    models, stats, _, _, _ = flux_helper(problem.asp_program)
 
     solve_time = (time.time() - start_solver)
     print("solve_time={:5.3f}ms".format(solve_time))
@@ -111,7 +111,7 @@ def test_asp_helper_forcing():
     """Case study to freeze variables by adding facts."""
     with path('tests.data.asp.instances', 'dummy_forced.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
-            models, _, _, _ = _asp_helper([instance_in, encoding_in])
+            models, _, _, _, _ = _asp_helper([instance_in, encoding_in])
 
     print(models)
     assert len(models) == 1
@@ -147,7 +147,7 @@ def test_minimize_sum_of_running_times_scheduling():
         encodings.append(encoding_in)
     with path('res.asp.encodings', 'minimize_total_sum_of_running_times.lp') as encoding_in:
         encodings.append(encoding_in)
-    models, all_statistics, _, _ = _asp_helper(encodings)
+    models, all_statistics, _, _, _ = _asp_helper(encodings)
 
     print(models)
     assert len(models) == 1
@@ -179,7 +179,7 @@ def test_minimize_delay_rescheduling():
         encodings.append(encoding_in)
     with path('res.asp.encodings', 'minimize_delay.lp') as encoding_in:
         encodings.append(encoding_in)
-    models, all_statistics, _, _ = _asp_helper(encoding_files=encodings)
+    models, all_statistics, _, _, _ = _asp_helper(encoding_files=encodings)
     print(models)
     assert len(models) == 1
     assert all_statistics['summary']['costs'][0] == 6, "found {}".format(all_statistics['summary']['costs'][0])
