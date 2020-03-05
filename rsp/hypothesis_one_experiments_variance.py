@@ -13,7 +13,7 @@ def _run_experiment_ids_from_agenda():
     experiment_agenda = ExperimentAgenda(
         experiment_name="",
         experiments=[
-            ExperimentParameters(experiment_id=105 + i, grid_id=105, number_of_agents=17,
+            ExperimentParameters(experiment_id=i, grid_id=105, number_of_agents=17,
                                  speed_data={1.0: 0.25, 0.5: 0.25, 0.3333333333333333: 0.25, 0.25: 0.25},
                                  asp_seed_value=94 + i,
                                  width=36,
