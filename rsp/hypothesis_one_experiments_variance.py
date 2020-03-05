@@ -9,19 +9,18 @@ from rsp.utils.experiments import run_experiment_agenda
 
 
 def _run_experiment_ids_from_agenda():
-    nb_experiments = 100
+    nb_experiments = 2
     experiment_agenda = ExperimentAgenda(
         experiment_name="",
         experiments=[
-            ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=5,
-                                 width=30, height=30,
-                                 flatland_seed_value=11, asp_seed_value=33 + i,
-                                 max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                                 max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15,
-                                 speed_data={1: 1.0},
-                                 number_of_shortest_paths_per_agent=10, weight_route_change=1,
-                                 weight_lateness_seconds=1,
-                                 max_window_size_from_earliest=np.inf)
+            ExperimentParameters(experiment_id=105, grid_id=105, number_of_agents=17,
+                                 speed_data={1.0: 0.25, 0.5: 0.25, 0.3333333333333333: 0.25, 0.25: 0.25},
+                                 asp_seed_value=94+i,
+                                 width=36,
+                                 height=36, flatland_seed_value=12, max_num_cities=20, grid_mode=False,
+                                 max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
+                                 malfunction_duration=20, number_of_shortest_paths_per_agent=10, weight_route_change=60,
+                                 weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
             for i in range(nb_experiments)
         ]
     )
