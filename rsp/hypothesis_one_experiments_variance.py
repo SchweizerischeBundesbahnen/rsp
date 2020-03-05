@@ -13,9 +13,9 @@ def _run_experiment_ids_from_agenda():
     experiment_agenda = ExperimentAgenda(
         experiment_name="",
         experiments=[
-            ExperimentParameters(experiment_id=105, grid_id=105, number_of_agents=17,
+            ExperimentParameters(experiment_id=105 + i, grid_id=105, number_of_agents=17,
                                  speed_data={1.0: 0.25, 0.5: 0.25, 0.3333333333333333: 0.25, 0.25: 0.25},
-                                 asp_seed_value=94+i,
+                                 asp_seed_value=94 + i,
                                  width=36,
                                  height=36, flatland_seed_value=12, max_num_cities=20, grid_mode=False,
                                  max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
