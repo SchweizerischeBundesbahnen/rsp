@@ -2,8 +2,8 @@
 
 Methods
 -------
-average_over_trials
-    Average over all the experiment trials
+average_over_grid_id
+    Average over all the experiments of the same grid_id
 """
 import os
 from typing import List
@@ -52,9 +52,9 @@ def swap_columns(df: DataFrame, c1: int, c2: int):
     df.drop(columns=['temp'], inplace=True)
 
 
-def average_over_trials(experimental_data: DataFrame) -> Tuple[DataFrame, DataFrame]:
+def average_over_grid_id(experimental_data: DataFrame) -> Tuple[DataFrame, DataFrame]:
     """
-    Average over all the experiment trials
+    Average over all the experiment runs with the same grid_id (different seeds for FLATland).
     Parameters
     ----------
     experimental_data
@@ -64,8 +64,8 @@ def average_over_trials(experimental_data: DataFrame) -> Tuple[DataFrame, DataFr
     DataFrame of mean data and DataFram of standard deviations
     """
 
-    averaged_data = experimental_data.groupby(['experiment_id']).mean().reset_index()
-    standard_deviation_data = experimental_data.groupby(['experiment_id']).std().reset_index()
+    averaged_data = experimental_data.groupby(['grid_id']).mean().reset_index()
+    standard_deviation_data = experimental_data.groupby(['grid_id']).std().reset_index()
     return averaged_data, standard_deviation_data
 
 
@@ -276,11 +276,9 @@ def expand_experiment_data_for_analysis(
 
     for _, row in experiment_data.iterrows():
         experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
-        experiment_id = experiment_results.experiment_parameters.experiment_id
 
         expanded_experiment_results = expand_experiment_results_for_analysis(
             experiment_results=experiment_results,
-            experiment_id=experiment_id,
             debug=debug
         )
         data.append(convert_experiment_results_analysis_to_data_frame(

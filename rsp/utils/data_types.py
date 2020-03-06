@@ -10,6 +10,7 @@ from typing import NamedTuple
 from typing import Set
 from typing import Tuple
 
+import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
@@ -194,11 +195,24 @@ def convert_pandas_series_experiment_results_analysis(row: Series) -> Experiment
     return ExperimentResultsAnalysis(**row)
 
 
+def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
+    return pd.DataFrame(columns=COLUMNS_ANALYSIS, data=[r._asdict() for r in l])
+
+
+def convert_list_of_experiment_results_to_data_frame(l: List[ExperimentResults]) -> DataFrame:
+    return pd.DataFrame(columns=COLUMNS, data=[r._asdict() for r in l])
+
+
+def expand_experiment_results_list_for_analysis(l: List[ExperimentResults]) -> List[ExperimentResultsAnalysis]:
+    return list(map(expand_experiment_results_for_analysis, l))
+
+
 def expand_experiment_results_for_analysis(
-        experiment_id: int,
         experiment_results: ExperimentResults,
         debug: bool = False
 ) -> ExperimentResultsAnalysis:
+    experiment_id = experiment_results.experiment_parameters.experiment_id
+
     # derive speed up
     time_full = experiment_results.results_full.solve_time
     time_full_after_malfunction = experiment_results.results_full_after_malfunction.solve_time
@@ -243,7 +257,8 @@ def expand_experiment_results_for_analysis(
             experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
         train_run_full_after_malfunction_dummy_target_earliest_agent = \
             train_run_full_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
-        train_run_full_after_malfunction_scheduled_at_dummy_target = train_run_full_after_malfunction_agent[-1].scheduled_at + 1
+        train_run_full_after_malfunction_scheduled_at_dummy_target = \
+            train_run_full_after_malfunction_agent[-1].scheduled_at + 1
         lateness_full_after_malfunction[agent_id] = \
             max(
                 train_run_full_after_malfunction_scheduled_at_dummy_target -

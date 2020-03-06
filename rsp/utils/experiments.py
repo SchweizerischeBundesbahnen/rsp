@@ -40,20 +40,18 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
 from flatland.envs.rail_env import RailEnv
-from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_paths
 from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_times
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.data_types import COLUMNS
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
@@ -89,7 +87,7 @@ def run_experiment(solver: ASPExperimentSolver,
 
     # Run the sequence of experiment
     print("Running experiment {}".format(experiment_parameters.experiment_id))
-    start_trial = time.time()
+    start_time = time.time()
     if show_results_without_details:
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
         _pp.pprint(experiment_parameters)
@@ -137,7 +135,6 @@ def run_experiment(solver: ASPExperimentSolver,
         print("*** experiment result of experiment {}".format(experiment_parameters.experiment_id))
 
         experiment_results_analysis = expand_experiment_results_for_analysis(
-            experiment_id=experiment_parameters.experiment_id,
             experiment_results=experiment_results)
         _analyze_times(experiment_results_analysis=experiment_results_analysis)
         _analyze_paths(experiment_results_analysis=experiment_results_analysis,
@@ -145,12 +142,11 @@ def run_experiment(solver: ASPExperimentSolver,
     if rendering:
         from flatland.utils.rendertools import RenderTool, AgentRenderVariant
         env_renderer.close_window()
-    trial_time = (time.time() - start_trial)
+    elapsed_time = (time.time() - start_time)
     print("Running experiment {}: took {:5.3f}s"
-          .format(experiment_parameters.experiment_id, trial_time))
+          .format(experiment_parameters.experiment_id, elapsed_time))
 
-    plausibility_check_experiment_results(experiment_results=experiment_results,
-                                          experiment_id=experiment_parameters.experiment_id)
+    plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
 
 
@@ -276,7 +272,7 @@ def create_experiment_agenda(experiment_name: str,
     parameter_ranges: ParameterRanges
         Ranges of all the parameters we want to vary in our experiments
     experiments_per_grid_element: int
-        Number of trials per parameter set we want to run
+        Number of runs with different seed per parameter set we want to run
     speed_data
         Dictionary containing all the desired speeds in the environment
 
@@ -298,9 +294,9 @@ def create_experiment_agenda(experiment_name: str,
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
     for grid_id, parameter_set in enumerate(full_param_set):
-        for trial in range(experiments_per_grid_element):
+        for run_of_this_grid_element in range(experiments_per_grid_element):
             earliest_malfunction = parameter_set[5]
-            experiment_id = grid_id * experiments_per_grid_element + trial
+            experiment_id = grid_id * experiments_per_grid_element + run_of_this_grid_element
             current_experiment = ExperimentParameters(
                 experiment_id=experiment_id,
                 grid_id=grid_id,
@@ -308,7 +304,7 @@ def create_experiment_agenda(experiment_name: str,
                 speed_data=speed_data,
                 width=parameter_set[0],
                 height=parameter_set[0],
-                flatland_seed_value=12 + trial,
+                flatland_seed_value=12 + run_of_this_grid_element,
                 asp_seed_value=94,
                 max_num_cities=parameter_set[4],
                 grid_mode=False,
@@ -354,7 +350,7 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
     return full_params
 
 
-def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0) -> Tuple[RailEnv, RailEnv]:
+def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEnv, RailEnv]:
     """
     Parameters
     ----------
@@ -384,7 +380,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     env_static = create_flatland_environment(number_of_agents=number_of_agents,
                                              width=width,
                                              height=height,
-                                             flatland_seed_value=flatland_seed_value + trial,
+                                             flatland_seed_value=flatland_seed_value,
                                              max_num_cities=max_num_cities,
                                              grid_mode=grid_mode,
                                              max_rails_between_cities=max_rails_between_cities,
@@ -396,7 +392,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     env_malfunction = create_flatland_environment_with_malfunction(number_of_agents=number_of_agents,
                                                                    width=width,
                                                                    height=height,
-                                                                   flatland_seed_value=flatland_seed_value + trial,
+                                                                   flatland_seed_value=flatland_seed_value,
                                                                    max_num_cities=max_num_cities,
                                                                    grid_mode=grid_mode,
                                                                    max_rails_between_cities=max_rails_between_cities,
@@ -474,27 +470,7 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_experiment_results_from_file(file_name: str) -> List:
-    """Load results as List to do further analysis.
-
-    Parameters
-    ----------
-    file_name: str
-        File name containing path to file that we want to load
-
-    Returns
-    -------
-    List containing the loaded experiment results
-    """
-    experiment_results = pd.DataFrame(columns=COLUMNS)
-
-    with open(file_name, 'rb') as handle:
-        file_data = pickle.load(handle)
-    experiment_results = experiment_results.append(file_data, ignore_index=True)
-    return experiment_results
-
-
-def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFrame:
+def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
 
     Parameters
@@ -507,7 +483,7 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
     DataFrame containing the loaded experiment results
     """
 
-    experiment_results = pd.DataFrame(columns=COLUMNS)
+    experiment_results_list = []
 
     files = os.listdir(experiment_folder_name)
     for file in [file for file in files if 'agenda' not in file]:
@@ -516,11 +492,9 @@ def load_experiment_results_from_folder(experiment_folder_name: str) -> DataFram
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
-        # TODO SIM-250 malfunction data files may be empty
-        if len(file_data) > 0:
-            experiment_results = experiment_results.append([file_data._asdict()], ignore_index=True)
+            experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
 
-    return experiment_results
+    return experiment_results_list
 
 
 def delete_experiment_folder(experiment_folder_name: str):

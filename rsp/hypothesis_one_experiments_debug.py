@@ -1,5 +1,5 @@
-"""Run experiments not in parallel, only one trial and only a subset of them in
-order to allow for debugging."""
+"""Run experiments not in parallel, only one run per grid id and only a subset
+of them in order to allow for debugging."""
 from typing import List
 
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
