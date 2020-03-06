@@ -9,7 +9,7 @@ from rsp.utils.experiments import run_experiment_agenda
 
 
 def _run_experiment_ids_from_agenda():
-    nb_experiments = 2
+    nb_experiments = 100
     experiment_agenda = ExperimentAgenda(
         experiment_name="",
         experiments=[
