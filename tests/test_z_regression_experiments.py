@@ -1,4 +1,5 @@
 """Run tests for different experiment methods."""
+import time
 from typing import List
 
 import numpy as np
@@ -498,33 +499,45 @@ def test_run_alpha_beta():
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
+    print("schedule_and malfunction_scaled...")
+    start_time = time.time()
     schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
         static_rail_env=static_rail_env,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters_scaled
     )
+    print(" -> {:5.3f}s".format(time.time() - start_time))
 
+    print("experiment scaled...")
+    start_time = time.time()
     experiment_result_scaled: ExperimentResults = solver._run_experiment_from_environment(
         schedule_and_malfunction=schedule_and_malfunction_scaled,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters_scaled,
     )
+    print(" -> {:5.3f}s".format(time.time() - start_time))
 
+    print("schedule_and malfunction...")
+    start_time = time.time()
     schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
         static_rail_env=static_rail_env,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters
     )
+    print(" -> {:5.3f}s".format(time.time() - start_time))
 
+    print("experiment...")
+    start_time = time.time()
     experiment_result: ExperimentResults = solver._run_experiment_from_environment(
         schedule_and_malfunction=schedule_and_malfunction,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters,
     )
+    print(" -> {:5.3f}s".format(time.time() - start_time))
 
     costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
     assert costs_full_after_malfunction > 0

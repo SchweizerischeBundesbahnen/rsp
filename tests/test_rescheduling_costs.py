@@ -81,6 +81,10 @@ def test_costs_forced_delay_one_agent():
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
+        for pred in ["e", "visit", "potlate", "late"]:
+            print(pred)
+            print(asp_solution.extract_generic(pred))
+
         print("####train runs dict")
         print(_pp.pformat(solution.trainruns_dict))
 

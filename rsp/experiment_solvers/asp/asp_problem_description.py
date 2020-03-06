@@ -41,7 +41,7 @@ class ASPProblemDescription():
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
-            asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
+            asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED_MONOTONE,
             # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
             asp_seed_value=asp_seed_value
@@ -288,7 +288,8 @@ class ASPProblemDescription():
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
 
         # inject weight lateness
-        if self.asp_objective == ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED:
+        if self.asp_objective in [ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
+                                  ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED_MONOTONE]:
             _new_asp_program.append(f"#const weight_lateness_seconds = {tc.weight_lateness_seconds}.")
 
         # cleanup

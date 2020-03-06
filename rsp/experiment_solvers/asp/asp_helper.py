@@ -30,6 +30,9 @@ class ASPObjective(Enum):
     # minimize linear combination of route section penalties and delay
     MINIMIZE_DELAY_ROUTES_COMBINED = "minimize_delay_and_routes_combined"
 
+    # minimize linear combination of route section penalties and delay exploting monotonicity of delay for speed up
+    MINIMIZE_DELAY_ROUTES_COMBINED_MONOTONE = "minimize_delay_and_routes_combined_monotone"
+
 
 class ASPHeuristics(Enum):
     """enum value (key arbitrary) must be the same as encoding to be
@@ -103,10 +106,13 @@ def flux_helper(
     if asp_objective:
         with path('res.asp.encodings', f'{asp_objective.value}.lp') as objetive_path:
             paths.append(objetive_path)
+        # the delay model for re-scheduling is always our delay_within_one_minute, monotone or not
         if asp_objective in [ASPObjective.MINIMIZE_DELAY, ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED]:
             with path('res.asp.encodings', f'delay_linear_within_one_minute.lp') as delay_model_path:
                 paths.append(delay_model_path)
-
+        elif asp_objective in [ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED_MONOTONE]:
+            with path('res.asp.encodings', f'delay_linear_within_one_minute_monotone.lp') as delay_model_path:
+                paths.append(delay_model_path)
     flux_result = _asp_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,
@@ -184,7 +190,7 @@ def _asp_helper(encoding_files: List[str],
         print(all_answers)
         _print_configuration(ctl)
         _print_stats(statistics)
-
+    _print_stats(statistics)
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 

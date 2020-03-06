@@ -8,18 +8,18 @@
 % minimize delay first
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-{ late(T,V,D,W) : visit(T,V) } :- potlate(T,V,D,W).
+% late(T,D,W): train T has delay D penalized with weight W. Since delay can only increase in our setting (propagate earliest)
+{ late(T,D) } :- potlate(T,D).
 
 
-next(T,V,D,D') :- potlate(T,V,D,_), potlate(T,E,D',_), D<D',
-                  not potlate(T,E,D'',_) : potlate(T,E,D'',_), D''>D, D''<D'.
-:- not late(T,E,D,_), late(T,E,D',_), next(T,E,D,D').
 
-&diff{ 0-(T,V) } <= -D  :- late(T,V,D,W).
-&diff{ (T,V)-0 } <=  N  :- not late(T,V,D,W), potlate(T,V,D,W),
+% not late(T,D,W) only if (T,V) - e(T,V,E) <= D-1
+&diff{ (T,V)-0 } <=  N + E  :- not late(T,D), potlate(T,D),  e(T,V,E),
                            N=D-1, visit(T,V).
+late(T,D) :- potlate(T,D), late(T,D+1).
 
-#minimize{ W@0,T,V,D : late(T,V,D,W) }.
+#minimize{ weight_lateness_seconds@0,T,D : late(T,D), D<=upper_bound_linear_penalty }.
+#minimize{ penalty_after_linear@0,T,D : late(T,D), D=upper_bound_linear_penalty }.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

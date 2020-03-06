@@ -98,3 +98,6 @@ class ASPSolutionDescription():
 
     def extract_nb_resource_conflicts(self) -> int:
         return len(list(filter(lambda s: s.startswith('shared('), self.answer_set)))
+
+    def extract_generic(self, p) -> int:
+        return list(filter(lambda s: s.startswith(f'{p}('), self.answer_set))
