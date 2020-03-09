@@ -83,7 +83,9 @@ def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, fil
 
     # position of nodes
     if pos is None:
-        pos = nx.spring_layout(graph)
+        # Position nodes using Fruchterman-Reingold force-directed algorithm
+        # https://networkx.github.io/documentation/stable/reference/generated/networkx.drawing.layout.spring_layout.html
+        pos = nx.spring_layout(graph, seed=42)
 
     fig = plt.figure(figsize=(18, 12), dpi=80)
     fig.suptitle(title, fontsize=16)
