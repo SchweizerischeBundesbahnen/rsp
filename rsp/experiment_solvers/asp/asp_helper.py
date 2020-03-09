@@ -190,7 +190,6 @@ def _asp_helper(encoding_files: List[str],
         print(all_answers)
         _print_configuration(ctl)
         _print_stats(statistics)
-    _print_stats(statistics)
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
