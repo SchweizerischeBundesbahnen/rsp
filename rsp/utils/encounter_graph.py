@@ -66,7 +66,7 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict, train_schedu
     return distance_matrix
 
 
-def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, pos: dict = None):
+def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, file_name: str, pos: dict = None):
     dt = [('weight', float)]
     distance_matrix_as_weight = np.matrix(distance_matrix, dtype=dt)
     graph = nx.from_numpy_matrix(distance_matrix_as_weight)
@@ -102,7 +102,7 @@ def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, pos
     # visualize distance matrix as heat plot
     plt.subplot(122)
     plt.imshow(distance_matrix, cmap='hot', interpolation='nearest')
-    fig.savefig("{}.png".format(title))
+    fig.savefig(file_name)
     plt.close(fig)
 
     return edge_weights, pos

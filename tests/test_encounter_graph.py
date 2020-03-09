@@ -46,30 +46,48 @@ def test_simple_env_encounter_graph():
 def test_encounter_graph_samples_hypothesis_one():
     data_folder = './../rsp/exp_hypothesis_one_2020_03_06T21_42_54'
 
+    import os
+    directory = "{}/encounter_graphs/".format(data_folder)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
         data_folder)
     print("results loaded")
-    trainrun_dict_full = experiment_results_list[0].solution_full
-    trainrun_dict_full_after_malfunction = experiment_results_list[0].solution_full_after_malfunction
 
-    train_schedule_dict_full = convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict_full)
-    train_schedule_dict_full_after_malfunction = convert_trainrundict_to_entering_positions_for_all_timesteps(
-        trainrun_dict_full_after_malfunction)
+    # todo: compare with wegzeit diagram
+    # todo: how does networkx is placing the nodes???
+    # todo: test with directed graphs and distance measure
 
-    distance_matrix_full = compute_undirected_distance_matrix(trainrun_dict_full, train_schedule_dict_full)
-    distance_matrix_full_after_malfunction = compute_undirected_distance_matrix(
-        trainrun_dict_full_after_malfunction,
-        train_schedule_dict_full_after_malfunction)
-    distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)
+    exp_ids = list(range(len(experiment_results_list)))
+    for exp_id in exp_ids:
+        experiment_result = experiment_results_list[exp_id]
+        trainrun_dict_full = experiment_result.solution_full
+        trainrun_dict_full_after_malfunction = experiment_result.solution_full_after_malfunction
 
-    edge_weights_full, pos = plot_encounter_graph_undirected(
-        distance_matrix_full,
-        "before_malfunction")
-    edge_weights_full_after_malfunction, pos = plot_encounter_graph_undirected(
-        distance_matrix_full_after_malfunction,
-        "after_malfunction",
-        pos=pos)
-    edge_weights_diff, pos = plot_encounter_graph_undirected(
-        distance_matrix_diff,
-        "diff_malfunction",
-        pos=pos)
+        train_schedule_dict_full = convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict_full)
+        train_schedule_dict_full_after_malfunction = convert_trainrundict_to_entering_positions_for_all_timesteps(
+            trainrun_dict_full_after_malfunction)
+
+        distance_matrix_full = compute_undirected_distance_matrix(trainrun_dict_full, train_schedule_dict_full)
+        distance_matrix_full_after_malfunction = compute_undirected_distance_matrix(
+            trainrun_dict_full_after_malfunction,
+            train_schedule_dict_full_after_malfunction)
+        distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)
+
+        file_name_base = "{}/encounter_graphs/experiment_{}_".format(data_folder, experiment_result.experiment_id)
+
+        edge_weights_full, pos = plot_encounter_graph_undirected(
+            distance_matrix=distance_matrix_full,
+            title="encounter graph initial schedule",
+            file_name=file_name_base+"encounter_graph_initial_schedule.png")
+        edge_weights_full_after_malfunction, pos = plot_encounter_graph_undirected(
+            distance_matrix=distance_matrix_full_after_malfunction,
+            title="encounter graph schedule after malfunction",
+            file_name=file_name_base + "encounter_graph_schedule_after_malfunction.png",
+            pos=pos)
+        edge_weights_diff, pos = plot_encounter_graph_undirected(
+            distance_matrix=distance_matrix_diff,
+            title="encounter graph difference",
+            file_name=file_name_base + "encounter_graph_difference.png",
+            pos=pos)
