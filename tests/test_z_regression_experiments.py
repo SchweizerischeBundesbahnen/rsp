@@ -420,7 +420,7 @@ def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
                     loaded_result_dict[key][index])
 
                 assert equals_modulo_solve_time, \
-                    f"{key} for trial {index} should be equal modulo solve_time; \n" \
+                    f"{key} for index {index} should be equal modulo solve_time; \n" \
                     f"  expected{experiment_results_dict[key][index]}, \n" \
                     f"  actual {loaded_result_dict[key][index]}"
         else:
