@@ -18,6 +18,7 @@ from pandas import Series
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
 from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import RouteDAGConstraints
@@ -58,7 +59,10 @@ ExperimentParameters = NamedTuple('ExperimentParameters',
                                    ('weight_route_change', int),
                                    ('weight_lateness_seconds', int),
                                    ('max_window_size_from_earliest', int),
-                                   ])
+                                   ]
+                                  )
+if COMPATIBILITY_MODE:
+    ExperimentParameters.__new__.__defaults__ = (None,) * len(ExperimentParameters._fields)
 
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
                                                    ('experiments', List[ExperimentParameters])])
@@ -73,6 +77,8 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_after_malfunction', SchedulingExperimentResult),
 ])
+if COMPATIBILITY_MODE:
+    ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResults._fields)
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('experiment_parameters', ExperimentParameters),
@@ -120,7 +126,8 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('vertex_eff_lateness_delta_after_malfunction', Dict[Waypoint, int]),
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
-
+if COMPATIBILITY_MODE:
+    ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
@@ -211,6 +218,9 @@ def expand_experiment_results_for_analysis(
         experiment_results: ExperimentResults,
         debug: bool = False
 ) -> ExperimentResultsAnalysis:
+    if not isinstance(experiment_results, ExperimentResults):
+        experiment_results_as_dict = dict(experiment_results[0])
+        experiment_results = ExperimentResults(**experiment_results_as_dict)
     experiment_id = experiment_results.experiment_parameters.experiment_id
 
     # derive speed up

@@ -20,7 +20,7 @@ from pandas import DataFrame
 
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.analysis_tools import average_over_trials
+from rsp.utils.analysis_tools import average_over_grid_id
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
@@ -216,10 +216,8 @@ def hypothesis_one_data_analysis(data_folder: str,
         print(experiment_data[preview_col])
     print(experiment_data.dtypes)
 
-    # Average over the trials of each experiment
-
     print("Averaging...")
-    averaged_data, std_data = average_over_trials(experiment_data)
+    averaged_data, std_data = average_over_grid_id(experiment_data)
     print("  -> Done averaging.")
 
     # quantitative analysis

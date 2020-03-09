@@ -87,7 +87,7 @@ def run_experiment(solver: ASPExperimentSolver,
 
     # Run the sequence of experiment
     print("Running experiment {}".format(experiment_parameters.experiment_id))
-    start_trial = time.time()
+    start_time = time.time()
     if show_results_without_details:
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
         _pp.pprint(experiment_parameters)
@@ -142,9 +142,9 @@ def run_experiment(solver: ASPExperimentSolver,
     if rendering:
         from flatland.utils.rendertools import RenderTool, AgentRenderVariant
         env_renderer.close_window()
-    trial_time = (time.time() - start_trial)
+    elapsed_time = (time.time() - start_time)
     print("Running experiment {}: took {:5.3f}s"
-          .format(experiment_parameters.experiment_id, trial_time))
+          .format(experiment_parameters.experiment_id, elapsed_time))
 
     plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
@@ -272,7 +272,7 @@ def create_experiment_agenda(experiment_name: str,
     parameter_ranges: ParameterRanges
         Ranges of all the parameters we want to vary in our experiments
     experiments_per_grid_element: int
-        Number of trials per parameter set we want to run
+        Number of runs with different seed per parameter set we want to run
     speed_data
         Dictionary containing all the desired speeds in the environment
 
@@ -294,9 +294,9 @@ def create_experiment_agenda(experiment_name: str,
     full_param_set = span_n_grid([], parameter_values)
     experiment_list = []
     for grid_id, parameter_set in enumerate(full_param_set):
-        for trial in range(experiments_per_grid_element):
+        for run_of_this_grid_element in range(experiments_per_grid_element):
             earliest_malfunction = parameter_set[5]
-            experiment_id = grid_id * experiments_per_grid_element + trial
+            experiment_id = grid_id * experiments_per_grid_element + run_of_this_grid_element
             current_experiment = ExperimentParameters(
                 experiment_id=experiment_id,
                 grid_id=grid_id,
@@ -304,7 +304,7 @@ def create_experiment_agenda(experiment_name: str,
                 speed_data=speed_data,
                 width=parameter_set[0],
                 height=parameter_set[0],
-                flatland_seed_value=12 + trial,
+                flatland_seed_value=12 + run_of_this_grid_element,
                 asp_seed_value=94,
                 max_num_cities=parameter_set[4],
                 grid_mode=False,
@@ -350,7 +350,7 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
     return full_params
 
 
-def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0) -> Tuple[RailEnv, RailEnv]:
+def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEnv, RailEnv]:
     """
     Parameters
     ----------
@@ -380,7 +380,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     env_static = create_flatland_environment(number_of_agents=number_of_agents,
                                              width=width,
                                              height=height,
-                                             flatland_seed_value=flatland_seed_value + trial,
+                                             flatland_seed_value=flatland_seed_value,
                                              max_num_cities=max_num_cities,
                                              grid_mode=grid_mode,
                                              max_rails_between_cities=max_rails_between_cities,
@@ -392,7 +392,7 @@ def create_env_pair_for_experiment(params: ExperimentParameters, trial: int = 0)
     env_malfunction = create_flatland_environment_with_malfunction(number_of_agents=number_of_agents,
                                                                    width=width,
                                                                    height=height,
-                                                                   flatland_seed_value=flatland_seed_value + trial,
+                                                                   flatland_seed_value=flatland_seed_value,
                                                                    max_num_cities=max_num_cities,
                                                                    grid_mode=grid_mode,
                                                                    max_rails_between_cities=max_rails_between_cities,

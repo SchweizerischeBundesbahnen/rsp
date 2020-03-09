@@ -6,6 +6,7 @@ from typing import Set
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
+from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 
@@ -28,6 +29,8 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solver_configuration', Dict),
                                          ('solver_seed', int)
                                          ])
+if COMPATIBILITY_MODE:
+    SchedulingExperimentResult.__new__.__defaults__ = (None,) * len(SchedulingExperimentResult._fields)
 SchedulingExperimentResult.__doc__ = """
     Parameters
     ----------

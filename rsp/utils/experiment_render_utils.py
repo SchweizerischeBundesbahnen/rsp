@@ -33,9 +33,9 @@ def visualize_experiment(
     Parameters
     ----------
     experiment_parameters: ExperimentParameters
-        experiment parameters for all trials
+        experiment parameters
     data_frame: DataFrame
-        Pandas data frame with one ore more trials of this experiment.
+        Pandas data frame with one experiment.
     data_folder
         Folder to store FLATland pngs and mpeg to
     flatland_rendering

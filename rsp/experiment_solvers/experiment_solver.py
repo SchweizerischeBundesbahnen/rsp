@@ -25,13 +25,7 @@ from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 
 class ASPExperimentSolver():
-    """Implements `ASPExperimentSolver` for ASP.
-
-    Methods
-    -------
-    run_experiment_trial:
-        Returns the correct data format to run tests on full research pipeline
-    """
+    """Implements `ASPExperimentSolver` for ASP."""
     _pp = pprint.PrettyPrinter(indent=4)
 
     def gen_schedule_and_malfunction(self,

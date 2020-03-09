@@ -2,8 +2,8 @@
 
 Methods
 -------
-average_over_trials
-    Average over all the experiment trials
+average_over_grid_id
+    Average over all the experiments of the same grid_id
 """
 import os
 from typing import List
@@ -52,9 +52,9 @@ def swap_columns(df: DataFrame, c1: int, c2: int):
     df.drop(columns=['temp'], inplace=True)
 
 
-def average_over_trials(experimental_data: DataFrame) -> Tuple[DataFrame, DataFrame]:
+def average_over_grid_id(experimental_data: DataFrame) -> Tuple[DataFrame, DataFrame]:
     """
-    Average over all the experiment trials
+    Average over all the experiment runs with the same grid_id (different seeds for FLATland).
     Parameters
     ----------
     experimental_data
@@ -64,8 +64,8 @@ def average_over_trials(experimental_data: DataFrame) -> Tuple[DataFrame, DataFr
     DataFrame of mean data and DataFram of standard deviations
     """
 
-    averaged_data = experimental_data.groupby(['experiment_id']).mean().reset_index()
-    standard_deviation_data = experimental_data.groupby(['experiment_id']).std().reset_index()
+    averaged_data = experimental_data.groupby(['grid_id']).mean().reset_index()
+    standard_deviation_data = experimental_data.groupby(['grid_id']).std().reset_index()
     return averaged_data, standard_deviation_data
 
 
@@ -138,7 +138,7 @@ def three_dimensional_scatter_plot(data: DataFrame,
 def two_dimensional_scatter_plot(data: DataFrame,
                                  columns: DataFrame.columns,
                                  error: DataFrame = None,
-                                 baseline: DataFrame = None,
+                                 baseline_data: DataFrame = None,
                                  link_column: str = 'size',
                                  file_name: Optional[str] = None,
                                  output_folder: Optional[str] = None,
@@ -169,7 +169,7 @@ def two_dimensional_scatter_plot(data: DataFrame,
         List of colors for the data points.
     link_column: str
         Group data points by this column and draw a bar between consecutive data points.
-    baseline
+    baseline_data
         data points that define a baseline. Visualized by a bar
     output_folder
         Save plot to this folder.
@@ -205,8 +205,10 @@ def two_dimensional_scatter_plot(data: DataFrame,
     _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values)
     if error is not None:
         _2d_plot_errorbars(ax, columns, error, x_values, y_values)
-    if baseline is not None:
-        _2d_plot_baseline(ax, baseline, x_values, y_values)
+    if baseline_data is not None:
+        y_values_baseline: Series = baseline_data[columns[1]].values
+        _2d_plot_baseline(ax, y_values_baseline, x_values, y_values)
+        _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values_baseline, suffix='b')
 
     if link_column is not None:
         _2d_plot_link_column(ax, columns, data, link_column)
@@ -217,10 +219,11 @@ def two_dimensional_scatter_plot(data: DataFrame,
         plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_' + '_'.join(columns) + '.png'))
 
 
-def _2d_plot_label_scatterpoints(ax: axes.Axes, experiment_ids: Series, x_values: Series, y_values: Series):
+def _2d_plot_label_scatterpoints(ax: axes.Axes, experiment_ids: Series, x_values: Series, y_values: Series,
+                                 suffix: str = None):
     """Add experiment id to data points."""
     for i in np.arange(0, len(y_values)):
-        ax.text(x_values[i], y_values[i], "{}".format(experiment_ids[i]))
+        ax.text(x_values[i], y_values[i], "{}{}".format(experiment_ids[i], '' if suffix is None else suffix))
 
 
 def _2d_plot_link_column(ax: axes.Axes, columns: DataFrame.columns, data: DataFrame, link_column: str):
@@ -255,11 +258,11 @@ def _2d_plot_errorbars(ax: axes.Axes, columns: DataFrame.columns, error: DataFra
                 [y_values[i] + y_error[i], y_values[i] - y_error[i]], marker="_")
 
 
-def _2d_plot_baseline(ax: axes.Axes, baseline: DataFrame, x_values: Series, y_values: Series):
+def _2d_plot_baseline(ax: axes.Axes, y_values_baseline: Series, x_values: Series, y_values: Series):
     """Plot baseline y values and draw a line to the data points."""
-    for i in np.arange(0, len(y_values)):
+    for i in np.arange(0, min(len(y_values), len(y_values_baseline))):
         ax.plot([x_values[i], x_values[i]],
-                [baseline[i], y_values[i]], marker="_")
+                [y_values_baseline[i], y_values[i]], marker="_")
 
 
 def expand_experiment_data_for_analysis(
