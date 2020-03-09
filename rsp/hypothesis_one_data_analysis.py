@@ -195,7 +195,8 @@ def hypothesis_one_data_analysis(data_folder: str,
     debug
     """
     # Import the desired experiment results
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(data_folder)
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
 
     print(data_folder)
@@ -215,6 +216,16 @@ def hypothesis_one_data_analysis(data_folder: str,
         print(experiment_data[preview_col])
         print(experiment_data[preview_col])
     print(experiment_data.dtypes)
+
+    two_dimensional_scatter_plot(data=experiment_data,
+                                 columns=['asp_seed_value_full_afer_malfunction', 'time_full_after_malfunction'],
+                                 title=f'time_full_after_malfunction for different seeds, baseline is grounding time',
+                                 baseline=experiment_data['time_full_after_malfunction'] - experiment_data[
+                                     'asp_solve_time_full_afer_malfunction'],
+                                 output_folder=data_folder,
+                                 )
+
+    return
 
     print("Averaging...")
     averaged_data, std_data = average_over_grid_id(experiment_data)
@@ -280,7 +291,7 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_03_04T19_19_00',
+    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_03_06T21_42_54',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,

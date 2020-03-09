@@ -119,6 +119,8 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
     ('vertex_eff_lateness_delta_after_malfunction', Dict[Waypoint, int]),
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
+    ('asp_seed_value_full_afer_malfunction', int),
+    ('asp_solve_time_full_afer_malfunction', float)
 ])
 
 COLUMNS = ExperimentResults._fields
@@ -324,6 +326,12 @@ def expand_experiment_results_for_analysis(
         print(
             f"[{experiment_id}] sum_route_section_penalties_delta_after_malfunction={sum_route_section_penalties_delta_after_malfunction}")
 
+    import numpy as np
+    assert np.isclose(time_full_after_malfunction,
+                      experiment_results.results_full_after_malfunction.solver_statistics['summary']['times']['total'],
+                      rtol=0.001), \
+        f"{time_full_after_malfunction} {experiment_results.results_full_after_malfunction.solver_statistics['summary']['times']['total']}"
+    asp_solve_time_full_afer_malfunction = experiment_results.results_full_after_malfunction.solver_statistics['summary']['times']['solve']
     return ExperimentResultsAnalysis(
         **experiment_results._asdict(),
         experiment_id=experiment_results.experiment_parameters.experiment_id,
@@ -360,6 +368,8 @@ def expand_experiment_results_for_analysis(
         edge_eff_route_penalties_full_after_malfunction=edge_eff_route_penalties_full_after_malfunction,
         vertex_eff_lateness_delta_after_malfunction=vertex_eff_lateness_delta_after_malfunction,
         edge_eff_route_penalties_delta_after_malfunction=edge_eff_route_penalties_delta_after_malfunction,
+        asp_seed_value_full_afer_malfunction=experiment_results.results_full_after_malfunction.solver_seed,
+        asp_solve_time_full_afer_malfunction=asp_solve_time_full_afer_malfunction
     )
 
 
