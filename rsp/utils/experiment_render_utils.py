@@ -10,8 +10,6 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
-import numpy as np
-import matplotlib.pyplot as plt
 
 from rsp.experiment_solvers.experiment_solver_utils import replay
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
@@ -25,6 +23,7 @@ from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
+
 
 def visualize_experiment(
         experiment_parameters: ExperimentParameters,

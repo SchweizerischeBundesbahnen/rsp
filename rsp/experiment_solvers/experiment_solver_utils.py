@@ -4,7 +4,6 @@ from typing import Optional
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
-from flatland.envs.agent_utils import RailAgentStatus
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_valid_move_actions_
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict

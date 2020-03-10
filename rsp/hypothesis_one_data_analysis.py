@@ -15,16 +15,17 @@ from typing import Dict
 from typing import List
 
 import numpy as np
-from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.analysis_tools import average_over_trials, visualize_agent_density, weg_zeit_diagramm
+from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
+from rsp.utils.analysis_tools import visualize_agent_density
+from rsp.utils.analysis_tools import weg_zeit_diagramm
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import expand_experiment_results_for_analysis
