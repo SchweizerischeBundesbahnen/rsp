@@ -448,7 +448,7 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
 
 
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
-                                  malfunction_agent_id: int = -1, sorting: List[int] = None):
+                                  malfunction_agent_id: int = -1, sorting: List[int] = None) -> (np.ndarray, List[int]):
     """Method to produce sorted matrix of all train runs. Each train run is
     given an individual value for better visualization. The matrix can besorted
     according to a predefined soring or accordin to first agent or
@@ -495,7 +495,7 @@ def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: in
     return weg_zeit_matrix, sorting
 
 
-def weg_zeit_3d_path(schedule: TrainrunDict):
+def weg_zeit_3d_path(schedule: TrainrunDict) -> List[Tuple[int, int, int]]:
     """Method to define the time-space paths of each train in three dimensions.
 
     Parameters
@@ -522,7 +522,8 @@ def weg_zeit_3d_path(schedule: TrainrunDict):
     return all_train_time_paths
 
 
-def weg_zeit_3d_voxels(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int):
+def weg_zeit_3d_voxels(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int) -> (
+        np.ndarray, np.ndarray):
     """
     Parameters
     ----------
