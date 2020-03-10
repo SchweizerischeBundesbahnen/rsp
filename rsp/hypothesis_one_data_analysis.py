@@ -24,8 +24,6 @@ from rsp.utils.analysis_tools import average_over_trials
 from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
-from rsp.utils.analysis_tools import visualize_agent_density
-from rsp.utils.analysis_tools import weg_zeit_diagramm
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import expand_experiment_results_for_analysis
@@ -199,6 +197,12 @@ def hypothesis_one_data_analysis(data_folder: str,
     debug
     """
     # Import the desired experiment results
+    output_folder = f'{data_folder}/Analysis/'
+    data_folder = f'{data_folder}/Data/'
+
+    # Create output directoreis
+    check_create_folder(output_folder)
+
     experiment_data: DataFrame = load_experiment_results_from_folder(data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
 
@@ -230,7 +234,7 @@ def hypothesis_one_data_analysis(data_folder: str,
     if malfunction_analysis:
         _malfunction_analysis(experiment_data)
     if analysis_2d:
-        _2d_analysis(averaged_data, std_data, output_folder=data_folder)
+        _2d_analysis(averaged_data, std_data, output_folder=output_folder)
     if analysis_3d:
         _3d_analysis(averaged_data, std_data)
 
@@ -243,16 +247,12 @@ def hypothesis_one_data_analysis(data_folder: str,
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
             experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
                 row)
-            experiment_output_folder = f"{data_folder}/experiment_{experiment_results_analysis.experiment_parameters.experiment_id:04d}_analysis"
-            check_create_folder(experiment_output_folder)
-            weg_zeit_diagramm(experiment_data=experiment_results_analysis, output_folder=experiment_output_folder,
-                              three_dimensional=False, volumetric=True)
-            visualize_agent_density(experiment_results_analysis, output_folder=experiment_output_folder)
+
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
                                  experiment_results_analysis=experiment_results_analysis,
-                                 data_folder=data_folder,
+                                 data_folder=output_folder,
                                  flatland_rendering=flatland_rendering)
 
 

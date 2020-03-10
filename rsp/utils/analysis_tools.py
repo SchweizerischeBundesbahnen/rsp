@@ -135,6 +135,7 @@ def three_dimensional_scatter_plot(data: DataFrame,
 
     if len(file_name) > 1:
         plt.savefig(file_name)
+        plt.close()
     elif show:
         plt.show()
 
@@ -217,8 +218,10 @@ def two_dimensional_scatter_plot(data: DataFrame,
 
     if file_name is not None:
         plt.savefig(file_name)
+        plt.close()
     elif output_folder is not None:
         plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_' + '_'.join(columns) + '.png'))
+        plt.close()
 
 
 def _2d_plot_label_scatterpoints(ax: axes.Axes, experiment_ids: Series, x_values: Series, y_values: Series):
@@ -315,7 +318,9 @@ def expand_experiment_data_for_analysis(
 
 
 def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_folder: str):
-    """Method to visualize the density of agents in the full schedule.
+    """Method to visualize the density of agents in the full schedule for the
+    whole episode length. For each time step the number of active agents is
+    plotted^.
 
     Parameters
     ----------
@@ -345,10 +350,52 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
     ax.set_ylabel('Nr. active Agents')
     plt.plot(agent_density)
     plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
+    plt.close()
 
 
-def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder: str, three_dimensional: bool,
-                      volumetric: bool = False):
+def plot_weg_zeit_diagramm_3d(experiment_data: ExperimentResultsAnalysis, volumetric: bool = False):
+    """Method to draw ressource-time diagrams in 2d or 3d.
+
+    Parameters
+    ----------
+    experiment_data : ExperimentResultsAnalysis
+        Data from experiment for plot
+    output_folder : str
+        Folder to store plots
+    three_dimensional : bool
+        Flag to choose 3D plot
+    volumetric : bool
+        Flat to choose volumetric plot in 3D
+
+    Returns
+    -------
+    """
+    schedule = experiment_data.solution_full
+    reschedule = experiment_data.solution_full_after_malfunction
+    max_episode_steps = experiment_data.problem_full.max_episode_steps
+    width = experiment_data.experiment_parameters.width
+    height = experiment_data.experiment_parameters.height
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.set_title('Time-Ressource-Diagram 3D')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('Time')
+    if volumetric:
+        voxels, colors = weg_zeit_3d_voxels(schedule=schedule, width=width, height=height,
+                                            max_episode_steps=max_episode_steps)
+        ax.voxels(voxels, facecolors=colors)
+        plt.show()
+    else:
+        train_time_paths = weg_zeit_3d_path(schedule=reschedule)
+        for train_path in train_time_paths:
+            x, y, z = zip(*train_path)
+            ax.plot(x, y, z, linewidth=2)
+        plt.show()
+
+
+def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output_folder: str):
     """Method to draw ressource-time diagrams in 2d or 3d.
 
     Parameters
@@ -372,50 +419,32 @@ def weg_zeit_diagramm(experiment_data: ExperimentResultsAnalysis, output_folder:
     width = experiment_data.experiment_parameters.width
     height = experiment_data.experiment_parameters.height
 
-    if not three_dimensional:
-        weg_zeit_matrix_schedule, sorting = weg_zeit_matrix_from_schedule(schedule=schedule, width=width,
-                                                                          height=height,
-                                                                          malfunction_agent_id=malfunction_agent,
-                                                                          max_episode_steps=max_episode_steps,
-                                                                          sorting=None)
-        weg_zeit_matrix_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
-                                                                      max_episode_steps=max_episode_steps,
+    weg_zeit_matrix_schedule, sorting = weg_zeit_matrix_from_schedule(schedule=schedule, width=width,
+                                                                      height=height,
                                                                       malfunction_agent_id=malfunction_agent,
-                                                                      sorting=sorting)
-        fig, ax = plt.subplots(1, 3)
-        fig.set_size_inches(w=45, h=15)
-        ax[0].set_title('Time-Ressource-Diagram: Full Schedule')
-        ax[0].set_xlabel('Ressource')
-        ax[0].set_ylabel('Time')
-        ax[0].matshow(np.transpose(weg_zeit_matrix_schedule), cmap='gist_ncar')
-        ax[1].set_title('Time-Ressource-Diagram: Re-Schedule')
-        ax[1].set_xlabel('Ressource')
-        ax[1].set_ylabel('Time')
-        ax[1].matshow(np.transpose(weg_zeit_matrix_reschedule), cmap='gist_ncar')
-        ax[2].set_title('Time-Ressource-Diagram: Changes')
-        ax[2].set_xlabel('Ressource')
-        ax[2].set_ylabel('Time')
-        ax[2].matshow(np.abs(np.transpose(weg_zeit_matrix_reschedule) - np.transpose(weg_zeit_matrix_schedule)),
-                      cmap='gist_ncar')
-        plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
-    else:
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-        ax.set_title('Time-Ressource-Diagram 3D')
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('Time')
-        if volumetric:
-            voxels, colors = weg_zeit_3d_voxels(schedule=schedule, width=width, height=height,
-                                                max_episode_steps=max_episode_steps)
-            ax.voxels(voxels, facecolors=colors)
-            plt.show()
-        else:
-            train_time_paths = weg_zeit_3d_path(schedule=reschedule)
-            for train_path in train_time_paths:
-                x, y, z = zip(*train_path)
-                ax.plot(x, y, z, linewidth=2)
-            plt.show()
+                                                                      max_episode_steps=max_episode_steps,
+                                                                      sorting=None)
+    weg_zeit_matrix_reschedule, _ = weg_zeit_matrix_from_schedule(schedule=reschedule, width=width, height=height,
+                                                                  max_episode_steps=max_episode_steps,
+                                                                  malfunction_agent_id=malfunction_agent,
+                                                                  sorting=sorting)
+    fig, ax = plt.subplots(1, 3)
+    fig.set_size_inches(w=45, h=15)
+    ax[0].set_title('Time-Ressource-Diagram: Full Schedule')
+    ax[0].set_xlabel('Ressource')
+    ax[0].set_ylabel('Time')
+    ax[0].matshow(np.transpose(weg_zeit_matrix_schedule), cmap='gist_ncar')
+    ax[1].set_title('Time-Ressource-Diagram: Re-Schedule')
+    ax[1].set_xlabel('Ressource')
+    ax[1].set_ylabel('Time')
+    ax[1].matshow(np.transpose(weg_zeit_matrix_reschedule), cmap='gist_ncar')
+    ax[2].set_title('Time-Ressource-Diagram: Changes')
+    ax[2].set_xlabel('Ressource')
+    ax[2].set_ylabel('Time')
+    ax[2].matshow(np.abs(np.transpose(weg_zeit_matrix_reschedule) - np.transpose(weg_zeit_matrix_schedule)),
+                  cmap='gist_ncar')
+    plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
+    plt.close()
 
 
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,

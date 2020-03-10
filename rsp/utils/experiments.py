@@ -236,10 +236,14 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     Returns the name of the experiment folder
     """
     experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
+    # Create Experiment data folder
+    experiment_data_folder = f'{experiment_folder_name}/Data'
+
     check_create_folder(experiment_folder_name)
+    check_create_folder(experiment_data_folder)
 
     # tee stdout to log file
-    stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_folder_name, "log.txt"))
+    stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_data_folder, "log.txt"))
 
     if experiment_ids is not None:
         filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
@@ -249,7 +253,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             experiments=list(experiments_filtered)
         )
 
-    save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda)
+    save_experiment_agenda_and_hash_to_file(experiment_data_folder, experiment_agenda)
 
     solver = ASPExperimentSolver()
 
@@ -259,7 +263,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                                       solver=solver,
                                                       verbose=verbose,
                                                       show_results_without_details=show_results_without_details,
-                                                      experiment_folder_name=experiment_folder_name
+                                                      experiment_folder_name=experiment_data_folder
                                                       )
         pool.map(run_and_save_one_experiment_partial, experiment_agenda.experiments)
     else:
@@ -268,12 +272,12 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                         solver,
                                         verbose,
                                         show_results_without_details,
-                                        experiment_folder_name,
+                                        experiment_data_folder,
                                         rendering=rendering)
 
     # remove tee
     reset_tee(stdout_orig)
-    return experiment_folder_name
+    return experiment_data_folder
 
 
 def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
