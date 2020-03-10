@@ -276,7 +276,6 @@ def asp_reschedule_wrapper(
     replay_and_verify_trainruns(rail_env=malfunction_rail_env_for_verification,
                                 trainruns=asp_solution.get_trainruns_dict(),
                                 rendering=rendering,
-                                data_folder='experiment17',
                                 expected_malfunction=malfunction_for_verification
                                 )
     malfunction_env_reset()
