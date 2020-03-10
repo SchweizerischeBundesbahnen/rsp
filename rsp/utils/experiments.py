@@ -470,13 +470,16 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) -> List[ExperimentResultsAnalysis]:
+def load_and_expand_experiment_results_from_folder(experiment_folder_name: str, experiment_ids: List[int] = None) -> \
+        List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
 
     Parameters
     ----------
     experiment_folder_name: str
         Folder name of experiment where all experiment files are stored
+    experiment_ids
+        List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
 
     Returns
     -------
@@ -490,6 +493,12 @@ def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) 
         file_name = os.path.join(experiment_folder_name, file)
         if file_name.endswith('experiment_agenda.pkl') or not file_name.endswith(".pkl"):
             continue
+
+        # filter experiments according to defined experiment_ids
+        if experiment_ids is not None and all(
+                [not "experiment_{:04d}".format(exp_id) in file_name for exp_id in experiment_ids]):
+            continue
+
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))

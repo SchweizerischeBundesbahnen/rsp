@@ -44,7 +44,7 @@ def test_simple_env_encounter_graph():
 
 
 def test_encounter_graph_undirected():
-    data_folder = './../rsp/exp_hypothesis_one_2020_03_06T21_42_54'
+    data_folder = './../rsp/exp_hypothesis_one_2020_03_04T19_19_00'
     encounter_graph_exp_name = "encounter_graphs_undirected"
 
     import os
@@ -53,14 +53,14 @@ def test_encounter_graph_undirected():
         os.makedirs(directory)
 
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
-        data_folder)
+        experiment_folder_name=data_folder,
+        experiment_ids=[12])
     print("results loaded")
 
     # todo: compare with wegzeit diagram
     # todo: test with directed graphs and distance measure
 
-    exp_ids = list(range(len(experiment_results_list)))
-    for exp_id in exp_ids:
+    for exp_id in list(range(len(experiment_results_list))):
         experiment_result = experiment_results_list[exp_id]
         trainrun_dict_full = experiment_result.solution_full
         print(trainrun_dict_full)
