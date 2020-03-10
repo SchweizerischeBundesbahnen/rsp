@@ -47,18 +47,18 @@ def compute_encounter_graph_undirected():
             encounter_graph_exp_name,
             experiment_result.experiment_id)
 
-        edge_weights_full, pos = plot_encounter_graph_undirected(
+        pos = plot_encounter_graph_undirected(
             distance_matrix=distance_matrix_full,
             title="encounter graph initial schedule",
             file_name=file_name_base+"encounter_graph_initial_schedule.png")
 
-        edge_weights_full_after_malfunction, pos = plot_encounter_graph_undirected(
+        pos = plot_encounter_graph_undirected(
             distance_matrix=distance_matrix_full_after_malfunction,
             title="encounter graph schedule after malfunction",
             file_name=file_name_base + "encounter_graph_schedule_after_malfunction.png",
             pos=pos)
 
-        edge_weights_diff, pos = plot_encounter_graph_undirected(
+        pos = plot_encounter_graph_undirected(
             distance_matrix=distance_matrix_diff,
             title="encounter graph difference",
             file_name=file_name_base + "encounter_graph_difference.png",

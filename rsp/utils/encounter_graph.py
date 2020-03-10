@@ -71,16 +71,6 @@ def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, fil
     distance_matrix_as_weight = np.matrix(distance_matrix, dtype=dt)
     graph = nx.from_numpy_matrix(distance_matrix_as_weight)
 
-    edge_weights = []
-    start_values = np.linspace(start=0.0, stop=0.9, num=10, endpoint=True)
-    stop_values = np.linspace(start=0.1, stop=1.0, num=10, endpoint=True)
-
-    # discretize edges
-    for start_value, stop_value in zip(start_values, stop_values):
-        edges = [(u, v) for (u, v, d) in graph.edges(data=True) if
-                 (start_value < d['weight'] <= stop_value)]
-        edge_weights.append(edges)
-
     # position of nodes
     if pos is None:
         # Position nodes using Fruchterman-Reingold force-directed algorithm
@@ -95,8 +85,8 @@ def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, fil
     nx.draw_networkx_nodes(graph, pos)
 
     # draw edges with corresponding weights
-    for i, edges in enumerate(edge_weights):
-        nx.draw_networkx_edges(graph, pos, edgelist=edges, width=(i/2+1))
+    for edge in graph.edges(data=True):
+        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight']*5.)
 
     # draw labels
     nx.draw_networkx_labels(graph, pos, font_size=10, font_family='sans-serif')
@@ -107,4 +97,4 @@ def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, fil
     fig.savefig(file_name)
     plt.close(fig)
 
-    return edge_weights, pos
+    return pos
