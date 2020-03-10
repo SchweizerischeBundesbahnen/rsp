@@ -148,10 +148,10 @@ def _asp_helper(encoding_files: List[str],
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")
-    ctl_args = [f"-t1", "--lookahead=no"]
+    ctl_args = [f"-t2", "--lookahead=no"]
 
     if asp_seed_value is not None:
-        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", "-t1", "--lookahead=no"]
+        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", "-t2", "--lookahead=no"]
     ctl = clingo.Control(ctl_args)
 
     # find optimal model; if not optimizing, find all models!
@@ -191,7 +191,7 @@ def _asp_helper(encoding_files: List[str],
 def _asp_loop(ctl, dl, verbose, debug):
     all_answers = []
     min_cost = np.inf
-    with ctl.solve(yield_=True) as handle:
+    with ctl.solve(yield_=True, on_statistics=dl.on_statistics) as handle:
         for model in handle:
             if len(model.cost) > 0:
                 cost = model.cost[0]
