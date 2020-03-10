@@ -538,7 +538,7 @@ def weg_zeit_3d_voxels(schedule: TrainrunDict, width: int, height: int, max_epis
 
     Returns
     -------
-    Binary matric (widht,height,max_episode_steps) of occupied ressources, Color for each occupied ressoruce
+    Binary matrix (widht,height,max_episode_steps) of occupied ressources, Color for each occupied ressoruce
     """
     voxels = np.zeros(shape=(width, height, max_episode_steps), dtype=int)
     cmap = matplotlib.cm.get_cmap('gist_ncar')
