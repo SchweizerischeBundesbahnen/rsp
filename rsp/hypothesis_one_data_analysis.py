@@ -15,6 +15,7 @@ from typing import Dict
 from typing import List
 
 import numpy as np
+import pandas as pd
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
@@ -173,7 +174,69 @@ def _malfunction_analysis(experiment_data: DataFrame):
         plt.close()
 
 
-# TODO SIM-151 documentation of derived columns
+def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis], output_folder=str):
+    data_frame = pd.DataFrame(data=[
+        {
+            'experiment_id': r.experiment_id,
+            'solve_total_ratio_full':
+                r.results_full.solver_statistics["summary"]["times"]["solve"] /
+                r.results_full.solver_statistics["summary"]["times"]["total"],
+            'solve_time_full':
+                r.results_full.solver_statistics["summary"]["times"]["solve"],
+            'total_time_full':
+                r.results_full.solver_statistics["summary"]["times"]["total"],
+            'choice_conflict_ratio_full':
+                r.results_full.solver_statistics["solving"]["solvers"]["choices"] /
+                r.results_full.solver_statistics["solving"]["solvers"]["conflicts"],
+            'solve_total_ratio_full_after_malfunction':
+                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
+                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"],
+            'solve_time_full_after_malfunction':
+                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["solve"],
+            'total_time_full_after_malfunction':
+                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"],
+            'choice_conflict_ratio_full_after_malfunction':
+                r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
+                r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"],
+            'solve_total_ratio_delta_after_malfunction':
+                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
+                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"],
+            'solve_time_delta_after_malfunction':
+                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["solve"],
+            'total_time_delta_after_malfunction':
+                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"],
+            'choice_conflict_ratio_delta_after_malfunction':
+                r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
+                r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
+
+        }
+        for r in experiment_results_list])
+    for item in ['full', 'full_after_malfunction', 'delta_after_malfunction']:
+        # 1. solver should spend most of the time solving: compare solve and total times
+        two_dimensional_scatter_plot(data=data_frame,
+                                     columns=['experiment_id', 'solve_total_ratio_' + item],
+                                     title='relative comparison of solve and total solver time for ' + item,
+                                     output_folder=output_folder,
+                                     link_column=None
+                                     )
+        two_dimensional_scatter_plot(data=data_frame,
+                                     columns=['experiment_id', 'solve_total_ratio_' + item],
+                                     baseline_column='solve_time_' + item,
+                                     title='absolute comparison of solve and total solver time for ' + item,
+                                     output_folder=output_folder,
+                                     link_column=None
+                                     )
+        # TODO SIM-365 propagation time
+
+        # 3. choice conflict ratio should be close to 1; if the ratio is high, the problem might be large, but not difficult
+        two_dimensional_scatter_plot(data=data_frame,
+                                     columns=['experiment_id', 'choice_conflict_ratio_' + item],
+                                     title='choice conflict ratio ' + item,
+                                     output_folder=output_folder,
+                                     link_column=None
+                                     )
+
+
 def hypothesis_one_data_analysis(data_folder: str,
                                  analysis_2d: bool = False,
                                  analysis_3d: bool = False,
@@ -195,7 +258,8 @@ def hypothesis_one_data_analysis(data_folder: str,
     debug
     """
     # Import the desired experiment results
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(data_folder)
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
 
     print(data_folder)
@@ -225,6 +289,7 @@ def hypothesis_one_data_analysis(data_folder: str,
         _malfunction_analysis(experiment_data)
     if analysis_2d:
         _2d_analysis(averaged_data, std_data, output_folder=data_folder)
+        _asp_plausi_analysis(experiment_results_list, output_folder=data_folder)
     if analysis_3d:
         _3d_analysis(averaged_data, std_data)
 
@@ -280,9 +345,9 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_03_03T08_01_36',
+    hypothesis_one_data_analysis(data_folder='exp_hypothesis_one_2020_03_10T17_11_35',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[12]
+                                 qualitative_analysis_experiment_ids=[]
                                  )

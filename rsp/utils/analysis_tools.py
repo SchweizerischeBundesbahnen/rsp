@@ -135,10 +135,11 @@ def three_dimensional_scatter_plot(data: DataFrame,
         plt.show()
 
 
-def two_dimensional_scatter_plot(data: DataFrame,
+def two_dimensional_scatter_plot(data: DataFrame,  # noqa: C901
                                  columns: DataFrame.columns,
                                  error: DataFrame = None,
                                  baseline_data: DataFrame = None,
+                                 baseline_column: str = None,
                                  link_column: str = 'size',
                                  file_name: Optional[str] = None,
                                  output_folder: Optional[str] = None,
@@ -205,6 +206,10 @@ def two_dimensional_scatter_plot(data: DataFrame,
     _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values)
     if error is not None:
         _2d_plot_errorbars(ax, columns, error, x_values, y_values)
+    if baseline_column is not None:
+        y_values_baseline: Series = data[baseline_column].values
+        _2d_plot_baseline(ax, y_values_baseline, x_values, y_values)
+        _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values_baseline, suffix='b')
     if baseline_data is not None:
         y_values_baseline: Series = baseline_data[columns[1]].values
         _2d_plot_baseline(ax, y_values_baseline, x_values, y_values)
