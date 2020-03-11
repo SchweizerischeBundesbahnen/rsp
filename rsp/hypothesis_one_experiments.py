@@ -69,6 +69,5 @@ if __name__ == '__main__':
         data_folder=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        malfunction_analysis=False,
         qualitative_analysis_experiment_ids=range(len(experiment_agenda.experiments))
     )

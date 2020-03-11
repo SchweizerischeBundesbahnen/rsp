@@ -14,7 +14,6 @@ Hypothesis 2:
 from typing import Dict
 from typing import List
 
-import numpy as np
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
@@ -24,7 +23,6 @@ from rsp.utils.analysis_tools import average_over_grid_id
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
@@ -136,48 +134,10 @@ def _3d_analysis(averaged_data: DataFrame, std_data: DataFrame):
     plt.show()
 
 
-# TODO SIM-250 we should work with malfunction ranges instead of repeating the same experiment under different ids
-def _malfunction_analysis(experiment_data: DataFrame):
-    # add column 'malfunction_time_step'
-    experiment_data['malfunction_time_step'] = 0.0
-    experiment_data['experiment_id_group'] = 0.0
-    experiment_data['malfunction_time_step'] = experiment_data['malfunction_time_step'].astype(float)
-    experiment_data['malfunction_time_step'] = experiment_data['experiment_id_group'].astype(float)
-    for index, row in experiment_data.iterrows():
-        experiment_results = convert_pandas_series_experiment_results(row)
-        time_step = float(experiment_results.malfunction.time_step)
-        experiment_data.at[index, 'malfunction_time_step'] = time_step
-        experiment_data.at[index, 'experiment_id_group'] = str(row['experiment_id']).split("_")[0]
-    print(experiment_data.dtypes)
-
-    # filter 'malfunction_time_step' <150
-    experiment_data = experiment_data[experiment_data['malfunction_time_step'] < 150]
-
-    # preview
-    print(experiment_data['malfunction_time_step'])
-    print(experiment_data['experiment_id_group'])
-    malfunction_ids = np.unique(experiment_data['experiment_id_group'].to_numpy())
-    print(malfunction_ids)
-
-    # malfunction analysis where malfunction is encoded in experiment id
-    check_create_folder('malfunction')
-    for i in malfunction_ids:
-        fig = plt.figure(constrained_layout=True)
-        experiment_data_i = experiment_data[experiment_data['experiment_id_group'] == i]
-        two_dimensional_scatter_plot(data=experiment_data_i,
-                                     columns=['malfunction_time_step', 'time_full_after_malfunction'],
-                                     fig=fig,
-                                     title='malfunction_time_step - time_full_after_malfunction ' + str(i)
-                                     )
-        plt.savefig(f'malfunction/malfunction_{int(i):03d}.png')
-        plt.close()
-
-
 # TODO SIM-151 documentation of derived columns
 def hypothesis_one_data_analysis(data_folder: str,
                                  analysis_2d: bool = False,
                                  analysis_3d: bool = False,
-                                 malfunction_analysis: bool = False,
                                  qualitative_analysis_experiment_ids: List[str] = None,
                                  flatland_rendering: bool = True,
                                  debug: bool = False
@@ -189,7 +149,6 @@ def hypothesis_one_data_analysis(data_folder: str,
     data_folder
     analysis_2d
     analysis_3d
-    malfunction_analysis
     qualitative_analysis_experiment_ids
     flatland_rendering
     debug
@@ -201,7 +160,8 @@ def hypothesis_one_data_analysis(data_folder: str,
     # Create output directoreis
     check_create_folder(output_folder)
 
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(data_folder)
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
 
     print(data_folder)
@@ -226,8 +186,6 @@ def hypothesis_one_data_analysis(data_folder: str,
     print("  -> Done averaging.")
 
     # quantitative analysis
-    if malfunction_analysis:
-        _malfunction_analysis(experiment_data)
     if analysis_2d:
         _2d_analysis(averaged_data, std_data, output_folder=output_folder)
     if analysis_3d:
@@ -289,6 +247,5 @@ if __name__ == '__main__':
     hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_03_04T19_19_00',
                                  analysis_2d=True,
                                  analysis_3d=False,
-                                 malfunction_analysis=False,
                                  qualitative_analysis_experiment_ids=[12]
                                  )

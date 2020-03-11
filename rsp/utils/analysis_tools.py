@@ -229,7 +229,7 @@ def two_dimensional_scatter_plot(data: DataFrame,
 def _2d_plot_label_scatterpoints(ax: axes.Axes, experiment_ids: Series, x_values: Series, y_values: Series,
                                  suffix: str = None):
     """Add experiment id to data points."""
-    for i in np.arange(0, len(y_values)):
+    for i in np.arange(0, min(len(y_values), len(x_values))):
         ax.text(x_values[i], y_values[i], "{}{}".format(experiment_ids[i], '' if suffix is None else suffix))
 
 
