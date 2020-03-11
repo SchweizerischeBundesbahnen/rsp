@@ -19,10 +19,13 @@ from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
+from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
+from rsp.utils.experiments import save_schedule_and_malfunction
 
 
 def test_created_env_tuple():
@@ -395,6 +398,7 @@ def test_save_and_load_experiment_results():
     for current_experiment_parameters in agenda.experiments:
         single_experiment_result: ExperimentResults = run_experiment(solver=solver,
                                                                      experiment_parameters=current_experiment_parameters,
+                                                                     experiment_base_directory=experiment_folder_name,
                                                                      verbose=False)
         experiment_results_list.append(single_experiment_result)
 
@@ -459,7 +463,7 @@ def test_run_full_pipeline():
     delete_experiment_folder(experiment_folder_name)
 
 
-def test_run_alpha_beta():
+def test_run_alpha_beta(regen_schedule: bool = False):
     """Ensure that we get the exact same solution if we multiply the weights
     for route change and lateness by the same factor."""
 
@@ -497,11 +501,35 @@ def test_run_alpha_beta():
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
-    schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
-        static_rail_env=static_rail_env,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
-        experiment_parameters=experiment_parameters_scaled
+    if regen_schedule:
+        schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+            static_rail_env=static_rail_env,
+            malfunction_rail_env=malfunction_rail_env,
+            malfunction_env_reset=malfunction_env_reset,
+            experiment_parameters=experiment_parameters_scaled
+        )
+        schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+            static_rail_env=static_rail_env,
+            malfunction_rail_env=malfunction_rail_env,
+            malfunction_env_reset=malfunction_env_reset,
+            experiment_parameters=experiment_parameters
+        )
+        save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction_scaled,
+                                      experiment_agenda_directory="tests/data/alpha_beta",
+                                      experiment_id=0
+                                      )
+        save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
+                                      experiment_agenda_directory="tests/data/alpha_beta",
+                                      experiment_id=1
+                                      )
+
+    schedule_and_malfunction_scaled = load_schedule_and_malfunction(
+        experiment_agenda_directory="tests/data/alpha_beta",
+        experiment_id=0
+    )
+    schedule_and_malfunction = load_schedule_and_malfunction(
+        experiment_agenda_directory="tests/data/alpha_beta",
+        experiment_id=1
     )
 
     experiment_result_scaled: ExperimentResults = solver._run_experiment_from_environment(
@@ -509,13 +537,6 @@ def test_run_alpha_beta():
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters_scaled,
-    )
-
-    schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
-        static_rail_env=static_rail_env,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
-        experiment_parameters=experiment_parameters
     )
 
     experiment_result: ExperimentResults = solver._run_experiment_from_environment(
@@ -544,19 +565,24 @@ def test_seed():
         number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
         max_window_size_from_earliest=np.inf)
 
-    experiment_results: ExperimentResults = run_experiment(ASPExperimentSolver(),
-                                                           experiment_parameters=experiment_parameters)
+    folder_name = create_experiment_folder_name("test_seed")
+    try:
+        experiment_results: ExperimentResults = run_experiment(ASPExperimentSolver(),
+                                                               experiment_parameters=experiment_parameters,
+                                                               experiment_base_directory=folder_name)
 
-    # check that asp seed value is received in solver
-    assert experiment_results.results_full.solver_seed == experiment_parameters.asp_seed_value, \
-        f"actual={experiment_results.results_full.solver_seed}, " \
-        f"expected={experiment_parameters.asp_seed_value}"
-    assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
-        f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " \
-        f"expected={experiment_parameters.asp_seed_value}"
-    assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
-        f"actual={experiment_results.results_delta_after_malfunction.solver_seed}, " \
-        f"expected={experiment_parameters.asp_seed_value}"
+        # check that asp seed value is received in solver
+        assert experiment_results.results_full.solver_seed == experiment_parameters.asp_seed_value, \
+            f"actual={experiment_results.results_full.solver_seed}, " \
+            f"expected={experiment_parameters.asp_seed_value}"
+        assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+            f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " \
+            f"expected={experiment_parameters.asp_seed_value}"
+        assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+            f"actual={experiment_results.results_delta_after_malfunction.solver_seed}, " \
+            f"expected={experiment_parameters.asp_seed_value}"
+    finally:
+        delete_experiment_folder(folder_name)
 
 
 def test_parallel_experiment_execution():
@@ -638,9 +664,20 @@ def test_deterministic_3():
 def _test_deterministic(params: ExperimentParameters):
     """Ensure that two runs of the same experiment yields the same result."""
 
-    solver = ASPExperimentSolver()
-    single_experiment_result1: ExperimentResults = run_experiment(solver=solver, experiment_parameters=params,
-                                                                  verbose=False)
-    single_experiment_result2 = run_experiment(solver=solver, experiment_parameters=params, verbose=False)
+    folder_name_1 = create_experiment_folder_name("_test_deterministic1")
+    folder_name_2 = create_experiment_folder_name("_test_deterministic2")
+    try:
+        solver = ASPExperimentSolver()
+        single_experiment_result1: ExperimentResults = run_experiment(solver=solver,
+                                                                      experiment_parameters=params,
+                                                                      verbose=False,
+                                                                      experiment_base_directory=folder_name_1
+                                                                      )
+        single_experiment_result2 = run_experiment(solver=solver,
+                                                   experiment_parameters=params, verbose=False,
+                                                   experiment_base_directory=folder_name_2)
 
-    _assert_results_dict_equals([single_experiment_result1], [single_experiment_result2])
+        _assert_results_dict_equals([single_experiment_result1], [single_experiment_result2])
+    finally:
+        delete_experiment_folder(folder_name_1)
+        delete_experiment_folder(folder_name_2)

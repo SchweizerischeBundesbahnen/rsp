@@ -1,4 +1,6 @@
 from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
@@ -46,8 +48,24 @@ def get_first_agenda_pipeline_params() -> Tuple[ParameterRanges, Dict[float, flo
     return parameter_ranges, speed_data
 
 
-if __name__ == '__main__':
-    parameter_ranges, speed_data = get_first_agenda_pipeline_params()
+def hypothesis_one_pipeline(parameter_ranges: ParameterRanges,
+                            speed_data: Dict[float, float],
+                            experiment_ids: Optional[List[int]],
+                            copy_agenda_from_base_directory: Optional[str] = None):
+    """
+    Run full pipeline A - B - C
+
+    Parameters
+    ----------
+    parameter_ranges
+    speed_data
+    experiment_ids
+        filter for experiment ids
+    copy_agenda_from_base_directory
+        base directory from the same agenda with serialized schedule and malfunction.
+        - if given, the schedule is not re-generated
+        - if not given, a schedule is generate in a non-deterministc fashion
+    """
 
     # A. Experiment Planning: Create an experiment agenda out of the parameter ranges
     experiment_agenda = create_experiment_agenda(
@@ -56,14 +74,15 @@ if __name__ == '__main__':
         parameter_ranges=parameter_ranges,
         experiments_per_grid_element=1
     )
-
     # B. Experiments: setup, then run
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=True,
         show_results_without_details=True,
-        verbose=False)
-
+        verbose=False,
+        experiment_ids=experiment_ids,
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory
+    )
     # C. Experiment Analysis
     hypothesis_one_data_analysis(
         experiment_base_directory=experiment_folder_name,
@@ -71,3 +90,13 @@ if __name__ == '__main__':
         analysis_3d=False,
         qualitative_analysis_experiment_ids=[]
     )
+
+
+if __name__ == '__main__':
+    parameter_ranges, speed_data = get_first_agenda_pipeline_params()
+
+    hypothesis_one_pipeline(parameter_ranges=parameter_ranges,
+                            speed_data=speed_data,
+                            experiment_ids=None,  # no filtering
+                            copy_agenda_from_base_directory='None'  # regenerate schedules
+                            )
