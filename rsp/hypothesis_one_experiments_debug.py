@@ -1,5 +1,5 @@
-"""Run experiments not in parallel, only one trial and only a subset of them in
-order to allow for debugging."""
+"""Run experiments not in parallel, only one run per grid id and only a subset
+of them in order to allow for debugging."""
 from typing import List
 
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
@@ -14,7 +14,7 @@ def _run_experiment_ids_from_agenda(experiment_ids: List[int]):
     experiment_agenda = create_experiment_agenda(experiment_name="exp_hypothesis_one",
                                                  speed_data=speed_data,
                                                  parameter_ranges=parameter_ranges,
-                                                 trials_per_experiment=1)
+                                                 experiments_per_grid_element=1)
 
     # Run experiments
     experiment_folder_name = run_experiment_agenda(
@@ -32,5 +32,5 @@ def _run_experiment_ids_from_agenda(experiment_ids: List[int]):
 
 
 if __name__ == '__main__':
-    experiment_ids = [14]
+    experiment_ids = [0, 1, 2, 3, 12]
     _run_experiment_ids_from_agenda(experiment_ids)

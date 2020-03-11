@@ -15,9 +15,9 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from numpy.random.mtrand import RandomState
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.experiment_solvers.asp.asp_solve_problem import verify_trainruns_dict
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
-from rsp.experiment_solvers.experiment_solver_utils import get_delay_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
@@ -39,11 +39,11 @@ _pp = pprint.PrettyPrinter(indent=4)
 def test_rescheduling_no_bottleneck():
     test_parameters = ExperimentParameters(
         experiment_id=0,
-        experiment_group=0,
-        trials_in_experiment=10,
+        grid_id=0,
         number_of_agents=2, width=30,
         height=30,
-        seed_value=12,
+        flatland_seed_value=12,
+        asp_seed_value=94,
         max_num_cities=20,
         grid_mode=True,
         max_rail_between_cities=2,
@@ -53,7 +53,8 @@ def test_rescheduling_no_bottleneck():
         speed_data={1: 1.0},
         number_of_shortest_paths_per_agent=10,
         weight_route_change=1,
-        weight_lateness_seconds=1
+        weight_lateness_seconds=1,
+        max_window_size_from_earliest=np.inf
     )
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
@@ -213,7 +214,8 @@ def test_rescheduling_no_bottleneck():
             latest_arrival=dynamic_env._max_episode_steps,
             topo_dict=tc_schedule_problem.topo_dict
         ),
-        malfunction_env_reset=lambda *args, **kwargs: None
+        malfunction_env_reset=lambda *args, **kwargs: None,
+        asp_seed_value=94
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
 
@@ -228,13 +230,15 @@ def test_rescheduling_no_bottleneck():
 
 
 def test_rescheduling_bottleneck():
-    test_parameters = ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=10,
-                                           number_of_agents=2, width=30,
-                                           height=30, seed_value=12, max_num_cities=20, grid_mode=True,
+    test_parameters = ExperimentParameters(experiment_id=0, grid_id=0,
+                                           number_of_agents=2,
+                                           width=30, height=30,
+                                           flatland_seed_value=12, asp_seed_value=94,
+                                           max_num_cities=20, grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
                                            malfunction_duration=20, speed_data={1: 1.0},
                                            number_of_shortest_paths_per_agent=10, weight_route_change=1,
-                                           weight_lateness_seconds=1)
+                                           weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -482,7 +486,8 @@ def test_rescheduling_bottleneck():
             minimum_travel_time_dict=tc_reschedule_problem.minimum_travel_time_dict,
             latest_arrival=dynamic_env._max_episode_steps,
             topo_dict=tc_reschedule_problem.topo_dict
-        )
+        ),
+        asp_seed_value=94
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
 
@@ -812,7 +817,8 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
         malfunction_for_verification=fake_malfunction,
         # TODO SIM-324 code smell: why do we need to pass env? -> extract validation with env
         malfunction_rail_env_for_verification=dynamic_env,
-        malfunction_env_reset=lambda *args, **kwargs: None
+        malfunction_env_reset=lambda *args, **kwargs: None,
+        asp_seed_value=94
     )
     delta_reschedule_trainruns = delta_reschedule_result.trainruns_dict
     for train, expected_arrival in expected_arrivals.items():
@@ -884,13 +890,14 @@ def fake_malfunction_generator(fake_malfunction: Malfunction):
 
 
 def _dummy_test_case(fake_malfunction: Malfunction):
-    test_parameters = ExperimentParameters(experiment_id=0, experiment_group=0, trials_in_experiment=10,
-                                           number_of_agents=2, width=30,
-                                           height=30, seed_value=12, max_num_cities=20, grid_mode=True,
+    test_parameters = ExperimentParameters(experiment_id=0, grid_id=0,
+                                           number_of_agents=2, width=30, height=30,
+                                           flatland_seed_value=12, max_num_cities=20, asp_seed_value=94,
+                                           grid_mode=True,
                                            max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
                                            malfunction_duration=20, speed_data={1: 1.0},
                                            number_of_shortest_paths_per_agent=10, weight_route_change=1,
-                                           weight_lateness_seconds=1)
+                                           weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
     static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
     k = 10
     schedule_problem = ASPProblemDescription.factory_scheduling(

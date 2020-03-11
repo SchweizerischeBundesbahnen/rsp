@@ -20,19 +20,17 @@ from pandas import DataFrame
 
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.analysis_tools import average_over_trials
-from rsp.utils.analysis_tools import expand_experiment_data_for_analysis
+from rsp.utils.analysis_tools import average_over_grid_id
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
-from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
+from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
 from rsp.utils.experiments import load_experiment_agenda_from_file
-from rsp.utils.experiments import load_experiment_results_from_folder
 from rsp.utils.file_utils import check_create_folder
 
 
@@ -203,22 +201,16 @@ def hypothesis_one_data_analysis(data_folder: str,
     # Create output directoreis
     check_create_folder(output_folder)
 
-    experiment_data: DataFrame = load_experiment_results_from_folder(data_folder)
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(data_folder)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
 
     print(data_folder)
     print(experiment_agenda)
     # Plausibility tests on experiment data
-    _run_plausibility_tests_on_experiment_data(experiment_data)
+    _run_plausibility_tests_on_experiment_data(experiment_results_list)
 
-    # derive additional data columns
-    experiment_data = expand_experiment_data_for_analysis(
-        experiment_data=experiment_data, debug=debug)
-
-    # Average over the trials of each experiment
-    print("Averaging...")
-    averaged_data, std_data = average_over_trials(experiment_data)
-    print("  -> Done averaging.")
+    # convert to data frame for statistical analysis
+    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
 
     # previews
     preview_cols = ['speed_up', 'time_delta_after_malfunction', 'experiment_id',
@@ -226,9 +218,12 @@ def hypothesis_one_data_analysis(data_folder: str,
     for preview_col in preview_cols:
         print(preview_col)
         print(experiment_data[preview_col])
-        print(averaged_data[preview_col])
-    print(experiment_data.loc[experiment_data['experiment_id'] == 58].to_json())
+        print(experiment_data[preview_col])
     print(experiment_data.dtypes)
+
+    print("Averaging...")
+    averaged_data, std_data = average_over_grid_id(experiment_data)
+    print("  -> Done averaging.")
 
     # quantitative analysis
     if malfunction_analysis:
@@ -256,17 +251,11 @@ def hypothesis_one_data_analysis(data_folder: str,
                                  flatland_rendering=flatland_rendering)
 
 
-def _run_plausibility_tests_on_experiment_data(experiment_data):
+def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis]):
     print("Running plausibility tests on experiment data...")
-    for _, row in experiment_data.iterrows():
-        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
-        experiment_id = experiment_results.experiment_parameters.experiment_id
-        experiment_results_analysis: ExperimentResultsAnalysis = expand_experiment_results_for_analysis(
-            experiment_id=experiment_id,
-            experiment_results=experiment_results)
-
-        plausibility_check_experiment_results(experiment_results=experiment_results,
-                                              experiment_id=experiment_id)
+    for experiment_results_analysis in l:
+        experiment_id = experiment_results_analysis.experiment_id
+        plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
         costs_full_after_malfunction: int = experiment_results_analysis.costs_full_after_malfunction
         lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_full_after_malfunction
         sum_route_section_penalties_full_after_malfunction: Dict[
@@ -301,5 +290,5 @@ if __name__ == '__main__':
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[]
+                                 qualitative_analysis_experiment_ids=[12]
                                  )

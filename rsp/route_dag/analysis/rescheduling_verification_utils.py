@@ -8,8 +8,7 @@ from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import extract_number_of_path_alternatives
 
 
-def plausibility_check_experiment_results(experiment_results: ExperimentResults,
-                                          experiment_id: int):
+def plausibility_check_experiment_results(experiment_results: ExperimentResults):
     """Verify the following experiment expectations:
 
     1. a) same waypoint in schedule and re-schedule -> waypoint also in delta re-schedule

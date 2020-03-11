@@ -63,6 +63,7 @@ def _get_route_dag_constraints_for_scheduling(
         freeze_latest=propagate_latest(
             banned_set=set(),
             latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)},
+            earliest_dict={},
             latest_arrival=latest_arrival,
             minimum_travel_time=minimum_travel_time,
             force_freeze_dict={},
