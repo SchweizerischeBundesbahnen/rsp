@@ -27,8 +27,9 @@ def visualize_experiment(
         experiment_parameters: ExperimentParameters,
         experiment_results_analysis: ExperimentResultsAnalysis,
         data_frame: DataFrame,
-        data_folder: str = None,
-        output_folder: str = None,
+        experiment_analysis_directory: str = None,
+        analysis_2d: bool = False,
+        analysis_3d: bool = False,
         flatland_rendering: bool = False,
         convert_to_mpeg: bool = True):
     """Render the experiment the DAGs and the FLATland png/mpeg in the
@@ -40,7 +41,7 @@ def visualize_experiment(
         experiment parameters
     data_frame: DataFrame
         Pandas data frame with one experiment.
-    data_folder
+    experiment_analysis_directory
         Folder to store FLATland pngs and mpeg to
     flatland_rendering
         Flatland rendering?
@@ -69,7 +70,7 @@ def visualize_experiment(
     sum_route_section_penalties_delta_after_malfunction: Dict[int, int] = \
         rows['sum_route_section_penalties_delta_after_malfunction'].iloc[0]
 
-    experiment_output_folder = f"{output_folder}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
+    experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
     route_dag_folder = f"{experiment_output_folder}/Route_Graphs"
     metric_folder = f"{experiment_output_folder}/Metrics"
     rendering_folder = f"{experiment_output_folder}/Rendering"
@@ -104,7 +105,7 @@ def visualize_experiment(
                               k=experiment_parameters.number_of_shortest_paths_per_agent),
             file_name=(os.path.join(route_dag_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
-                       if output_folder is not None else None)
+                       if experiment_analysis_directory is not None else None)
         )
         # delta after malfunction
         visualize_route_dag_constraints(
@@ -126,7 +127,7 @@ def visualize_experiment(
                 eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[agent_id]),
             file_name=(os.path.join(route_dag_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
-                       if output_folder is not None else None)
+                       if experiment_analysis_directory is not None else None)
         )
         # full rescheduling
         visualize_route_dag_constraints(
@@ -148,14 +149,10 @@ def visualize_experiment(
                 eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
             file_name=(os.path.join(route_dag_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
-                       if output_folder is not None else None)
+                       if experiment_analysis_directory is not None else None)
         )
 
     # Generate aggregated visualization
-    save_weg_zeit_diagramm_2d(experiment_data=experiment_results_analysis, output_folder=metric_folder)
-
-    visualize_agent_density(experiment_results_analysis, output_folder=metric_folder)
-
     replay_and_verify_trainruns(data_folder=rendering_folder,
                                 experiment_id=experiment_results_analysis.experiment_id,
                                 expected_malfunction=experiment_results_analysis.malfunction,
@@ -164,7 +161,12 @@ def visualize_experiment(
                                 trainruns=train_runs_full_after_malfunction,
                                 convert_to_mpeg=convert_to_mpeg)
 
-    plot_weg_zeit_diagramm_3d(experiment_results_analysis)
+    if analysis_2d:
+        save_weg_zeit_diagramm_2d(experiment_data=experiment_results_analysis, output_folder=metric_folder)
+        visualize_agent_density(experiment_results_analysis, output_folder=metric_folder)
+
+    if analysis_3d:
+        plot_weg_zeit_diagramm_3d(experiment_results_analysis)
 
 
 def _make_title(agent_id: str,

@@ -128,7 +128,7 @@ def test_regression_experiment_agenda():
                                                                            verbose=True)
 
     hypothesis_one_data_analysis(
-        data_folder=experiment_folder_name,
+        experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
         qualitative_analysis_experiment_ids=[0],
@@ -448,7 +448,7 @@ def test_run_full_pipeline():
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     hypothesis_one_data_analysis(
-        data_folder=experiment_folder_name,
+        experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
         qualitative_analysis_experiment_ids=[0],

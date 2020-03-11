@@ -24,7 +24,7 @@ def _run_experiment_ids_from_agenda(experiment_ids: List[int]):
         show_results_without_details=True,
         verbose=False)
     hypothesis_one_data_analysis(
-        data_folder=experiment_folder_name,
+        experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
         qualitative_analysis_experiment_ids=experiment_ids)
