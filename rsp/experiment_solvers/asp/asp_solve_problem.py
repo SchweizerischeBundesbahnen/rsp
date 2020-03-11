@@ -1,6 +1,5 @@
 """Solve an `asp_problem_description` problem a."""
 import pprint
-import time
 from typing import Tuple
 
 import numpy as np
@@ -52,9 +51,7 @@ def solve_problem(
     # --------------------------------------------------------------------------------------
     # Solve the problem
     # --------------------------------------------------------------------------------------
-    start_solver = time.time()
     solution: ASPSolutionDescription = problem.solve()
-    solve_time = time.time() - start_solver
     assert solution.is_solved()
 
     trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
@@ -64,11 +61,9 @@ def solve_problem(
         print(_pp.pformat(trainruns_dict))
     return SchedulingExperimentResult(
         total_reward=-np.inf,
-        # TODO should we take solve_time from ASP statistics instead of our own elapsed measurement?
-        solve_time=solve_time,
+        solve_time=solution.get_solve_time(),
         optimization_costs=solution.get_objective_value(),
-        # TODO remove? Should we put in total_time - solve_time here from ASP statistics?
-        build_problem_time=0,
+        build_problem_time=solution.get_preprocessing_time(),
         nb_conflicts=solution.extract_nb_resource_conflicts(),
         trainruns_dict=solution.get_trainruns_dict(),
         route_dag_constraints=problem.tc.route_dag_constraints_dict,

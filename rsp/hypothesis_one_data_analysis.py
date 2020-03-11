@@ -14,7 +14,6 @@ Hypothesis 2:
 from typing import Dict
 from typing import List
 
-import numpy as np
 import pandas as pd
 from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
@@ -25,14 +24,12 @@ from rsp.utils.analysis_tools import average_over_grid_id
 from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_pandas_series_experiment_results
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
 from rsp.utils.experiments import load_experiment_agenda_from_file
-from rsp.utils.file_utils import check_create_folder
 
 
 def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: str = None):
@@ -135,43 +132,6 @@ def _3d_analysis(averaged_data: DataFrame, std_data: DataFrame):
                                    subplot_pos='221', )
     fig.set_size_inches(15, 15)
     plt.show()
-
-
-# TODO SIM-250 we should work with malfunction ranges instead of repeating the same experiment under different ids
-def _malfunction_analysis(experiment_data: DataFrame):
-    # add column 'malfunction_time_step'
-    experiment_data['malfunction_time_step'] = 0.0
-    experiment_data['experiment_id_group'] = 0.0
-    experiment_data['malfunction_time_step'] = experiment_data['malfunction_time_step'].astype(float)
-    experiment_data['malfunction_time_step'] = experiment_data['experiment_id_group'].astype(float)
-    for index, row in experiment_data.iterrows():
-        experiment_results = convert_pandas_series_experiment_results(row)
-        time_step = float(experiment_results.malfunction.time_step)
-        experiment_data.at[index, 'malfunction_time_step'] = time_step
-        experiment_data.at[index, 'experiment_id_group'] = str(row['experiment_id']).split("_")[0]
-    print(experiment_data.dtypes)
-
-    # filter 'malfunction_time_step' <150
-    experiment_data = experiment_data[experiment_data['malfunction_time_step'] < 150]
-
-    # preview
-    print(experiment_data['malfunction_time_step'])
-    print(experiment_data['experiment_id_group'])
-    malfunction_ids = np.unique(experiment_data['experiment_id_group'].to_numpy())
-    print(malfunction_ids)
-
-    # malfunction analysis where malfunction is encoded in experiment id
-    check_create_folder('malfunction')
-    for i in malfunction_ids:
-        fig = plt.figure(constrained_layout=True)
-        experiment_data_i = experiment_data[experiment_data['experiment_id_group'] == i]
-        two_dimensional_scatter_plot(data=experiment_data_i,
-                                     columns=['malfunction_time_step', 'time_full_after_malfunction'],
-                                     fig=fig,
-                                     title='malfunction_time_step - time_full_after_malfunction ' + str(i)
-                                     )
-        plt.savefig(f'malfunction/malfunction_{int(i):03d}.png')
-        plt.close()
 
 
 def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis], output_folder=str):
