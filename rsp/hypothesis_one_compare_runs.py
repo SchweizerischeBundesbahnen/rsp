@@ -102,6 +102,8 @@ def _scatter_for_two_runs(experiment_data1: DataFrame,
 
 
 if __name__ == '__main__':
+    # allow for non-matching pkl files
+    # this should be safe here since we only consider solve times and solution costs
     COMPATIBILITY_MODE = True
     compare_runtimes(
         data_folder1='./exp_hypothesis_one_2020_03_04T19_19_00',
