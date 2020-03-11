@@ -1,6 +1,7 @@
 """Data types used in the experiment for the real time rescheduling research
 project."""
 import pprint
+import warnings
 from functools import reduce
 from operator import mul
 from typing import Dict
@@ -231,13 +232,13 @@ def expand_experiment_results_for_analysis(
     nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
     speed_up = time_full_after_malfunction / time_delta_after_malfunction
     # search space indiciators
-    factor_resource_conflicts = 0
+    factor_resource_conflicts = -1
     try:
         factor_resource_conflicts = \
             nb_resource_conflicts_delta_after_malfunction / \
             nb_resource_conflicts_full_after_malfunction
-    except ZeroDivisionError as e:
-        print(f"experiment {experiment_id}: {str(e)}:\n  {experiment_results}")
+    except ZeroDivisionError:
+        warnings.warn(f"no resource conflicts for experiment {experiment_id} -> set ratio to -1:\n{experiment_results}")
     path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = extract_path_search_space(
         experiment_results=experiment_results)
     factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
