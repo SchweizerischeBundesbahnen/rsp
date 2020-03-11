@@ -36,8 +36,8 @@ def compute_encounter_graph_undirected():
         train_schedule_dict_full_after_malfunction = convert_trainrundict_to_entering_positions_for_all_timesteps(
             trainrun_dict_full_after_malfunction)
 
-        distance_matrix_full = compute_undirected_distance_matrix(trainrun_dict_full, train_schedule_dict_full)
-        distance_matrix_full_after_malfunction = compute_undirected_distance_matrix(
+        distance_matrix_full, additional_info = compute_undirected_distance_matrix(trainrun_dict_full, train_schedule_dict_full)
+        distance_matrix_full_after_malfunction, additional_info_after_malfunction = compute_undirected_distance_matrix(
             trainrun_dict_full_after_malfunction,
             train_schedule_dict_full_after_malfunction)
         distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)

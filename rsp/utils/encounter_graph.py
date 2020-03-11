@@ -17,7 +17,7 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
     # if the time window of the two trains do not overlap -> no relationship between trains
     if train_0_end_time < train_1_start_time or train_1_end_time < train_0_start_time:
-        return 0, 0
+        return 0, 0, 0, 0
 
     # some timesteps overlap -> find out which ones
     if train_0_start_time <= train_1_start_time:
@@ -45,25 +45,34 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
     # first heuristic -> get the smallest distance
     # todo: try different features
     dist_between_trains = np.min(distances_in_time_window)
+    index_min_dist = np.argmin(distances_in_time_window)
+    time_of_min = start_time_step + index_min_dist
+    train_0_position_at_min = train_0_positions[int(index_min_dist)]
+    train_1_position_at_min = train_1_positions[int(index_min_dist)]
 
-    return 1. / dist_between_trains, len(train_0_positions)
+    return 1. / dist_between_trains, time_of_min, train_0_position_at_min, train_1_position_at_min
 
 
-def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict, train_schedule_dict: TrainScheduleDict) -> np.ndarray:
+def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
+                                       train_schedule_dict: TrainScheduleDict) -> np.ndarray:
     number_of_trains = len(trainrun_dict)
     distance_matrix = np.zeros((number_of_trains, number_of_trains))
 
+    additional_info = {}
     for row, train_schedule_row in train_schedule_dict.items():
         for column, train_schedule_column in train_schedule_dict.items():
             if column > row:
                 train_run_row = trainrun_dict.get(row)
                 train_run_column = trainrun_dict.get(column)
-                distance, overlapping_length = undirected_distance_between_trains(train_schedule_row, train_run_row,
-                                                                                  train_schedule_column, train_run_column)
+                distance, time_of_min, train_0_position_at_min, train_1_position_at_min = \
+                    undirected_distance_between_trains(
+                        train_schedule_row, train_run_row,
+                        train_schedule_column, train_run_column)
                 distance_matrix[row, column] = distance
                 distance_matrix[column, row] = distance
-
-    return distance_matrix
+                additional_info[(row, column)] = (
+                    distance, time_of_min, train_0_position_at_min, train_1_position_at_min)
+    return distance_matrix, additional_info
 
 
 def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, file_name: str, pos: dict = None):
@@ -86,7 +95,7 @@ def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, fil
 
     # draw edges with corresponding weights
     for edge in graph.edges(data=True):
-        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight']*5.)
+        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
 
     # draw labels
     nx.draw_networkx_labels(graph, pos, font_size=10, font_family='sans-serif')
