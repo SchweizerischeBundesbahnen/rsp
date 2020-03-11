@@ -124,7 +124,8 @@ def test_regression_experiment_agenda():
                              )])
 
     # Import the solver for the experiments
-    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False, verbose=True)
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False,
+                                                                           verbose=True)
 
     hypothesis_one_data_analysis(
         data_folder=experiment_folder_name,
@@ -387,7 +388,8 @@ def test_save_and_load_experiment_results():
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     # load results
-    loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(experiment_data_folder)
+    loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        experiment_data_folder)
     delete_experiment_folder(experiment_folder_name)
 
     experiment_results_list = []
