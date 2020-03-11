@@ -12,6 +12,9 @@ from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.utils.analysis_tools import plot_weg_zeit_diagramm_3d
+from rsp.utils.analysis_tools import save_weg_zeit_diagramm_2d
+from rsp.utils.analysis_tools import visualize_agent_density
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResultsAnalysis
@@ -24,7 +27,9 @@ def visualize_experiment(
         experiment_parameters: ExperimentParameters,
         experiment_results_analysis: ExperimentResultsAnalysis,
         data_frame: DataFrame,
-        data_folder: str = None,
+        experiment_analysis_directory: str = None,
+        analysis_2d: bool = False,
+        analysis_3d: bool = False,
         flatland_rendering: bool = False,
         convert_to_mpeg: bool = True):
     """Render the experiment the DAGs and the FLATland png/mpeg in the
@@ -36,7 +41,7 @@ def visualize_experiment(
         experiment parameters
     data_frame: DataFrame
         Pandas data frame with one experiment.
-    data_folder
+    experiment_analysis_directory
         Folder to store FLATland pngs and mpeg to
     flatland_rendering
         Flatland rendering?
@@ -65,8 +70,16 @@ def visualize_experiment(
     sum_route_section_penalties_delta_after_malfunction: Dict[int, int] = \
         rows['sum_route_section_penalties_delta_after_malfunction'].iloc[0]
 
-    experiment_output_folder = f"{data_folder}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
+    experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
+    route_dag_folder = f"{experiment_output_folder}/Route_Graphs"
+    metric_folder = f"{experiment_output_folder}/Metrics"
+    rendering_folder = f"{experiment_output_folder}/Rendering"
+
+    # Check and create the folders
     check_create_folder(experiment_output_folder)
+    check_create_folder(route_dag_folder)
+    check_create_folder(metric_folder)
+    check_create_folder(rendering_folder)
 
     for agent_id in problem_rsp_delta.route_dag_constraints_dict.keys():
         # IMPORTANT: we visualize with respect to the full schedule DAG,
@@ -90,9 +103,9 @@ def visualize_experiment(
             title=_make_title(agent_id, experiment_parameters, malfunction, n_agents, topo,
                               problem_schedule.route_dag_constraints_dict[agent_id],
                               k=experiment_parameters.number_of_shortest_paths_per_agent),
-            file_name=(os.path.join(experiment_output_folder,
+            file_name=(os.path.join(route_dag_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
-                       if data_folder is not None else None)
+                       if experiment_analysis_directory is not None else None)
         )
         # delta after malfunction
         visualize_route_dag_constraints(
@@ -112,9 +125,9 @@ def visualize_experiment(
                 costs=costs_delta_after_malfunction,
                 eff_lateness_agent=lateness_delta_after_malfunction[agent_id],
                 eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[agent_id]),
-            file_name=(os.path.join(experiment_output_folder,
+            file_name=(os.path.join(route_dag_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
-                       if data_folder is not None else None)
+                       if experiment_analysis_directory is not None else None)
         )
         # full rescheduling
         visualize_route_dag_constraints(
@@ -134,18 +147,26 @@ def visualize_experiment(
                 costs=costs_full_after_malfunction,
                 eff_lateness_agent=lateness_full_after_malfunction[agent_id],
                 eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
-            file_name=(os.path.join(experiment_output_folder,
+            file_name=(os.path.join(route_dag_folder,
                                     f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
-                       if data_folder is not None else None)
+                       if experiment_analysis_directory is not None else None)
         )
 
-    replay_and_verify_trainruns(data_folder=data_folder,
+    # Generate aggregated visualization
+    replay_and_verify_trainruns(data_folder=rendering_folder,
                                 experiment_id=experiment_results_analysis.experiment_id,
                                 expected_malfunction=experiment_results_analysis.malfunction,
                                 rendering=flatland_rendering,
                                 rail_env=malfunction_rail_env,
                                 trainruns=train_runs_full_after_malfunction,
                                 convert_to_mpeg=convert_to_mpeg)
+
+    if analysis_2d:
+        save_weg_zeit_diagramm_2d(experiment_data=experiment_results_analysis, output_folder=metric_folder)
+        visualize_agent_density(experiment_results_analysis, output_folder=metric_folder)
+
+    if analysis_3d:
+        plot_weg_zeit_diagramm_3d(experiment_results_analysis)
 
 
 def _make_title(agent_id: str,

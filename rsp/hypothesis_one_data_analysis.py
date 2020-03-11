@@ -28,8 +28,11 @@ from rsp.utils.data_types import convert_pandas_series_experiment_results_analys
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
+from rsp.utils.experiments import EXPERIMENT_ANALYSIS_DIRECTORY_NAME
+from rsp.utils.experiments import EXPERIMENT_DATA_DIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
 from rsp.utils.experiments import load_experiment_agenda_from_file
+from rsp.utils.file_utils import check_create_folder
 
 
 def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: str = None):
@@ -258,18 +261,17 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
                                      )
 
 
-def hypothesis_one_data_analysis(data_folder: str,
+def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  analysis_2d: bool = False,
                                  analysis_3d: bool = False,
-                                 qualitative_analysis_experiment_ids: List[str] = None,
-                                 flatland_rendering: bool = True,
-                                 debug: bool = False
+                                 qualitative_analysis_experiment_ids: List[int] = None,
+                                 flatland_rendering: bool = True
                                  ):
     """
 
     Parameters
     ----------
-    data_folder
+    experiment_base_directory
     analysis_2d
     analysis_3d
     qualitative_analysis_experiment_ids
@@ -277,12 +279,18 @@ def hypothesis_one_data_analysis(data_folder: str,
     debug
     """
     # Import the desired experiment results
-    experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
-    print(experiment_agenda)
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
-        data_folder)
-    print(data_folder)
+    experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_DIRECTORY_NAME}/'
+    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_DIRECTORY_NAME}'
 
+    # Create output directoreis
+    check_create_folder(experiment_analysis_directory)
+
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        experiment_data_directory)
+    experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(experiment_data_directory)
+
+    print(experiment_data_directory)
+    print(experiment_agenda)
     # Plausibility tests on experiment data
     _run_plausibility_tests_on_experiment_data(experiment_results_list)
 
@@ -304,8 +312,8 @@ def hypothesis_one_data_analysis(data_folder: str,
 
     # quantitative analysis
     if analysis_2d:
-        _2d_analysis(averaged_data, std_data, output_folder=data_folder)
-        _asp_plausi_analysis(experiment_results_list, output_folder=data_folder)
+        _2d_analysis(averaged_data, std_data, output_folder=experiment_analysis_directory)
+        _asp_plausi_analysis(experiment_results_list, output_folder=experiment_analysis_directory)
     if analysis_3d:
         _3d_analysis(averaged_data, std_data)
 
@@ -318,11 +326,14 @@ def hypothesis_one_data_analysis(data_folder: str,
             row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
             experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
                 row)
+
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  data_frame=experiment_data,
                                  experiment_results_analysis=experiment_results_analysis,
-                                 data_folder=data_folder,
+                                 experiment_analysis_directory=experiment_analysis_directory,
+                                 analysis_2d=analysis_2d,
+                                 analysis_3d=analysis_3d,
                                  flatland_rendering=flatland_rendering)
 
 
@@ -361,7 +372,7 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='./exp_hypothesis_one_2020_03_03T08_01_36',
+    hypothesis_one_data_analysis(experiment_base_directory='./exp_hypothesis_one_2020_03_04T19_19_00',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  qualitative_analysis_experiment_ids=[12]
