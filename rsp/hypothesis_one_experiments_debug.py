@@ -27,10 +27,9 @@ def _run_experiment_ids_from_agenda(experiment_ids: List[int]):
         data_folder=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        malfunction_analysis=False,
         qualitative_analysis_experiment_ids=experiment_ids)
 
 
 if __name__ == '__main__':
-    experiment_ids = [0, 1, 2, 3, 12]
+    experiment_ids = [270]
     _run_experiment_ids_from_agenda(experiment_ids)
