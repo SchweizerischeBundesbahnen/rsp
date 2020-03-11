@@ -49,7 +49,7 @@ def schedule_experiment_results_equals_modulo_solve_time(s1: SchedulingExperimen
     """Tests whether two `ScheduleExperimentResults' are the equal except for
     solve_time."""
     for index, slot in enumerate(s1._fields):
-        if slot in ['solve_time', 'solver_statistics']:
+        if slot in ['solve_time', 'build_problem_time', 'solver_statistics']:
             continue
         elif s1[index] != s2[index]:
             return False
