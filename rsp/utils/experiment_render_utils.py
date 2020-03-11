@@ -156,7 +156,7 @@ def visualize_experiment(
 
     visualize_agent_density(experiment_results_analysis, output_folder=metric_folder)
 
-    replay_and_verify_trainruns(data_folder=data_folder,
+    replay_and_verify_trainruns(data_folder=rendering_folder,
                                 experiment_id=experiment_results_analysis.experiment_id,
                                 expected_malfunction=experiment_results_analysis.malfunction,
                                 rendering=flatland_rendering,
