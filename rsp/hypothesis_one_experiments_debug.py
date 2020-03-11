@@ -17,14 +17,14 @@ def _run_experiment_ids_from_agenda(experiment_ids: List[int]):
                                                  experiments_per_grid_element=1)
 
     # Run experiments
-    experiment_folder_name = run_experiment_agenda(
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         experiment_ids=experiment_ids,
         run_experiments_parallel=False,
         show_results_without_details=True,
         verbose=False)
     hypothesis_one_data_analysis(
-        data_folder=experiment_folder_name,
+        experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
         qualitative_analysis_experiment_ids=experiment_ids)

@@ -58,7 +58,7 @@ if __name__ == '__main__':
     )
 
     # B. Experiments: setup, then run
-    experiment_folder_name = run_experiment_agenda(
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=True,
         show_results_without_details=False,
@@ -66,8 +66,8 @@ if __name__ == '__main__':
 
     # C. Experiment Analysis
     hypothesis_one_data_analysis(
-        data_folder=experiment_folder_name,
+        experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        qualitative_analysis_experiment_ids=range(len(experiment_agenda.experiments))
+        qualitative_analysis_experiment_ids=[]
     )
