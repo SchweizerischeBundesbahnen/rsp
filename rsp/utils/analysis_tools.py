@@ -190,7 +190,7 @@ def two_dimensional_scatter_plot(data: DataFrame,  # noqa: C901
 
     if fig is None:
         fig = plt.figure()
-        fig.set_size_inches(w=15, h=15)
+        fig.set_size_inches(w=30, h=30)
 
     ax: axes.Axes = fig.add_subplot(subplot_pos)
     if title:

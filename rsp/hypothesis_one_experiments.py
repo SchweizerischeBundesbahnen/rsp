@@ -61,7 +61,7 @@ if __name__ == '__main__':
     experiment_folder_name = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=True,
-        show_results_without_details=False,
+        show_results_without_details=True,
         verbose=False)
 
     # C. Experiment Analysis
@@ -70,5 +70,5 @@ if __name__ == '__main__':
         analysis_2d=True,
         analysis_3d=False,
         malfunction_analysis=False,
-        qualitative_analysis_experiment_ids=range(len(experiment_agenda.experiments))
+        qualitative_analysis_experiment_ids=[]
     )

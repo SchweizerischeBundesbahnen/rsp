@@ -175,39 +175,63 @@ def _malfunction_analysis(experiment_data: DataFrame):
 
 
 def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis], output_folder=str):
+    def _catch_zero_division_error_as_minus_one(l):
+        try:
+            return l()
+        except ZeroDivisionError:
+            return -1
+
     data_frame = pd.DataFrame(data=[
         {
             'experiment_id': r.experiment_id,
             'solve_total_ratio_full':
-                r.results_full.solver_statistics["summary"]["times"]["solve"] /
-                r.results_full.solver_statistics["summary"]["times"]["total"],
+                _catch_zero_division_error_as_minus_one(
+                    lambda:
+                    r.results_full.solver_statistics["summary"]["times"]["solve"] /
+                    r.results_full.solver_statistics["summary"]["times"]["total"]
+                ),
             'solve_time_full':
                 r.results_full.solver_statistics["summary"]["times"]["solve"],
             'total_time_full':
                 r.results_full.solver_statistics["summary"]["times"]["total"],
             'choice_conflict_ratio_full':
-                r.results_full.solver_statistics["solving"]["solvers"]["choices"] /
-                r.results_full.solver_statistics["solving"]["solvers"]["conflicts"],
+                _catch_zero_division_error_as_minus_one(
+                    lambda:
+                    r.results_full.solver_statistics["solving"]["solvers"]["choices"] /
+                    r.results_full.solver_statistics["solving"]["solvers"]["conflicts"]
+                ),
             'solve_total_ratio_full_after_malfunction':
-                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
-                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"],
+                _catch_zero_division_error_as_minus_one(
+                    lambda:
+                    r.results_full_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
+                    r.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+                ),
             'solve_time_full_after_malfunction':
                 r.results_full_after_malfunction.solver_statistics["summary"]["times"]["solve"],
             'total_time_full_after_malfunction':
                 r.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"],
             'choice_conflict_ratio_full_after_malfunction':
-                r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
-                r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"],
+                _catch_zero_division_error_as_minus_one(
+                    lambda:
+                    r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
+                    r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
+                ),
             'solve_total_ratio_delta_after_malfunction':
-                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
-                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"],
+                _catch_zero_division_error_as_minus_one(
+                    lambda:
+                    r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
+                    r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+                ),
             'solve_time_delta_after_malfunction':
                 r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["solve"],
             'total_time_delta_after_malfunction':
                 r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"],
             'choice_conflict_ratio_delta_after_malfunction':
-                r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
-                r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
+                _catch_zero_division_error_as_minus_one(
+                    lambda:
+                    r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
+                    r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
+                )
 
         }
         for r in experiment_results_list])
@@ -258,12 +282,11 @@ def hypothesis_one_data_analysis(data_folder: str,
     debug
     """
     # Import the desired experiment results
+    experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
+    print(experiment_agenda)
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
         data_folder)
-    experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(data_folder)
-
     print(data_folder)
-    print(experiment_agenda)
 
     # Plausibility tests on experiment data
     _run_plausibility_tests_on_experiment_data(experiment_results_list)
@@ -345,9 +368,10 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(data_folder='exp_hypothesis_one_2020_03_10T17_11_35',
-                                 analysis_2d=True,
-                                 analysis_3d=False,
-                                 malfunction_analysis=False,
-                                 qualitative_analysis_experiment_ids=[]
-                                 )
+    hypothesis_one_data_analysis(
+        data_folder='exp_hypothesis_one_2020_03_10T22_10_19',
+        analysis_2d=True,
+        analysis_3d=False,
+        malfunction_analysis=False,
+        qualitative_analysis_experiment_ids=[]
+    )

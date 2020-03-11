@@ -1,5 +1,6 @@
 """Solve an `asp_problem_description` problem a."""
 import pprint
+import time
 from typing import Tuple
 
 import numpy as np
@@ -10,7 +11,6 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.route_dag.route_dag import get_paths_in_route_dag
-from rsp.utils.general_utils import current_milli_time
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -52,12 +52,9 @@ def solve_problem(
     # --------------------------------------------------------------------------------------
     # Solve the problem
     # --------------------------------------------------------------------------------------
-    start_build_problem = current_milli_time()
-    build_problem_time = (current_milli_time() - start_build_problem) / 1000.0
-
-    start_solver = current_milli_time()
+    start_solver = time.time()
     solution: ASPSolutionDescription = problem.solve()
-    solve_time = (current_milli_time() - start_solver) / 1000.0
+    solve_time = time.time() - start_solver
     assert solution.is_solved()
 
     trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
@@ -67,9 +64,11 @@ def solve_problem(
         print(_pp.pformat(trainruns_dict))
     return SchedulingExperimentResult(
         total_reward=-np.inf,
+        # TODO should we take solve_time from ASP statistics instead of our own elapsed measurement?
         solve_time=solve_time,
         optimization_costs=solution.get_objective_value(),
-        build_problem_time=build_problem_time,
+        # TODO remove? Should we put in total_time - solve_time here from ASP statistics?
+        build_problem_time=0,
         nb_conflicts=solution.extract_nb_resource_conflicts(),
         trainruns_dict=solution.get_trainruns_dict(),
         route_dag_constraints=problem.tc.route_dag_constraints_dict,

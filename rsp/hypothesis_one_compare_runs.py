@@ -52,6 +52,14 @@ def compare_runtimes(data_folder1: str,
              experiment_data2=experiment_data2,
              data_folder=data_folder1,
              column='time_delta_after_malfunction')
+    _scatter(experiment_data1=experiment_data1,
+             experiment_data2=experiment_data2,
+             data_folder=data_folder1,
+             column='costs_full_after_malfunction')
+    _scatter(experiment_data1=experiment_data1,
+             experiment_data2=experiment_data2,
+             data_folder=data_folder1,
+             column='costs_delta_after_malfunction')
 
 
 def _scatter(experiment_data1: DataFrame,
@@ -74,6 +82,6 @@ def _scatter(experiment_data1: DataFrame,
 if __name__ == '__main__':
     compare_runtimes(
         data_folder1='./exp_hypothesis_one_2020_03_04T19_19_00',
-        data_folder2='./exp_hypothesis_one_2020_03_08T20_48_31',
+        data_folder2='./exp_hypothesis_one_2020_03_10T22_10_19',
         experiment_ids=[]
     )
