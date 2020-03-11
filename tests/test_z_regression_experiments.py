@@ -130,7 +130,6 @@ def test_regression_experiment_agenda():
         data_folder=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        malfunction_analysis=False,
         qualitative_analysis_experiment_ids=[0],
         flatland_rendering=False
     )
@@ -451,7 +450,6 @@ def test_run_full_pipeline():
         data_folder=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        malfunction_analysis=False,
         qualitative_analysis_experiment_ids=[0],
         flatland_rendering=False
     )
