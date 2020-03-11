@@ -172,6 +172,8 @@ def two_dimensional_scatter_plot(data: DataFrame,  # noqa: C901
         Group data points by this column and draw a bar between consecutive data points.
     baseline_data
         data points that define a baseline. Visualized by a bar
+    baseline_column
+        take this column from `data` as `baseline_data`
     output_folder
         Save plot to this folder.
     title
@@ -269,6 +271,8 @@ def _2d_plot_errorbars(ax: axes.Axes, columns: DataFrame.columns, error: DataFra
 
 def _2d_plot_baseline(ax: axes.Axes, y_values_baseline: Series, x_values: Series, y_values: Series):
     """Plot baseline y values and draw a line to the data points."""
+
+    # draw baseline where data for both available
     for i in np.arange(0, min(len(y_values), len(y_values_baseline))):
         ax.plot([x_values[i], x_values[i]],
                 [y_values_baseline[i], y_values[i]], marker="_")

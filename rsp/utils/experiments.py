@@ -43,10 +43,12 @@ from typing import Tuple
 import numpy as np
 import tqdm as tqdm
 from flatland.envs.rail_env import RailEnv
+from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -515,6 +517,24 @@ def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) 
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
 
     return experiment_results_list
+
+
+def load_without_average(data_folder: str) -> DataFrame:
+    """Load all data from the folder, expand and convert to data frame.
+
+    Parameters
+    ----------
+    data_folder: str
+        folder with pkl files.
+
+    Returns
+    -------
+    DataFrame
+    """
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        data_folder)
+    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+    return experiment_data
 
 
 def delete_experiment_folder(experiment_folder_name: str):
