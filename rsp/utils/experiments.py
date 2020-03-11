@@ -277,7 +277,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     # remove tee
     reset_tee(stdout_orig)
-    return experiment_data_folder
+    return experiment_folder_name
 
 
 def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
