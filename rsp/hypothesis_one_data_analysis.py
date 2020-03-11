@@ -184,6 +184,8 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
     data_frame = pd.DataFrame(data=[
         {
             'experiment_id': r.experiment_id,
+
+            # scheduling = full # noqa E800
             'solve_total_ratio_full':
                 _catch_zero_division_error_as_minus_one(
                     lambda:
@@ -200,6 +202,14 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
                     r.results_full.solver_statistics["solving"]["solvers"]["choices"] /
                     r.results_full.solver_statistics["solving"]["solvers"]["conflicts"]
                 ),
+            'user_accu_propagations_full':
+                sum(map(lambda d: d["Propagation(s)"],
+                        r.results_full.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
+            'user_step_propagations_full':
+                sum(map(lambda d: d["Propagation(s)"],
+                        r.results_full.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
+
+            # re-scheduling without delta = full_after_malfunction
             'solve_total_ratio_full_after_malfunction':
                 _catch_zero_division_error_as_minus_one(
                     lambda:
@@ -216,6 +226,14 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
                     r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
                     r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
                 ),
+            'user_accu_propagations_full_after_malfunction':
+                sum(map(lambda d: d["Propagation(s)"],
+                        r.results_full_after_malfunction.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
+            'user_step_propagations_full_after_malfunction':
+                sum(map(lambda d: d["Propagation(s)"],
+                        r.results_full_after_malfunction.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
+
+            # re-scheduling with delta = delta_after_malfunction
             'solve_total_ratio_delta_after_malfunction':
                 _catch_zero_division_error_as_minus_one(
                     lambda:
@@ -231,8 +249,13 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
                     lambda:
                     r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
                     r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
-                )
-
+                ),
+            'user_accu_propagations_delta_after_malfunction':
+                sum(map(lambda d: d["Propagation(s)"],
+                        r.results_delta_after_malfunction.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
+            'user_step_propagations_delta_after_malfunction':
+                sum(map(lambda d: d["Propagation(s)"],
+                        r.results_delta_after_malfunction.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
         }
         for r in experiment_results_list])
     for item in ['full', 'full_after_malfunction', 'delta_after_malfunction']:
@@ -246,11 +269,25 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
         two_dimensional_scatter_plot(data=data_frame,
                                      columns=['experiment_id', 'solve_total_ratio_' + item],
                                      baseline_column='solve_time_' + item,
-                                     title='absolute comparison of solve and total solver time for ' + item,
+                                     title='absolute comparison of total solver time and solve_time (b) for ' + item,
                                      output_folder=output_folder,
                                      link_column=None
                                      )
-        # TODO SIM-365 propagation time
+        # 2. propagation times should be low in comparison to solve times
+        two_dimensional_scatter_plot(data=data_frame,
+                                     columns=['experiment_id', 'solve_time_' + item],
+                                     baseline_column='user_accu_propagations_' + item,
+                                     title='comparison of absolute values of solve_time against summed propagation times of user accu (b) ' + item,
+                                     output_folder=output_folder,
+                                     link_column=None
+                                     )
+        two_dimensional_scatter_plot(data=data_frame,
+                                     columns=['experiment_id', 'solve_time_' + item],
+                                     baseline_column='user_step_propagations_' + item,
+                                     title='comparison of absolute values of solve_time against summed propagation times of user step (b) ' + item,
+                                     output_folder=output_folder,
+                                     link_column=None
+                                     )
 
         # 3. choice conflict ratio should be close to 1; if the ratio is high, the problem might be large, but not difficult
         two_dimensional_scatter_plot(data=data_frame,

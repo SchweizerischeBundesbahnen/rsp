@@ -221,7 +221,11 @@ def two_dimensional_scatter_plot(data: DataFrame,  # noqa: C901
     if file_name is not None:
         plt.savefig(file_name)
     elif output_folder is not None:
-        plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_' + '_'.join(columns) + '.png'))
+        columns_for_file_name = list(columns)
+        if baseline_column is not None:
+            columns_for_file_name.append(baseline_column)
+        file_name = 'experiment_agenda_analysis_' + '_'.join(columns_for_file_name) + '.png'
+        plt.savefig(os.path.join(output_folder, file_name))
 
 
 def _2d_plot_label_scatterpoints(ax: axes.Axes, experiment_ids: Series, x_values: Series, y_values: Series,
