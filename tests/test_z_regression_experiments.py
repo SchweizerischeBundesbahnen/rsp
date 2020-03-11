@@ -124,19 +124,19 @@ def test_regression_experiment_agenda():
                              )])
 
     # Import the solver for the experiments
-    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False, verbose=True)
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False,
+                                                                           verbose=True)
 
     hypothesis_one_data_analysis(
-        data_folder=experiment_folder_name,
+        experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        malfunction_analysis=False,
         qualitative_analysis_experiment_ids=[0],
         flatland_rendering=False
     )
 
     # load results
-    experiment_results_for_analysis = load_and_expand_experiment_results_from_folder(experiment_folder_name)
+    experiment_results_for_analysis = load_and_expand_experiment_results_from_folder(experiment_data_folder)
     delete_experiment_folder(experiment_folder_name)
     result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
@@ -384,11 +384,11 @@ def test_save_and_load_experiment_results():
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)])
 
     solver = ASPExperimentSolver()
-    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     # load results
     loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
-        experiment_folder_name)
+        experiment_data_folder)
     delete_experiment_folder(experiment_folder_name)
 
     experiment_results_list = []
@@ -445,13 +445,12 @@ def test_run_full_pipeline():
                                          max_window_size_from_earliest=[np.inf, np.inf, 1]),
         speed_data={1: 1.0},
     )
-    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=False)
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     hypothesis_one_data_analysis(
-        data_folder=experiment_folder_name,
+        experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        malfunction_analysis=False,
         qualitative_analysis_experiment_ids=[0],
         flatland_rendering=False
     )
@@ -599,7 +598,7 @@ def test_parallel_experiment_execution():
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf)])
 
-    experiment_folder_name = run_experiment_agenda(agenda, run_experiments_parallel=True)
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=True)
     delete_experiment_folder(experiment_folder_name)
 
 

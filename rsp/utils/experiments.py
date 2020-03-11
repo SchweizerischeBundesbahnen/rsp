@@ -62,6 +62,9 @@ from rsp.utils.tee import tee_stdout_to_file
 
 _pp = pprint.PrettyPrinter(indent=4)
 
+EXPERIMENT_DATA_DIRECTORY_NAME = "Data"
+EXPERIMENT_ANALYSIS_DIRECTORY_NAME = "Analysis"
+
 
 def run_experiment(solver: ASPExperimentSolver,
                    experiment_parameters: ExperimentParameters,
@@ -190,7 +193,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
-                          verbose: bool = False) -> str:
+                          verbose: bool = False) -> (str, str):
     """Run a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
 
@@ -211,11 +214,14 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     -------
     Returns the name of the experiment folder
     """
-    experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
-    check_create_folder(experiment_folder_name)
+    experiment_base_directory = create_experiment_folder_name(experiment_agenda.experiment_name)
+    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_DIRECTORY_NAME}'
+
+    check_create_folder(experiment_base_directory)
+    check_create_folder(experiment_data_directory)
 
     # tee stdout to log file
-    stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_folder_name, "log.txt"))
+    stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_data_directory, "log.txt"))
 
     if experiment_ids is not None:
         filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
@@ -225,7 +231,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             experiments=list(experiments_filtered)
         )
 
-    save_experiment_agenda_and_hash_to_file(experiment_folder_name, experiment_agenda)
+    save_experiment_agenda_and_hash_to_file(experiment_data_directory, experiment_agenda)
 
     solver = ASPExperimentSolver()
 
@@ -235,7 +241,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                                       solver=solver,
                                                       verbose=verbose,
                                                       show_results_without_details=show_results_without_details,
-                                                      experiment_folder_name=experiment_folder_name
+                                                      experiment_folder_name=experiment_data_directory
                                                       )
         pool.map(run_and_save_one_experiment_partial, experiment_agenda.experiments)
     else:
@@ -244,12 +250,12 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                         solver,
                                         verbose,
                                         show_results_without_details,
-                                        experiment_folder_name,
+                                        experiment_data_directory,
                                         rendering=rendering)
 
     # remove tee
     reset_tee(stdout_orig)
-    return experiment_folder_name
+    return experiment_base_directory, experiment_data_directory
 
 
 def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
