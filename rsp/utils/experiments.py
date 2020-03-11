@@ -64,7 +64,7 @@ from rsp.utils.tee import tee_stdout_to_file
 
 _pp = pprint.PrettyPrinter(indent=4)
 
-EXPERIMENT_AGENDA_DIRECTORY_NAME = "Data"
+EXPERIMENT_AGENDA_DIRECTORY_NAME = "Agenda"
 EXPERIMENT_DATA_DIRECTORY_NAME = "Data"
 EXPERIMENT_ANALYSIS_DIRECTORY_NAME = "Analysis"
 
@@ -308,7 +308,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                 solver: ASPExperimentSolver,
                                 verbose: bool,
                                 show_results_without_details: bool,
-                                experiment_folder_name: str,
+                                experiment_base_directory: str,
                                 rendering: bool = False):
     """B. Run and save one experiment from experiment parameters.
 
@@ -318,16 +318,19 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     solver
     verbose
     show_results_without_details
-    experiment_folder_name
+    experiment_base_directory
     rendering
     """
     try:
-        filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+        experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_DIRECTORY_NAME}'
+        check_create_folder(experiment_data_directory)
+
+        filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
         experiment_results: ExperimentResults = run_experiment(solver=solver,
                                                                experiment_parameters=current_experiment_parameters,
                                                                rendering=rendering,
                                                                verbose=verbose,
-                                                               experiment_base_directory=experiment_folder_name,
+                                                               experiment_base_directory=experiment_base_directory,
                                                                show_results_without_details=show_results_without_details)
         save_experiment_results_to_file(experiment_results, filename)
     except Exception as e:
@@ -402,18 +405,18 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                                       solver=solver,
                                                       verbose=verbose,
                                                       show_results_without_details=show_results_without_details,
-                                                      experiment_folder_name=experiment_data_directory
+                                                      experiment_base_directory=experiment_base_directory
                                                       )
         for _ in tqdm.tqdm(pool.imap_unordered(run_and_save_one_experiment_partial, experiment_agenda.experiments),
                            total=len(experiment_agenda.experiments)):
             pass
     else:
         for current_experiment_parameters in tqdm.tqdm(experiment_agenda.experiments):
-            run_and_save_one_experiment(current_experiment_parameters,
-                                        solver,
-                                        verbose,
-                                        show_results_without_details,
-                                        experiment_data_directory,
+            run_and_save_one_experiment(current_experiment_parameters=current_experiment_parameters,
+                                        solver=solver,
+                                        verbose=verbose,
+                                        show_results_without_details=show_results_without_details,
+                                        experiment_base_directory=experiment_base_directory,
                                         rendering=rendering)
 
     # remove tee

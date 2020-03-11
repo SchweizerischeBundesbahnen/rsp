@@ -98,5 +98,5 @@ if __name__ == '__main__':
     hypothesis_one_pipeline(parameter_ranges=parameter_ranges,
                             speed_data=speed_data,
                             experiment_ids=None,  # no filtering
-                            copy_agenda_from_base_directory='None'  # regenerate schedules
+                            copy_agenda_from_base_directory=None  # regenerate schedules
                             )
