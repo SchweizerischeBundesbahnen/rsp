@@ -309,7 +309,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                 verbose: bool,
                                 show_results_without_details: bool,
                                 experiment_base_directory: str,
-                                rendering: bool = False):
+                                rendering: bool = False) -> List[ExperimentResults]:
     """B. Run and save one experiment from experiment parameters.
 
     Parameters
@@ -333,6 +333,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                                                experiment_base_directory=experiment_base_directory,
                                                                show_results_without_details=show_results_without_details)
         save_experiment_results_to_file(experiment_results, filename)
+        return experiment_results
     except Exception as e:
         print("XXX failed " + filename + " " + str(e))
         traceback.print_exc(file=sys.stdout)
@@ -344,7 +345,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
-                          verbose: bool = False) -> (str, str):
+                          verbose: bool = False) -> (str, str, List[ExperimentResultsAnalysis]):
     """Run a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
 
@@ -382,7 +383,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     if copy_agenda_from_base_directory is not None:
 
-        copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory, EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+        copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
+                                                         EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
         files = os.listdir(copy_agenda_from_agenda_directory)
         print(f"Copying schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
         for file in [file for file in files]:
@@ -413,21 +415,30 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                                       show_results_without_details=show_results_without_details,
                                                       experiment_base_directory=experiment_base_directory
                                                       )
-        for _ in tqdm.tqdm(pool.imap_unordered(run_and_save_one_experiment_partial, experiment_agenda.experiments),
-                           total=len(experiment_agenda.experiments)):
-            pass
+        experiment_results_list = [
+            experiment_results
+            for experiment_results
+            in tqdm.tqdm(
+                pool.imap_unordered(
+                    run_and_save_one_experiment_partial,
+                    experiment_agenda.experiments
+                ),
+                total=len(experiment_agenda.experiments))]
     else:
-        for current_experiment_parameters in tqdm.tqdm(experiment_agenda.experiments):
+        experiment_results_list = [
             run_and_save_one_experiment(current_experiment_parameters=current_experiment_parameters,
                                         solver=solver,
                                         verbose=verbose,
                                         show_results_without_details=show_results_without_details,
                                         experiment_base_directory=experiment_base_directory,
                                         rendering=rendering)
+            for current_experiment_parameters
+            in tqdm.tqdm(experiment_agenda.experiments)
+        ]
 
     # remove tee
     reset_tee(stdout_orig)
-    return experiment_base_directory, experiment_data_directory
+    return experiment_base_directory, experiment_data_directory, experiment_results_list
 
 
 def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
@@ -648,12 +659,13 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) -> List[ExperimentResultsAnalysis]:
+def load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name: str) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
 
     Parameters
     ----------
-    experiment_folder_name: str
+    experiment_data_folder_name: str
         Folder name of experiment where all experiment files are stored
 
     Returns
@@ -663,10 +675,10 @@ def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) 
 
     experiment_results_list = []
 
-    files = os.listdir(experiment_folder_name)
+    files = os.listdir(experiment_data_folder_name)
     for file in [file for file in files if 'agenda' not in file]:
-        file_name = os.path.join(experiment_folder_name, file)
-        if file_name.endswith('experiment_agenda.pkl') or not file_name.endswith(".pkl"):
+        file_name = os.path.join(experiment_data_folder_name, file)
+        if not file_name.endswith(".pkl"):
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
@@ -687,7 +699,7 @@ def load_without_average(data_folder: str) -> DataFrame:
     -------
     DataFrame
     """
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         data_folder)
     experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
     return experiment_data

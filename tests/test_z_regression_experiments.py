@@ -23,7 +23,7 @@ from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
@@ -139,7 +139,7 @@ def test_regression_experiment_agenda(regen: bool = False):
             experiment_agenda=agenda)
 
     # Import the solver for the experiments
-    experiment_folder_name, experiment_data_folder = run_experiment_agenda(
+    experiment_folder_name, experiment_data_folder, _ = run_experiment_agenda(
         experiment_agenda=agenda,
         run_experiments_parallel=False,
         verbose=True,
@@ -155,7 +155,7 @@ def test_regression_experiment_agenda(regen: bool = False):
     )
 
     # load results
-    experiment_results_for_analysis = load_and_expand_experiment_results_from_folder(experiment_data_folder)
+    experiment_results_for_analysis = load_and_expand_experiment_results_from_data_folder(experiment_data_folder)
     if not regen:
         delete_experiment_folder(experiment_folder_name)
     result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
@@ -403,23 +403,14 @@ def test_save_and_load_experiment_results():
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)])
 
-    solver = ASPExperimentSolver()
-    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False)
+    experiment_folder_name, experiment_data_folder, experiment_results_list = \
+        run_experiment_agenda(experiment_agenda=agenda,
+                              run_experiments_parallel=False)
 
     # load results
-    loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
-        experiment_data_folder)
-    print(f"deleting {experiment_folder_name}")
+    loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name=experiment_data_folder)
     delete_experiment_folder(experiment_folder_name)
-
-    experiment_results_list = []
-    for current_experiment_parameters in agenda.experiments:
-        single_experiment_result: ExperimentResults = run_experiment(solver=solver,
-                                                                     experiment_parameters=current_experiment_parameters,
-                                                                     experiment_base_directory=experiment_folder_name,
-                                                                     verbose=False)
-        experiment_results_list.append(single_experiment_result)
-        delete_experiment_folder(experiment_folder_name)
 
     _assert_results_dict_equals(experiment_results_list, loaded_results)
 
@@ -471,7 +462,7 @@ def test_run_full_pipeline():
                                          max_window_size_from_earliest=[np.inf, np.inf, 1]),
         speed_data={1: 1.0},
     )
-    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False)
+    experiment_folder_name, _, _ = run_experiment_agenda(agenda, run_experiments_parallel=False)
 
     hypothesis_one_data_analysis(
         experiment_base_directory=experiment_folder_name,
@@ -646,5 +637,5 @@ def test_parallel_experiment_execution():
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf)])
 
-    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=True)
+    experiment_folder_name, _, _ = run_experiment_agenda(agenda, run_experiments_parallel=True)
     delete_experiment_folder(experiment_folder_name)

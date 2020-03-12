@@ -31,7 +31,7 @@ from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.file_utils import check_create_folder
 
@@ -287,7 +287,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     # Create output directoreis
     check_create_folder(experiment_analysis_directory)
 
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         experiment_data_directory)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 

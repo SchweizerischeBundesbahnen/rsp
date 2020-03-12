@@ -46,19 +46,15 @@ def schedule_problem_description_equals(s1: ScheduleProblemDescription, s2: Sche
     for index, slot in enumerate(s1._fields):
         if slot == 'topo_dict':
             if s1.topo_dict.keys() != s2.topo_dict.keys():
-                print("schedule_problem_description_equals: topo_dict.keys differ")
                 return False
             for agent_id in s1.topo_dict:
                 s1_topo = s1.topo_dict[agent_id]
                 s2_topo = s2.topo_dict[agent_id]
                 if set(s1_topo.nodes) != set(s2_topo.nodes):
-                    print("schedule_problem_description_equals: topo.nodes differ")
                     return False
                 if set(s1_topo.edges) != set(s2_topo.edges):
-                    print("schedule_problem_description_equals: topo.edges differ")
                     return False
         elif s1[index] != s2[index]:
-            print(f"schedule_problem_description_equals: {index} differ")
             return False
     return True
 
