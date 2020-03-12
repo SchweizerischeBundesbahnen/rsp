@@ -405,6 +405,7 @@ def test_save_and_load_experiment_results():
     # load results
     loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
         experiment_data_folder)
+    print(f"deleting {experiment_folder_name}")
     delete_experiment_folder(experiment_folder_name)
 
     experiment_results_list = []
@@ -414,6 +415,7 @@ def test_save_and_load_experiment_results():
                                                                      experiment_base_directory=experiment_folder_name,
                                                                      verbose=False)
         experiment_results_list.append(single_experiment_result)
+        delete_experiment_folder(experiment_folder_name)
 
     _assert_results_dict_equals(experiment_results_list, loaded_results)
 
@@ -427,7 +429,10 @@ def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
             assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
             for index in loaded_result_dict[key]:
                 assert schedule_problem_description_equals(loaded_result_dict[key][index],
-                                                           experiment_results_dict[key][index])
+                                                           experiment_results_dict[key][index]), \
+                    f"not equal {key}{index}: \n"\
+                    f"  loaded: {loaded_result_dict[key][index]}\n"\
+                    f"  in memory: {experiment_results_dict[key][index]}"
         elif key.startswith('results_'):
             assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
             for index in loaded_result_dict[key]:
