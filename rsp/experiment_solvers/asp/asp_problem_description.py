@@ -25,10 +25,12 @@ class ASPProblemDescription():
                  asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
                  asp_heuristics: List[ASPHeuristics] = None,
                  asp_seed_value: Optional[int] = None,
+                 nb_threads: int = 2
                  ):
         self.tc = tc
         self.asp_seed_value = asp_seed_value
         self.asp_objective: ASPObjective = asp_objective
+        self.nb_threads = nb_threads
         if asp_heuristics is None:
             self.asp_heuristics: List[ASPHeuristics] = [ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ]
         else:
@@ -56,14 +58,16 @@ class ASPProblemDescription():
     @staticmethod
     def factory_scheduling(
             tc: ScheduleProblemDescription,
-            asp_seed_value: Optional[int] = None
+            asp_seed_value: Optional[int] = None,
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
             asp_objective=ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
             # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
-            asp_seed_value=asp_seed_value
+            asp_seed_value=asp_seed_value,
+            # we want scheduling to be deterministic!
+            nb_threads=1
         )
         asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
             tc=tc,
@@ -218,6 +222,7 @@ class ASPProblemDescription():
                                    asp_objective=self.asp_objective,
                                    asp_heurisics=self.asp_heuristics,
                                    asp_seed_value=self.asp_seed_value,
+                                   nb_threads=self.nb_threads,
                                    verbose=verbose)
         return ASPSolutionDescription(asp_solution=asp_solution, tc=self.tc)
 

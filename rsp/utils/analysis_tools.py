@@ -140,10 +140,11 @@ def three_dimensional_scatter_plot(data: DataFrame,
         plt.show()
 
 
-def two_dimensional_scatter_plot(data: DataFrame,
+def two_dimensional_scatter_plot(data: DataFrame,  # noqa: C901
                                  columns: DataFrame.columns,
                                  error: DataFrame = None,
                                  baseline_data: DataFrame = None,
+                                 baseline_column: str = None,
                                  link_column: str = 'size',
                                  file_name: Optional[str] = None,
                                  output_folder: Optional[str] = None,
@@ -176,6 +177,8 @@ def two_dimensional_scatter_plot(data: DataFrame,
         Group data points by this column and draw a bar between consecutive data points.
     baseline_data
         data points that define a baseline. Visualized by a bar
+    baseline_column
+        take this column from `data` as `baseline_data`
     output_folder
         Save plot to this folder.
     title
@@ -194,7 +197,7 @@ def two_dimensional_scatter_plot(data: DataFrame,
 
     if fig is None:
         fig = plt.figure()
-        fig.set_size_inches(w=15, h=15)
+        fig.set_size_inches(w=30, h=30)
 
     ax: axes.Axes = fig.add_subplot(subplot_pos)
     if title:
@@ -210,6 +213,10 @@ def two_dimensional_scatter_plot(data: DataFrame,
     _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values)
     if error is not None:
         _2d_plot_errorbars(ax, columns, error, x_values, y_values)
+    if baseline_column is not None:
+        y_values_baseline: Series = data[baseline_column].values
+        _2d_plot_baseline(ax, y_values_baseline, x_values, y_values)
+        _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values_baseline, suffix='b')
     if baseline_data is not None:
         y_values_baseline: Series = baseline_data[columns[1]].values
         _2d_plot_baseline(ax, y_values_baseline, x_values, y_values)
@@ -222,7 +229,11 @@ def two_dimensional_scatter_plot(data: DataFrame,
         plt.savefig(file_name)
         plt.close()
     elif output_folder is not None:
-        plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_' + '_'.join(columns) + '.png'))
+        columns_for_file_name = list(columns)
+        if baseline_column is not None:
+            columns_for_file_name.append(baseline_column)
+        file_name = 'experiment_agenda_analysis_' + '_'.join(columns_for_file_name) + '.png'
+        plt.savefig(os.path.join(output_folder, file_name))
         plt.close()
 
 
@@ -267,6 +278,8 @@ def _2d_plot_errorbars(ax: axes.Axes, columns: DataFrame.columns, error: DataFra
 
 def _2d_plot_baseline(ax: axes.Axes, y_values_baseline: Series, x_values: Series, y_values: Series):
     """Plot baseline y values and draw a line to the data points."""
+
+    # draw baseline where data for both available
     for i in np.arange(0, min(len(y_values), len(y_values_baseline))):
         ax.plot([x_values[i], x_values[i]],
                 [y_values_baseline[i], y_values[i]], marker="_")
