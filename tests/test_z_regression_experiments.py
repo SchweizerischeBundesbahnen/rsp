@@ -25,6 +25,7 @@ from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
+from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.utils.experiments import save_schedule_and_malfunction
 
 
@@ -114,8 +115,11 @@ def test_created_env_tuple():
         assert static_env.agents[agent_index] == dynamic_env.agents[agent_index]
 
 
-def test_regression_experiment_agenda():
-    """Run a simple agenda as regression test."""
+def test_regression_experiment_agenda(regen: bool = False):
+    """Run a simple agenda as regression test.
+
+    It verifies that
+    """
     agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
         ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
                              width=30, height=30,
@@ -126,9 +130,17 @@ def test_regression_experiment_agenda():
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf
                              )])
 
+    if regen:
+        save_experiment_agenda_and_hash_to_file("tests/data/test_regression_experiment_agenda",
+                                                experiment_agenda=agenda)
+
     # Import the solver for the experiments
-    experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=False,
-                                                                           verbose=True)
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(
+        experiment_agenda=agenda,
+        run_experiments_parallel=False,
+        verbose=True,
+        copy_agenda_from_base_directory="tests/data/test_regression_experiment_agenda"
+    )
 
     hypothesis_one_data_analysis(
         experiment_base_directory=experiment_folder_name,
@@ -140,7 +152,8 @@ def test_regression_experiment_agenda():
 
     # load results
     experiment_results_for_analysis = load_and_expand_experiment_results_from_folder(experiment_data_folder)
-    delete_experiment_folder(experiment_folder_name)
+    if not regen:
+        delete_experiment_folder(experiment_folder_name)
     result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
     expected_result_dict = {
@@ -626,58 +639,3 @@ def test_parallel_experiment_execution():
 
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(agenda, run_experiments_parallel=True)
     delete_experiment_folder(experiment_folder_name)
-
-
-def test_deterministic_1():
-    _test_deterministic(
-        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2, width=30,
-                             height=30,
-                             flatland_seed_value=12, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf))
-
-
-def test_deterministic_2():
-    _test_deterministic(
-        ExperimentParameters(experiment_id=1, grid_id=0, number_of_agents=3, width=30,
-                             height=30,
-                             flatland_seed_value=11, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf))
-
-
-def test_deterministic_3():
-    _test_deterministic(
-        ExperimentParameters(experiment_id=2, grid_id=0, number_of_agents=4, width=30,
-                             height=30,
-                             flatland_seed_value=10, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf))
-
-
-def _test_deterministic(params: ExperimentParameters):
-    """Ensure that two runs of the same experiment yields the same result."""
-
-    folder_name_1 = create_experiment_folder_name("_test_deterministic1")
-    folder_name_2 = create_experiment_folder_name("_test_deterministic2")
-    try:
-        solver = ASPExperimentSolver()
-        single_experiment_result1: ExperimentResults = run_experiment(solver=solver,
-                                                                      experiment_parameters=params,
-                                                                      verbose=False,
-                                                                      experiment_base_directory=folder_name_1
-                                                                      )
-        single_experiment_result2 = run_experiment(solver=solver,
-                                                   experiment_parameters=params, verbose=False,
-                                                   experiment_base_directory=folder_name_2)
-
-        _assert_results_dict_equals([single_experiment_result1], [single_experiment_result2])
-    finally:
-        delete_experiment_folder(folder_name_1)
-        delete_experiment_folder(folder_name_2)

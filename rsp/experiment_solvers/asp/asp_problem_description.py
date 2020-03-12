@@ -66,7 +66,6 @@ class ASPProblemDescription():
             # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
             asp_seed_value=asp_seed_value,
-            # we want scheduling to be deterministic!
             nb_threads=1
         )
         asp_problem.asp_program: List[str] = asp_problem._build_asp_program(

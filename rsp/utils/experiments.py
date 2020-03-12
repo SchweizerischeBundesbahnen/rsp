@@ -16,7 +16,7 @@ span_n_grid
 create_env_pair_for_experiment
     Create a pair of environments for the desired research. One environment has no malfunciton, the other one has
     exactly one malfunciton
-save_experiment_agenda_to_file
+save_experiment_agenda_and_hash_to_file
     Save a generated experiment agenda to be used for later reruns
 load_experiment_agenda_from_file
     Load a ExperimentAgenda
@@ -127,7 +127,7 @@ def run_experiment(solver: ASPExperimentSolver,
                    show_results_without_details: bool = True,
                    rendering: bool = False,
                    verbose: bool = False,
-                   debug: bool = False,
+                   debug: bool = False
                    ) -> ExperimentResults:
     """
 
@@ -153,7 +153,7 @@ def run_experiment(solver: ASPExperimentSolver,
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
         _pp.pprint(experiment_parameters)
 
-    # B1: load or re-generate?
+    # B.1: load or re-generate?
     # we want to be able to reuse the same schedule and malfunction to be able to compare
     # identical re-scheduling problems between runs and to debug them
     # if the data already exists, load it and do not re-generate it
@@ -248,7 +248,7 @@ def create_schedule_and_malfunction(
         verbose: bool = False,
         debug: bool = False
 ):
-    """B1 Create schedule and malfunction from experiment parameters.
+    """B.1 Create schedule and malfunction from experiment parameters.
 
     Parameters
     ----------
@@ -381,10 +381,16 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_data_directory, "log.txt"))
 
     if copy_agenda_from_base_directory is not None:
-        # TODO SIM-399 sanity check that the agendas are indeed the same! Or better copy agenda as well if copy_agenda_from_base_directory is given?
+
         src = os.path.join(copy_agenda_from_base_directory, EXPERIMENT_AGENDA_DIRECTORY_NAME)
+        files = os.listdir(src)
         print(f"Copying schedule and malfunctions {src} -> {experiment_agenda_directory}")
-        shutil.copytree(src, experiment_agenda_directory)
+        for file in [file for file in files]:
+            shutil.copy2(os.path.join(src, file), experiment_agenda_directory)
+
+        # sanity check that the agendas are indeed the same!
+        copy_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory)
+        assert copy_agenda == experiment_agenda
 
     if experiment_ids is not None:
         filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)

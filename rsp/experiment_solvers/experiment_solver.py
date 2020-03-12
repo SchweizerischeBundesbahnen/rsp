@@ -38,7 +38,7 @@ class ASPExperimentSolver():
                                      debug: bool = False,
                                      rendering: bool = False
                                      ) -> ScheduleAndMalfunction:
-        """B1.
+        """B.1.
 
         Experiment Setup
         """
