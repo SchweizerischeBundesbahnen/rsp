@@ -1,4 +1,5 @@
 """Run tests for different experiment methods."""
+import os
 from typing import List
 
 import numpy as np
@@ -21,6 +22,7 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
+from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import run_experiment
@@ -131,8 +133,10 @@ def test_regression_experiment_agenda(regen: bool = False):
                              )])
 
     if regen:
-        save_experiment_agenda_and_hash_to_file("tests/data/test_regression_experiment_agenda",
-                                                experiment_agenda=agenda)
+        save_experiment_agenda_and_hash_to_file(
+            experiment_folder_name=os.path.join("tests", "data", "test_regression_experiment_agenda",
+                                                EXPERIMENT_AGENDA_SUBDIRECTORY_NAME),
+            experiment_agenda=agenda)
 
     # Import the solver for the experiments
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(
@@ -430,8 +434,8 @@ def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
             for index in loaded_result_dict[key]:
                 assert schedule_problem_description_equals(loaded_result_dict[key][index],
                                                            experiment_results_dict[key][index]), \
-                    f"not equal {key}{index}: \n"\
-                    f"  loaded: {loaded_result_dict[key][index]}\n"\
+                    f"not equal {key}{index}: \n" \
+                    f"  loaded: {loaded_result_dict[key][index]}\n" \
                     f"  in memory: {experiment_results_dict[key][index]}"
         elif key.startswith('results_'):
             assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])

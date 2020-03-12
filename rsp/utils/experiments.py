@@ -64,9 +64,9 @@ from rsp.utils.tee import tee_stdout_to_file
 
 _pp = pprint.PrettyPrinter(indent=4)
 
-EXPERIMENT_AGENDA_DIRECTORY_NAME = "Agenda"
-EXPERIMENT_DATA_DIRECTORY_NAME = "Data"
-EXPERIMENT_ANALYSIS_DIRECTORY_NAME = "Analysis"
+EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
+EXPERIMENT_DATA_SUBDIRECTORY_NAME = "data"
+EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
 
 
 def save_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction,
@@ -143,7 +143,7 @@ def run_experiment(solver: ASPExperimentSolver,
     -------
     Returns a DataFrame with the experiment results
     """
-    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_DIRECTORY_NAME}'
+    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     check_create_folder(experiment_agenda_directory)
 
     if show_results_without_details:
@@ -322,7 +322,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     rendering
     """
     try:
-        experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_DIRECTORY_NAME}'
+        experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
         check_create_folder(experiment_data_directory)
 
         filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
@@ -370,8 +370,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     Returns the name of the experiment folder
     """
     experiment_base_directory = create_experiment_folder_name(experiment_agenda.experiment_name)
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_DIRECTORY_NAME}'
-    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_DIRECTORY_NAME}'
+    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
 
     check_create_folder(experiment_base_directory)
     check_create_folder(experiment_data_directory)
@@ -382,14 +382,14 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     if copy_agenda_from_base_directory is not None:
 
-        src = os.path.join(copy_agenda_from_base_directory, EXPERIMENT_AGENDA_DIRECTORY_NAME)
-        files = os.listdir(src)
-        print(f"Copying schedule and malfunctions {src} -> {experiment_agenda_directory}")
+        copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory, EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+        files = os.listdir(copy_agenda_from_agenda_directory)
+        print(f"Copying schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
         for file in [file for file in files]:
-            shutil.copy2(os.path.join(src, file), experiment_agenda_directory)
+            shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
 
         # sanity check that the agendas are indeed the same!
-        copy_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory)
+        copy_agenda = load_experiment_agenda_from_file(copy_agenda_from_agenda_directory)
         assert copy_agenda == experiment_agenda
 
     if experiment_ids is not None:
@@ -400,7 +400,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             experiments=list(experiments_filtered)
         )
 
-    save_experiment_agenda_and_hash_to_file(experiment_data_directory, experiment_agenda)
+    save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
 
     solver = ASPExperimentSolver()
 
