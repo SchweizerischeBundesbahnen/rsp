@@ -16,7 +16,7 @@ span_n_grid
 create_env_pair_for_experiment
     Create a pair of environments for the desired research. One environment has no malfunciton, the other one has
     exactly one malfunciton
-save_experiment_agenda_to_file
+save_experiment_agenda_and_hash_to_file
     Save a generated experiment agenda to be used for later reruns
 load_experiment_agenda_from_file
     Load a ExperimentAgenda
@@ -64,16 +64,70 @@ from rsp.utils.tee import tee_stdout_to_file
 
 _pp = pprint.PrettyPrinter(indent=4)
 
-EXPERIMENT_DATA_DIRECTORY_NAME = "Data"
-EXPERIMENT_ANALYSIS_DIRECTORY_NAME = "Analysis"
+EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
+EXPERIMENT_DATA_SUBDIRECTORY_NAME = "data"
+EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
+
+
+def save_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction,
+                                  experiment_agenda_directory: str,
+                                  experiment_id: int):
+    """Persist `ScheduleAndMalfunction` to a file.
+
+    Parameters
+    ----------
+    schedule_and_malfunction
+    experiment_agenda_directory
+    experiment_id
+    """
+    schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
+                                                      f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
+    check_create_folder(experiment_agenda_directory)
+    with open(schedule_and_malfunction_file_name, 'wb') as handle:
+        pickle.dump(schedule_and_malfunction, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> bool:
+    """Does a persisted `ScheduleAndMalfunction` exist?
+
+    Parameters
+    ----------
+    experiment_agenda_directory
+    experiment_id
+
+    Returns
+    -------
+    """
+    schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
+                                                      f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
+    return os.path.isfile(schedule_and_malfunction_file_name)
+
+
+def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> ScheduleAndMalfunction:
+    """Load a persisted `ScheduleAndMalfunction` from a file.
+
+    Parameters
+    ----------
+    experiment_agenda_directory
+    experiment_id
+
+    Returns
+    -------
+    """
+    schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
+                                                      f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
+    with open(schedule_and_malfunction_file_name, 'rb') as handle:
+        file_data: ExperimentAgenda = pickle.load(handle)
+        return file_data
 
 
 def run_experiment(solver: ASPExperimentSolver,
                    experiment_parameters: ExperimentParameters,
+                   experiment_base_directory: str,
                    show_results_without_details: bool = True,
                    rendering: bool = False,
                    verbose: bool = False,
-                   debug: bool = False,
+                   debug: bool = False
                    ) -> ExperimentResults:
     """
 
@@ -89,8 +143,9 @@ def run_experiment(solver: ASPExperimentSolver,
     -------
     Returns a DataFrame with the experiment results
     """
+    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
+    check_create_folder(experiment_agenda_directory)
 
-    # Run the sequence of experiment
     if show_results_without_details:
         print("Running experiment {} in thread {}".format(experiment_parameters.experiment_id, threading.get_ident()))
     start_time = time.time()
@@ -98,13 +153,33 @@ def run_experiment(solver: ASPExperimentSolver,
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
         _pp.pprint(experiment_parameters)
 
-    # Create experiment environments
-    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+    # B.1: load or re-generate?
+    # we want to be able to reuse the same schedule and malfunction to be able to compare
+    # identical re-scheduling problems between runs and to debug them
+    # if the data already exists, load it and do not re-generate it
+    if experiment_agenda_directory is not None and exists_schedule_and_malfunction(
+            experiment_agenda_directory=experiment_agenda_directory,
+            experiment_id=experiment_parameters.experiment_id):
+        schedule_and_malfunction = load_schedule_and_malfunction(
+            experiment_agenda_directory=experiment_agenda_directory,
+            experiment_id=experiment_parameters.experiment_id)
+        _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+    else:
+        malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
+            debug=debug,
+            experiment_parameters=experiment_parameters,
+            rendering=rendering,
+            solver=solver,
+            verbose=verbose)
+        if experiment_agenda_directory is not None:
+            save_schedule_and_malfunction(
+                schedule_and_malfunction=schedule_and_malfunction,
+                experiment_agenda_directory=experiment_agenda_directory,
+                experiment_id=experiment_parameters.experiment_id)
 
-    env = malfunction_rail_env
     if rendering:
         from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-        env_renderer = RenderTool(env, gl="PILSVG",
+        env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
                                   agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
                                   show_debug=False,
                                   screen_height=600,  # Adjust these parameters to fit your resolution
@@ -114,17 +189,11 @@ def run_experiment(solver: ASPExperimentSolver,
 
     # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
     def malfunction_env_reset():
-        env.reset(False, False, False, experiment_parameters.flatland_seed_value)
+        malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
-    # Run experiments
-    schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
-        static_rail_env=static_rail_env,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
-        experiment_parameters=experiment_parameters,
-        verbose=verbose,
-        debug=debug
-    )
+    malfunction_env_reset()
+
+    # B2: full and delta re-scheduling
     experiment_results: ExperimentResults = solver._run_experiment_from_environment(
         schedule_and_malfunction=schedule_and_malfunction,
         malfunction_rail_env=malfunction_rail_env,
@@ -172,6 +241,54 @@ def run_experiment(solver: ASPExperimentSolver,
     return experiment_results
 
 
+def create_schedule_and_malfunction(
+        experiment_parameters: ExperimentParameters,
+        solver: ASPExperimentSolver,
+        rendering: bool = False,
+        verbose: bool = False,
+        debug: bool = False
+) -> Tuple[RailEnv, ScheduleAndMalfunction]:
+    """B.1 Create schedule and malfunction from experiment parameters.
+
+    Parameters
+    ----------
+    experiment_parameters
+    solver
+    debug
+    rendering
+    verbose
+
+    Returns
+    -------
+    malfunction_rail_env, schedule_and_malfunction
+    """
+    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+    if rendering:
+        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+        env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
+                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
+                                  show_debug=False,
+                                  screen_height=600,  # Adjust these parameters to fit your resolution
+                                  screen_width=800)
+        env_renderer.reset()
+        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
+
+    # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
+    def malfunction_env_reset():
+        malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
+
+    # Run experiments
+    schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+        static_rail_env=static_rail_env,
+        malfunction_rail_env=malfunction_rail_env,
+        malfunction_env_reset=malfunction_env_reset,
+        experiment_parameters=experiment_parameters,
+        verbose=verbose,
+        debug=debug
+    )
+    return malfunction_rail_env, schedule_and_malfunction
+
+
 def _write_sha_txt(folder_name: str):
     """
     Write the current commit hash to a file "sha.txt" in the given folder
@@ -188,20 +305,36 @@ def _write_sha_txt(folder_name: str):
         out.write(sha)
 
 
-def run_and_save_one_experiment(current_experiment_parameters,
-                                solver,
-                                verbose,
-                                show_results_without_details,
-                                experiment_folder_name,
-                                rendering: bool = False, ):
+def run_and_save_one_experiment(current_experiment_parameters: ExperimentParameters,
+                                solver: ASPExperimentSolver,
+                                verbose: bool,
+                                show_results_without_details: bool,
+                                experiment_base_directory: str,
+                                rendering: bool = False) -> List[ExperimentResults]:
+    """B. Run and save one experiment from experiment parameters.
+
+    Parameters
+    ----------
+    current_experiment_parameters
+    solver
+    verbose
+    show_results_without_details
+    experiment_base_directory
+    rendering
+    """
     try:
-        filename = create_experiment_filename(experiment_folder_name, current_experiment_parameters.experiment_id)
+        experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+        check_create_folder(experiment_data_directory)
+
+        filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
         experiment_results: ExperimentResults = run_experiment(solver=solver,
                                                                experiment_parameters=current_experiment_parameters,
                                                                rendering=rendering,
                                                                verbose=verbose,
+                                                               experiment_base_directory=experiment_base_directory,
                                                                show_results_without_details=show_results_without_details)
         save_experiment_results_to_file(experiment_results, filename)
+        return experiment_results
     except Exception as e:
         print("XXX failed " + filename + " " + str(e))
         traceback.print_exc(file=sys.stdout)
@@ -209,10 +342,11 @@ def run_and_save_one_experiment(current_experiment_parameters,
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           experiment_ids: Optional[List[int]] = None,
+                          copy_agenda_from_base_directory: Optional[str] = None,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
-                          verbose: bool = False) -> (str, str):
+                          verbose: bool = False) -> (str, str, List[ExperimentResultsAnalysis]):
     """Run a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
 
@@ -228,19 +362,28 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         Print results
     verbose: bool
         Print additional information
+    copy_agenda_from_base_directory: bool
+        copy schedule and malfunction data from this directory to the experiments folder if given
+    rendering: bool
+
 
     Returns
     -------
     Returns the name of the experiment folder
     """
     experiment_base_directory = create_experiment_folder_name(experiment_agenda.experiment_name)
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_DIRECTORY_NAME}'
+    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
 
     check_create_folder(experiment_base_directory)
     check_create_folder(experiment_data_directory)
+    check_create_folder(experiment_agenda_directory)
 
     # tee stdout to log file
     stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_data_directory, "log.txt"))
+
+    if copy_agenda_from_base_directory is not None:
+        _copy_agenda_from_base_directory(copy_agenda_from_base_directory, experiment_agenda_directory)
 
     if experiment_ids is not None:
         filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
@@ -250,7 +393,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             experiments=list(experiments_filtered)
         )
 
-    save_experiment_agenda_and_hash_to_file(experiment_data_directory, experiment_agenda)
+    save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
 
     solver = ASPExperimentSolver()
 
@@ -261,23 +404,50 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                                                       solver=solver,
                                                       verbose=verbose,
                                                       show_results_without_details=show_results_without_details,
-                                                      experiment_folder_name=experiment_data_directory
+                                                      experiment_base_directory=experiment_base_directory
                                                       )
-        for _ in tqdm.tqdm(pool.imap_unordered(run_and_save_one_experiment_partial, experiment_agenda.experiments),
-                           total=len(experiment_agenda.experiments)):
-            pass
+        experiment_results_list = [
+            experiment_results
+            for experiment_results
+            in tqdm.tqdm(
+                pool.imap_unordered(
+                    run_and_save_one_experiment_partial,
+                    experiment_agenda.experiments
+                ),
+                total=len(experiment_agenda.experiments))]
     else:
-        for current_experiment_parameters in tqdm.tqdm(experiment_agenda.experiments):
-            run_and_save_one_experiment(current_experiment_parameters,
-                                        solver,
-                                        verbose,
-                                        show_results_without_details,
-                                        experiment_data_directory,
+        experiment_results_list = [
+            run_and_save_one_experiment(current_experiment_parameters=current_experiment_parameters,
+                                        solver=solver,
+                                        verbose=verbose,
+                                        show_results_without_details=show_results_without_details,
+                                        experiment_base_directory=experiment_base_directory,
                                         rendering=rendering)
+            for current_experiment_parameters
+            in tqdm.tqdm(experiment_agenda.experiments)
+        ]
 
     # remove tee
     reset_tee(stdout_orig)
-    return experiment_base_directory, experiment_data_directory
+    return experiment_base_directory, experiment_data_directory, experiment_results_list
+
+
+def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, experiment_agenda_directory: str):
+    """
+    Copy agenda and schedule for re-use.
+    Parameters
+    ----------
+    copy_agenda_from_base_directory
+        base directory to copy from
+    experiment_agenda_directory
+        agenda subdirectory to copy to
+    """
+    copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
+                                                     EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+    files = os.listdir(copy_agenda_from_agenda_directory)
+    print(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
+    for file in [file for file in files]:
+        shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
 
 
 def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
@@ -498,12 +668,13 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) -> List[ExperimentResultsAnalysis]:
+def load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name: str) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
 
     Parameters
     ----------
-    experiment_folder_name: str
+    experiment_data_folder_name: str
         Folder name of experiment where all experiment files are stored
 
     Returns
@@ -513,10 +684,10 @@ def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) 
 
     experiment_results_list = []
 
-    files = os.listdir(experiment_folder_name)
+    files = os.listdir(experiment_data_folder_name)
     for file in [file for file in files if 'agenda' not in file]:
-        file_name = os.path.join(experiment_folder_name, file)
-        if file_name.endswith('experiment_agenda.pkl') or not file_name.endswith(".pkl"):
+        file_name = os.path.join(experiment_data_folder_name, file)
+        if not file_name.endswith(".pkl"):
             continue
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
@@ -537,7 +708,7 @@ def load_without_average(data_folder: str) -> DataFrame:
     -------
     DataFrame
     """
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         data_folder)
     experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
     return experiment_data
