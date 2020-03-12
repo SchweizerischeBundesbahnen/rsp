@@ -32,6 +32,7 @@ import pickle
 import pprint
 import shutil
 import sys
+import threading
 import time
 import traceback
 from functools import partial
@@ -40,13 +41,14 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
+import tqdm as tqdm
 from flatland.envs.rail_env import RailEnv
+from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
-from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_paths
-from rsp.route_dag.analysis.rescheduling_analysis_utils import _analyze_times
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -89,7 +91,8 @@ def run_experiment(solver: ASPExperimentSolver,
     """
 
     # Run the sequence of experiment
-    print("Running experiment {}".format(experiment_parameters.experiment_id))
+    if show_results_without_details:
+        print("Running experiment {} in thread {}".format(experiment_parameters.experiment_id, threading.get_ident()))
     start_time = time.time()
     if show_results_without_details:
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
@@ -134,20 +137,36 @@ def run_experiment(solver: ASPExperimentSolver,
         print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
         return []
 
-    if show_results_without_details:
-        print("*** experiment result of experiment {}".format(experiment_parameters.experiment_id))
-
-        experiment_results_analysis = expand_experiment_results_for_analysis(
-            experiment_results=experiment_results)
-        _analyze_times(experiment_results_analysis=experiment_results_analysis)
-        _analyze_paths(experiment_results_analysis=experiment_results_analysis,
-                       experiment_id=experiment_parameters.experiment_id)
     if rendering:
         from flatland.utils.rendertools import RenderTool, AgentRenderVariant
         env_renderer.close_window()
     elapsed_time = (time.time() - start_time)
-    print("Running experiment {}: took {:5.3f}s"
-          .format(experiment_parameters.experiment_id, elapsed_time))
+    solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
+    solver_time_full_after_malfunction = \
+        experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    solver_time_delta_after_malfunction = \
+        experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    elapsed_overhead_time = (
+            elapsed_time - solver_time_full -
+            solver_time_full_after_malfunction -
+            solver_time_delta_after_malfunction)
+    if show_results_without_details:
+        print(("Running experiment {}: took {:5.3f}s "
+               "(sched: {:5.3f}s = {:5.2f}% / "
+               "resched: {:5.3f}s = {:5.2f}% / "
+               "resched-delta: {:5.3f}s = {:5.2f}% / "
+               "remaining: {:5.3f}s = {:5.2f}%)  in thread {}")
+              .format(experiment_parameters.experiment_id,
+                      elapsed_time,
+                      solver_time_full,
+                      solver_time_full / elapsed_time * 100,
+                      solver_time_full_after_malfunction,
+                      solver_time_full_after_malfunction / elapsed_time * 100,
+                      solver_time_delta_after_malfunction,
+                      solver_time_delta_after_malfunction / elapsed_time * 100,
+                      elapsed_overhead_time,
+                      elapsed_overhead_time / elapsed_time * 100,
+                      threading.get_ident()))
 
     plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
@@ -237,15 +256,18 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
+        print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
         run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
                                                       solver=solver,
                                                       verbose=verbose,
                                                       show_results_without_details=show_results_without_details,
                                                       experiment_folder_name=experiment_data_directory
                                                       )
-        pool.map(run_and_save_one_experiment_partial, experiment_agenda.experiments)
+        for _ in tqdm.tqdm(pool.imap_unordered(run_and_save_one_experiment_partial, experiment_agenda.experiments),
+                           total=len(experiment_agenda.experiments)):
+            pass
     else:
-        for current_experiment_parameters in experiment_agenda.experiments:
+        for current_experiment_parameters in tqdm.tqdm(experiment_agenda.experiments):
             run_and_save_one_experiment(current_experiment_parameters,
                                         solver,
                                         verbose,
@@ -501,6 +523,24 @@ def load_and_expand_experiment_results_from_folder(experiment_folder_name: str) 
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
 
     return experiment_results_list
+
+
+def load_without_average(data_folder: str) -> DataFrame:
+    """Load all data from the folder, expand and convert to data frame.
+
+    Parameters
+    ----------
+    data_folder: str
+        folder with pkl files.
+
+    Returns
+    -------
+    DataFrame
+    """
+    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_folder(
+        data_folder)
+    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+    return experiment_data
 
 
 def delete_experiment_folder(experiment_folder_name: str):

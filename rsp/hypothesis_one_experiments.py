@@ -61,7 +61,7 @@ if __name__ == '__main__':
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=True,
-        show_results_without_details=False,
+        show_results_without_details=True,
         verbose=False)
 
     # C. Experiment Analysis

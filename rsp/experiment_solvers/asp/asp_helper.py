@@ -65,6 +65,7 @@ def flux_helper(
         asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
         asp_heurisics: List[ASPHeuristics] = None,
         asp_seed_value: int = 94,
+        nb_threads: int = 2,
         verbose: bool = False,
         debug: bool = False
 ) -> FluxHelperResult:
@@ -112,6 +113,7 @@ def flux_helper(
         bound_all_events=bound_all_events,
         plain_encoding=prg_text_joined,
         asp_seed_value=asp_seed_value,
+        nb_threads=nb_threads,
         verbose=verbose,
         debug=debug
     )
@@ -125,6 +127,7 @@ def _asp_helper(encoding_files: List[str],
                 verbose: bool = False,
                 debug: bool = False,
                 bound_all_events: Optional[int] = None,
+                nb_threads: int = 2,
                 asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
 
@@ -148,10 +151,10 @@ def _asp_helper(encoding_files: List[str],
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")
-    ctl_args = [f"-t1", "--lookahead=no"]
+    ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:
-        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", "-t1", "--lookahead=no"]
+        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
     ctl = clingo.Control(ctl_args)
 
     # find optimal model; if not optimizing, find all models!
@@ -191,7 +194,7 @@ def _asp_helper(encoding_files: List[str],
 def _asp_loop(ctl, dl, verbose, debug):
     all_answers = []
     min_cost = np.inf
-    with ctl.solve(yield_=True) as handle:
+    with ctl.solve(yield_=True, on_statistics=dl.on_statistics) as handle:
         for model in handle:
             if len(model.cost) > 0:
                 cost = model.cost[0]

@@ -90,6 +90,18 @@ class ASPSolutionDescription():
     def get_objective_value(self) -> float:
         return self.asp_solution.stats['summary']['costs'][0]
 
+    def get_solve_time(self) -> float:
+        """only solve time of the solver."""
+        return self.asp_solution.stats["summary"]["times"]["solve"]
+
+    def get_total_time(self) -> float:
+        """total timeo of the solver."""
+        return self.asp_solution.stats["summary"]["times"]["total"]
+
+    def get_preprocessing_time(self) -> float:
+        """total time minus solve time of the solver."""
+        return self.get_total_time() - self.get_solve_time()
+
     def extract_list_of_lates(self) -> List[str]:
         return list(filter(lambda s: s.startswith('late('), self.answer_set))
 
