@@ -17,7 +17,7 @@ from rsp.route_dag.generators.route_dag_generator_schedule import schedule_probl
 
 
 def test_asp_helper():
-    with path('tests.data.asp.instances', 'dummy.lp') as instance_in:
+    with path('tests.01_unit_tests.data.asp.instances', 'dummy.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
             models, _, _, _, _ = _asp_helper([instance_in, encoding_in])
 
@@ -46,7 +46,7 @@ def test_asp_helper():
 
 
 def test_mutual_exclusion():
-    with path('tests.data.asp.instances', 'dummy_two_agents.lp') as instance_in:
+    with path('tests.01_unit_tests.data.asp.instances', 'dummy_two_agents.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
             models, statistics, _, _, _ = _asp_helper([instance_in, encoding_in])
 
@@ -109,7 +109,7 @@ def test_simple_rail_asp_one_agent():
 
 def test_asp_helper_forcing():
     """Case study to freeze variables by adding facts."""
-    with path('tests.data.asp.instances', 'dummy_forced.lp') as instance_in:
+    with path('tests.01_unit_tests.data.asp.instances', 'dummy_forced.lp') as instance_in:
         with path('res.asp.encodings', 'encoding.lp') as encoding_in:
             models, _, _, _, _ = _asp_helper([instance_in, encoding_in])
 
@@ -141,7 +141,7 @@ def test_minimize_sum_of_running_times_scheduling():
     """Case Study how to model minimizing sum of running times in a non optimal
     way."""
     encodings = []
-    with path('tests.data.asp.instances', 'dummy_two_agents_minimize_sum_of_running_times.lp') as instance_in:
+    with path('tests.01_unit_tests.data.asp.instances', 'dummy_two_agents_minimize_sum_of_running_times.lp') as instance_in:
         encodings.append(instance_in)
     with path('res.asp.encodings', 'encoding.lp') as encoding_in:
         encodings.append(encoding_in)
@@ -173,7 +173,7 @@ def test_minimize_delay_rescheduling():
     """Case Study how to model minimizing delay with respect to given schedule
     and a malfunction delay."""
     encodings = []
-    with path('tests.data.asp.instances', 'dummy_two_agents_rescheduling.lp') as instance_in:
+    with path('tests.01_unit_tests.data.asp.instances', 'dummy_two_agents_rescheduling.lp') as instance_in:
         encodings.append(instance_in)
     with path('res.asp.encodings', 'encoding.lp') as encoding_in:
         encodings.append(encoding_in)
