@@ -10,6 +10,7 @@ from rsp.experiment_solvers.data_types import schedule_experiment_results_equals
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
 from rsp.route_dag.route_dag import schedule_problem_description_equals
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_list_of_experiment_results_to_data_frame
@@ -19,7 +20,6 @@ from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.experiments import create_env_pair_for_experiment
-from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
@@ -120,7 +120,10 @@ def test_created_env_tuple():
 def test_regression_experiment_agenda(regen: bool = False):
     """Run a simple agenda as regression test.
 
-    It verifies that
+    It verifies that we can start from a set of schedules and
+    deterministically and produces an equivalent results with the same
+    costs. Results may differ on different platforms event with the same
+    seed because we use 2 threads.
     """
     agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
         ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
@@ -143,7 +146,7 @@ def test_regression_experiment_agenda(regen: bool = False):
         experiment_agenda=agenda,
         run_experiments_parallel=False,
         verbose=True,
-        copy_agenda_from_base_directory="tests/data/test_regression_experiment_agenda"
+        copy_agenda_from_base_directory="tests/02_regression_tests/data/test_regression_experiment_agenda"
     )
 
     hypothesis_one_data_analysis(
@@ -448,9 +451,7 @@ def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
 
 def test_run_full_pipeline():
     """Ensure that the full pipeline runs without error on a simple agenda."""
-    agenda = create_experiment_agenda(
-        experiment_name="test_run_full_pipeline",
-        experiments_per_grid_element=3,
+    experiment_folder_name = hypothesis_one_pipeline(
         parameter_ranges=ParameterRanges(agent_range=[2, 2, 1],
                                          size_range=[30, 30, 1],
                                          in_city_rail_range=[6, 6, 1],
@@ -460,18 +461,7 @@ def test_run_full_pipeline():
                                          malfunction_duration=[20, 20, 1],
                                          number_of_shortest_paths_per_agent=[10, 10, 1],
                                          max_window_size_from_earliest=[np.inf, np.inf, 1]),
-        speed_data={1: 1.0},
-    )
-    experiment_folder_name, _, _ = run_experiment_agenda(agenda, run_experiments_parallel=False)
-
-    hypothesis_one_data_analysis(
-        experiment_base_directory=experiment_folder_name,
-        analysis_2d=True,
-        analysis_3d=False,
-        qualitative_analysis_experiment_ids=[0],
-        flatland_rendering=False
-    )
-
+        speed_data={1: 1.0})
     # cleanup
     delete_experiment_folder(experiment_folder_name)
 
@@ -508,8 +498,8 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     # environments not correctly initialized if not created the same way, therefore use create_env_pair_for_experiment
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
     # override grid from loaded file
-    static_rail_env.load_resource('tests.data.alpha_beta', "static_env_alpha_beta.pkl")
-    malfunction_rail_env.load_resource('tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
+    static_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "static_env_alpha_beta.pkl")
+    malfunction_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
 
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
@@ -528,20 +518,20 @@ def test_run_alpha_beta(regen_schedule: bool = False):
             experiment_parameters=experiment_parameters
         )
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction_scaled,
-                                      experiment_agenda_directory="tests/data/alpha_beta",
+                                      experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
                                       experiment_id=0
                                       )
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
-                                      experiment_agenda_directory="tests/data/alpha_beta",
+                                      experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
                                       experiment_id=1
                                       )
 
     schedule_and_malfunction_scaled = load_schedule_and_malfunction(
-        experiment_agenda_directory="tests/data/alpha_beta",
+        experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
         experiment_id=0
     )
     schedule_and_malfunction = load_schedule_and_malfunction(
-        experiment_agenda_directory="tests/data/alpha_beta",
+        experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
         experiment_id=1
     )
 

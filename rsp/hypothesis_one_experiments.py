@@ -50,7 +50,7 @@ def get_first_agenda_pipeline_params() -> Tuple[ParameterRanges, Dict[float, flo
 
 def hypothesis_one_pipeline(parameter_ranges: ParameterRanges,
                             speed_data: Dict[float, float],
-                            experiment_ids: Optional[List[int]],
+                            experiment_ids: Optional[List[int]] = None,
                             copy_agenda_from_base_directory: Optional[str] = None) -> str:
     """
     Run full pipeline A - B - C

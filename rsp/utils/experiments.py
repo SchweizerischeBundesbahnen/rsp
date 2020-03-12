@@ -247,7 +247,7 @@ def create_schedule_and_malfunction(
         rendering: bool = False,
         verbose: bool = False,
         debug: bool = False
-):
+) -> Tuple[RailEnv, ScheduleAndMalfunction]:
     """B.1 Create schedule and malfunction from experiment parameters.
 
     Parameters
@@ -260,6 +260,7 @@ def create_schedule_and_malfunction(
 
     Returns
     -------
+    malfunction_rail_env, schedule_and_malfunction
     """
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
     if rendering:
@@ -382,17 +383,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_data_directory, "log.txt"))
 
     if copy_agenda_from_base_directory is not None:
-
-        copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
-                                                         EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
-        files = os.listdir(copy_agenda_from_agenda_directory)
-        print(f"Copying schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
-        for file in [file for file in files]:
-            shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
-
-        # sanity check that the agendas are indeed the same!
-        copy_agenda = load_experiment_agenda_from_file(copy_agenda_from_agenda_directory)
-        assert copy_agenda == experiment_agenda
+        _copy_agenda_from_base_directory(copy_agenda_from_base_directory, experiment_agenda_directory)
 
     if experiment_ids is not None:
         filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
@@ -439,6 +430,24 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     # remove tee
     reset_tee(stdout_orig)
     return experiment_base_directory, experiment_data_directory, experiment_results_list
+
+
+def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, experiment_agenda_directory: str):
+    """
+    Copy agenda and schedule for re-use.
+    Parameters
+    ----------
+    copy_agenda_from_base_directory
+        base directory to copy from
+    experiment_agenda_directory
+        agenda subdirectory to copy to
+    """
+    copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
+                                                     EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+    files = os.listdir(copy_agenda_from_agenda_directory)
+    print(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
+    for file in [file for file in files]:
+        shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
 
 
 def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
