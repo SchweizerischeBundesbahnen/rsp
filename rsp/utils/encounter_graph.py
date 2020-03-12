@@ -1,3 +1,6 @@
+from typing import Dict
+from typing import Tuple
+
 import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
@@ -9,7 +12,30 @@ from rsp.utils.data_types import TrainScheduleDict
 
 
 def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_run_0: Trainrun,
-                                       train_schedule_1: TrainSchedule, train_run_1: Trainrun) -> (float, int):
+                                       train_schedule_1: TrainSchedule, train_run_1: Trainrun) -> (
+        float, int, Tuple[int, int], Tuple[int, int]):
+    """computes the euclidean distance between two trains. It computes the
+    euclidean distance at each time step between the position of the two trains
+    at this time step.
+
+    Parameters
+    ----------
+    train_schedule_0
+    train_run_0
+    train_schedule_1
+    train_run_1
+
+    Returns
+    -------
+    inverted_distance
+        the inverted minimal distance between two trains as a value between 0 and 1 -> 0 is far away, 1 is very close
+    time_of_min
+        the time step when the minimal distance happened
+    train_0_position_at_min
+        the position of train 0 at this time step
+    train_1_position_at_min
+        the position of train 1 at this time step
+    """
     train_0_start_time = train_run_0[0].scheduled_at
     train_0_end_time = train_run_0[-1].scheduled_at
     train_1_start_time = train_run_1[0].scheduled_at
@@ -44,16 +70,33 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
     # first heuristic -> get the smallest distance
     dist_between_trains = np.min(distances_in_time_window)
+    inverted_distance = 1. / dist_between_trains
     index_min_dist = np.argmin(distances_in_time_window)
     time_of_min = start_time_step + index_min_dist
     train_0_position_at_min = train_0_positions[int(index_min_dist)]
     train_1_position_at_min = train_1_positions[int(index_min_dist)]
 
-    return 1. / dist_between_trains, time_of_min, train_0_position_at_min, train_1_position_at_min
+    return inverted_distance, time_of_min, train_0_position_at_min, train_1_position_at_min
 
 
 def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
-                                       train_schedule_dict: TrainScheduleDict) -> np.ndarray:
+                                       train_schedule_dict: TrainScheduleDict) -> (np.ndarray, Dict):
+    """This method computes the distance matrix for a complete TrainrunDict ->
+    each distance between each pair of trains is computed.
+
+    Parameters
+    ----------
+    trainrun_dict
+    train_schedule_dict
+
+    Returns
+    -------
+    distance_matrix
+        the distance matrix as a symmetric matrix each entry corresponds to a pair of trains
+    additional_info
+        a dictionary with additional info like the time step at which the minimal distance happened and the location of
+        the trains
+    """
     number_of_trains = len(trainrun_dict)
     distance_matrix = np.zeros((number_of_trains, number_of_trains))
 
@@ -75,6 +118,19 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
 
 
 def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, file_name: str, pos: dict = None):
+    """
+
+    Parameters
+    ----------
+    distance_matrix
+    title
+    file_name
+    pos
+
+    Returns
+    -------
+
+    """
     dt = [('weight', float)]
     distance_matrix_as_weight = np.matrix(distance_matrix, dtype=dt)
     graph = nx.from_numpy_matrix(distance_matrix_as_weight)
