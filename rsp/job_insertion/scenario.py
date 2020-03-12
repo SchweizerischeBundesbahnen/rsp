@@ -9,9 +9,7 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
-from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.job_insertion.disjunctive_graph import draw_disjunctive_graph
-from rsp.job_insertion.disjunctive_graph import make_disjunctive_graph
+from rsp.job_insertion.disjunctive_graph import make_disjunctive_graph_and_draw
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
@@ -109,11 +107,11 @@ def _solve_schedule_problem_and_save_route_dags(schedule_problem_description: Sc
 
 
 def main():
-    print("(1) create topology")
+    print("(1) topology of hello world scenario")
     output_folder = "job_insertion"
     topo_dict = _scenerio_topo_dict()
 
-    print("(2) create route DAGs for schedule and re-schedule")
+    print("(2) route DAGs for schedule and re-schedule situation")
     for train, topo in topo_dict.items():
         assert len(list(get_sources_for_topo(topo))) == 1, f"train {train}"
         assert len(list(get_sinks_for_topo(topo))) == 1, f"train {train}"
@@ -177,7 +175,7 @@ def main():
     schedule_problem = _make_scenario_schedule_description(earliest_init_dict=schedule_earliest_init_dict)
     reschedule_problem = _make_scenario_schedule_description(earliest_init_dict=reschedule_earliest_init_dict)
 
-    print("(3) route DAGS schedule/re-schedule -> ASP -> schedule and re-schedule")
+    print("(3) route DAGS -> ASP -> schedule and re-schedule")
     schedule_solution = _solve_schedule_problem_and_save_route_dags(
         schedule_problem_description=schedule_problem,
         title="schedule",
@@ -189,27 +187,28 @@ def main():
         output_folder=output_folder
     )
 
-    print("(4) route DAGS -> disjunctive graph")
-    disjunctive_pipeline(problem=schedule_problem,
-                         solution=schedule_solution,
-                         output_folder=output_folder,
-                         title="schedule")
-    disjunctive_pipeline(problem=reschedule_problem,
-                         solution=reschedule_solution,
-                         output_folder=output_folder,
-                         title="re-schedule")
+    print("(4) route DAGs -> disjunctive graphs")
+    make_disjunctive_graph_and_draw(problem=schedule_problem,
+                                    solution=schedule_solution,
+                                    output_folder=output_folder,
+                                    title="schedule")
+    make_disjunctive_graph_and_draw(problem=reschedule_problem,
+                                    solution=reschedule_solution,
+                                    output_folder=output_folder,
+                                    title="re-schedule")
 
+    print("(5) disjunctive graph + selection -> schedule")
+
+    print("(6) disjunctive graph + job -> job insertion graph")
+
+    print("(7) job insertion graph -> naive neighborhood search -> re-schedule")
+
+    print("(8) genarlized job insertion graph -> naive neighborhood search -> re-schedule ")
+
+    print("(9) genarlized job insertion graph -> local neighborhood search -> re-schedule ")
+
+    print("(10*) job insertion graph -> tabu neighborhood search -> schedule")
     print("-> done.")
-
-
-def disjunctive_pipeline(problem: ScheduleProblemDescription, solution: SchedulingExperimentResult,
-                         output_folder: str, title: str):
-    # make disjunctive graph
-    disjunctive_graph = make_disjunctive_graph(problem=problem)
-    draw_disjunctive_graph(disjunctive_graph=disjunctive_graph,
-                           file_name=os.path.join(output_folder, f"disjunctive_graph_{title}.png"),
-                           problem=problem,
-                           solution=solution)
 
 
 if __name__ == '__main__':

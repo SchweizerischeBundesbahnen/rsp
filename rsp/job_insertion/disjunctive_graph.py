@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -194,3 +195,13 @@ def draw_disjunctive_graph(disjunctive_graph: DisjunctiveGraph,
     else:
         plt.show()
     plt.close()
+
+
+def make_disjunctive_graph_and_draw(problem: ScheduleProblemDescription, solution: SchedulingExperimentResult,
+                                    output_folder: str, title: str):
+    # make disjunctive graph
+    disjunctive_graph = make_disjunctive_graph(problem=problem)
+    draw_disjunctive_graph(disjunctive_graph=disjunctive_graph,
+                           file_name=os.path.join(output_folder, f"disjunctive_graph_{title}.png"),
+                           problem=problem,
+                           solution=solution)
