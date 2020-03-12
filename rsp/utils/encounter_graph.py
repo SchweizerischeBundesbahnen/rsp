@@ -43,7 +43,6 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
             np.sum(np.square([pos[0] - train_1_positions[i][0], pos[1] - train_1_positions[i][1]])))
 
     # first heuristic -> get the smallest distance
-    # todo: try different features
     dist_between_trains = np.min(distances_in_time_window)
     index_min_dist = np.argmin(distances_in_time_window)
     time_of_min = start_time_step + index_min_dist
