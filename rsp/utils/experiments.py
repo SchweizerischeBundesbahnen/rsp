@@ -485,6 +485,7 @@ def create_experiment_agenda(experiment_name: str,
     # Setup experiment parameters
     for dim_idx, dimensions in enumerate(parameter_ranges):
         if dimensions[-1] > 1:
+            print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
             parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1],
                                                   np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
         else:
