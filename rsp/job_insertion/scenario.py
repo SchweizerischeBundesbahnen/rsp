@@ -1,0 +1,179 @@
+import os
+from typing import Dict
+from typing import List
+
+import networkx as nx
+from flatland.core.grid.grid4 import Grid4TransitionsEnum
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
+
+from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple
+from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
+from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
+from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import get_sources_for_topo
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
+from rsp.route_dag.route_dag import RouteDAGConstraints
+from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.utils.file_utils import check_create_folder
+
+Segment = List[Waypoint]
+
+
+def create_digraph_from_segments(segments: List[Segment]) -> nx.DiGraph:
+    dag = nx.DiGraph()
+    for segment in segments:
+        for wp1, wp2 in zip(segment, segment[1:]):
+            dag.add_edge(wp1, wp2)
+
+    sources = list(get_sources_for_topo(dag))
+    sinks = list(get_sinks_for_topo(dag))
+    print(f"sources={sources}")
+    print(f"sinks={sinks}")
+    dummy_source = Waypoint(sources[0].position, direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+    dummy_target = Waypoint(sinks[0].position, direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+
+    for source in sources:
+        dag.add_edge(dummy_source, source)
+    for sink in sinks:
+        dag.add_edge(sink, dummy_target)
+    return dag
+
+
+def main():
+    topo_dict = _scenerio_topo_dict()
+
+    for train, topo in topo_dict.items():
+        assert len(list(get_sources_for_topo(topo))) == 1, f"train {train}"
+        assert len(list(get_sinks_for_topo(topo))) == 1, f"train {train}"
+    dummy_source_dict = {
+        train: list(get_sources_for_topo(topo))[0]
+        for train, topo in topo_dict.items()
+    }
+    dummy_target_dict = {
+        train: list(get_sinks_for_topo(topo))[0]
+        for train, topo in topo_dict.items()
+    }
+    minimum_travel_time_dict = {
+        0: 1,
+        1: 1
+    }
+
+    def _make_scenario_schedule_description(earliest_init_dict: Dict[int, int], title: str):
+        schedule_problem_description = ScheduleProblemDescription(
+            route_dag_constraints_dict={
+                train: RouteDAGConstraints(
+                    freeze_earliest=propagate_earliest(
+                        banned_set=set(),
+                        earliest_dict={dummy_source_dict[train]: earliest_init_dict[train]},
+                        minimum_travel_time=minimum_travel_time_dict[train],
+                        force_freeze_dict={},
+                        subdag_source=TrainrunWaypoint(waypoint=dummy_source_dict[train], scheduled_at=10),
+                        topo=topo_dict[train],
+                    ),
+                    freeze_latest=propagate_latest(
+                        banned_set=set(),
+                        earliest_dict={dummy_source_dict[train]: earliest_init_dict[train]},
+                        latest_dict={dummy_target_dict[train]: 55},
+                        latest_arrival=55,
+                        minimum_travel_time=minimum_travel_time_dict[train],
+                        force_freeze_dict={},
+                        topo=topo_dict[train]
+                    ),
+                    freeze_banned=[],
+                    freeze_visit=[]
+                )
+                for train in topo_dict
+            },
+            minimum_travel_time_dict=minimum_travel_time_dict,
+            topo_dict=topo_dict,
+            max_episode_steps=50,
+            route_section_penalties={0: {}, 1: {}},
+            weight_lateness_seconds=1
+        )
+
+        reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
+            tc=schedule_problem_description
+        )
+        solution, _ = solve_problem(problem=reschedule_problem)
+
+        output_folder = "job_insertion"
+        check_create_folder(output_folder)
+        for train in schedule_problem_description.topo_dict.keys():
+            visualize_route_dag_constraints_simple(
+                topo=schedule_problem_description.topo_dict[train],
+                f=schedule_problem_description.route_dag_constraints_dict[train],
+                train_run=solution.trainruns_dict[train],
+                file_name=os.path.join(output_folder, f"{title}_{train:03d}.png"),
+                title=f"{title}_{train:03d}.png",
+                scale=8
+            )
+
+    schedule_earliest_init_dict = {
+        0: 10,
+        1: 16
+    }
+    reschedule_earliest_init_dict = {
+        0: 16,
+        1: 16
+    }
+
+    _make_scenario_schedule_description(schedule_earliest_init_dict, "schedule")
+    _make_scenario_schedule_description(reschedule_earliest_init_dict, "re-schedule")
+
+
+def _scenerio_topo_dict() -> Dict[int, nx.DiGraph]:
+    segment_a1_b = [
+        Waypoint(position=(2, 0), direction=Grid4TransitionsEnum.SOUTH),
+        Waypoint(position=(3, 0), direction=Grid4TransitionsEnum.SOUTH),
+        Waypoint(position=(4, 0), direction=Grid4TransitionsEnum.SOUTH),
+        Waypoint(position=(5, 0), direction=Grid4TransitionsEnum.SOUTH),
+        Waypoint(position=(5, 1), direction=Grid4TransitionsEnum.EAST)
+    ]
+    segment_a2_b = [
+        Waypoint(position=(8, 0), direction=Grid4TransitionsEnum.NORTH),
+        Waypoint(position=(7, 0), direction=Grid4TransitionsEnum.NORTH),
+        Waypoint(position=(6, 0), direction=Grid4TransitionsEnum.NORTH),
+        Waypoint(position=(5, 0), direction=Grid4TransitionsEnum.NORTH),
+        Waypoint(position=(5, 1), direction=Grid4TransitionsEnum.EAST)
+    ]
+    segment_b_c = [
+        Waypoint(position=(5, 1), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(5, 2), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(5, 3), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(5, 4), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(5, 5), direction=Grid4TransitionsEnum.EAST)
+    ]
+    segment_a2_c = [
+        Waypoint(position=(8, 0), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(8, 1), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(8, 2), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(8, 3), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(8, 4), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(8, 5), direction=Grid4TransitionsEnum.NORTH),
+        Waypoint(position=(7, 5), direction=Grid4TransitionsEnum.NORTH),
+        Waypoint(position=(6, 5), direction=Grid4TransitionsEnum.NORTH),
+        Waypoint(position=(6, 4), direction=Grid4TransitionsEnum.WEST),
+        Waypoint(position=(6, 5), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(5, 5), direction=Grid4TransitionsEnum.NORTH)
+    ]
+    train_1_segments = [segment_a1_b, segment_b_c]
+    train_2_segments = [segment_a2_b, segment_b_c, segment_a2_c]
+
+    topo_dict = {
+        0: create_digraph_from_segments(train_1_segments),
+        1: create_digraph_from_segments(train_2_segments)
+    }
+    return topo_dict
+
+
+if __name__ == '__main__':
+    main()
+
+# TODO visualisierung
+# ganze Szenario grau hintendran
+# Verspätung gegenüber earliest
+# Knoten des Fahrplans hervorheben oder Edges verstärken
+# minimum running time auf edges
