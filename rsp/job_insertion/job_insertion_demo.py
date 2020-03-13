@@ -1,4 +1,5 @@
 import os
+import pprint
 from typing import Dict
 from typing import List
 
@@ -9,10 +10,20 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
-from rsp.job_insertion.disjunctive_graph import make_disjunctive_graph_and_draw
+from rsp.job_insertion.disjunctive_graph import DisjunctiveGraphEdgeType
+from rsp.job_insertion.disjunctive_graph import draw_disjunctive_graph
+from rsp.job_insertion.disjunctive_graph import force_disjunctive_edge_in_job_insertion_graph
+from rsp.job_insertion.disjunctive_graph import force_disjunctive_edges_from_schedule
+from rsp.job_insertion.disjunctive_graph import get_trainroute_from_trainrun
+from rsp.job_insertion.disjunctive_graph import make_disjunctive_graph
+from rsp.job_insertion.disjunctive_graph import make_schedule_from_conjunctive_graph
+from rsp.job_insertion.disjunctive_graph import Segment
+from rsp.job_insertion.disjunctive_graph import sort_vertices_by_train_start_and_earliest
+from rsp.job_insertion.disjunctive_graph import Trainroute
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
+from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
@@ -20,7 +31,7 @@ from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.file_utils import check_create_folder
 
-Segment = List[Waypoint]
+_pp = pprint.PrettyPrinter(indent=4)
 
 
 def create_digraph_from_segments(segments: List[Segment]) -> nx.DiGraph:
@@ -107,11 +118,15 @@ def _solve_schedule_problem_and_save_route_dags(schedule_problem_description: Sc
 
 
 def main():
+    # ---------------------------------------------------------------
     print("(1) topology of hello world scenario")
+    # ---------------------------------------------------------------
     output_folder = "job_insertion"
     topo_dict = _scenerio_topo_dict()
 
+    # ---------------------------------------------------------------
     print("(2) route DAGs for schedule and re-schedule situation")
+    # ---------------------------------------------------------------
     for train, topo in topo_dict.items():
         assert len(list(get_sources_for_topo(topo))) == 1, f"train {train}"
         assert len(list(get_sinks_for_topo(topo))) == 1, f"train {train}"
@@ -167,47 +182,112 @@ def main():
         0: 10,
         1: 16
     }
-    reschedule_earliest_init_dict = {
-        0: 16,
-        1: 16
-    }
 
     schedule_problem = _make_scenario_schedule_description(earliest_init_dict=schedule_earliest_init_dict)
-    reschedule_problem = _make_scenario_schedule_description(earliest_init_dict=reschedule_earliest_init_dict)
 
+    # ---------------------------------------------------------------
     print("(3) route DAGS -> ASP -> schedule and re-schedule")
+    # ---------------------------------------------------------------
     schedule_solution = _solve_schedule_problem_and_save_route_dags(
         schedule_problem_description=schedule_problem,
         title="schedule",
         output_folder=output_folder
     )
-    reschedule_solution = _solve_schedule_problem_and_save_route_dags(
-        schedule_problem_description=schedule_problem,
-        title="re-schedule",
-        output_folder=output_folder
+    schedule = schedule_solution.trainruns_dict
+
+    # sort trains and vertices
+    sorted_trains, sorted_vertices = sort_vertices_by_train_start_and_earliest(schedule_problem, schedule_solution)
+
+    # ---------------------------------------------------------------
+    print("(4) routes -> disjunctive graphs")
+    # ---------------------------------------------------------------
+    trainroute_dict_schedule = {
+        train: get_trainroute_from_trainrun(trainrun)
+        for train, trainrun in schedule.items()
+    }
+
+    disjunctive_graph_schedule = make_disjunctive_graph(minimum_travel_time_dict=minimum_travel_time_dict,
+                                                        start_time_dict={
+                                                            0: 10,
+                                                            1: 16
+                                                        },
+                                                        trainroute_dict=trainroute_dict_schedule)
+
+    draw_disjunctive_graph(
+        disjunctive_graph=disjunctive_graph_schedule,
+        file_name=os.path.join(output_folder, f"disjunctive_graph_schedule.png"),
+        sorted_trains=sorted_trains,
+        sorted_vertices=sorted_vertices
     )
 
-    print("(4) route DAGs -> disjunctive graphs")
-    make_disjunctive_graph_and_draw(problem=schedule_problem,
-                                    solution=schedule_solution,
-                                    output_folder=output_folder,
-                                    title="schedule")
-    make_disjunctive_graph_and_draw(problem=reschedule_problem,
-                                    solution=reschedule_solution,
-                                    output_folder=output_folder,
-                                    title="re-schedule")
+    # ---------------------------------------------------------------
+    print("(5a) disjunctive_graph + full, feasible selection from schedule -> conjunctive graph")
+    print("(5b) conjunctive graph -> schedule")
+    # ---------------------------------------------------------------
+    conjunctive_graph_schedule = force_disjunctive_edges_from_schedule(
+        disjunctive_graph=disjunctive_graph_schedule,
+        schedule=schedule
+    )
+    draw_disjunctive_graph(
+        disjunctive_graph=conjunctive_graph_schedule,
+        file_name=os.path.join(output_folder, f"conjunctive_graph_schedule_from_selection.png"),
+        sorted_trains=sorted_trains,
+        sorted_vertices=sorted_vertices
+    )
 
-    print("(5) disjunctive graph + selection -> schedule")
+    schedule_from_conjunctive_graph = make_schedule_from_conjunctive_graph(conjunctive_graph=conjunctive_graph_schedule)
+    # TODO make unit tests instead...
+    assert schedule == schedule_from_conjunctive_graph
 
-    print("(6) disjunctive graph + job -> job insertion graph")
+    # ---------------------------------------------------------------
+    print("(6) job insertion graph")
+    # ---------------------------------------------------------------
+    job_insertion_graph = make_disjunctive_graph(
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        start_time_dict={
+            0: 15,
+            1: 16
+        },
+        trainroute_dict=trainroute_dict_schedule
+    )
+    draw_disjunctive_graph(
+        disjunctive_graph=job_insertion_graph,
+        file_name=os.path.join(output_folder, f"job_insertion_graph.png"),
+        sorted_trains=sorted_trains,
+        sorted_vertices=sorted_vertices
+    )
 
-    print("(7) job insertion graph -> naive neighborhood search -> re-schedule")
+    # ---------------------------------------------------------------
+    print("(7) job insertion graph + forced edge -> re-schedule")
+    # ---------------------------------------------------------------
+    random_forced_edge = next(((u, v) for (u, v, d) in job_insertion_graph.edges(data=True)
+                               if d['type'] == DisjunctiveGraphEdgeType.DISJUNCTIVE))
+    force_disjunctive_edge_in_job_insertion_graph(
+        job_insertion_graph=job_insertion_graph,
+        forced_edge=random_forced_edge
+    )
 
-    print("(8) genarlized job insertion graph -> naive neighborhood search -> re-schedule ")
+    # ---------------------------------------------------------------
+    print("(8) job insertion graph -> naive neighborhood search -> re-schedule")
+    # ---------------------------------------------------------------
+    trainroutes_dict: Dict[int, List[Trainroute]] = {
+        train: get_paths_in_route_dag(topo)
+        for train, topo in schedule_problem.topo_dict.items()
+    }
+    _pp.pprint(trainroutes_dict)
 
-    print("(9) genarlized job insertion graph -> local neighborhood search -> re-schedule ")
+    # ---------------------------------------------------------------
+    print("(9) generalized job insertion graph -> naive neighborhood search -> re-schedule ")
+    # ---------------------------------------------------------------
 
-    print("(10*) job insertion graph -> tabu neighborhood search -> schedule")
+    # ---------------------------------------------------------------
+    print("(10) generalized job insertion graph -> local neighborhood search -> re-schedule ")
+    # ---------------------------------------------------------------
+
+    # ---------------------------------------------------------------
+    print("(11)*** job insertion graph -> tabu neighborhood search -> schedule")
+    # ---------------------------------------------------------------
+
     print("-> done.")
 
 
@@ -219,3 +299,8 @@ if __name__ == '__main__':
 # Verspätung gegenüber earliest
 # Knoten des Fahrplans hervorheben oder Edges verstärken
 # minimum running time auf edges
+
+
+# TODO rename freeze_***
+# TODO rename ExperimentSchedulingResult....
+# TODO put drawing at the end
