@@ -1,4 +1,5 @@
 """Analysis the ExperimentFreeze as Route Graph."""
+import pprint
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -7,6 +8,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.route_dag import RouteDagEdge
@@ -14,6 +16,7 @@ from rsp.route_dag.route_dag import RouteSectionPenalties
 from rsp.route_dag.route_dag import WaypointPenalties
 from rsp.utils.data_types import RouteDAGConstraints
 
+_pp = pprint.PrettyPrinter(indent=4)
 OFFSET = 0.25
 FLATLAND_OFFSET_PATTERN = {
     # heading north = coming from south: +row
@@ -25,7 +28,7 @@ FLATLAND_OFFSET_PATTERN = {
     # heading west = coming from east: +col
     3: np.array([0, OFFSET]),
     # dummy heading = no offset
-    5: np.array([300, 300])
+    5: np.array([0 - OFFSET * 0.5, 0 - OFFSET * 0.5])
 }
 
 
@@ -33,6 +36,7 @@ def visualize_route_dag_constraints_simple(
         topo: nx.DiGraph,
         f: RouteDAGConstraints,
         train_run: Trainrun,
+        background_topo_dict: Dict[int, nx.DiGraph] = None,
         file_name: Optional[str] = None,
         title: Optional[str] = None,
         scale: int = 4,
@@ -53,9 +57,13 @@ def visualize_route_dag_constraints_simple(
         scale in or out
     """
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
+    topo_with_background = topo.copy()
+    if background_topo_dict is not None:
+        for background_topo in background_topo_dict.values():
+            topo_with_background.add_edges_from(background_topo.edges())
 
     # nx directed graph
-    all_waypoints: List[Waypoint] = list(topo.nodes)
+    all_waypoints: List[Waypoint] = list(topo_with_background.nodes)
 
     schedule = {
         trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
@@ -71,35 +79,118 @@ def visualize_route_dag_constraints_simple(
     if title:
         plt.title(title)
 
-    # positions with offsets for the pins
-    offset = 0.25
-    flatland_offset_pattern = {
-        # heading north = coming from south: +row
-        0: np.array([offset, 0]),
-        # heading east = coming from west: -col
-        1: np.array([0, -offset]),
-        # heading south = coming from north: -row
-        2: np.array([-offset, 0]),
-        # heading west = coming from east: +col
-        3: np.array([0, offset]),
-        # dummy heading = top left, not in the center to better see arrows
-        5: np.array([-offset, -offset])
-    }
-    flatland_pos_with_offset = {wp: np.array(wp.position) + flatland_offset_pattern[wp.direction] for wp in
+    flatland_pos_with_offset = {wp: np.array(wp.position) + FLATLAND_OFFSET_PATTERN[wp.direction] for wp in
                                 all_waypoints}
 
     plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
 
-    plt_color_map = [_get_color_for_node(node, f) for node in topo.nodes()]
+    plt_color_map = ['lightgreen' if node in topo.nodes else 'grey'
+                     for node in topo_with_background.nodes()]
 
     plt_labels = {
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
-            f"{_get_label_for_constraint_for_waypoint(wp, f)}\n"
+            f"{_get_label_for_constraint_for_waypoint(wp, f) if wp in topo.nodes() else ''}\n"
             f"{str(schedule[wp]) if wp in schedule else ''}"
         for wp in
         all_waypoints}
 
-    nx.draw(topo,
+    nx.draw(topo_with_background,
+            plt_pos,
+            labels=plt_labels,
+            edge_color='black',
+            width=1,
+            linewidths=1,
+            node_size=1500,
+            node_color=plt_color_map,
+            alpha=0.9)
+
+    schedule_edges = [
+        (wp1, wp2)
+        for wp1, wp2 in topo.edges()
+        if wp1 in schedule and wp2 in schedule
+    ]
+
+    # draw schedule edges larger
+    nx.draw_networkx_edges(G=topo_with_background,
+                           pos=plt_pos,
+                           label=plt_labels,
+                           edge_color='black',
+                           edgelist=schedule_edges,
+                           width=3,
+                           node_size=1500,
+                           arrowsize=20)
+
+    plt.gca().invert_yaxis()
+    if file_name is not None:
+        plt.savefig(file_name)
+    else:
+        plt.show()
+    plt.close()
+
+    return topo_with_background
+
+
+def visualize_schedule(
+        trainrun_dict: TrainrunDict,
+        background_topo_dict: Dict[int, nx.DiGraph] = None,
+        file_name: Optional[str] = None,
+        title: Optional[str] = None,
+        scale: int = 4,
+) -> nx.DiGraph:
+    """Draws an agent's route graph with constraints into a file.
+
+    Parameters
+    ----------
+    topo
+    f
+        constraints for this agent
+    train_run
+    file_name
+        save graph to this file
+    title
+        title in the picture
+    scale
+        scale in or out
+    """
+    # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
+    topo_with_background = nx.DiGraph()
+    if background_topo_dict is not None:
+        for background_topo in background_topo_dict.values():
+            topo_with_background.add_edges_from(background_topo.edges())
+
+    # nx directed graph
+    all_waypoints: List[Waypoint] = list(topo_with_background.nodes)
+
+    # schedule: for each waypoint, dict keyed by entry time giving train that enters then
+    schedule: Dict[Waypoint, Dict[int, int]] = {}
+    for train, trainrun in trainrun_dict.items():
+        for trainrun_waypoint in trainrun:
+            schedule.setdefault(trainrun_waypoint.waypoint, {})[trainrun_waypoint.scheduled_at] = train
+
+    # figsize
+    flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
+    flatland_figsize = np.max(flatland_positions, axis=0) - np.min(flatland_positions, axis=0)
+    plt.figure(figsize=(flatland_figsize[1] * scale, flatland_figsize[0] * scale))
+
+    # plt title
+    if title:
+        plt.title(title)
+
+    flatland_pos_with_offset = {wp: np.array(wp.position) + FLATLAND_OFFSET_PATTERN[wp.direction] for wp in
+                                all_waypoints}
+
+    plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
+
+    plt_color_map = ['lightgreen' if node in schedule else 'grey'
+                     for node in topo_with_background.nodes()]
+
+    plt_labels = {
+        wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
+            f"{_pp.pformat(schedule[wp]) if wp in schedule else ''}"
+        for wp in all_waypoints
+    }
+
+    nx.draw(topo_with_background,
             plt_pos,
             labels=plt_labels,
             edge_color='black',
@@ -116,7 +207,7 @@ def visualize_route_dag_constraints_simple(
         plt.show()
     plt.close()
 
-    return topo
+    return topo_with_background
 
 
 def visualize_route_dag_constraints(

@@ -1,4 +1,5 @@
 import pprint
+from collections import deque
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -102,6 +103,7 @@ def make_disjunctive_graph(
         trainroute_dict: TrainrouteDict,
         start_time_dict: Dict[int, int],
         release_time: int = 1,
+        no_disjunctions: Set[int] = None,
         debug: bool = False) -> DisjunctiveGraph:
     disjunctive_graph = nx.DiGraph()
 
@@ -139,6 +141,10 @@ def make_disjunctive_graph(
             continue
         for t1 in trains:
             for t2 in trains:
+                # if both trains are kept fixed, no disjunctions between them
+                if no_disjunctions is not None and t1 in no_disjunctions and t2 in no_disjunctions:
+                    continue
+
                 if t1 >= t2:
                     continue
                 # exit + release time <= next entry
@@ -165,6 +171,7 @@ def draw_disjunctive_graph(disjunctive_graph: DisjunctiveGraph,
                            file_name: str,
                            sorted_trains: OrderedTrains,
                            sorted_vertices: OrderedDisjunctiveGraphNodes,
+                           highlight_edges: List[DisjunctiveGraphEdge] = None,
                            scale: int = 4,
                            padding: int = 2,
                            title: Optional[str] = None):
@@ -257,6 +264,17 @@ def draw_disjunctive_graph(disjunctive_graph: DisjunctiveGraph,
         for patch in collection:
             patch.set_linestyle('dotted')
 
+    if highlight_edges is not None:
+        nx.draw_networkx_edges(G=disjunctive_graph,
+                               pos=pos,
+                               label=edge_labels,
+                               edge_color='red',
+                               edgelist=highlight_edges,
+                               width=3,
+                               node_size=1500,
+                               arrowsize=20,
+                               connectionstyle="arc3,rad=0.1")
+
     nx.draw_networkx_edge_labels(G=disjunctive_graph,
                                  pos=pos,
                                  edge_labels=edge_labels,
@@ -273,54 +291,81 @@ def draw_disjunctive_graph(disjunctive_graph: DisjunctiveGraph,
     plt.close()
 
 
-def derive_selection_from_schedule(disjunctive_graph: DisjunctiveGraph, trains: Set[int], sche) -> Selection:
-    pass
-
-
-def make_job_insertion_graph(
-        disjunctive_graph: DisjunctiveGraph,
-        full_selection: Selection,
-        trains_to_reinsert=Set[int]
-) -> DisjunctiveGraph:
-    print("full selection=" + str(full_selection))
-
-    # 1. make selection for trains not to reinsert
-    partial_selection = {
-        ((train1, wp1), (train2, wp2))
-        # selection never contains sigma!
-        for (train1, wp1), (train2, wp2) in full_selection
-        # keep only selections of trains both not to reinsert
-        if train1 not in trains_to_reinsert and train2 not in trains_to_reinsert
-    }
-    print("partial selction=" + _pp.pformat(partial_selection))
-
-    # 2. apply selection
-    job_insertion_graph = apply_selection(
-        disjunctive_graph=disjunctive_graph,
-        selection=partial_selection
-    )
-    return job_insertion_graph
-
-
-def force_disjunctive_edge_in_job_insertion_graph(
+def get_conjunctive_graph_by_inserting_at_end(
         job_insertion_graph: DisjunctiveGraph,
-        forced_edge: DisjunctiveGraphEdge):
-    assert job_insertion_graph.get_edge_data(*forced_edge)['type'] == DisjunctiveGraphEdgeType.DISJUNCTIVE
+        train_to_insert: int) -> Tuple[DisjunctiveGraph, List[DisjunctiveGraphEdge]]:
+    conjunctive_graph = job_insertion_graph.copy()
 
-    graph = job_insertion_graph.copy()
-    mate = get_mate(disjunctive_graph=graph, edge=forced_edge)
-    graph.remove_edge(*mate)
+    # edges leaving the train to insert would make it go before -> remove
+    edges_to_remove = [
+        (u, v)
+        for (u, v, d) in conjunctive_graph.edges(data=True)
+        if d['type'] == DisjunctiveGraphEdgeType.DISJUNCTIVE and u[0] == train_to_insert
+    ]
+    conjunctive_graph.remove_edges_from(edges_to_remove)
 
-    disjunctive_edges = [(u, v) for (u, v, d) in job_insertion_graph.edges(data=True)
-                         if d['type'] == DisjunctiveGraphEdgeType.DISJUNCTIVE]
-    mates = {
-        edge: get_mate(graph, edge)
-        for edge in disjunctive_edges
-    }
+    # select all remaining disjunctive edges, make them conjunctive
+    selection = []
+    for (u, v, d) in conjunctive_graph.edges(data=True):
+        if d['type'] == DisjunctiveGraphEdgeType.DISJUNCTIVE:
+            d['type'] = DisjunctiveGraphEdgeType.CONJUNCTIVE
+            selection.append((u, v))
+    return conjunctive_graph, selection
 
-    for edge, mate in mates.items():
-        print(edge)
-        print(mate)
+
+def left_closure(
+        conjunctive_graph: DisjunctiveGraph,
+        critical_arc: DisjunctiveGraphEdge,
+        release_time: int = 1,
+        debug: bool = False
+):
+    conjunctive_graph = conjunctive_graph.copy()
+
+    # add critical arc to our queue
+    d = deque()
+    d.append(critical_arc)
+    closure = []
+    while d:
+        edge = d.pop()
+
+        # if added multiple times to queue, it might not be in the graph any more
+        if edge not in conjunctive_graph.edges():
+            continue
+
+        # invert by removing the edge and inserting the mate
+        mate = get_mate(
+            disjunctive_graph=conjunctive_graph,
+            edge=edge
+        )
+        conjunctive_graph.remove_edge(*edge)
+        conjunctive_graph.add_edge(*mate, weight=release_time, type=DisjunctiveGraphEdgeType.CONJUNCTIVE)
+        closure.append(mate)
+        mate_tail, mate_head = mate
+        leaving_from_train = mate_tail[0]
+        if debug:
+            print(
+                f" -> replacing by {mate}: train {mate_tail[0]} before train {mate_head[0]} at {mate_head[1]}=={edge[1][1]}")
+        # TODO optimize, no need to enumerate all cycles, exploit structure
+        for cycle in nx.simple_cycles(G=conjunctive_graph):
+            if mate_head in cycle and mate_tail in cycle:
+                # sum over all edges in cycle
+                sum_weights = sum([
+                    conjunctive_graph.get_edge_data(n1, n2)['weight']
+                    for n1, n2 in zip(cycle, cycle[1:] + [cycle[0]])])
+                # positive cycle found!
+                if sum_weights > 0:
+                    for n1, n2 in zip(cycle, cycle[1:] + [cycle[0]]):
+                        train1, _ = n1
+                        train2, _ = n2
+                        # find incoming edge
+
+                        if train1 != leaving_from_train and train2 == leaving_from_train:
+                            # add the incoming edge to our queue: must be swapped later!
+                            # TODO is it safe to assume the cycle contains only one incoming edge?
+                            d.append((n1, n2))
+                            break
+
+    return conjunctive_graph, closure
 
 
 def force_disjunctive_edges_from_schedule(disjunctive_graph: DisjunctiveGraph,
@@ -378,9 +423,6 @@ def path_successor(disjunctive_graph: DisjunctiveGraph, u: DisjunctiveGraphNode)
         if disjunctive_graph.get_edge_data(u, v)[
                'type'] == DisjunctiveGraphEdgeType.CONJUNCTIVE
     ]
-    # sanity checks
-    # TODO no assertions hidden in code, move into unit test
-    assert len(successors_by_conjunctive_edge) == 1
 
     next_node_in_path = successors_by_conjunctive_edge[0]
 
@@ -400,9 +442,6 @@ def path_predecessor(disjunctive_graph: DisjunctiveGraph, v: DisjunctiveGraphNod
         for u in disjunctive_graph.predecessors(v)
         if disjunctive_graph.get_edge_data(u, v)['type'] == DisjunctiveGraphEdgeType.CONJUNCTIVE
     ]
-    # sanity checks
-    # TODO no assertions hidden in code, move into unit test
-    assert len(predecessors_by_conjunctive_edge) == 1
 
     previous_node_in_path = predecessors_by_conjunctive_edge[0]
     train2, _ = previous_node_in_path
@@ -465,7 +504,6 @@ def sanity_check_disjunctive_graph(disjunctive_graph: DisjunctiveGraph):
 
             # verify mate is in disjunctive graph as well
             mate = get_mate(disjunctive_graph, edge)
-            print(f"mate {mate} of {edge} found in disjunctive graph")
             assert mate in edges_without_data, f"expected mate {mate} of {edge} to be in disjunctive graph"
     for (u, v, d) in disjunctive_graph.edges(data=True):
         if d['type'] == DisjunctiveGraphEdgeType.CONJUNCTIVE and u is not None:
@@ -491,7 +529,6 @@ def apply_selection(
     #   - keep if mate is not in selection; mate is
     #        - resource conflicts between trains: mate(u,v)==(v,u)
     #        - alternative routes of same train mate(u,v)==(u,_)
-    print("blup")
     for from_node, to_node, edge_data in disjunctive_graph.edges(data=True):
         # mate selected -> "remove" disjunctive edge
         if (edge_data['type'] == DisjunctiveGraphEdgeType.DISJUNCTIVE and
@@ -507,9 +544,6 @@ def apply_selection(
             print(f" keeping ({from_node}, {to_node}) with edge_data={edge_data}")
             conjunctive_graph.add_edge(from_node, to_node, **edge_data)
 
-    print("blup")
-
-    print("blup")
     # TODO do we need to remove edges not reached?
     # remove not reached?
     print(_pp.pformat(conjunctive_graph.edges))
