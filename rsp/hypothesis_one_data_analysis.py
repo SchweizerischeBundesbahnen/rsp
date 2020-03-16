@@ -15,13 +15,10 @@ from typing import Dict
 from typing import List
 
 import pandas as pd
-from networkx.drawing.tests.test_pylab import plt
 from pandas import DataFrame
 
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.utils.analysis_tools import average_over_grid_id
-from rsp.utils.analysis_tools import three_dimensional_scatter_plot
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
@@ -36,106 +33,35 @@ from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.file_utils import check_create_folder
 
 
-def _2d_analysis(averaged_data: DataFrame, std_data: DataFrame, output_folder: str = None):
-    for column in ['n_agents', 'size', 'size_used']:
-        two_dimensional_scatter_plot(data=averaged_data,
-                                     error=std_data,
-                                     columns=[column, 'speed_up'],
-                                     colors=['black' if inv_speed_up < 1 else 'red' for inv_speed_up in
-                                             averaged_data['time_delta_after_malfunction'] / averaged_data[
-                                                 'time_full_after_malfunction']],
-                                     title='speed_up delta-rescheduling against re-scheduling',
-                                     output_folder=output_folder
-                                     )
-        two_dimensional_scatter_plot(data=averaged_data,
-                                     error=std_data,
-                                     columns=[column, 'time_full'],
-                                     title='scheduling for comparison',
-                                     output_folder=output_folder
-                                     )
-        two_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                     columns=[column, 'time_full_after_malfunction'],
-                                     title='re-scheduling',
-                                     output_folder=output_folder
-                                     )
-        two_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                     columns=[column, 'time_delta_after_malfunction'],
-                                     title='delta re-scheduling',
-                                     output_folder=output_folder
-                                     )
-
-    # resource conflicts
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['nb_resource_conflicts_full',
-                                          'time_full'],
-                                 title='effect of resource conflicts',
-                                 output_folder=output_folder,
-                                 )
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['nb_resource_conflicts_full_after_malfunction',
-                                          'time_full_after_malfunction'],
-                                 title='effect of resource conflicts',
-                                 output_folder=output_folder,
-                                 )
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['nb_resource_conflicts_delta_after_malfunction',
-                                          'time_delta_after_malfunction'],
-                                 title='effect of resource conflicts',
-                                 output_folder=output_folder,
-                                 )
-
-    # nb paths
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['path_search_space_rsp_full',
-                                          'time_full_after_malfunction'],
-                                 title='impact of number of considered paths over all agents',
-                                 output_folder=output_folder,
-                                 xscale='log'
-                                 )
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['path_search_space_rsp_delta',
-                                          'time_delta_after_malfunction'],
-                                 title='impact of number of considered paths over all agents',
-                                 output_folder=output_folder,
-                                 xscale='log'
-                                 )
-    two_dimensional_scatter_plot(data=averaged_data,
-                                 error=std_data,
-                                 columns=['path_search_space_rsp_delta',
-                                          'n_agents'],
-                                 title='impact of number of considered paths over all agents',
-                                 output_folder=output_folder,
-                                 xscale='log'
-                                 )
-
-
-def _3d_analysis(averaged_data: DataFrame, std_data: DataFrame):
-    fig = plt.figure()
-    three_dimensional_scatter_plot(data=averaged_data,
-                                   error=std_data,
-                                   columns=['n_agents', 'size', 'speed_up'],
-                                   fig=fig,
-                                   subplot_pos='111',
-                                   colors=['black' if z_value < 1 else 'red' for z_value in averaged_data['speed_up']])
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                   columns=['n_agents', 'size', 'time_full'],
-                                   fig=fig,
-                                   subplot_pos='121')
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                   columns=['n_agents', 'size', 'time_full_after_malfunction'],
-                                   fig=fig,
-                                   subplot_pos='211')
-    three_dimensional_scatter_plot(data=averaged_data, error=std_data,
-                                   columns=['n_agents', 'size', 'time_delta_after_malfunction'],
-                                   fig=fig,
-                                   subplot_pos='221', )
-    fig.set_size_inches(15, 15)
-    plt.show()
+def _2d_analysis(data: DataFrame,
+                 output_folder: str = None):
+    explanations = {
+        'speed_up': 'time_full_after_malfunction / time_delta_after_malfunction',
+        'time_full_after_malfunction': 'solver time for re-scheduling without Oracle information',
+        'time_delta_after_malfunction': 'solver time for re-scheduling with Oracle information'
+    }
+    for y_axis in ['speed_up', 'time_full_after_malfunction', 'time_delta_after_malfunction']:
+        for x_axis in ['experiment_id', 'n_agents', 'size', 'size_used']:
+            explanation = (f"({explanations[y_axis]})" if y_axis in explanations else "")
+            two_dimensional_scatter_plot(
+                columns=[x_axis, y_axis],
+                data=data,
+                show_global_mean=True if x_axis == 'experiment_id' else False,
+                title=f'{y_axis} per {x_axis} {explanation}',
+                output_folder=output_folder
+            )
+    for x_axis_prefix in ['nb_resource_conflicts_']:
+        for y_axis_prefix in ['time_']:
+            for suffix in ['full_after_malfunction', 'delta_after_malfunction']:
+                x_axis = x_axis_prefix + suffix
+                y_axis = y_axis_prefix + suffix
+                explanation = (f"({explanations[y_axis]})" if y_axis in explanations else "")
+                two_dimensional_scatter_plot(
+                    data=data,
+                    columns=[x_axis, y_axis],
+                    title=f'{y_axis} per {x_axis} {explanation})',
+                    output_folder=output_folder
+                )
 
 
 def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis], output_folder=str):
@@ -226,31 +152,28 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
         # 1. solver should spend most of the time solving: compare solve and total times
         two_dimensional_scatter_plot(data=data_frame,
                                      columns=['experiment_id', 'solve_total_ratio_' + item],
-                                     title='relative comparison of solve and total solver time for ' + item,
+                                     title='comparison of solve and total solver time for ' + item,
                                      output_folder=output_folder,
-                                     link_column=None
+                                     show_global_mean=True
                                      )
         two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'solve_total_ratio_' + item],
-                                     baseline_column='solve_time_' + item,
-                                     title='absolute comparison of total solver time and solve_time (b) for ' + item,
-                                     output_folder=output_folder,
-                                     link_column=None
+                                     columns=['experiment_id', 'solve_time_' + item],
+                                     baseline_column='total_time_' + item,
+                                     title='comparison of total solver time (b) and solve_time for ' + item,
+                                     output_folder=output_folder
                                      )
         # 2. propagation times should be low in comparison to solve times
         two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'solve_time_' + item],
-                                     baseline_column='user_accu_propagations_' + item,
-                                     title='comparison of absolute values of solve_time against summed propagation times of user accu (b) ' + item,
-                                     output_folder=output_folder,
-                                     link_column=None
+                                     columns=['experiment_id', 'user_accu_propagations_' + item],
+                                     baseline_column='solve_time_' + item,
+                                     title='comparison of solve_time (b) against summed propagation times of user accu' + item,
+                                     output_folder=output_folder
                                      )
         two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'solve_time_' + item],
-                                     baseline_column='user_step_propagations_' + item,
-                                     title='comparison of absolute values of solve_time against summed propagation times of user step (b) ' + item,
-                                     output_folder=output_folder,
-                                     link_column=None
+                                     columns=['experiment_id', 'user_step_propagations_' + item],
+                                     baseline_column='solve_time_' + item,
+                                     title='comparison of solve_time (b) against summed propagation times of user step ' + item,
+                                     output_folder=output_folder
                                      )
 
         # 3. choice conflict ratio should be close to 1; if the ratio is high, the problem might be large, but not difficult
@@ -258,7 +181,7 @@ def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis
                                      columns=['experiment_id', 'choice_conflict_ratio_' + item],
                                      title='choice conflict ratio ' + item,
                                      output_folder=output_folder,
-                                     link_column=None
+                                     show_global_mean=True
                                      )
 
 
@@ -293,6 +216,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
 
     print(experiment_data_directory)
     print(experiment_agenda)
+
     # Plausibility tests on experiment data
     _run_plausibility_tests_on_experiment_data(experiment_results_list)
 
@@ -308,16 +232,13 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
         print(experiment_data[preview_col])
     print(experiment_data.dtypes)
 
-    print("Averaging...")
-    averaged_data, std_data = average_over_grid_id(experiment_data)
-    print("  -> Done averaging.")
-
     # quantitative analysis
     if analysis_2d:
-        _2d_analysis(averaged_data, std_data, output_folder=experiment_analysis_directory)
+        _2d_analysis(data=experiment_data,
+                     output_folder=experiment_analysis_directory)
         _asp_plausi_analysis(experiment_results_list, output_folder=experiment_analysis_directory)
     if analysis_3d:
-        _3d_analysis(averaged_data, std_data)
+        raise NotImplementedError()
 
     # qualitative explorative analysis
     if qualitative_analysis_experiment_ids:
@@ -399,5 +320,5 @@ if __name__ == '__main__':
     hypothesis_one_data_analysis(experiment_base_directory='./exp_hypothesis_one_2020_03_12T12_12_43',
                                  analysis_2d=True,
                                  analysis_3d=False,
-                                 qualitative_analysis_experiment_ids=[12]
+                                 qualitative_analysis_experiment_ids=[]
                                  )

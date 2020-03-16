@@ -115,6 +115,5 @@ def _scatter_for_two_runs(experiment_data1: DataFrame,
                                  baseline_data=experiment_data1,
                                  columns=['experiment_id', column],
                                  title=f'difference {column}',
-                                 output_folder=output_folder,
-                                 link_column=None
+                                 output_folder=output_folder
                                  )
