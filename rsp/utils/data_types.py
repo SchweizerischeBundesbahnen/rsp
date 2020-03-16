@@ -341,7 +341,6 @@ def expand_experiment_results_for_analysis(
         print(
             f"[{experiment_id}] sum_route_section_penalties_delta_after_malfunction={sum_route_section_penalties_delta_after_malfunction}")
 
-    print(f"experiment_id={experiment_parameters.experiment_id}, grid_id={experiment_parameters.grid_id}")
     return ExperimentResultsAnalysis(
         **experiment_results._asdict(),
         experiment_id=experiment_parameters.experiment_id,

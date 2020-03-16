@@ -15,6 +15,7 @@ from typing import Dict
 from typing import List
 
 import pandas as pd
+import tqdm
 from pandas import DataFrame
 
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
@@ -214,7 +215,6 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
         experiment_data_directory)
     experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 
-    print(experiment_data_directory)
     print(experiment_agenda)
 
     # Plausibility tests on experiment data
@@ -222,15 +222,6 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
 
     # convert to data frame for statistical analysis
     experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-
-    # previews
-    preview_cols = ['speed_up', 'time_delta_after_malfunction', 'experiment_id',
-                    'nb_resource_conflicts_delta_after_malfunction', 'path_search_space_rsp_full']
-    for preview_col in preview_cols:
-        print(preview_col)
-        print(experiment_data[preview_col])
-        print(experiment_data[preview_col])
-    print(experiment_data.dtypes)
 
     # quantitative analysis
     if analysis_2d:
@@ -281,7 +272,7 @@ def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]
 
 def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis]):
     print("Running plausibility tests on experiment data...")
-    for experiment_results_analysis in l:
+    for experiment_results_analysis in tqdm.tqdm(l):
         experiment_id = experiment_results_analysis.experiment_id
         plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
         costs_full_after_malfunction: int = experiment_results_analysis.costs_full_after_malfunction

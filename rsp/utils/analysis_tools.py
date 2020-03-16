@@ -13,7 +13,6 @@ from typing import Tuple
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from matplotlib import axes
@@ -22,11 +21,6 @@ from pandas import DataFrame
 from pandas import Series
 
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.data_types import COLUMNS_ANALYSIS
-from rsp.utils.data_types import convert_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_pandas_series_experiment_results
-from rsp.utils.data_types import expand_experiment_results_for_analysis
-from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
@@ -316,52 +310,6 @@ def _2d_plot_baseline(ax: axes.Axes, y_values_baseline: Series, x_values: Series
     for i in np.arange(0, min(len(y_values), len(y_values_baseline))):
         ax.plot([x_values[i], x_values[i]],
                 [y_values_baseline[i], y_values[i]], marker="_")
-
-
-def expand_experiment_data_for_analysis(
-        experiment_data: DataFrame, debug: bool = False
-) -> DataFrame:
-    """Derive additional fields from the computed results without.
-
-    Do it here for the following reasons:
-    1. no need to re-run the experiments for new derived properties;
-    2. re-run new analysis logic on existing experiment data
-    3. keep experiment logic as simple as possible
-    """
-    data = []
-
-    for _, row in experiment_data.iterrows():
-        experiment_results: ExperimentResults = convert_pandas_series_experiment_results(row)
-
-        expanded_experiment_results = expand_experiment_results_for_analysis(
-            experiment_results=experiment_results,
-            debug=debug
-        )
-        data.append(convert_experiment_results_analysis_to_data_frame(
-            experiment_results=expanded_experiment_results
-        ))
-
-    data_frame = pd.DataFrame(columns=COLUMNS_ANALYSIS, data=data)
-    for key in ['speed_up',
-                'size',
-                'n_agents',
-                'max_num_cities',
-                'max_rail_between_cities',
-                'max_rail_in_city',
-                'nb_resource_conflicts_full',
-                'nb_resource_conflicts_full_after_malfunction',
-                'nb_resource_conflicts_delta_after_malfunction',
-                'path_search_space_schedule',
-                'path_search_space_rsp_full', 'path_search_space_rsp_delta',
-                'factor_path_search_space', 'size_used',
-                'time_full',
-                'time_full_after_malfunction',
-                'time_delta_after_malfunction',
-                ]:
-        print(key)
-        print(data_frame[key])
-        data_frame[key] = data_frame[key].astype(float)
-    return data_frame
 
 
 def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_folder: str):
