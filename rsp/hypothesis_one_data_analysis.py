@@ -338,6 +338,26 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  flatland_rendering=flatland_rendering)
 
 
+def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
+    """Map lateness per agent to costs for lateness.
+
+    Parameters
+    ----------
+    weight_lateness_seconds
+    lateness_dict
+
+    Returns
+    -------
+    """
+    # TODO hard-coded constants for delay model, same as in delay_linear_within_one_minute.lp
+    PENALTY_LEAP_AT = 60
+    PENALTY_LEAP = 5000000 + PENALTY_LEAP_AT * weight_lateness_seconds
+    return sum([(PENALTY_LEAP
+                 if lateness > PENALTY_LEAP_AT
+                 else lateness * weight_lateness_seconds)
+                for agent_id, lateness in lateness_dict.items()])
+
+
 def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis]):
     print("Running plausibility tests on experiment data...")
     for experiment_results_analysis in l:
@@ -351,29 +371,32 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
         lateness_delta_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_delta_after_malfunction
         sum_route_section_penalties_delta_after_malfunction: Dict[
             int, int] = experiment_results_analysis.sum_route_section_penalties_delta_after_malfunction
-
-        sum_lateness_full_after_malfunction: int = sum(lateness_full_after_malfunction.values())
+        costs_lateness_full_after_malfunction: int = lateness_to_cost(
+            weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
+            lateness_dict=lateness_full_after_malfunction)
         sum_all_route_section_penalties_full_after_malfunction: int = sum(
             sum_route_section_penalties_full_after_malfunction.values())
-        sum_lateness_delta_after_malfunction: int = sum(lateness_delta_after_malfunction.values())
+        costs_lateness_delta_after_malfunction: int = lateness_to_cost(
+            weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
+            lateness_dict=lateness_delta_after_malfunction)
         sum_all_route_section_penalties_delta_after_malfunction: int = sum(
             sum_route_section_penalties_delta_after_malfunction.values())
 
-        assert costs_full_after_malfunction == sum_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
+        assert costs_full_after_malfunction == costs_lateness_delta_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
             f"experiment {experiment_id}: " \
             f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
-            f"sum_lateness_full_after_malfunction={sum_lateness_full_after_malfunction}, " \
+            f"sum_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
             f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
-        assert costs_delta_after_malfunction == sum_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
+        assert costs_delta_after_malfunction == costs_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
             f"experiment {experiment_id}: " \
             f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
-            f"sum_lateness_delta_after_malfunction={sum_lateness_delta_after_malfunction}, " \
+            f"sum_lateness_delta_after_malfunction={costs_lateness_delta_after_malfunction}, " \
             f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
     print("  -> Done plausibility tests on experiment data.")
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(experiment_base_directory='./exp_hypothesis_one_2020_03_04T19_19_00',
+    hypothesis_one_data_analysis(experiment_base_directory='./exp_hypothesis_one_2020_03_12T12_12_43',
                                  analysis_2d=True,
                                  analysis_3d=False,
                                  qualitative_analysis_experiment_ids=[12]
