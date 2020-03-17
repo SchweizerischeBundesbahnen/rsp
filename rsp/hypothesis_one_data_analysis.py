@@ -11,6 +11,7 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
+import os
 from typing import Dict
 from typing import List
 
@@ -65,7 +66,9 @@ def _2d_analysis(data: DataFrame,
                 )
 
 
-def _asp_plausi_analysis(experiment_results_list: List[ExperimentResultsAnalysis], output_folder=str):
+def _asp_plausi_analysis(
+        experiment_results_list: List[ExperimentResultsAnalysis],
+        output_folder: str):
     def _catch_zero_division_error_as_minus_one(l):
         try:
             return l()
@@ -225,9 +228,14 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
 
     # quantitative analysis
     if analysis_2d:
-        _2d_analysis(data=experiment_data,
-                     output_folder=experiment_analysis_directory)
-        _asp_plausi_analysis(experiment_results_list, output_folder=experiment_analysis_directory)
+        _2d_analysis(
+            data=experiment_data,
+            output_folder=os.path.join(experiment_analysis_directory, 'main_results')
+        )
+        _asp_plausi_analysis(
+            experiment_results_list,
+            output_folder=os.path.join(experiment_analysis_directory, 'asp_plausi')
+        )
     if analysis_3d:
         raise NotImplementedError()
 

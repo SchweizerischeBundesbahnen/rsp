@@ -22,9 +22,9 @@ from pandas import Series
 
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.file_utils import check_create_folder
 
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
-
 if 'WORKSPACE' not in os.environ:
     matplotlib.use('Qt5Agg')
 # Dummy import currently because otherwise the import is removed all the time but used by 3d scatter plot
@@ -262,6 +262,7 @@ def two_dimensional_scatter_plot(  # noqa: C901
         plt.savefig(file_name)
         plt.close()
     elif output_folder is not None:
+        check_create_folder(output_folder)
         columns_for_file_name = list(columns)
         if baseline_column is not None:
             columns_for_file_name.append(baseline_column)
