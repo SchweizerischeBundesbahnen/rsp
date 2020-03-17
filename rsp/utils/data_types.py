@@ -242,8 +242,8 @@ def expand_experiment_results_for_analysis(
 
     # derive speed up
     time_full = experiment_results.results_full.solve_time
-    time_full_after_malfunction = experiment_results.results_full_after_malfunction.solve_time
-    time_delta_after_malfunction = experiment_results.results_delta_after_malfunction.solve_time
+    time_full_after_malfunction = experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    time_delta_after_malfunction = experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
     nb_resource_conflicts_delta_after_malfunction = experiment_results.results_delta_after_malfunction.nb_conflicts
     nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
     speed_up = time_full_after_malfunction / time_delta_after_malfunction
