@@ -88,7 +88,6 @@ def visualize_route_dag_constraints_simple(
     }
     flatland_pos_with_offset = {wp: np.array(wp.position) + flatland_offset_pattern[wp.direction] for wp in
                                 all_waypoints}
-    print(flatland_pos_with_offset)
 
     plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
 
