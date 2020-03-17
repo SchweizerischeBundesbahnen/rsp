@@ -5,7 +5,6 @@ from typing import Optional
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from pandas import DataFrame
 
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
@@ -26,7 +25,6 @@ from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 def visualize_experiment(
         experiment_parameters: ExperimentParameters,
         experiment_results_analysis: ExperimentResultsAnalysis,
-        data_frame: DataFrame,
         experiment_analysis_directory: str = None,
         analysis_2d: bool = False,
         analysis_3d: bool = False,
@@ -39,8 +37,6 @@ def visualize_experiment(
     ----------
     experiment_parameters: ExperimentParameters
         experiment parameters
-    data_frame: DataFrame
-        Pandas data frame with one experiment.
     experiment_analysis_directory
         Folder to store FLATland pngs and mpeg to
     flatland_rendering
@@ -49,31 +45,29 @@ def visualize_experiment(
         Converts the rendering to mpeg
     """
 
-    rows = data_frame.loc[data_frame['experiment_id'] == experiment_parameters.experiment_id]
-
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-    train_runs_input: TrainrunDict = rows['solution_full'].iloc[0]
-    train_runs_full_after_malfunction: TrainrunDict = rows['solution_full_after_malfunction'].iloc[0]
-    train_runs_delta_after_malfunction: TrainrunDict = rows['solution_delta_after_malfunction'].iloc[0]
+    train_runs_input: TrainrunDict = experiment_results_analysis.solution_full
+    train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
+    train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
 
-    problem_rsp_full: ScheduleProblemDescription = rows['problem_full_after_malfunction'].iloc[0]
-    costs_full_after_malfunction: ScheduleProblemDescription = rows['costs_full_after_malfunction'].iloc[0]
-    problem_rsp_delta: ScheduleProblemDescription = rows['problem_delta_after_malfunction'].iloc[0]
-    costs_delta_after_malfunction: ScheduleProblemDescription = rows['costs_delta_after_malfunction'].iloc[0]
-    problem_schedule: ScheduleProblemDescription = rows['problem_full'].iloc[0]
-    malfunction: ExperimentMalfunction = rows['malfunction'].iloc[0]
-    n_agents: int = rows['n_agents'].iloc[0]
-    lateness_full_after_malfunction: Dict[int, int] = rows['lateness_full_after_malfunction'].iloc[0]
+    problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
+    costs_full_after_malfunction: ScheduleProblemDescription = experiment_results_analysis.costs_full_after_malfunction
+    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_after_malfunction
+    costs_delta_after_malfunction: ScheduleProblemDescription = experiment_results_analysis.costs_delta_after_malfunction
+    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
+    malfunction: ExperimentMalfunction = experiment_results_analysis.malfunction
+    n_agents: int = experiment_results_analysis.n_agents
+    lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_full_after_malfunction
     sum_route_section_penalties_full_after_malfunction: Dict[int, int] = \
-        rows['sum_route_section_penalties_full_after_malfunction'].iloc[0]
-    lateness_delta_after_malfunction: Dict[int, int] = rows['lateness_delta_after_malfunction'].iloc[0]
+        experiment_results_analysis.sum_route_section_penalties_full_after_malfunction
+    lateness_delta_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_delta_after_malfunction
     sum_route_section_penalties_delta_after_malfunction: Dict[int, int] = \
-        rows['sum_route_section_penalties_delta_after_malfunction'].iloc[0]
+        experiment_results_analysis.sum_route_section_penalties_delta_after_malfunction
 
     experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
-    route_dag_folder = f"{experiment_output_folder}/Route_Graphs"
-    metric_folder = f"{experiment_output_folder}/Metrics"
-    rendering_folder = f"{experiment_output_folder}/Rendering"
+    route_dag_folder = f"{experiment_output_folder}/route_graphs"
+    metric_folder = f"{experiment_output_folder}/metrics"
+    rendering_folder = f"{experiment_output_folder}/rendering"
 
     # Check and create the folders
     check_create_folder(experiment_output_folder)

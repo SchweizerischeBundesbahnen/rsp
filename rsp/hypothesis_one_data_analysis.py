@@ -331,7 +331,6 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
 
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
-                                 data_frame=experiment_data,
                                  experiment_results_analysis=experiment_results_analysis,
                                  experiment_analysis_directory=experiment_analysis_directory,
                                  analysis_2d=analysis_2d,
