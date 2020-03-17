@@ -185,8 +185,8 @@ def visualize_schedule(
                      for node in topo_with_background.nodes()]
 
     plt_labels = {
-        wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
-            f"{_pp.pformat(schedule[wp]) if wp in schedule else ''}"
+        wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n" +
+            "\n".join([f'{time}:{train}' for time, train in sorted(schedule[wp].items())] if wp in schedule else [''])
         for wp in all_waypoints
     }
 
