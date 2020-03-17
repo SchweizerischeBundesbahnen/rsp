@@ -1,5 +1,4 @@
 from typing import Dict
-from typing import Tuple
 
 import networkx as nx
 import numpy as np
@@ -9,13 +8,14 @@ from matplotlib import pyplot as plt
 
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
+from rsp.utils.data_types import UndirectedEncounterGraphDistance
 
 
 def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_run_0: Trainrun,
-                                       train_schedule_1: TrainSchedule, train_run_1: Trainrun) -> (
-        float, int, Tuple[int, int], Tuple[int, int]):
-    """computes the euclidean distance between two trains. It computes the
-    euclidean distance at each time step between the position of the two trains
+                                       train_schedule_1: TrainSchedule,
+                                       train_run_1: Trainrun) -> UndirectedEncounterGraphDistance:
+    """computes the Euclidian distance between two trains. It computes the
+    Euclidian distance at each time step between the position of the two trains
     at this time step.
 
     Parameters
@@ -27,14 +27,8 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
     Returns
     -------
-    inverted_distance
-        the inverted minimal distance between two trains as a value between 0 and 1 -> 0 is far away, 1 is very close
-    time_of_min
-        the time step when the minimal distance happened
-    train_0_position_at_min
-        the position of train 0 at this time step
-    train_1_position_at_min
-        the position of train 1 at this time step
+    UndirectedEncounterGraphDistance
+        contains the data related to the undirected encounter graph distance
     """
     train_0_start_time = train_run_0[0].scheduled_at
     train_0_end_time = train_run_0[-1].scheduled_at
@@ -46,15 +40,8 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
         return 0, 0, 0, 0
 
     # some timesteps overlap -> find out which ones
-    if train_0_start_time <= train_1_start_time:
-        start_time_step = train_1_start_time
-    else:
-        start_time_step = train_0_start_time
-
-    if train_0_end_time <= train_1_end_time:
-        end_time_step = train_0_end_time
-    else:
-        end_time_step = train_1_end_time
+    start_time_step = max(train_0_start_time, train_1_start_time)
+    end_time_step = min(train_0_end_time, train_1_end_time)
 
     # get positions in time window
     train_0_positions = [waypoint.position for i, waypoint in train_schedule_0.items() if
@@ -70,13 +57,14 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
     # first heuristic -> get the smallest distance
     dist_between_trains = np.min(distances_in_time_window)
-    inverted_distance = 1. / dist_between_trains
     index_min_dist = np.argmin(distances_in_time_window)
-    time_of_min = start_time_step + index_min_dist
-    train_0_position_at_min = train_0_positions[int(index_min_dist)]
-    train_1_position_at_min = train_1_positions[int(index_min_dist)]
 
-    return inverted_distance, time_of_min, train_0_position_at_min, train_1_position_at_min
+    distance = UndirectedEncounterGraphDistance(inverted_distance=(1./dist_between_trains),
+                                                time_of_min=(start_time_step + index_min_dist),
+                                                train_0_position_at_min=train_0_positions[int(index_min_dist)],
+                                                train_1_position_at_min=train_1_positions[int(index_min_dist)])
+
+    return distance
 
 
 def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
@@ -106,19 +94,18 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
             if column > row:
                 train_run_row = trainrun_dict.get(row)
                 train_run_column = trainrun_dict.get(column)
-                distance, time_of_min, train_0_position_at_min, train_1_position_at_min = \
-                    undirected_distance_between_trains(
+                undirected_distance = undirected_distance_between_trains(
                         train_schedule_row, train_run_row,
                         train_schedule_column, train_run_column)
-                distance_matrix[row, column] = distance
-                distance_matrix[column, row] = distance
-                additional_info[(row, column)] = (
-                    distance, time_of_min, train_0_position_at_min, train_1_position_at_min)
+                distance_matrix[row, column] = undirected_distance.inverted_distance
+                distance_matrix[column, row] = undirected_distance.inverted_distance
+                additional_info[(row, column)] = undirected_distance
     return distance_matrix, additional_info
 
 
 def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, file_name: str, pos: dict = None):
-    """
+    """This method plots the encounter graph and the heatmap of the distance
+    matrix into one file.
 
     Parameters
     ----------
@@ -129,7 +116,6 @@ def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, fil
 
     Returns
     -------
-
     """
     dt = [('weight', float)]
     distance_matrix_as_weight = np.matrix(distance_matrix, dtype=dt)
