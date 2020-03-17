@@ -111,7 +111,6 @@ def visualize_route_dag_constraints_simple(
             alpha=0.9)
 
     plt.gca().invert_yaxis()
-    print(file_name)
     if file_name is not None:
         plt.savefig(file_name)
     else:
