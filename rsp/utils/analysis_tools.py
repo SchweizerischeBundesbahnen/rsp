@@ -267,7 +267,7 @@ def two_dimensional_scatter_plot(  # noqa: C901
         if baseline_column is not None:
             columns_for_file_name.append(baseline_column)
         # file_name with y axis first
-        file_name = 'experiment_agenda_analysis_' + '_'.join(list(reversed(columns_for_file_name))) + '.png'
+        file_name = '_'.join(list(reversed(columns_for_file_name))) + '.png'
         plt.savefig(os.path.join(output_folder, file_name))
         plt.close()
 

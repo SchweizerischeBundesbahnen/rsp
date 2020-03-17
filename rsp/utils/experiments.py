@@ -54,8 +54,7 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.data_types import ParameterRanges
-from rsp.utils.data_types import SpeedData
+from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.file_utils import check_create_folder
@@ -457,8 +456,7 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 
 
 def create_experiment_agenda(experiment_name: str,
-                             parameter_ranges: ParameterRanges,
-                             speed_data: SpeedData,
+                             parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
                              experiments_per_grid_element: int = 10
                              ) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
@@ -481,6 +479,7 @@ def create_experiment_agenda(experiment_name: str,
     -------
     ExperimentAgenda built from the ParameterRanges
     """
+    parameter_ranges = parameter_ranges_and_speed_data.parameter_ranges
     number_of_dimensions = len(parameter_ranges)
     parameter_values = [[] for _ in range(number_of_dimensions)]
 
@@ -496,27 +495,37 @@ def create_experiment_agenda(experiment_name: str,
     experiment_list = []
     for grid_id, parameter_set in enumerate(full_param_set):
         for run_of_this_grid_element in range(experiments_per_grid_element):
-            earliest_malfunction = parameter_set[5]
             experiment_id = grid_id * experiments_per_grid_element + run_of_this_grid_element
+            # 0: size_range
+            # 1: agent_range
+            # 2: in_city_rail_range
+            # 3: out_city_rail_range
+            # 4: city_range
+            # 5: earliest_malfunction
+            # 6: malfunction_duration
+            # 7: number_of_shortest_paths_per_agent
+            # 8: max_window_size_from_earliest
+            # 9: asp_seed_value
+            # 10: weight_route_change
+            # 11: weight_lateness_seconds
             current_experiment = ExperimentParameters(
                 experiment_id=experiment_id,
                 grid_id=grid_id,
                 number_of_agents=parameter_set[1],
-                speed_data=speed_data,
+                speed_data=parameter_ranges_and_speed_data.speed_data,
                 width=parameter_set[0],
                 height=parameter_set[0],
                 flatland_seed_value=12 + run_of_this_grid_element,
-                asp_seed_value=94,
+                asp_seed_value=parameter_set[9],
                 max_num_cities=parameter_set[4],
                 grid_mode=False,
                 max_rail_between_cities=parameter_set[3],
                 max_rail_in_city=parameter_set[2],
-                earliest_malfunction=earliest_malfunction,
+                earliest_malfunction=parameter_set[5],
                 malfunction_duration=parameter_set[6],
                 number_of_shortest_paths_per_agent=parameter_set[7],
-                # route change is penalized the same as 60 seconds delay
-                weight_route_change=60,
-                weight_lateness_seconds=1,
+                weight_route_change=parameter_set[10],
+                weight_lateness_seconds=parameter_set[11],
                 max_window_size_from_earliest=parameter_set[8],
             )
 
@@ -671,7 +680,8 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name: str, experiment_ids: List[int] = None) -> \
+def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name: str,
+                                                        experiment_ids: List[int] = None) -> \
         List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
 

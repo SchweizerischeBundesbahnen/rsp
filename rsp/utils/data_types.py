@@ -45,13 +45,15 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('earliest_malfunction', List[int]),
                                                  ('malfunction_duration', List[int]),
                                                  ('number_of_shortest_paths_per_agent', List[int]),
-                                                 ('max_window_size_from_earliest', List[int])
+                                                 ('max_window_size_from_earliest', List[int]),
+                                                 ('asp_seed_value', List[int]),
+                                                 ('weight_route_change', List[int]),
+                                                 ('weight_lateness_seconds', List[int])
                                                  ])
 ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('parameter_ranges', ParameterRanges),
     ('speed_data', SpeedData)
-]
-                                         )
+])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',

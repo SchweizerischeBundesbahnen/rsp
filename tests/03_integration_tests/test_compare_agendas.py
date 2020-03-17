@@ -19,29 +19,36 @@ def get_params_null() -> ParameterRangesAndSpeedData:
                                        earliest_malfunction=[20, 20, 1],
                                        malfunction_duration=[20, 20, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
-                                       max_window_size_from_earliest=[np.inf, np.inf, 1])
+                                       max_window_size_from_earliest=[np.inf, np.inf, 1],
+                                       asp_seed_value=[94, 94, 1],
+                                       weight_route_change=[60, 60, 1],
+                                       weight_lateness_seconds=[1, 1, 1])
     # Define the desired speed profiles
     speed_data = {1.: 0.25,  # Fast passenger train
                   1. / 2.: 0.25,  # Fast freight train
                   1. / 3.: 0.25,  # Slow commuter train
                   1. / 4.: 0.25}  # Slow freight train
-    return parameter_ranges, speed_data
+    return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 
 def get_params_alt_30() -> ParameterRangesAndSpeedData:
-    parameter_ranges, speed_data = get_params_null()
+    params = get_params_null()
     parameter_ranges_max_window_size_from_earliest_30 = ParameterRanges(
-        **dict(parameter_ranges._asdict(), **{
+        **dict(params.parameter_ranges._asdict(), **{
             'max_window_size_from_earliest': [30, 30, 1]}))
-    return parameter_ranges_max_window_size_from_earliest_30, speed_data
+    return ParameterRangesAndSpeedData(
+        parameter_ranges=parameter_ranges_max_window_size_from_earliest_30,
+        speed_data=params.speed_data)
 
 
 def get_params_alt_60() -> ParameterRangesAndSpeedData:
-    parameter_ranges, speed_data = get_params_null()
-    parameter_ranges_max_window_size_from_earliest_60 = ParameterRanges(
-        **dict(parameter_ranges._asdict(), **{
+    params = get_params_null()
+    parameter_ranges_max_window_size_from_earliest_30 = ParameterRanges(
+        **dict(params.parameter_ranges._asdict(), **{
             'max_window_size_from_earliest': [60, 60, 1]}))
-    return parameter_ranges_max_window_size_from_earliest_60, speed_data
+    return ParameterRangesAndSpeedData(
+        parameter_ranges=parameter_ranges_max_window_size_from_earliest_30,
+        speed_data=params.speed_data)
 
 
 def test_compare_agendas():
