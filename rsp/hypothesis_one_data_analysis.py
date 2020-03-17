@@ -302,15 +302,15 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
         sum_all_route_section_penalties_delta_after_malfunction: int = sum(
             sum_route_section_penalties_delta_after_malfunction.values())
 
-        assert costs_full_after_malfunction == costs_lateness_delta_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
+        assert costs_full_after_malfunction == costs_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
             f"experiment {experiment_id}: " \
             f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
-            f"sum_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
+            f"costs_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
             f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
         assert costs_delta_after_malfunction == costs_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
             f"experiment {experiment_id}: " \
             f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
-            f"sum_lateness_delta_after_malfunction={costs_lateness_delta_after_malfunction}, " \
+            f"costs_lateness_delta_after_malfunction={costs_lateness_delta_after_malfunction}, " \
             f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
     print("  -> Done plausibility tests on experiment data.")
 
