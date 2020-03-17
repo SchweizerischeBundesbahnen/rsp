@@ -26,10 +26,12 @@ def _extract_times_for_experiment_id(experiment_data, experiment_id):
     return time_delta_after_malfunction, time_full_after_malfunction
 
 
-def compare_runtimes(data_folder1: str,
-                     data_folder2: str,
-                     output_enclosing_folder: str,
-                     experiment_ids: List[int]) -> str:
+def compare_runtimes(
+        data_folder1: str,
+        data_folder2: str,
+        experiment_ids: List[int],
+        output_enclosing_folder: str = '.'
+) -> str:
     """Compare run times and solution costs of two pipeline runs.
 
     Parameters
@@ -48,7 +50,8 @@ def compare_runtimes(data_folder1: str,
     experiment_data2: DataFrame = load_without_average(data_folder2)
     experiment_data1: DataFrame = load_without_average(data_folder1)
 
-    output_folder = os.path.join(output_enclosing_folder, os.path.split(data_folder1)[-1] + '_' + os.path.split(data_folder2)[-1])
+    output_folder = os.path.join(output_enclosing_folder,
+                                 os.path.split(data_folder1)[-2] + '_' + os.path.split(data_folder2)[-2])
 
     for experiment_id in experiment_ids:
         time_delta_after_malfunction1, time_full_after_malfunction1 = _extract_times_for_experiment_id(experiment_data1,

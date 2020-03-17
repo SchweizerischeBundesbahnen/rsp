@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
@@ -23,12 +25,19 @@ def get_params_null() -> ParameterRangesAndSpeedData:
     return parameter_ranges, speed_data
 
 
-def get_params_alt() -> ParameterRangesAndSpeedData:
+def get_params_alt(window_size: int) -> ParameterRangesAndSpeedData:
     parameter_ranges, speed_data = get_params_null()
-    parameter_ranges_max_window_size_from_earliest_60 = ParameterRanges(
-        **dict(parameter_ranges._asdict(), **{'max_window_size_from_earliest': [60, 60, 1]}))
-    return parameter_ranges_max_window_size_from_earliest_60, speed_data
+    parameter_ranges_max_window_size_from_earliest = ParameterRanges(
+        **dict(parameter_ranges._asdict(), **{'max_window_size_from_earliest': [window_size, window_size, 1]}))
+    return parameter_ranges_max_window_size_from_earliest, speed_data
 
 
 if __name__ == '__main__':
-    compare_agendas(get_params_null, get_params_alt)
+    compare_agendas(
+        get_params_null=get_params_null,
+        get_params_alternatives=[
+            partial(get_params_alt, window_size=30),
+            partial(get_params_alt, window_size=60)
+        ],
+        experiment_name="exp_hypothesis_006"
+    )

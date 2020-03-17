@@ -32,7 +32,9 @@ def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
 def hypothesis_one_pipeline(parameter_ranges: ParameterRanges,
                             speed_data: SpeedData,
                             experiment_ids: Optional[List[int]] = None,
-                            copy_agenda_from_base_directory: Optional[str] = None) -> str:
+                            copy_agenda_from_base_directory: Optional[str] = None,
+                            experiment_name: str = "exp_hypothesis_one"
+                            ) -> str:
     """
     Run full pipeline A - B - C
 
@@ -55,7 +57,7 @@ def hypothesis_one_pipeline(parameter_ranges: ParameterRanges,
 
     # A. Experiment Planning: Create an experiment agenda out of the parameter ranges
     experiment_agenda = create_experiment_agenda(
-        experiment_name="exp_hypothesis_one",
+        experiment_name=experiment_name,
         speed_data=speed_data,
         parameter_ranges=parameter_ranges,
         experiments_per_grid_element=1
