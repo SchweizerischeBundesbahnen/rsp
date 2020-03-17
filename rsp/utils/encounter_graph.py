@@ -37,7 +37,10 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
     # if the time window of the two trains do not overlap -> no relationship between trains
     if train_0_end_time < train_1_start_time or train_1_end_time < train_0_start_time:
-        return 0, 0, 0, 0
+        return UndirectedEncounterGraphDistance(inverted_distance=0,
+                                                time_of_min=0,
+                                                train_0_position_at_min=0,
+                                                train_1_position_at_min=0)
 
     # some timesteps overlap -> find out which ones
     start_time_step = max(train_0_start_time, train_1_start_time)
