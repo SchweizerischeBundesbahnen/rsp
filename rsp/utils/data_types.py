@@ -29,6 +29,14 @@ from rsp.route_dag.route_dag import TopoDict
 
 SpeedData = Mapping[float, float]
 
+UndirectedEncounterGraphDistance = NamedTuple('UndirectedEncounterGraphDistance', [('inverted_distance', float),
+                                                                                   ('time_of_min', int),
+                                                                                   ('train_0_position_at_min',
+                                                                                    Tuple[int, int]),
+                                                                                   ('train_1_position_at_min',
+                                                                                    Tuple[int, int])
+                                                                                   ])
+
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('agent_range', List[int]),
                                                  ('in_city_rail_range', List[int]),
@@ -227,7 +235,8 @@ def expand_experiment_results_for_analysis(
     if not isinstance(experiment_results, ExperimentResults):
         experiment_results_as_dict = dict(experiment_results[0])
         experiment_results = ExperimentResults(**experiment_results_as_dict)
-    experiment_id = experiment_results.experiment_parameters.experiment_id
+    experiment_parameters = experiment_results.experiment_parameters
+    experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
     time_full = experiment_results.results_full.solve_time
@@ -342,13 +351,13 @@ def expand_experiment_results_for_analysis(
 
     return ExperimentResultsAnalysis(
         **experiment_results._asdict(),
-        experiment_id=experiment_results.experiment_parameters.experiment_id,
-        grid_id=experiment_results.experiment_parameters.grid_id,
-        size=experiment_results.experiment_parameters.width,
-        n_agents=experiment_results.experiment_parameters.number_of_agents,
-        max_num_cities=experiment_results.experiment_parameters.max_num_cities,
-        max_rail_between_cities=experiment_results.experiment_parameters.max_rail_between_cities,
-        max_rail_in_city=experiment_results.experiment_parameters.max_rail_in_city,
+        experiment_id=experiment_parameters.experiment_id,
+        grid_id=experiment_parameters.grid_id,
+        size=experiment_parameters.width,
+        n_agents=experiment_parameters.number_of_agents,
+        max_num_cities=experiment_parameters.max_num_cities,
+        max_rail_between_cities=experiment_parameters.max_rail_between_cities,
+        max_rail_in_city=experiment_parameters.max_rail_in_city,
         time_full=time_full,
         time_full_after_malfunction=time_full_after_malfunction,
         time_delta_after_malfunction=time_delta_after_malfunction,
