@@ -17,9 +17,14 @@ def get_params_alt(seed: int) -> ParameterRangesAndSpeedData:
 
 get_params_null = get_first_agenda_pipeline_params
 
-if __name__ == '__main__':
+
+def hypothesis_001_solver_seeding_irrelevant_main():
     compare_agendas(
         get_params_null=get_params_null,
         get_params_alternatives=[partial(get_params_alt, seed=(94 + inc)) for inc in range(5)],
         experiment_name="exp_001_hypothesis_solver_seeding_irrelevant"
     )
+
+
+if __name__ == '__main__':
+    hypothesis_001_solver_seeding_irrelevant_main()

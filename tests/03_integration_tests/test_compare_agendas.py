@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import numpy as np
 
@@ -31,32 +32,26 @@ def get_params_null() -> ParameterRangesAndSpeedData:
     return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 
-def get_params_alt_30() -> ParameterRangesAndSpeedData:
+def get_params_alt(window_size: int) -> ParameterRangesAndSpeedData:
+    """Take params null and change `max_window_size_from_earliest` to that
+    given."""
     params = get_params_null()
-    parameter_ranges_max_window_size_from_earliest_30 = ParameterRanges(
-        **dict(params.parameter_ranges._asdict(), **{
-            'max_window_size_from_earliest': [30, 30, 1]}))
+    parameter_ranges_max_window_size_from_earliest = ParameterRanges(
+        **dict(params.parameter_ranges._asdict(), **{'max_window_size_from_earliest': [window_size, window_size, 1]}))
     return ParameterRangesAndSpeedData(
-        parameter_ranges=parameter_ranges_max_window_size_from_earliest_30,
-        speed_data=params.speed_data)
-
-
-def get_params_alt_60() -> ParameterRangesAndSpeedData:
-    params = get_params_null()
-    parameter_ranges_max_window_size_from_earliest_30 = ParameterRanges(
-        **dict(params.parameter_ranges._asdict(), **{
-            'max_window_size_from_earliest': [60, 60, 1]}))
-    return ParameterRangesAndSpeedData(
-        parameter_ranges=parameter_ranges_max_window_size_from_earliest_30,
+        parameter_ranges=parameter_ranges_max_window_size_from_earliest,
         speed_data=params.speed_data)
 
 
 def test_compare_agendas():
-    """Run comparison and check that expected file are there without inspecting
-    them."""
+    """Run null and alt_0 and alt_1 hypotheses and check that expected files
+    are present without inspecting them."""
     null_hypothesis_base_folder, alternative_hypothesis_base_folders, comparison_folders = compare_agendas(
         get_params_null=get_params_null,
-        get_params_alternatives=[get_params_alt_30, get_params_alt_60],
+        get_params_alternatives=[
+            partial(get_params_alt, window_size=30),
+            partial(get_params_alt, window_size=60)
+        ],
         experiment_name="test_compare_agendas"
     )
     try:

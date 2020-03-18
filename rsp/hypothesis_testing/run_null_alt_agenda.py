@@ -5,7 +5,9 @@ from typing import List
 from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
 from rsp.hypothesis_testing.compare_runtimes import compare_runtimes
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.file_utils import check_create_folder
 
 GetParams = Callable[[], ParameterRangesAndSpeedData]
 
@@ -24,6 +26,11 @@ def compare_agendas(
     get_params_null: GetParams
     get_params_alt: List[GetParams]
     """
+
+    # do everything in a subfoleder
+    base_folder = create_experiment_folder_name(experiment_name=experiment_name)
+    check_create_folder(base_folder)
+    os.chdir(base_folder)
 
     parameter_ranges_and_speed_data = get_params_null()
     print(f"run null hypothesis {parameter_ranges_and_speed_data}")
