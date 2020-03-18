@@ -11,7 +11,6 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
-import os
 from typing import Dict
 from typing import List
 
@@ -22,10 +21,10 @@ from pandas import DataFrame
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -230,11 +229,11 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     if analysis_2d:
         _2d_analysis(
             data=experiment_data,
-            output_folder=os.path.join(experiment_analysis_directory, 'main_results')
+            output_folder=f'{experiment_analysis_directory}/main_results'
         )
         _asp_plausi_analysis(
             experiment_results_list,
-            output_folder=os.path.join(experiment_analysis_directory, 'asp_plausi')
+            output_folder=f'{experiment_analysis_directory}/asp_plausi'
         )
     if analysis_3d:
         raise NotImplementedError()
@@ -302,22 +301,23 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
         sum_all_route_section_penalties_delta_after_malfunction: int = sum(
             sum_route_section_penalties_delta_after_malfunction.values())
 
-        assert costs_full_after_malfunction == costs_lateness_delta_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
+        assert costs_full_after_malfunction == costs_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
             f"experiment {experiment_id}: " \
             f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
-            f"sum_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
+            f"costs_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
             f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
         assert costs_delta_after_malfunction == costs_lateness_delta_after_malfunction + sum_all_route_section_penalties_delta_after_malfunction, \
             f"experiment {experiment_id}: " \
             f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
-            f"sum_lateness_delta_after_malfunction={costs_lateness_delta_after_malfunction}, " \
+            f"costs_lateness_delta_after_malfunction={costs_lateness_delta_after_malfunction}, " \
             f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
     print("  -> Done plausibility tests on experiment data.")
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(experiment_base_directory='./exp_hypothesis_one_2020_03_12T12_12_43',
-                                 analysis_2d=True,
-                                 analysis_3d=False,
-                                 qualitative_analysis_experiment_ids=[]
-                                 )
+    hypothesis_one_data_analysis(
+        experiment_base_directory='./hypothesis_testing/exp_hypothesis_006_2020_03_17T11_10_03',
+        analysis_2d=True,
+        analysis_3d=False,
+        qualitative_analysis_experiment_ids=[]
+    )
