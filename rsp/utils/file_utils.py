@@ -2,6 +2,19 @@
 import errno
 import os
 import re
+import sys
+
+
+def newline_and_flush_stdout_and_stderr():
+    sys.stderr.write("\n")
+    sys.stderr.flush()
+    sys.stdout.write("\n")
+    sys.stdout.flush()
+
+
+def newline_and_flush_stdout():
+    sys.stdout.write("\n")
+    sys.stdout.flush()
 
 
 def check_create_folder(folder_name):

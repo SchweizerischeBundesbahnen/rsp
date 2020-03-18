@@ -33,6 +33,7 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 
 
 def _2d_analysis(data: DataFrame,
@@ -280,6 +281,8 @@ def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]
 
 def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis]):
     print("Running plausibility tests on experiment data...")
+    # flush stdout before tqdm...
+    newline_and_flush_stdout_and_stderr()
     for experiment_results_analysis in tqdm.tqdm(l):
         experiment_id = experiment_results_analysis.experiment_id
         plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
@@ -312,12 +315,15 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
             f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
             f"sum_lateness_delta_after_malfunction={costs_lateness_delta_after_malfunction}, " \
             f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
+    # flush stderr after tqdm...
+    newline_and_flush_stdout_and_stderr()
     print("  -> Done plausibility tests on experiment data.")
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(experiment_base_directory='./hypothesis_testing/exp_hypothesis_006_2020_03_17T11_10_03',
-                                 analysis_2d=True,
-                                 analysis_3d=False,
-                                 qualitative_analysis_experiment_ids=[]
-                                 )
+    hypothesis_one_data_analysis(
+        experiment_base_directory='./hypothesis_testing/exp_hypothesis_006_2020_03_17T11_10_03',
+        analysis_2d=True,
+        analysis_3d=False,
+        qualitative_analysis_experiment_ids=[]
+    )
