@@ -1,14 +1,15 @@
 import os
 import pprint
+import time
 import warnings
 from typing import Optional
 
 import numpy as np
-import time
 from flatland.action_plan.action_plan import ActionPlanElement
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayerRenderCallback
-from flatland.envs.rail_env import RailEnv, RailEnvActions
+from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_env import RailEnvActions
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
