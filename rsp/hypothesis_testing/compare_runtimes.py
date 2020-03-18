@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import List
 
 from pandas import DataFrame
@@ -30,7 +31,8 @@ def compare_runtimes(
         data_folder1: str,
         data_folder2: str,
         experiment_ids: List[int],
-        output_enclosing_folder: str = '.'
+        output_enclosing_folder: str = '.',
+        fail_on_missing_experiment_ids: bool = True
 ) -> str:
     """Compare run times and solution costs of two pipeline runs.
 
@@ -47,11 +49,13 @@ def compare_runtimes(
         the output is put in a subfolder of this folder taking the two experiment names
     """
 
+    output_folder = os.path.join(output_enclosing_folder,
+                                 _extract_experiment_name_from_data_folder_path(
+                                     data_folder1) + '_' + _extract_experiment_name_from_data_folder_path(data_folder2))
+    print(f"compare runtimes {data_folder1} - {data_folder2} -> {output_folder}")
+
     experiment_data2: DataFrame = load_without_average(data_folder2)
     experiment_data1: DataFrame = load_without_average(data_folder1)
-
-    output_folder = os.path.join(output_enclosing_folder,
-                                 os.path.split(data_folder1)[-2] + '_' + os.path.split(data_folder2)[-2])
 
     for experiment_id in experiment_ids:
         time_delta_after_malfunction1, time_full_after_malfunction1 = _extract_times_for_experiment_id(experiment_data1,
@@ -59,13 +63,27 @@ def compare_runtimes(
         time_delta_after_malfunction2, time_full_after_malfunction2 = _extract_times_for_experiment_id(experiment_data2,
                                                                                                        experiment_id)
         print(f"time_delta_after_malfunction: {time_delta_after_malfunction1} --> {time_delta_after_malfunction2}")
-    min_len = min(len(experiment_data1), len(experiment_data2))
 
-    # verify that the experiment ids match for the first min_len experiments
-    for i in range(min_len):
-        assert experiment_data1['experiment_id'].values[i] == experiment_data2['experiment_id'].values[i], \
-            f"at {i} {experiment_data1['experiment_id'].values[i]} - {experiment_data2['experiment_id'].values[i]}\n" \
-            f"{experiment_data1['experiment_id'].values} - {experiment_data2['experiment_id'].values}"
+    # ensure that experiment_ids are the same (ignored failures)
+    experiment_data1_experiment_ids = set(experiment_data1['experiment_id'].values)
+    experiment_data2_experiment_ids = set(experiment_data2['experiment_id'].values)
+    experiment_ids_common = experiment_data1_experiment_ids.intersection(experiment_data2_experiment_ids)
+    only_experiment_data1_experiment_ids = experiment_data1_experiment_ids.difference(experiment_data2_experiment_ids)
+    only_experiment_data2_experiment_ids = experiment_data2_experiment_ids.difference(experiment_data1_experiment_ids)
+    if len(only_experiment_data1_experiment_ids) > 0:
+        warnings.warn(
+            f"experiment_ids only in {data_folder1} but not in {data_folder2}:" + "\n - ".join([str(id) for id in
+                                                                                                only_experiment_data1_experiment_ids]))
+    if len(only_experiment_data2_experiment_ids) > 0:
+        warnings.warn(
+            f"experiment_ids only in {data_folder2} but not in {data_folder1}:" + "\n - ".join([str(id) for id in
+                                                                                                only_experiment_data2_experiment_ids]))
+    if len(only_experiment_data1_experiment_ids) + len(
+            experiment_data2_experiment_ids) > 0 and fail_on_missing_experiment_ids:
+        raise AssertionError(f"Not same experiment_ids in the two runs to compare ({data_folder1}, {data_folder2})")
+
+    experiment_data1 = experiment_data1.loc[experiment_data1['experiment_id'].isin(experiment_ids_common)]
+    experiment_data2 = experiment_data2.loc[experiment_data2['experiment_id'].isin(experiment_ids_common)]
 
     _scatter_for_two_runs(experiment_data1=experiment_data1,
                           experiment_data2=experiment_data2,
@@ -84,6 +102,11 @@ def compare_runtimes(
                           output_folder=output_folder,
                           column='costs_delta_after_malfunction')
     return output_folder
+
+
+def _extract_experiment_name_from_data_folder_path(data_folder1):
+    # sanitize / paths under windows, and split ((head-*tail*)-tail) to extract to first to last path element
+    return os.path.split(os.path.split(data_folder1.replace('/', os.sep))[0])[1]
 
 
 def _scatter_for_two_runs(experiment_data1: DataFrame,
@@ -108,9 +131,7 @@ def _scatter_for_two_runs(experiment_data1: DataFrame,
 
     """
     # verify that experiment_ids match (in case failed experiments, we do not want to combine non-matching data!)
-    min_len = min(len(experiment_data1), len(experiment_data2))
-    for i in range(min_len):
-        assert experiment_data1['experiment_id'].values[i] == experiment_data2['experiment_id'].values[i]
+    assert set(experiment_data1['experiment_id'].values) == set(experiment_data2['experiment_id'].values)
 
     check_create_folder(output_folder)
 
