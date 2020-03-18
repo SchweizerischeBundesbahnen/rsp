@@ -446,7 +446,8 @@ def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, exper
     copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
                                                      EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
     files = os.listdir(copy_agenda_from_agenda_directory)
-    print(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
+    print(
+        f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
     for file in [file for file in files]:
         shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
 
@@ -689,7 +690,8 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     experiment_results_list = []
 
     files = os.listdir(experiment_data_folder_name)
-    for file in [file for file in files if 'agenda' not in file]:
+    print(f"loading and expanding experiment results from {experiment_data_folder_name}")
+    for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
         file_name = os.path.join(experiment_data_folder_name, file)
         if not file_name.endswith(".pkl"):
             continue
