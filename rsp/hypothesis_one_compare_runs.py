@@ -7,7 +7,7 @@ if __name__ == '__main__':
     compare_runtimes(
         data_folder1='./hypothesis_testing/exp_006_hypothesis_window_size_null_2020_03_18T08_32_25/data',
         data_folder2='./hypothesis_testing/exp_006_hypothesis_window_size_alt000_2020_03_18T11_48_59/data',
-        output_enclosing_folder='.',
+        output_enclosing_folder='./hypothesis_testing',
         experiment_ids=[],
         fail_on_missing_experiment_ids=True
     )

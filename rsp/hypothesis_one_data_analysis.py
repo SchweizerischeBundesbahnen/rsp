@@ -11,7 +11,6 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
-import os
 from typing import Dict
 from typing import List
 
@@ -22,10 +21,10 @@ from pandas import DataFrame
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -230,11 +229,11 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     if analysis_2d:
         _2d_analysis(
             data=experiment_data,
-            output_folder=os.path.join(experiment_analysis_directory, 'main_results')
+            output_folder=f'{experiment_analysis_directory}/main_results'
         )
         _asp_plausi_analysis(
             experiment_results_list,
-            output_folder=os.path.join(experiment_analysis_directory, 'asp_plausi')
+            output_folder=f'{experiment_analysis_directory}/asp_plausi'
         )
     if analysis_3d:
         raise NotImplementedError()
@@ -321,4 +320,4 @@ if __name__ == '__main__':
         analysis_2d=True,
         analysis_3d=False,
         qualitative_analysis_experiment_ids=[]
-        )
+    )
