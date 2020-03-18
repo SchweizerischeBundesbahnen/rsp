@@ -1,14 +1,14 @@
 import os
 import pprint
-import time
 import warnings
 from typing import Optional
 
 import numpy as np
+import time
 from flatland.action_plan.action_plan import ActionPlanElement
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.action_plan.action_plan_player import ControllerFromTrainrunsReplayerRenderCallback
-from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_env import RailEnv, RailEnvActions
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
@@ -409,16 +409,24 @@ def create_controller_from_trainruns_and_malfunction(trainrun_dict: TrainrunDict
         dict_to_tweak = {action_plan_element.scheduled_at: action_plan_element.action
                          for action_plan_element in
                          controller_from_train_runs.action_plan[expected_malfunction.agent_id]}
-        if debug:
-            print(
-                f"tweaking agent {expected_malfunction.agent_id} for {expected_malfunction}: "
-                f"action at {malfunction_agent_time_step_to_take_action_before_malfunction} "
-                f" ->  {dict_to_tweak[time_step_to_tweak]}")
 
-        dict_to_tweak[malfunction_agent_time_step_to_take_action_before_malfunction] = dict_to_tweak[time_step_to_tweak]
+        if dict_to_tweak[expected_malfunction.time_step] == RailEnvActions.STOP_MOVING:
+            if debug:
+                print(
+                    f"tweaking agent {expected_malfunction.agent_id} for {expected_malfunction} which stops at malfunction beginning")
+            # actions at start of malfunction are ignored
+            dict_to_tweak[expected_malfunction.time_step + expected_malfunction.malfunction_duration] = RailEnvActions.STOP_MOVING
+        else:
+            dict_to_tweak[malfunction_agent_time_step_to_take_action_before_malfunction] = dict_to_tweak[
+                time_step_to_tweak]
+            if debug:
+                print(
+                    f"tweaking agent {expected_malfunction.agent_id} for {expected_malfunction}: "
+                    f"action at {malfunction_agent_time_step_to_take_action_before_malfunction} "
+                    f" ->  {dict_to_tweak[time_step_to_tweak]}")
         controller_from_train_runs.action_plan[expected_malfunction.agent_id] = [
             ActionPlanElement(scheduled_at=scheduled_at, action=action)
-            for scheduled_at, action in dict_to_tweak.items()
+            for scheduled_at, action in sorted(dict_to_tweak.items(), key=lambda item: item[0])
         ]
 
     return controller_from_train_runs
