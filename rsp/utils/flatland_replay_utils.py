@@ -394,40 +394,49 @@ def create_controller_from_trainruns_and_malfunction(trainrun_dict: TrainrunDict
     # take that action at that time - malfunction_duration - travel_time!
     # TODO should we move this to FLATland?
     if expected_malfunction is not None:
-        malfunction_agent_minimum_travel_time = int(
-            np.ceil(1 / env.agents[expected_malfunction.agent_id].speed_data['speed']))
+        malfunction_agend_id = expected_malfunction.agent_id
+        expected_malfunction_end = expected_malfunction.time_step + expected_malfunction.malfunction_duration
+        minimum_travel_time = int(np.ceil(1 / env.agents[malfunction_agend_id].speed_data['speed']))
 
+        # when is the next section entry after the malfunction?
         trainrun_waypoint_after_malfunction: TrainrunWaypoint = next(
-            trainrun_waypoint for trainrun_waypoint in
-            controller_from_train_runs.trainrun_dict[expected_malfunction.agent_id]
-            if (trainrun_waypoint.scheduled_at >=
-                (expected_malfunction.time_step + expected_malfunction.malfunction_duration)))
-        malfunction_agent_time_step_to_take_action_before_malfunction = \
-            trainrun_waypoint_after_malfunction.scheduled_at - expected_malfunction.malfunction_duration - \
-            malfunction_agent_minimum_travel_time
+            trainrun_waypoint
+            for trainrun_waypoint in controller_from_train_runs.trainrun_dict[malfunction_agend_id]
+            if (trainrun_waypoint.scheduled_at >= (expected_malfunction_end))
+        )
 
-        time_step_to_tweak = trainrun_waypoint_after_malfunction.scheduled_at - malfunction_agent_minimum_travel_time
-        dict_to_tweak = {action_plan_element.scheduled_at: action_plan_element.action
-                         for action_plan_element in
-                         controller_from_train_runs.action_plan[expected_malfunction.agent_id]}
+        # in the action plan created by FLATland from the re-scheduling trainruns, may have a STOP before the next movement after the malfunction
+        time_step_of_action_that_could_be_interrupted_by_malfunction = trainrun_waypoint_after_malfunction.scheduled_at - minimum_travel_time
+        time_step_to_take_action_instead = (trainrun_waypoint_after_malfunction.scheduled_at
+                                            - expected_malfunction.malfunction_duration
+                                            - minimum_travel_time)
 
-        if dict_to_tweak[expected_malfunction.time_step] == RailEnvActions.STOP_MOVING:
+        agent_action_dict_to_tweak = {
+            action_plan_element.scheduled_at: action_plan_element.action
+            for action_plan_element in controller_from_train_runs.action_plan[malfunction_agend_id]
+        }
+
+        # a STOP action at the beginning of the malfunction is ignored by FLATland (actions during malfunction, even at start, are ignore)
+        if (agent_action_dict_to_tweak[expected_malfunction.time_step] == RailEnvActions.STOP_MOVING and
+                expected_malfunction_end not in agent_action_dict_to_tweak):
             if debug:
-                print(
-                    f"tweaking agent {expected_malfunction.agent_id} for {expected_malfunction} which stops at malfunction beginning")
-            # actions at start of malfunction are ignored
-            dict_to_tweak[expected_malfunction.time_step + expected_malfunction.malfunction_duration] = RailEnvActions.STOP_MOVING
+                print(f"tweaking agent {malfunction_agend_id} for {expected_malfunction} "
+                      "which stops at malfunction beginning")
+                print(f" -> {agent_action_dict_to_tweak[expected_malfunction_end]} instead of "
+                      f"{RailEnvActions.STOP_MOVING} at {expected_malfunction_end}"
+                      )
+            agent_action_dict_to_tweak[expected_malfunction_end] = RailEnvActions.STOP_MOVING
         else:
-            dict_to_tweak[malfunction_agent_time_step_to_take_action_before_malfunction] = dict_to_tweak[
-                time_step_to_tweak]
+            agent_action_dict_to_tweak[time_step_to_take_action_instead] = agent_action_dict_to_tweak[
+                time_step_of_action_that_could_be_interrupted_by_malfunction]
             if debug:
                 print(
-                    f"tweaking agent {expected_malfunction.agent_id} for {expected_malfunction}: "
-                    f"action at {malfunction_agent_time_step_to_take_action_before_malfunction} "
-                    f" ->  {dict_to_tweak[time_step_to_tweak]}")
-        controller_from_train_runs.action_plan[expected_malfunction.agent_id] = [
+                    f"tweaking agent {malfunction_agend_id} for {expected_malfunction}: "
+                    f"action at {time_step_to_take_action_instead} "
+                    f" ->  {agent_action_dict_to_tweak[time_step_of_action_that_could_be_interrupted_by_malfunction]}")
+        controller_from_train_runs.action_plan[malfunction_agend_id] = [
             ActionPlanElement(scheduled_at=scheduled_at, action=action)
-            for scheduled_at, action in sorted(dict_to_tweak.items(), key=lambda item: item[0])
+            for scheduled_at, action in sorted(agent_action_dict_to_tweak.items(), key=lambda item: item[0])
         ]
 
     return controller_from_train_runs
