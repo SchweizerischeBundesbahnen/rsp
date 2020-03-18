@@ -78,8 +78,8 @@ def compare_runtimes(
         warnings.warn(
             f"experiment_ids only in {data_folder2} but not in {data_folder1}:" + "\n - ".join([str(id) for id in
                                                                                                 only_experiment_data2_experiment_ids]))
-    if len(only_experiment_data1_experiment_ids) + len(
-            experiment_data2_experiment_ids) > 0 and fail_on_missing_experiment_ids:
+    if len(only_experiment_data1_experiment_ids) + len(only_experiment_data2_experiment_ids) > 0 \
+            and fail_on_missing_experiment_ids:
         raise AssertionError(f"Not same experiment_ids in the two runs to compare ({data_folder1}, {data_folder2})")
 
     experiment_data1 = experiment_data1.loc[experiment_data1['experiment_id'].isin(experiment_ids_common)]
