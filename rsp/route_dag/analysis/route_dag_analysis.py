@@ -88,6 +88,86 @@ def visualize_route_dag_constraints_simple(
     }
     flatland_pos_with_offset = {wp: np.array(wp.position) + flatland_offset_pattern[wp.direction] for wp in
                                 all_waypoints}
+    print(flatland_pos_with_offset)
+
+    plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
+
+    plt_color_map = [_get_color_for_node(node, f) for node in topo.nodes()]
+
+    plt_labels = {
+        wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
+            f"{_get_label_for_constraint_for_waypoint(wp, f)}\n"
+            f"{str(schedule[wp]) if wp in schedule else ''}"
+        for wp in
+        all_waypoints}
+
+    nx.draw(topo,
+            plt_pos,
+            labels=plt_labels,
+            edge_color='black',
+            width=1,
+            linewidths=1,
+            node_size=1500,
+            node_color=plt_color_map,
+            alpha=0.9)
+
+    plt.gca().invert_yaxis()
+    print(file_name)
+    if file_name is not None:
+        plt.savefig(file_name)
+    else:
+        plt.show()
+    plt.close()
+
+    return topo
+
+
+def visualize_route_dag_constraints(
+        topo: nx.DiGraph,
+        f: RouteDAGConstraints,
+        route_section_penalties: RouteSectionPenalties,
+        edge_eff_route_penalties: RouteSectionPenalties,
+        vertex_eff_lateness: WaypointPenalties,
+        train_run_input: Trainrun,
+        train_run_full_after_malfunction: Trainrun,
+        train_run_delta_after_malfunction: Trainrun,
+        file_name: Optional[str] = None,
+        title: Optional[str] = None,
+        scale: int = 4,
+) -> nx.DiGraph:
+    """Draws an agent's route graph with constraints into a file.
+
+    Parameters
+    ----------
+    edge_lateness
+    agent_paths
+        the agent's paths spanning its routes graph
+    f
+        constraints for this agent
+    file_name
+        save graph to this file
+    title
+        title in the picture
+    scale
+        scale in or out
+    """
+    # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
+
+    # nx directed graph
+    all_waypoints: List[Waypoint] = list(topo.nodes)
+
+    # figsize
+    flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
+    flatland_figsize = np.max(flatland_positions, axis=0) - np.min(flatland_positions, axis=0)
+    plt.figure(figsize=(flatland_figsize[1] * scale, flatland_figsize[0] * scale))
+
+    # plt title
+    if title:
+        plt.title(title)
+
+    # positions with offsets for the pins
+    flatland_pos_with_offset = {wp: np.array(wp.position) + FLATLAND_OFFSET_PATTERN[wp.direction] for wp in
+                                all_waypoints}
 
     plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
 
