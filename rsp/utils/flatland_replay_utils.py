@@ -417,7 +417,7 @@ def create_controller_from_trainruns_and_malfunction(trainrun_dict: TrainrunDict
         }
 
         # a STOP action at the beginning of the malfunction is ignored by FLATland (actions during malfunction, even at start, are ignore)
-        if (agent_action_dict_to_tweak[expected_malfunction.time_step] == RailEnvActions.STOP_MOVING and
+        if (agent_action_dict_to_tweak.get(expected_malfunction.time_step, None) == RailEnvActions.STOP_MOVING and
                 expected_malfunction_end not in agent_action_dict_to_tweak):
             if debug:
                 print(f"tweaking agent {malfunction_agend_id} for {expected_malfunction} "
