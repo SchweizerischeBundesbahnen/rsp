@@ -316,8 +316,9 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 
 if __name__ == '__main__':
-    hypothesis_one_data_analysis(experiment_base_directory='./hypothesis_testing/exp_hypothesis_006_2020_03_17T11_10_03',
-                                 analysis_2d=True,
-                                 analysis_3d=False,
-                                 qualitative_analysis_experiment_ids=[]
-                                 )
+    hypothesis_one_data_analysis(
+        experiment_base_directory='./hypothesis_testing/exp_hypothesis_006_2020_03_17T11_10_03',
+        analysis_2d=True,
+        analysis_3d=False,
+        qualitative_analysis_experiment_ids=[]
+        )

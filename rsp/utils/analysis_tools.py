@@ -128,12 +128,14 @@ def two_dimensional_scatter_plot(  # noqa: C901
         show_global_mean: bool = False,
         colors: Optional[List[str]] = None,
         xscale: Optional[str] = None,
-        yscale: Optional[str] = None
+        yscale: Optional[str] = None,
+        y_cutoff: Optional[float] = None
 ):
     """Adds a 2d-scatterplot as a subplot to a figure.
 
     Parameters
     ----------
+
     data: DataFrame
         DataFrame containing data to be plotted
     std_data: DataFrame
@@ -156,18 +158,22 @@ def two_dimensional_scatter_plot(  # noqa: C901
         Save plot to this folder.
     title
         Plot title
+    show_global_mean
+        Add lines for global mean, std and quantiles over all x values
     xscale
         Passed to matplotlib. See there for possible values such as 'log'.
     yscale
         Passed to matplotlib. See there for possible values such as 'log'.
-
+    y_cutoff
+        clip off y data at this point
     Returns
     -------
     """
     x_column = columns[0]
     x_values: Series = data[x_column].values
     y_column = columns[1]
-    y_values: Series = data[y_column].values
+
+    y_values: Series = data[y_column].values if y_cutoff is None else data[y_column].clip(upper=y_cutoff)
     experiment_ids = data['experiment_id'].values
 
     fig = plt.figure()

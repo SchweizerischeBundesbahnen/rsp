@@ -83,11 +83,14 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     return experiment_base_folder_name
 
 
-if __name__ == '__main__':
+def hypothesis_one_main():
     parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
-
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiment_ids=None,  # no filtering
         copy_agenda_from_base_directory=None  # regenerate schedules
     )
+
+
+if __name__ == '__main__':
+    hypothesis_one_main()

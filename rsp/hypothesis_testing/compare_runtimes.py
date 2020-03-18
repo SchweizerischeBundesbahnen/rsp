@@ -78,29 +78,41 @@ def compare_runtimes(
         warnings.warn(
             f"experiment_ids only in {data_folder2} but not in {data_folder1}:" + "\n - ".join([str(id) for id in
                                                                                                 only_experiment_data2_experiment_ids]))
-    if len(only_experiment_data1_experiment_ids) + len(only_experiment_data2_experiment_ids) > 0 \
+    if (len(only_experiment_data1_experiment_ids) + len(only_experiment_data2_experiment_ids) > 0) \
             and fail_on_missing_experiment_ids:
         raise AssertionError(f"Not same experiment_ids in the two runs to compare ({data_folder1}, {data_folder2})")
 
     experiment_data1 = experiment_data1.loc[experiment_data1['experiment_id'].isin(experiment_ids_common)]
     experiment_data2 = experiment_data2.loc[experiment_data2['experiment_id'].isin(experiment_ids_common)]
 
-    _scatter_for_two_runs(experiment_data1=experiment_data1,
-                          experiment_data2=experiment_data2,
-                          output_folder=output_folder,
-                          column='time_full_after_malfunction')
-    _scatter_for_two_runs(experiment_data1=experiment_data1,
-                          experiment_data2=experiment_data2,
-                          output_folder=output_folder,
-                          column='time_delta_after_malfunction')
-    _scatter_for_two_runs(experiment_data1=experiment_data1,
-                          experiment_data2=experiment_data2,
-                          output_folder=output_folder,
-                          column='costs_full_after_malfunction')
-    _scatter_for_two_runs(experiment_data1=experiment_data1,
-                          experiment_data2=experiment_data2,
-                          output_folder=output_folder,
-                          column='costs_delta_after_malfunction')
+    _scatter_for_two_runs(
+        experiment_data1=experiment_data1,
+        experiment_data2=experiment_data2,
+        output_folder=output_folder,
+        column='time_full_after_malfunction',
+        y_cutoff=1000
+    )
+    _scatter_for_two_runs(
+        experiment_data1=experiment_data1,
+        experiment_data2=experiment_data2,
+        output_folder=output_folder,
+        column='time_delta_after_malfunction',
+        y_cutoff=1000
+    )
+    _scatter_for_two_runs(
+        experiment_data1=experiment_data1,
+        experiment_data2=experiment_data2,
+        output_folder=output_folder,
+        column='costs_full_after_malfunction',
+        y_cutoff=1000
+    )
+    _scatter_for_two_runs(
+        experiment_data1=experiment_data1,
+        experiment_data2=experiment_data2,
+        output_folder=output_folder,
+        column='costs_delta_after_malfunction',
+        y_cutoff=1000
+    )
     return output_folder
 
 
@@ -112,12 +124,14 @@ def _extract_experiment_name_from_data_folder_path(data_folder1):
 def _scatter_for_two_runs(experiment_data1: DataFrame,
                           experiment_data2: DataFrame,
                           column: str,
-                          output_folder: str):
+                          output_folder: str,
+                          **kwargs):
     """
     Compare two pipeline runs by plotting the values of a column in both frames per `experiment_id`.
     The first frame is considered the baseline and the scatter point labels are suffixed with "_b".
     Parameters
     ----------
+
     experiment_data1:
         baseline data
     experiment_data2:
@@ -125,7 +139,8 @@ def _scatter_for_two_runs(experiment_data1: DataFrame,
     data_folder
     column
     output_folder
-
+    kwargs
+        args passed through to `two_dimensional_scatter_plot`
     Returns
     -------
 
@@ -139,5 +154,6 @@ def _scatter_for_two_runs(experiment_data1: DataFrame,
                                  baseline_data=experiment_data1,
                                  columns=['experiment_id', column],
                                  title=f'difference {column}',
-                                 output_folder=output_folder
+                                 output_folder=output_folder,
+                                 **kwargs
                                  )

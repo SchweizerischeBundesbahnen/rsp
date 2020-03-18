@@ -17,7 +17,7 @@ def get_params_alt(window_size: int) -> ParameterRangesAndSpeedData:
         speed_data=params.speed_data)
 
 
-if __name__ == '__main__':
+def hypothesis_006_window_size_main():
     compare_agendas(
         get_params_null=get_params_null,
         get_params_alternatives=[
@@ -26,3 +26,7 @@ if __name__ == '__main__':
         ],
         experiment_name="exp_006_hypothesis_window_size"
     )
+
+
+if __name__ == '__main__':
+    hypothesis_006_window_size_main()
