@@ -24,7 +24,7 @@ def hypothesis_006_window_size_main():
             partial(get_params_alt, window_size=30),
             partial(get_params_alt, window_size=60)
         ],
-        experiment_name="exp_006_hypothesis_window_size"
+        experiment_name="exp_006"
     )
 
 
