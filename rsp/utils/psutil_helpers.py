@@ -18,3 +18,16 @@ def virtual_memory_human_readable():
           f"percent={svmem.percent}%,"
           f"used={human_readable_size(svmem.used)},"
           f"free={human_readable_size(svmem.free)}")
+
+
+def current_process_stats_human_readable():
+    p = psutil.Process()
+    with p.oneshot():
+        print(
+            f"name={p.name()},"
+            f"ppid={p.ppid()},"
+            f"cpu_times={p.cpu_times()},"
+            f"cpu_percent={p.cpu_percent()},"
+            f"status={p.status()},"
+            f"memory_info={p.memory_info()},"
+        )
