@@ -223,7 +223,6 @@ def run_experiment(solver: ASPExperimentSolver,
             elapsed_time - solver_time_full -
             solver_time_full_after_malfunction -
             solver_time_delta_after_malfunction)
-    # TODO does not work properly with tqdm together! do this as plots?
     if show_results_without_details:
         print(("Running experiment {}: took {:5.3f}s "
                "(sched: {:5.3f}s = {:5.2f}% / "
@@ -244,8 +243,9 @@ def run_experiment(solver: ASPExperimentSolver,
         virtual_memory_human_readable()
         current_process_stats_human_readable()
 
+    # TODO
     plausibility_check_experiment_results(experiment_results=experiment_results)
-    return None
+    return experiment_results
 
 
 def create_schedule_and_malfunction(
@@ -317,7 +317,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                 verbose: bool,
                                 show_results_without_details: bool,
                                 experiment_base_directory: str,
-                                rendering: bool = False) -> List[ExperimentResults]:
+                                rendering: bool = False):
     """B. Run and save one experiment from experiment parameters.
 
     Parameters
@@ -363,7 +363,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
-                          verbose: bool = False) -> (str, str, List[ExperimentResultsAnalysis]):
+                          verbose: bool = False) -> (str, str):
     """Run a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
 
@@ -386,7 +386,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     Returns
     -------
-    Returns the name of the experiment folder
+    Returns the name of the experiment base and data folders
     """
     experiment_base_directory = create_experiment_folder_name(experiment_agenda.experiment_name)
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
@@ -422,22 +422,21 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
-        run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
-                                                      solver=solver,
-                                                      verbose=verbose,
-                                                      show_results_without_details=show_results_without_details,
-                                                      experiment_base_directory=experiment_base_directory
-                                                      )
+        run_and_save_one_experiment_partial = partial(
+            run_and_save_one_experiment,
+            solver=solver,
+            verbose=verbose,
+            show_results_without_details=show_results_without_details,
+            experiment_base_directory=experiment_base_directory
+        )
 
-        experiment_results_list = [
-            experiment_results
-            for experiment_results
-            in tqdm.tqdm(
+        for _ in tqdm.tqdm(
                 pool.imap_unordered(
                     run_and_save_one_experiment_partial,
                     experiment_agenda.experiments
                 ),
-                total=len(experiment_agenda.experiments))]
+                total=len(experiment_agenda.experiments)):
+            pass
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
         _print_log_files_from_experiment_data_directory(experiment_data_directory)
@@ -445,22 +444,21 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     else:
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
-        experiment_results_list = [
-            run_and_save_one_experiment(current_experiment_parameters=current_experiment_parameters,
-                                        solver=solver,
-                                        verbose=verbose,
-                                        show_results_without_details=show_results_without_details,
-                                        experiment_base_directory=experiment_base_directory,
-                                        rendering=rendering)
-            for current_experiment_parameters
-            in tqdm.tqdm(experiment_agenda.experiments)
-        ]
+        for current_experiment_parameters in tqdm.tqdm(experiment_agenda.experiments):
+            run_and_save_one_experiment(
+                current_experiment_parameters=current_experiment_parameters,
+                solver=solver,
+                verbose=verbose,
+                show_results_without_details=show_results_without_details,
+                experiment_base_directory=experiment_base_directory,
+                rendering=rendering)
+
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
 
     # remove tees
     reset_tee(*tee_orig)
-    return experiment_base_directory, experiment_data_directory, experiment_results_list
+    return experiment_base_directory, experiment_data_directory
 
 
 def _print_log_files_from_experiment_data_directory(experiment_data_directory):
@@ -771,6 +769,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
             continue
 
         with open(file_name, 'rb') as handle:
+            print(file_name)
             file_data = pickle.load(handle)
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
