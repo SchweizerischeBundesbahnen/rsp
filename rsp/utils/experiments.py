@@ -30,6 +30,7 @@ import multiprocessing
 import os
 import pickle
 import pprint
+import re
 import shutil
 import sys
 import threading
@@ -59,8 +60,9 @@ from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
+from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.tee import reset_tee
-from rsp.utils.tee import tee_stdout_to_file
+from rsp.utils.tee import tee_stdout_stderr_to_file
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -219,6 +221,7 @@ def run_experiment(solver: ASPExperimentSolver,
             elapsed_time - solver_time_full -
             solver_time_full_after_malfunction -
             solver_time_delta_after_malfunction)
+    # TODO does not work properly with tqdm together! do this as plots?
     if show_results_without_details:
         print(("Running experiment {}: took {:5.3f}s "
                "(sched: {:5.3f}s = {:5.2f}% / "
@@ -322,8 +325,15 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     experiment_base_directory
     rendering
     """
+    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+
+    # tee stdout to thread-specific log file
+    tee_orig = tee_stdout_stderr_to_file(
+        stdout_log_file=os.path.join(experiment_data_directory, f"log_{threading.get_ident()}.txt"),
+        stderr_log_file=os.path.join(experiment_data_directory, f"err_{threading.get_ident()}.txt")
+    )
     try:
-        experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+
         check_create_folder(experiment_data_directory)
 
         filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
@@ -338,6 +348,9 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     except Exception as e:
         print("XXX failed " + filename + " " + str(e))
         traceback.print_exc(file=sys.stdout)
+    finally:
+        # remove tees
+        reset_tee(*tee_orig)
 
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
@@ -380,7 +393,10 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     check_create_folder(experiment_agenda_directory)
 
     # tee stdout to log file
-    stdout_orig = tee_stdout_to_file(log_file=os.path.join(experiment_data_directory, "log.txt"))
+    tee_orig = tee_stdout_stderr_to_file(
+        stdout_log_file=os.path.join(experiment_data_directory, "log.txt"),
+        stderr_log_file=os.path.join(experiment_data_directory, "err.txt"),
+    )
 
     if copy_agenda_from_base_directory is not None:
         _copy_agenda_from_base_directory(copy_agenda_from_base_directory, experiment_agenda_directory)
@@ -400,12 +416,15 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
         print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+        newline_and_flush_stdout_and_stderr()
         run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
                                                       solver=solver,
                                                       verbose=verbose,
                                                       show_results_without_details=show_results_without_details,
                                                       experiment_base_directory=experiment_base_directory
                                                       )
+
         experiment_results_list = [
             experiment_results
             for experiment_results
@@ -415,7 +434,13 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                     experiment_agenda.experiments
                 ),
                 total=len(experiment_agenda.experiments))]
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+        newline_and_flush_stdout_and_stderr()
+        _print_log_files_from_experiment_data_directory(experiment_data_directory)
+
     else:
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+        newline_and_flush_stdout_and_stderr()
         experiment_results_list = [
             run_and_save_one_experiment(current_experiment_parameters=current_experiment_parameters,
                                         solver=solver,
@@ -426,10 +451,38 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             for current_experiment_parameters
             in tqdm.tqdm(experiment_agenda.experiments)
         ]
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+        newline_and_flush_stdout_and_stderr()
 
-    # remove tee
-    reset_tee(stdout_orig)
+    # remove tees
+    reset_tee(*tee_orig)
     return experiment_base_directory, experiment_data_directory, experiment_results_list
+
+
+def _print_log_files_from_experiment_data_directory(experiment_data_directory):
+    log_files = os.listdir(experiment_data_directory)
+    print(f"loading and expanding experiment results from {experiment_data_directory}")
+    error_summay = []
+    for file in [file for file in log_files if file.startswith("log_")]:
+        print("\n\n\n\n")
+        print(f"=========================================================")
+        print(f"output of {file}")
+        print(f"=========================================================")
+        with open(os.path.join(experiment_data_directory, file), "r") as file_in:
+            content = file_in.read()
+            print(content)
+            error_summay += re.findall("XXX.*$", content, re.MULTILINE)
+    print("\n\n\n\n")
+
+    print(f"=========================================================")
+    print(f"ERROR SUMMARY")
+    print(f"=========================================================")
+    for err in error_summay:
+        print(err)
+    print(f"=========================================================")
+    print(f"END OF ERROR SUMMARY")
+    print(f"=========================================================")
+    print("\n\n\n\n")
 
 
 def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, experiment_agenda_directory: str):
@@ -701,6 +754,8 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
 
     files = os.listdir(experiment_data_folder_name)
     print(f"loading and expanding experiment results from {experiment_data_folder_name}")
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    newline_and_flush_stdout_and_stderr()
     for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
         file_name = os.path.join(experiment_data_folder_name, file)
         if not file_name.endswith(".pkl"):
@@ -714,7 +769,8 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
-
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    newline_and_flush_stdout_and_stderr()
     return experiment_results_list
 
 

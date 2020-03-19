@@ -33,7 +33,10 @@ def compare_agendas(
     os.chdir(base_folder)
 
     parameter_ranges_and_speed_data = get_params_null()
-    print(f"run null hypothesis {parameter_ranges_and_speed_data}")
+    print("\n\n\n\n")
+    print(f"=========================================================")
+    print(f"NULL HYPOTHESIS {parameter_ranges_and_speed_data}")
+    print(f"=========================================================")
     null_hypothesis_base_folder = hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiment_ids=None,  # no filtering
@@ -44,7 +47,10 @@ def compare_agendas(
     comparison_folders = []
     for i, get_params_alt in enumerate(get_params_alternatives):
         parameter_ranges_and_speed_data = get_params_alt()
-        print(f"run alternative hypothesis {parameter_ranges_and_speed_data}")
+        print("\n\n\n\n")
+        print(f"=========================================================")
+        print(f"ALTERNATIVE HYPOTHESIS {i}:  {parameter_ranges_and_speed_data}")
+        print(f"=========================================================")
         alternative_hypothesis_base_folder = hypothesis_one_pipeline(
             parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
             experiment_ids=None,  # no filtering

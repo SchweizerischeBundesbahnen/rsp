@@ -4,7 +4,11 @@ import sys
 
 
 class multifile(object):
-    """Allows teeing."""
+    """Allows teeing: redirect stdout/stderr to a file as well for
+    serialization.
+
+    https://en.wikipedia.org/wiki/Tee_(command)
+    """
 
     def __init__(self, files):
         self._files = files
@@ -21,30 +25,40 @@ class multifile(object):
         return g
 
 
-def reset_tee(stdout_orig: io.TextIOWrapper):
-    """Reset the stdout to the original.
+def reset_tee(stdout_orig: multifile,
+              stderr_orig: multifile,
+              stdout_log_file: io.TextIOWrapper,
+              stderr_log_file: io.TextIOWrapper):
+    """Reset the stdout/stderr to the original.
 
     Parameters
     ----------
     stdout_orig
+    stderr_orig
     """
     sys.stdout = stdout_orig
+    sys.stderr = stderr_orig
+    stdout_log_file.close()
+    stderr_log_file.close()
 
 
-def tee_stdout_to_file(log_file: str):
-    """
+def tee_stdout_stderr_to_file(stdout_log_file: str, stderr_log_file: str):
+    """Redirect stdout and stderr to files as well.
 
     Parameters
     ----------
-    log_file: str
-        tee to this file
-
+    stdout_log_file: str
+        tee stdout to this file
+    stderr_log_file
+        tee stderr to this file
     Returns
     -------
-    Original stdout
-
+    Tuple to pass to `reset_tee`
     """
-    print(f"log_file={log_file}")
     stdout_orig = sys.stdout
-    sys.stdout = multifile([sys.stdout, open(log_file, 'w')])
-    return stdout_orig
+    stderr_orig = sys.stderr
+    stdout_log_file = open(stdout_log_file, 'a')
+    sys.stdout = multifile([sys.stdout, stdout_log_file])
+    stderr_log_file = open(stderr_log_file, 'a')
+    sys.stderr = multifile([sys.stderr, stderr_log_file])
+    return stdout_orig, stderr_orig, stdout_log_file, stderr_log_file

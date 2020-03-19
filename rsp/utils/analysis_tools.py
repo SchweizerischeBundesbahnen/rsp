@@ -138,8 +138,6 @@ def two_dimensional_scatter_plot(  # noqa: C901
 
     data: DataFrame
         DataFrame containing data to be plotted
-    std_data: DataFrame
-        DataFrame containing error of z values to plot
     columns: DataFrame.columns
         Three columns of that data frame to be plotted against each other, x_values, y_values,z_values
     file_name: string

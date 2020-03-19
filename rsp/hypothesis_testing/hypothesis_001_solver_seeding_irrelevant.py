@@ -22,7 +22,7 @@ def hypothesis_001_solver_seeding_irrelevant_main():
     compare_agendas(
         get_params_null=get_params_null,
         get_params_alternatives=[partial(get_params_alt, seed=(94 + inc)) for inc in range(5)],
-        experiment_name="exp_001_hypothesis_solver_seeding_irrelevant"
+        experiment_name="exp_001"
     )
 
 
