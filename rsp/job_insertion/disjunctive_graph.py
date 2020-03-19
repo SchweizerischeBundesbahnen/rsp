@@ -21,7 +21,7 @@ from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 
 _pp = pprint.PrettyPrinter(indent=4)
-Segment = List[Waypoint]
+Route = List[Waypoint]
 Trainroute = List[Waypoint]
 TrainrouteDict = Dict[int, Trainroute]
 Schedule = TrainrunDict
@@ -36,6 +36,7 @@ class DisjunctiveGraphEdgeType(Enum):
 MAGIC_DIRECTION_FOR_EXIT_EVENT = 6
 
 DisjunctiveGraph = nx.DiGraph
+DisjunctiveNode = Tuple[int, Waypoint]
 DisjunctiveGraphNode = Union[Tuple[int, Waypoint], None]
 DisjunctiveGraphEdge = Tuple[DisjunctiveGraphNode, DisjunctiveGraphNode]
 Selection = Set[DisjunctiveGraphEdge]
@@ -50,6 +51,26 @@ OrderedDisjunctiveGraphNodes = List[DisjunctiveGraphNode]
 def sort_vertices_by_train_start_and_earliest(
         problem: ScheduleProblemDescription,
         solution: SchedulingExperimentResult) -> Tuple[OrderedTrains, OrderedDisjunctiveGraphNodes]:
+    """Order trains and section entry points for display in a disjunctive
+    graph:
+
+    - columns = trains
+    - rows = nodes
+
+    Trains are sorted by their departure time
+
+    Vertices are sorted
+    1. their first appearance in train in their order
+    2. earliest time as received from the ASP solution (reflects depth)
+
+    Parameters
+    ----------
+    problem
+    solution
+
+    Returns
+    -------
+    """
     all_waypoints = {
         node
         for train, topo in problem.topo_dict.items()
@@ -67,7 +88,7 @@ def sort_vertices_by_train_start_and_earliest(
                      key=lambda p: p[1][0].scheduled_at)))
 
     # sort vertices
-    # 1. train
+    # 1. train they appear first in in the order of the sorted trains
     # 2. earliest (reflects depth)
     sorted_vertices: List[Waypoint] = []
     for train in sorted_trains:
@@ -83,18 +104,35 @@ def sort_vertices_by_train_start_and_earliest(
     return sorted_trains, sorted_vertices
 
 
-DisjunctiveNode = Tuple[int, Waypoint]
-
-
 def disjunctive_graph_is_dummy_source(node: DisjunctiveGraphNode) -> bool:
+    # we use None as marker for 'sigma'
     return node is None
 
 
-def wrap_waypoint(train, wp):
+def wrap_waypoint(train: int, wp: Waypoint) -> DisjunctiveGraphNode:
+    """Wraps train and waypoint into `DisjunctiveGraphNode`
+
+    Parameters
+    ----------
+    train
+    wp
+
+    Returns
+    -------
+    """
     return (train, wp)
 
 
-def get_trainroute_from_trainrun(trainrun: Trainrun):
+def get_trainroute_from_trainrun(trainrun: Trainrun) -> Route:
+    """Extract the route from the train's schedule (aka Trainrun)
+
+    Parameters
+    ----------
+    trainrun
+
+    Returns
+    -------
+    """
     return [trainrun_waypoint.waypoint for trainrun_waypoint in trainrun]
 
 
@@ -105,6 +143,22 @@ def make_disjunctive_graph(
         release_time: int = 1,
         no_disjunctions: Set[int] = None,
         debug: bool = False) -> DisjunctiveGraph:
+    """Make a disjunctive problem for the problem. Used for visualisation only.
+    Only job insertion graphs are used in neighborhood search (with disjunctive
+    arcs fixed for all but one train).
+
+    Parameters
+    ----------
+    minimum_travel_time_dict
+    trainroute_dict
+    start_time_dict
+    release_time
+    no_disjunctions
+    debug
+
+    Returns
+    -------
+    """
     disjunctive_graph = nx.DiGraph()
 
     train_resource_to_edge_mapping: Dict[Tuple[int, Resource], DisjunctiveGraphEdge] = {}
@@ -126,8 +180,8 @@ def make_disjunctive_graph(
                 type=DisjunctiveGraphEdgeType.CONJUNCTIVE,
                 # TODO SIM-322 hard-coded assumption that last segment is 1
                 weight=(minimum_travel_time_dict[train]
-                        if (wp1.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or
-                            wp2.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+                        if (wp1.direction != MAGIC_DIRECTION_FOR_SOURCE_TARGET and
+                            wp2.direction != MAGIC_DIRECTION_FOR_SOURCE_TARGET)
                         else 1)
             )
             edge = (node1, node2)
@@ -175,6 +229,20 @@ def draw_disjunctive_graph(disjunctive_graph: DisjunctiveGraph,
                            scale: int = 4,
                            padding: int = 2,
                            title: Optional[str] = None):
+    """Create networkx plot of the disjunctive graph. Needs an orde  for trains
+    (columns) and vertices (rows).
+
+    Parameters
+    ----------
+    disjunctive_graph
+    file_name
+    sorted_trains
+    sorted_vertices
+    highlight_edges
+    scale
+    padding
+    title
+    """
     # returns the sort index of the Waypoint
     vertex_index: Dict[Waypoint, int] = {
         waypoint: index
@@ -294,6 +362,17 @@ def draw_disjunctive_graph(disjunctive_graph: DisjunctiveGraph,
 def get_conjunctive_graph_by_inserting_at_end(
         job_insertion_graph: DisjunctiveGraph,
         train_to_insert: int) -> Tuple[DisjunctiveGraph, List[DisjunctiveGraphEdge]]:
+    """Apply selection which inserts the train to insert after all other
+    trains. Returns a conjunctive graph.
+
+    Parameters
+    ----------
+    job_insertion_graph
+    train_to_insert
+
+    Returns
+    -------
+    """
     conjunctive_graph = job_insertion_graph.copy()
 
     # edges leaving the train to insert would make it go before -> remove
@@ -319,6 +398,21 @@ def left_closure(
         release_time: int = 1,
         debug: bool = False
 ):
+    """Add critical arc to queue. Until queue is empty:
+
+        - pop arc from queue and swap
+        - determine incoming edges of positive cycles introduced by swapping, add them to the queue
+
+    Parameters
+    ----------
+    conjunctive_graph
+    critical_arc
+    release_time
+    debug
+
+    Returns
+    -------
+    """
     conjunctive_graph = conjunctive_graph.copy()
 
     # add critical arc to our queue
@@ -361,8 +455,8 @@ def left_closure(
 
                         if train1 != leaving_from_train and train2 == leaving_from_train:
                             # add the incoming edge to our queue: must be swapped later!
-                            # TODO is it safe to assume the cycle contains only one incoming edge?
                             d.append((n1, n2))
+                            # TODO is it safe to assume the cycle contains only one incoming edge?
                             break
 
     return conjunctive_graph, closure
@@ -371,6 +465,18 @@ def left_closure(
 def force_disjunctive_edges_from_schedule(disjunctive_graph: DisjunctiveGraph,
                                           schedule: Schedule,
                                           ) -> DisjunctiveGraph:
+    """Apply a full selection to a disjunctive graph. Educational only: we
+    would never do that in a neighborhood search scheme, we would leave one
+    train out to get a job insertion graph.
+
+    Parameters
+    ----------
+    disjunctive_graph
+    schedule
+
+    Returns
+    -------
+    """
     schedule_at: Dict[DisjunctiveGraphNode, int] = {
         (train, trainrun_waypoint.waypoint): trainrun_waypoint.scheduled_at
         for train, trainrun in schedule.items()
@@ -403,19 +509,18 @@ def force_disjunctive_edges_from_schedule(disjunctive_graph: DisjunctiveGraph,
     return disjunctive_graph_from_schedule
 
 
-def has_mate_in_selection(edge: DisjunctiveGraphEdge, selection: Selection):
-    from_node, to_node = edge
-    if (to_node, from_node) in selection:
-        # resource conflict: selection selects mate
-        return True
-        # TODO do not use None for sigma and for next's default (for now, it should be safe, since we do not create disjunctive edges outgoing from sigma)
-    if next((f for f, t in selection if f == from_node and t != to_node), None) is not None:
-        # alternative path: selection selects mate
-        return True
-    return False
-
-
 def path_successor(disjunctive_graph: DisjunctiveGraph, u: DisjunctiveGraphNode):
+    """
+
+    Parameters
+    ----------
+    disjunctive_graph
+    u
+
+    Returns
+    -------
+
+    """
     train, _ = u
     successors_by_conjunctive_edge = [
         v
@@ -453,7 +558,10 @@ def path_predecessor(disjunctive_graph: DisjunctiveGraph, v: DisjunctiveGraphNod
 
 
 def get_mate(disjunctive_graph: DisjunctiveGraph, edge: DisjunctiveGraphEdge) -> DisjunctiveGraphEdge:
-    """
+    """Since we have no multiple resources per route section, we can determine
+    the mate by inspecting the disjunctive graph. Probably, in a general
+    setting, we would have to keep track of mates in some dict.
+
       train_1: u_1 -----> v_1
                    X
       train_2: u_2 -----> v_2
@@ -469,7 +577,6 @@ def get_mate(disjunctive_graph: DisjunctiveGraph, edge: DisjunctiveGraphEdge) ->
 
     Returns
     -------
-
     """
     (v_1, u_2) = edge
 
@@ -492,6 +599,14 @@ def get_mate(disjunctive_graph: DisjunctiveGraph, edge: DisjunctiveGraphEdge) ->
 
 
 def sanity_check_disjunctive_graph(disjunctive_graph: DisjunctiveGraph):
+    """Checks structural properties of a disjunctive graph. Not very general.
+    Mainly for debugging and development. We should make proper unit tests
+    instead.
+
+    Parameters
+    ----------
+    disjunctive_graph
+    """
     edges_without_data = disjunctive_graph.edges(data=False)
     for (v, u_, d) in disjunctive_graph.edges(data=True):
         edge = (v, u_)
@@ -514,45 +629,18 @@ def sanity_check_disjunctive_graph(disjunctive_graph: DisjunctiveGraph):
             assert train1 == train2
 
 
-def apply_selection(
-        disjunctive_graph: DisjunctiveGraph,
-        selection: Selection,
-        debug: bool = False
-) -> DisjunctiveGraph:
-    # new empty graph; no disjunctive edges will be added
-    conjunctive_graph = nx.DiGraph()
-
-    # keep (=add)
-    # - all conjunctive edges
-    # - disjunctive edges:
-    #   - convert disjunctive edges to conjunctive edges if in selection
-    #   - keep if mate is not in selection; mate is
-    #        - resource conflicts between trains: mate(u,v)==(v,u)
-    #        - alternative routes of same train mate(u,v)==(u,_)
-    for from_node, to_node, edge_data in disjunctive_graph.edges(data=True):
-        # mate selected -> "remove" disjunctive edge
-        if (edge_data['type'] == DisjunctiveGraphEdgeType.DISJUNCTIVE and
-                has_mate_in_selection(edge=(from_node, to_node), selection=selection)):
-            continue
-        if (from_node, to_node) in selection:
-            # convert disjunctive edges from selection to conjunctive edges (=add as conjunctive)
-            tweaked_edge_data = dict(disjunctive_graph.get_edge_data(from_node, to_node),
-                                     **{'type': DisjunctiveGraphEdgeType.CONJUNCTIVE})
-            print(f"converting {from_node} {to_node} {tweaked_edge_data}")
-            conjunctive_graph.add_edge(from_node, to_node, **tweaked_edge_data)
-        else:
-            print(f" keeping ({from_node}, {to_node}) with edge_data={edge_data}")
-            conjunctive_graph.add_edge(from_node, to_node, **edge_data)
-
-    # TODO do we need to remove edges not reached?
-    # remove not reached?
-    print(_pp.pformat(conjunctive_graph.edges))
-    sanity_check_disjunctive_graph(conjunctive_graph)
-    return conjunctive_graph
-
-
 def make_schedule_from_conjunctive_graph(conjunctive_graph=DisjunctiveGraph, debug: bool = False) -> Schedule:
-    # propagation
+    """Propagate summed up weights along conjunctive arcs, take the max over
+    all incoming weight sums.
+
+    Parameters
+    ----------
+    conjunctive_graph
+    debug
+
+    Returns
+    -------
+    """
     updated = {None}
     schedule_dict: Dict[DisjunctiveGraphNode, int] = {None: 0}
     trains = set()
@@ -576,7 +664,6 @@ def make_schedule_from_conjunctive_graph(conjunctive_graph=DisjunctiveGraph, deb
                 train, _ = neighbor
                 trains.add(train)
         updated = future_updated
-    #
     del schedule_dict[None]
     trainrun_dict = {}
     for (train, waypoint), scheduled_at in schedule_dict.items():

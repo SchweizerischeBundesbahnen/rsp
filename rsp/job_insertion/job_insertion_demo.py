@@ -21,7 +21,7 @@ from rsp.job_insertion.disjunctive_graph import get_trainroute_from_trainrun
 from rsp.job_insertion.disjunctive_graph import left_closure
 from rsp.job_insertion.disjunctive_graph import make_disjunctive_graph
 from rsp.job_insertion.disjunctive_graph import make_schedule_from_conjunctive_graph
-from rsp.job_insertion.disjunctive_graph import Segment
+from rsp.job_insertion.disjunctive_graph import Route
 from rsp.job_insertion.disjunctive_graph import sort_vertices_by_train_start_and_earliest
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple
 from rsp.route_dag.analysis.route_dag_analysis import visualize_schedule
@@ -38,9 +38,19 @@ from rsp.utils.file_utils import check_create_folder
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def create_digraph_from_segments(segments: List[Segment]) -> nx.DiGraph:
+def create_digraph_from_routes(routes: List[Route]) -> nx.DiGraph:
+    """Create a topology for the routes by adding a dummy synchronization
+    segment at the beginning.
+
+    Parameters
+    ----------
+    routes
+
+    Returns
+    -------
+    """
     dag = nx.DiGraph()
-    for segment in segments:
+    for segment in routes:
         for wp1, wp2 in zip(segment, segment[1:]):
             dag.add_edge(wp1, wp2)
 
@@ -57,66 +67,42 @@ def create_digraph_from_segments(segments: List[Segment]) -> nx.DiGraph:
 
 
 def _make_our_little_three_train_scenario() -> Dict[int, nx.DiGraph]:
-    # NOTE that a synchronization step is introduced in the first and last cell
-    A1 = Waypoint(position=(2, 0), direction=Grid4TransitionsEnum.SOUTH)
-    B = Waypoint(position=(5, 1), direction=Grid4TransitionsEnum.EAST)
-    segment_a1_b = [
-        A1,
+    """Sample scenario as in https://confluence.sbb.ch/display/SIM/Job+Insertio
+    n+based+Local+Search+for+Re-Scheduling. With a little bit of tweaking...
+
+    Returns
+    -------
+    """
+
+    first_route = [
         Waypoint(position=(3, 0), direction=Grid4TransitionsEnum.SOUTH),
         Waypoint(position=(4, 0), direction=Grid4TransitionsEnum.SOUTH),
         Waypoint(position=(5, 0), direction=Grid4TransitionsEnum.SOUTH),
-        B
+        Waypoint(position=(6, 0), direction=Grid4TransitionsEnum.SOUTH),
     ]
-    A2 = Waypoint(position=(8, 0), direction=Grid4TransitionsEnum.NORTH)
-    segment_a2_b = [
-        A2,
-        Waypoint(position=(7, 0), direction=Grid4TransitionsEnum.NORTH),
-        Waypoint(position=(6, 0), direction=Grid4TransitionsEnum.NORTH),
-        Waypoint(position=(5, 0), direction=Grid4TransitionsEnum.NORTH),
-        B
+    second_route = [
+        Waypoint(position=(2, 1), direction=Grid4TransitionsEnum.EAST),
+        Waypoint(position=(3, 1), direction=Grid4TransitionsEnum.SOUTH),
+        Waypoint(position=(4, 1), direction=Grid4TransitionsEnum.SOUTH),
+        Waypoint(position=(5, 1), direction=Grid4TransitionsEnum.SOUTH),
+        # somewhat tweaking: it would not be legal to go from (5,1) to (6,0) in FLATland
+        Waypoint(position=(6, 0), direction=Grid4TransitionsEnum.SOUTH),
     ]
-    segment_b_c = [
-        B,
-        Waypoint(position=(5, 2), direction=Grid4TransitionsEnum.EAST),
-        Waypoint(position=(5, 3), direction=Grid4TransitionsEnum.EAST),
-        Waypoint(position=(5, 4), direction=Grid4TransitionsEnum.EAST),
-        Waypoint(position=(5, 5), direction=Grid4TransitionsEnum.EAST)
-    ]
-    D = Waypoint(position=(8, 4), direction=Grid4TransitionsEnum.EAST)
-    segment_a2_d = [
-        Waypoint(position=(8, 0), direction=Grid4TransitionsEnum.EAST),
-        Waypoint(position=(8, 1), direction=Grid4TransitionsEnum.EAST),
-        Waypoint(position=(8, 2), direction=Grid4TransitionsEnum.EAST),
-        Waypoint(position=(8, 3), direction=Grid4TransitionsEnum.EAST),
-        D,
-    ]
-    E = Waypoint(position=(7, 5), direction=Grid4TransitionsEnum.NORTH)
-    segment_d_e = [
-        D,
-        Waypoint(position=(8, 5), direction=Grid4TransitionsEnum.NORTH),
-        E
-    ]
-    C = Waypoint(position=(5, 5), direction=Grid4TransitionsEnum.NORTH)
-    segment_e_c = [
-        E,
-        Waypoint(position=(6, 5), direction=Grid4TransitionsEnum.NORTH),
-        Waypoint(position=(6, 4), direction=Grid4TransitionsEnum.WEST),
-        Waypoint(position=(6, 5), direction=Grid4TransitionsEnum.EAST),
-        C
-    ]
-    segment_f_e = [
-        Waypoint(position=(8, 5), direction=Grid4TransitionsEnum.NORTH),
-        E
-    ]
-    segment_dict = {
-        0: [segment_f_e, segment_d_e],
-        1: [segment_a2_b, segment_b_c, segment_a2_d, segment_d_e, segment_e_c],
-        2: [segment_a1_b, segment_b_c]
-
+    # NOTE that a synchronization step is introduced in the first and last cell,
+    # therefore we use a different first cell for all three agents
+    # the drawing in confluence is not 100% correct (A - A' and B' - B should be two sections, different for all three trains)
+    tweak_dict = {
+        0: Waypoint(position=(0, 0), direction=Grid4TransitionsEnum.SOUTH),
+        1: Waypoint(position=(1, 0), direction=Grid4TransitionsEnum.SOUTH),
+        2: Waypoint(position=(2, 0), direction=Grid4TransitionsEnum.SOUTH),
+    }
+    routes_dict = {
+        train: [[tweak_dict[train]] + first_route, [tweak_dict[train]] + second_route]
+        for train in range(3)
     }
     topo_dict = {
-        train: create_digraph_from_segments(segments)
-        for train, segments in segment_dict.items()
+        train: create_digraph_from_routes(segments)
+        for train, segments in routes_dict.items()
     }
 
     for train, topo in topo_dict.items():
@@ -125,7 +111,7 @@ def _make_our_little_three_train_scenario() -> Dict[int, nx.DiGraph]:
 
     minimum_travel_time_dict = {
         0: 1,
-        1: 1,
+        1: 2,
         2: 1
     }
 
@@ -142,6 +128,19 @@ def make_problem_description_for_asp_from_scenario(
         latest_arrival: int = 55,
         release_time: int = 1
 ):
+    """First transformation step towards ASP solver for the problem data.
+
+    Parameters
+    ----------
+    earliest_init_dict
+    topo_dict
+    minimum_travel_time_dict
+    latest_arrival
+    release_time
+
+    Returns
+    -------
+    """
     dummy_source_dict = {
         train: list(get_sources_for_topo(topo))[0]
         for train, topo in topo_dict.items()
@@ -191,6 +190,18 @@ def _solve_schedule_problem_and_save_route_dags(
         schedule_problem_description: ScheduleProblemDescription,
         title: str,
         output_folder: str) -> SchedulingExperimentResult:
+    """
+    Helper for calling ASP and visualizing the constraints and the result.
+    Parameters
+    ----------
+    schedule_problem_description
+    title
+    output_folder
+
+    Returns
+    -------
+
+    """
     scheduling_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
         tc=schedule_problem_description
     )
@@ -221,9 +232,9 @@ def main():
     # ---------------------------------------------------------------
     our_little_three_train_scenario = _make_our_little_three_train_scenario()
     schedule_start_time_dict = {
-        0: 20,
-        1: 16,
-        2: 10
+        0: 15,
+        1: 17,
+        2: 23
     }
     schedule_problem = make_problem_description_for_asp_from_scenario(
         **dict_apply_extend(
@@ -287,13 +298,17 @@ def main():
 
     schedule_from_conjunctive_graph = make_schedule_from_conjunctive_graph(conjunctive_graph=conjunctive_graph_schedule)
     # TODO make unit tests instead...
-    assert schedule_from_asp == schedule_from_conjunctive_graph
+    assert schedule_from_asp == schedule_from_conjunctive_graph, \
+        f"schedule_from_asp={_pp.pformat(schedule_from_asp)}, \n" \
+        f"schedule_from_conjunctive_graph={_pp.pformat(schedule_from_conjunctive_graph)}"
 
     # ---------------------------------------------------------------
     print("(4) job insertion graph")
     # ---------------------------------------------------------------
     reschedule_start_time_dict = schedule_start_time_dict.copy()
-    reschedule_start_time_dict[2] = schedule_start_time_dict[2] + 6
+    # 5 minutes delay
+    train_0_delay = 5
+    reschedule_start_time_dict[0] = schedule_start_time_dict[0] + train_0_delay
     # train 2 start 5 later
     job_insertion_graph = make_disjunctive_graph(
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
@@ -379,8 +394,8 @@ def main():
         visualize_schedule(
             trainrun_dict=sol,
             background_topo_dict=schedule_problem.topo_dict,
-            file_name=os.path.join(output_folder, "6a_reschedule_naive_neighborhood.png"),
-            title="re-schedule ASP"
+            file_name=os.path.join(output_folder, "6a_reschedule_naive_neighborhood_search.png"),
+            title="re-schedule naive neighborhood search"
         )
 
     # ---------------------------------------------------------------
@@ -407,9 +422,11 @@ def main():
         file_name=os.path.join(output_folder, "6b_reschedule_asp.png"),
         title="re-schedule ASP"
     )
-    print(f"reschedule asp: {_pp.pformat(reschedule_from_asp)}")
-    print(f"reschedule naive {_pp.pformat(best_solutions[0])}")
-    assert reschedule_solution.optimization_costs == best_lateness - 6, f"{reschedule_solution.optimization_costs}, {best_lateness}"
+
+    # ASP solution costs are with respect to propagated earliest times (which have delay added to them);
+    # therefore, we have to add the delay to get the lateness at the target
+    assert reschedule_solution.optimization_costs + train_0_delay == best_lateness, \
+        f"{reschedule_solution.optimization_costs}, {best_lateness}"
 
     # ---------------------------------------------------------------
     print("(7)* local neighborhood search -> re-schedule")
@@ -438,7 +455,7 @@ def naive_neighborhood_search_for_3_hardcoded_trains(
                     }
                     for train, route in chosen_routes.items():
                         expected_target = list(get_sinks_for_topo(topo_dict[train]))[0]
-                        route_target = route[train][-1]
+                        route_target = route[-1]
                         assert expected_target == route_target, \
                             f"chosen route for {train} does not go to expected target {expected_target}, but to {route_target}"
                     job_insertion_graph = make_disjunctive_graph(
@@ -465,12 +482,13 @@ def naive_neighborhood_search_for_3_hardcoded_trains(
                     assert len(re_schedule) == 3
                     for train, topo_reinsert_train in topo_dict.items():
                         expected_target = list(get_sinks_for_topo(topo_reinsert_train))[0]
-                        actual_target = re_schedule[train][-1]
+                        actual_target = re_schedule[train][-1].waypoint
                         assert actual_target == expected_target, \
                             f"{train} did not reach target: actual {actual_target}, expected {expected_target}"
 
                     # sum over lateness with respect to schedule
-                    lateness = sum([trainrun[-1].scheduled_at - schedule[train][-1].scheduled_at
+                    # TODO extract objective
+                    lateness = sum([trainrun[-2].scheduled_at - schedule[train][-1].scheduled_at
                                     for train, trainrun in re_schedule.items()])
                     if lateness < best_lateness:
                         best_solutions = [re_schedule]
@@ -482,9 +500,3 @@ def naive_neighborhood_search_for_3_hardcoded_trains(
 
 if __name__ == '__main__':
     main()
-
-# TODO visualisierung: minimum running time auf edges
-# TODO better scenario: multiple speed instead of individual mrt
-# TODO rename freeze_***
-# TODO rename ExperimentSchedulingResult....
-# TODO put drawing at the end
