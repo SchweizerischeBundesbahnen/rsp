@@ -1,71 +1,67 @@
 import os
 from typing import Callable
-from typing import Tuple
+from typing import List
 
 from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
 from rsp.hypothesis_testing.compare_runtimes import compare_runtimes
-from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.data_types import SpeedData
+from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.file_utils import check_create_folder
 
 GetParams = Callable[[], ParameterRangesAndSpeedData]
 
 
-def run_agendas_with_same_rescheduling_problems(
-        parameter_ranges_null: ParameterRanges,
-        speed_data_null: SpeedData,
-        parameter_ranges_alt: ParameterRanges,
-        speed_data_alt: SpeedData,
-
-) -> Tuple[str, str]:
-    """Run two agendas. The second again takes the schedule from the first as
-    input.
-
-    Parameters
-    ----------
-    parameter_ranges_null
-    speed_data_null
-    parameter_ranges_alt
-    speed_data_alt
-
-    Returns
-    -------
-    base folders of the two agendas
-    """
-    print("run null hypothesis")
-    null_hypothesis_agenda_folder = hypothesis_one_pipeline(
-        parameter_ranges=parameter_ranges_null,
-        speed_data=speed_data_null,
-        experiment_ids=None,  # no filtering
-        copy_agenda_from_base_directory=None  # regenerate schedules
-    )
-    print("run alt hypothesis")
-    alternative_hypothesis_agenda_folder = hypothesis_one_pipeline(
-        parameter_ranges=parameter_ranges_alt,
-        speed_data=speed_data_alt,
-        experiment_ids=None,  # no filtering
-        copy_agenda_from_base_directory=null_hypothesis_agenda_folder
-    )
-    return null_hypothesis_agenda_folder, alternative_hypothesis_agenda_folder
-
-
-def compare_agendas(get_params_null: GetParams, get_params_alt: GetParams) -> Tuple[str, str, str]:
-    """Run and compare two agendas.
+def compare_agendas(
+        get_params_null: GetParams,
+        get_params_alternatives: List[GetParams],
+        experiment_name: str
+) -> [str, List[str]]:
+    """Run and compare two agendas. Scheduling is run only once (non-
+    deterministic mode). Re-scheduling on same schedules for null and
+    alternative hypotheses.
 
     Parameters
     ----------
-    get_params_null
-    get_params_alt
+    get_params_null: GetParams
+    get_params_alt: List[GetParams]
     """
-    parameter_ranges_null, speed_data_null = get_params_null()
-    parameter_ranges_alt, speed_data_alt = get_params_alt()
-    null_hypothesis_base_folder, alternative_hypothesis_base_folder = run_agendas_with_same_rescheduling_problems(
-        parameter_ranges_null, speed_data_null, parameter_ranges_alt, speed_data_alt)
-    comparison_folder = compare_runtimes(
-        data_folder1=os.path.join(null_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
-        data_folder2=os.path.join(alternative_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
-        output_enclosing_folder='.',
-        experiment_ids=[]
+
+    # do everything in a subfoleder
+    base_folder = create_experiment_folder_name(experiment_name=experiment_name)
+    check_create_folder(base_folder)
+    os.chdir(base_folder)
+
+    parameter_ranges_and_speed_data = get_params_null()
+    print("\n\n\n\n")
+    print(f"=========================================================")
+    print(f"NULL HYPOTHESIS {parameter_ranges_and_speed_data}")
+    print(f"=========================================================")
+    null_hypothesis_base_folder = hypothesis_one_pipeline(
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+        experiment_ids=None,  # no filtering
+        copy_agenda_from_base_directory=None,  # generate schedules
+        experiment_name=experiment_name + "_null"
     )
-    return comparison_folder, null_hypothesis_base_folder, alternative_hypothesis_base_folder
+    alternative_hypothesis_base_folders = []
+    comparison_folders = []
+    for i, get_params_alt in enumerate(get_params_alternatives):
+        parameter_ranges_and_speed_data = get_params_alt()
+        print("\n\n\n\n")
+        print(f"=========================================================")
+        print(f"ALTERNATIVE HYPOTHESIS {i}:  {parameter_ranges_and_speed_data}")
+        print(f"=========================================================")
+        alternative_hypothesis_base_folder = hypothesis_one_pipeline(
+            parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+            experiment_ids=None,  # no filtering
+            copy_agenda_from_base_directory=null_hypothesis_base_folder,
+            experiment_name=experiment_name + f"_alt{i:03d}"
+        )
+        alternative_hypothesis_base_folders.append(alternative_hypothesis_base_folder)
+        comparison_folder = compare_runtimes(
+            data_folder1=os.path.join(null_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
+            data_folder2=os.path.join(alternative_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
+            experiment_ids=[]
+        )
+        comparison_folders.append(comparison_folder)
+    return null_hypothesis_base_folder, alternative_hypothesis_base_folders, comparison_folders

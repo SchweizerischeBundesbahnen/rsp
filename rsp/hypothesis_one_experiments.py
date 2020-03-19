@@ -6,7 +6,6 @@ import numpy as np
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.data_types import SpeedData
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import run_experiment_agenda
 
@@ -20,19 +19,25 @@ def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
                                        earliest_malfunction=[20, 20, 1],
                                        malfunction_duration=[20, 20, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
-                                       max_window_size_from_earliest=[np.inf, np.inf, 1])
+                                       max_window_size_from_earliest=[np.inf, np.inf, 1],
+                                       asp_seed_value=[94, 94, 1],
+                                       # route change is penalized the same as 60 seconds delay
+                                       weight_route_change=[60, 60, 1],
+                                       weight_lateness_seconds=[1, 1, 1],
+                                       )
     # Define the desired speed profiles
     speed_data = {1.: 0.25,  # Fast passenger train
                   1. / 2.: 0.25,  # Fast freight train
                   1. / 3.: 0.25,  # Slow commuter train
                   1. / 4.: 0.25}  # Slow freight train
-    return parameter_ranges, speed_data
+    return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 
-def hypothesis_one_pipeline(parameter_ranges: ParameterRanges,
-                            speed_data: SpeedData,
+def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
                             experiment_ids: Optional[List[int]] = None,
-                            copy_agenda_from_base_directory: Optional[str] = None) -> str:
+                            copy_agenda_from_base_directory: Optional[str] = None,
+                            experiment_name: str = "exp_hypothesis_one"
+                            ) -> str:
     """
     Run full pipeline A - B - C
 
@@ -55,9 +60,8 @@ def hypothesis_one_pipeline(parameter_ranges: ParameterRanges,
 
     # A. Experiment Planning: Create an experiment agenda out of the parameter ranges
     experiment_agenda = create_experiment_agenda(
-        experiment_name="exp_hypothesis_one",
-        speed_data=speed_data,
-        parameter_ranges=parameter_ranges,
+        experiment_name=experiment_name,
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiments_per_grid_element=1
     )
     # B. Experiments: setup, then run
@@ -79,11 +83,14 @@ def hypothesis_one_pipeline(parameter_ranges: ParameterRanges,
     return experiment_base_folder_name
 
 
-if __name__ == '__main__':
-    parameter_ranges1, speed_data1 = get_first_agenda_pipeline_params()
+def hypothesis_one_main():
+    parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
+    hypothesis_one_pipeline(
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+        experiment_ids=None,  # no filtering
+        copy_agenda_from_base_directory=None  # regenerate schedules
+    )
 
-    hypothesis_one_pipeline(parameter_ranges=parameter_ranges1,
-                            speed_data=speed_data1,
-                            experiment_ids=None,  # no filtering
-                            copy_agenda_from_base_directory=None  # regenerate schedules
-                            )
+
+if __name__ == '__main__':
+    hypothesis_one_main()
