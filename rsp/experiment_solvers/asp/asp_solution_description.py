@@ -20,9 +20,9 @@ class ASPSolutionDescription():
                  tc: ScheduleProblemDescription
                  ):
         self.asp_solution: FluxHelperResult = asp_solution
-        self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
-        self._action_plan = None
-        self.tc: ScheduleProblemDescription = tc
+        # self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
+        # self._action_plan = None
+        # self.tc: ScheduleProblemDescription = tc
 
     def get_trainruns_dict(self) -> TrainrunDict:
         """Get train runs for all agents: waypoints and entry times."""

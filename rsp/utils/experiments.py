@@ -151,7 +151,7 @@ def run_experiment(solver: ASPExperimentSolver,
     check_create_folder(experiment_agenda_directory)
 
     if show_results_without_details:
-        print("Running experiment {} in thread {}".format(experiment_parameters.experiment_id, threading.get_ident()))
+        print("Running experiment {} under pid {}".format(experiment_parameters.experiment_id, os.getpid()))
     start_time = time.time()
     if show_results_without_details:
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
@@ -161,91 +161,91 @@ def run_experiment(solver: ASPExperimentSolver,
     # we want to be able to reuse the same schedule and malfunction to be able to compare
     # identical re-scheduling problems between runs and to debug them
     # if the data already exists, load it and do not re-generate it
-    if experiment_agenda_directory is not None and exists_schedule_and_malfunction(
-            experiment_agenda_directory=experiment_agenda_directory,
-            experiment_id=experiment_parameters.experiment_id):
-        schedule_and_malfunction = load_schedule_and_malfunction(
-            experiment_agenda_directory=experiment_agenda_directory,
-            experiment_id=experiment_parameters.experiment_id)
-        _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-    else:
-        malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
-            debug=debug,
-            experiment_parameters=experiment_parameters,
-            rendering=rendering,
-            solver=solver,
-            verbose=verbose)
-        if experiment_agenda_directory is not None:
-            save_schedule_and_malfunction(
-                schedule_and_malfunction=schedule_and_malfunction,
-                experiment_agenda_directory=experiment_agenda_directory,
-                experiment_id=experiment_parameters.experiment_id)
-
-    if rendering:
-        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-        env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
-                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
-                                  show_debug=False,
-                                  screen_height=600,  # Adjust these parameters to fit your resolution
-                                  screen_width=800)
-        env_renderer.reset()
-        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
-
-    # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
-    def malfunction_env_reset():
-        malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
-
-    malfunction_env_reset()
-
-    # B2: full and delta re-scheduling
-    experiment_results: ExperimentResults = solver._run_experiment_from_environment(
-        schedule_and_malfunction=schedule_and_malfunction,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
+    # if experiment_agenda_directory is not None and exists_schedule_and_malfunction(
+    #         experiment_agenda_directory=experiment_agenda_directory,
+    #         experiment_id=experiment_parameters.experiment_id):
+    #     schedule_and_malfunction = load_schedule_and_malfunction(
+    #         experiment_agenda_directory=experiment_agenda_directory,
+    #         experiment_id=experiment_parameters.experiment_id)
+    #     _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+    # else:
+    create_schedule_and_malfunction(
+        debug=debug,
         experiment_parameters=experiment_parameters,
-        verbose=verbose,
-        debug=debug
-    )
-    if experiment_results is None:
-        print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
-        return []
+        rendering=rendering,
+        solver=solver,
+        verbose=verbose)
+    #     if experiment_agenda_directory is not None:
+    #         save_schedule_and_malfunction(
+    #             schedule_and_malfunction=schedule_and_malfunction,
+    #             experiment_agenda_directory=experiment_agenda_directory,
+    #             experiment_id=experiment_parameters.experiment_id)
 
-    if rendering:
-        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-        env_renderer.close_window()
-    elapsed_time = (time.time() - start_time)
-    solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-    solver_time_full_after_malfunction = \
-        experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    solver_time_delta_after_malfunction = \
-        experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    elapsed_overhead_time = (
-            elapsed_time - solver_time_full -
-            solver_time_full_after_malfunction -
-            solver_time_delta_after_malfunction)
+    # if rendering:
+    #     from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+    #     env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
+    #                               agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
+    #                               show_debug=False,
+    #                               screen_height=600,  # Adjust these parameters to fit your resolution
+    #                               screen_width=800)
+    #     env_renderer.reset()
+    #     env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
+    #
+    # # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
+    # def malfunction_env_reset():
+    #     malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
+    #
+    # malfunction_env_reset()
+    #
+    # # B2: full and delta re-scheduling
+    # experiment_results: ExperimentResults = solver._run_experiment_from_environment(
+    #     schedule_and_malfunction=schedule_and_malfunction,
+    #     malfunction_rail_env=malfunction_rail_env,
+    #     malfunction_env_reset=malfunction_env_reset,
+    #     experiment_parameters=experiment_parameters,
+    #     verbose=verbose,
+    #     debug=debug
+    # )
+    # if experiment_results is None:
+    #     print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
+    #     return []
+    #
+    # if rendering:
+    #     from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+    #     env_renderer.close_window()
+    # elapsed_time = (time.time() - start_time)
+    # solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
+    # solver_time_full_after_malfunction = \
+    #     experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    # solver_time_delta_after_malfunction = \
+    #     experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    # elapsed_overhead_time = (
+    #         elapsed_time - solver_time_full -
+    #         solver_time_full_after_malfunction -
+    #         solver_time_delta_after_malfunction)
     if show_results_without_details:
-        print(("Running experiment {}: took {:5.3f}s "
-               "(sched: {:5.3f}s = {:5.2f}% / "
-               "resched: {:5.3f}s = {:5.2f}% / "
-               "resched-delta: {:5.3f}s = {:5.2f}% / "
-               "remaining: {:5.3f}s = {:5.2f}%)  in thread {}")
-              .format(experiment_parameters.experiment_id,
-                      elapsed_time,
-                      solver_time_full,
-                      solver_time_full / elapsed_time * 100,
-                      solver_time_full_after_malfunction,
-                      solver_time_full_after_malfunction / elapsed_time * 100,
-                      solver_time_delta_after_malfunction,
-                      solver_time_delta_after_malfunction / elapsed_time * 100,
-                      elapsed_overhead_time,
-                      elapsed_overhead_time / elapsed_time * 100,
-                      threading.get_ident()))
+        # print(("Running experiment {}: took {:5.3f}s "
+        #        "(sched: {:5.3f}s = {:5.2f}% / "
+        #        "resched: {:5.3f}s = {:5.2f}% / "
+        #        "resched-delta: {:5.3f}s = {:5.2f}% / "
+        #        "remaining: {:5.3f}s = {:5.2f}%)  in thread {}")
+        #       .format(experiment_parameters.experiment_id,
+        #               elapsed_time,
+        #               solver_time_full,
+        #               solver_time_full / elapsed_time * 100,
+        #               solver_time_full_after_malfunction,
+        #               solver_time_full_after_malfunction / elapsed_time * 100,
+        #               solver_time_delta_after_malfunction,
+        #               solver_time_delta_after_malfunction / elapsed_time * 100,
+        #               elapsed_overhead_time,
+        #               elapsed_overhead_time / elapsed_time * 100,
+        #               os.getpid()))
         virtual_memory_human_readable()
         current_process_stats_human_readable()
 
     # TODO
-    plausibility_check_experiment_results(experiment_results=experiment_results)
-    return experiment_results
+    # plausibility_check_experiment_results(experiment_results=experiment_results)
+    return ExperimentResults(*((None,) * len(ExperimentResults._fields)))
 
 
 def create_schedule_and_malfunction(
@@ -270,22 +270,22 @@ def create_schedule_and_malfunction(
     malfunction_rail_env, schedule_and_malfunction
     """
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-    if rendering:
-        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-        env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
-                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
-                                  show_debug=False,
-                                  screen_height=600,  # Adjust these parameters to fit your resolution
-                                  screen_width=800)
-        env_renderer.reset()
-        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
-
+    # if rendering:
+    #     from flatland.utils.rendertools import RenderTool, AgentRenderVariant
+    #     env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
+    #                               agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
+    #                               show_debug=False,
+    #                               screen_height=600,  # Adjust these parameters to fit your resolution
+    #                               screen_width=800)
+    #     env_renderer.reset()
+    #     env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
+    #
     # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
     # Run experiments
-    schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+    solver.gen_schedule_and_malfunction(
         static_rail_env=static_rail_env,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
@@ -293,7 +293,7 @@ def create_schedule_and_malfunction(
         verbose=verbose,
         debug=debug
     )
-    return malfunction_rail_env, schedule_and_malfunction
+    # return malfunction_rail_env, schedule_and_malfunction
 
 
 def _write_sha_txt(folder_name: str):
@@ -329,12 +329,13 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     experiment_base_directory
     rendering
     """
+    _gc_collect(f"START {os.getpid()}")
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     # tee stdout to thread-specific log file
     tee_orig = tee_stdout_stderr_to_file(
-        stdout_log_file=os.path.join(experiment_data_directory, f"log_{threading.get_ident()}.txt"),
-        stderr_log_file=os.path.join(experiment_data_directory, f"err_{threading.get_ident()}.txt")
+        stdout_log_file=os.path.join(experiment_data_directory, f"log_{os.getpid()}.txt"),
+        stderr_log_file=os.path.join(experiment_data_directory, f"err_{os.getpid()}.txt")
     )
     try:
 
@@ -347,14 +348,24 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                                                verbose=verbose,
                                                                experiment_base_directory=experiment_base_directory,
                                                                show_results_without_details=show_results_without_details)
-        save_experiment_results_to_file(experiment_results, filename)
-        return experiment_results
+        # save_experiment_results_to_file(experiment_results, filename)
     except Exception as e:
         print("XXX failed " + filename + " " + str(e))
         traceback.print_exc(file=sys.stdout)
     finally:
         # remove tees
         reset_tee(*tee_orig)
+        _gc_collect(f"END {os.getpid()}")
+
+
+def _gc_collect(l: str):
+    return
+    import gc
+    print(f"{l} before gc.collect: {len(gc.get_objects())}")
+    current_process_stats_human_readable()
+    c = gc.collect()
+    print(f"{l} after gc.collect ({c}): {len(gc.get_objects())}")
+    current_process_stats_human_readable()
 
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
@@ -512,7 +523,8 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 
 def create_experiment_agenda(experiment_name: str,
                              parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-                             experiments_per_grid_element: int = 10
+                             experiments_per_grid_element: int = 10,
+                             debug: bool = False
                              ) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
@@ -541,7 +553,8 @@ def create_experiment_agenda(experiment_name: str,
     # Setup experiment parameters
     for dim_idx, dimensions in enumerate(parameter_ranges):
         if dimensions[-1] > 1:
-            print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
+            if debug:
+                print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
             parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1],
                                                   np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
         else:

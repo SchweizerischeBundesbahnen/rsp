@@ -47,38 +47,38 @@ class ASPExperimentSolver():
             env=static_rail_env,
             k=experiment_parameters.number_of_shortest_paths_per_agent
         )
-        schedule_result = asp_schedule_wrapper(tc_schedule_problem,
+        asp_schedule_wrapper(tc_schedule_problem,
                                                asp_seed_value=experiment_parameters.asp_seed_value,
                                                rendering=rendering,
                                                static_rail_env=static_rail_env,
                                                debug=debug)
-
-        schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
-
-        if verbose:
-            print(f"  **** schedule_solution={schedule_trainruns}")
-
-        # --------------------------------------------------------------------------------------
-        # 1. Generate malfuntion
-        # --------------------------------------------------------------------------------------
-        malfunction_env_reset()
-        controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
-            trainrun_dict=schedule_trainruns,
-            env=malfunction_rail_env)
-        malfunction_env_reset()
-        malfunction = replay(
-            controller_from_train_runs=controller_from_train_runs,
-            env=malfunction_rail_env,
-            stop_on_malfunction=True,
-            solver_name="ASP")
-        malfunction_env_reset()
-        # replay may return None (if the given malfunction does not happen during the agents time in the grid
-        if malfunction is None:
-            raise Exception("Could not produce a malfunction")
-
-        if verbose:
-            print(f"  **** malfunction={malfunction}")
-        return ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
+        #
+        # schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
+        #
+        # if verbose:
+        #     print(f"  **** schedule_solution={schedule_trainruns}")
+        #
+        # # --------------------------------------------------------------------------------------
+        # # 1. Generate malfuntion
+        # # --------------------------------------------------------------------------------------
+        # malfunction_env_reset()
+        # controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
+        #     trainrun_dict=schedule_trainruns,
+        #     env=malfunction_rail_env)
+        # malfunction_env_reset()
+        # malfunction = replay(
+        #     controller_from_train_runs=controller_from_train_runs,
+        #     env=malfunction_rail_env,
+        #     stop_on_malfunction=True,
+        #     solver_name="ASP")
+        # malfunction_env_reset()
+        # # replay may return None (if the given malfunction does not happen during the agents time in the grid
+        # if malfunction is None:
+        #     raise Exception("Could not produce a malfunction")
+        #
+        # if verbose:
+        #     print(f"  **** malfunction={malfunction}")
+        # return ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
 
     def _run_experiment_from_environment(
             self,
@@ -221,20 +221,20 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
         asp_seed_value=asp_seed_value
     )
 
-    schedule_result, schedule_solution = solve_problem(
+    solve_problem(
         problem=schedule_problem,
         debug=debug)
 
-    # TODO SIM-355 fix bug and improve logging in parallel mode
-    try:
-        replay_and_verify_trainruns(rail_env=static_rail_env,
-                                    trainruns=schedule_solution.get_trainruns_dict(),
-                                    rendering=rendering,
-                                    )
-    except AssertionError as e:
-        warnings.warn(str(e))
+    # # TODO SIM-355 fix bug and improve logging in parallel mode
+    # try:
+    #     replay_and_verify_trainruns(rail_env=static_rail_env,
+    #                                 trainruns=schedule_solution.get_trainruns_dict(),
+    #                                 rendering=rendering,
+    #                                 )
+    # except AssertionError as e:
+    #     warnings.warn(str(e))
 
-    return schedule_result
+    # return schedule_result
 
 
 def asp_reschedule_wrapper(

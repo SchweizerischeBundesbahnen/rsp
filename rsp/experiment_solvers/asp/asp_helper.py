@@ -108,6 +108,12 @@ def flux_helper(
             with path('res.asp.encodings', f'delay_linear_within_one_minute.lp') as delay_model_path:
                 paths.append(delay_model_path)
 
+    # with path('tests.01_unit_tests.data.asp.instances', 'dummy_two_agents_rescheduling.lp') as instance_in:
+    #     with path('res.asp.encodings', 'encoding.lp') as encoding_in:
+    #         return _asp_helper([instance_in, encoding_in])
+    import os
+    # with open("blabla_16748", 'r') as out:
+    #     prg_text_joined = out.read()
     flux_result = _asp_helper(
         encoding_files=paths,
         bound_all_events=bound_all_events,
@@ -118,7 +124,6 @@ def flux_helper(
         debug=debug
     )
 
-    return flux_result
 
 
 # snippets from https://code.sbb.ch/projects/TP_TMS_PAS/repos/kapaplan-asp/browse/src/solver/clingo_controller.py
@@ -162,33 +167,39 @@ def _asp_helper(encoding_files: List[str],
     # find only first optimal model
     ctl.configuration.solve.opt_mode = 'opt'
     dl.register_propagator(ctl)
-
-    if verbose:
-        print("taking encodings from {}".format(encoding_files))
-        if plain_encoding:
-            print("taking plain_encoding={}".format(plain_encoding))
+    #
+    # if verbose:
+    #     print("taking encodings from {}".format(encoding_files))
+    #     if plain_encoding:
+    #         print("taking plain_encoding={}".format(plain_encoding))
     for enc in encoding_files:
         ctl.load(str(enc))
     if plain_encoding:
         ctl.add("base", [], plain_encoding)
-    if verbose:
-        print("Grounding starting...")
-    grounding_start_time = time.time()
+    # if verbose:
+    #     print("Grounding starting...")
+    # grounding_start_time = time.time()
     ctl.ground([("base", [])])
-    if verbose:
-        print("Grounding took {}s".format(time.time() - grounding_start_time))
+    # if verbose:
+    #     print("Grounding took {}s".format(time.time() - grounding_start_time))
 
-    if bound_all_events:
-        ctl.ground([("bound_all_events", [int(bound_all_events)])])
-    all_answers = _asp_loop(ctl, dl, verbose, debug)
-    statistics: Dict = ctl.statistics
 
-    if verbose:
-        print(all_answers)
-        _print_configuration(ctl)
-        _print_stats(statistics)
+    # if bound_all_events:
+    #     ctl.ground([("bound_all_events", [int(bound_all_events)])])
+    # all_answers = _asp_loop(ctl, dl, verbose, debug)
+    # statistics: Dict = ctl.statistics
+    #
+    # if verbose:
+    #     print(all_answers)
+    #     _print_configuration(ctl)
+    #     _print_stats(statistics)
+    # ctl.cleanup()
+    # # ctl.__del__()
+    # dl.__del__()
+    dl.__del__()
+    del ctl
 
-    return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
+    return FluxHelperResult(None, None, None, None, asp_seed_value)
 
 
 def _asp_loop(ctl, dl, verbose, debug):

@@ -12,7 +12,7 @@ def human_readable_size(size, decimal_places=3):
 
 def virtual_memory_human_readable():
     svmem = psutil.virtual_memory()
-    print(svmem)
+    # print(svmem)
     print(f"total={human_readable_size(svmem.total)},"
           f"available={human_readable_size(svmem.available)},"
           f"percent={svmem.percent}%,"

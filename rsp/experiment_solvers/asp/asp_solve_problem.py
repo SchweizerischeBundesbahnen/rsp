@@ -51,24 +51,24 @@ def solve_problem(
     # --------------------------------------------------------------------------------------
     # Solve the problem
     # --------------------------------------------------------------------------------------
-    solution: ASPSolutionDescription = problem.solve()
-    assert solution.is_solved()
+    problem.solve()
+    # assert solution.is_solved()
 
-    trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
+    # trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
 
-    if debug:
-        print("####train runs dict")
-        print(_pp.pformat(trainruns_dict))
-    return SchedulingExperimentResult(
-        total_reward=-np.inf,
-        solve_time=solution.get_solve_time(),
-        optimization_costs=solution.get_objective_value(),
-        build_problem_time=solution.get_preprocessing_time(),
-        nb_conflicts=solution.extract_nb_resource_conflicts(),
-        trainruns_dict=solution.get_trainruns_dict(),
-        route_dag_constraints=problem.tc.route_dag_constraints_dict,
-        solver_statistics=solution.asp_solution.stats,
-        solver_result=solution.answer_set,
-        solver_configuration=configuration_as_dict_from_control(solution.asp_solution.ctl),
-        solver_seed=solution.asp_solution.asp_seed_value
-    ), solution
+    # if debug:
+    #     print("####train runs dict")
+    #     print(_pp.pformat(trainruns_dict))
+    # return SchedulingExperimentResult(
+    #     total_reward=-np.inf,
+    #     solve_time=solution.get_solve_time(),
+    #     optimization_costs=solution.get_objective_value(),
+    #     build_problem_time=solution.get_preprocessing_time(),
+    #     nb_conflicts=solution.extract_nb_resource_conflicts(),
+    #     trainruns_dict=solution.get_trainruns_dict(),
+    #     route_dag_constraints=problem.tc.route_dag_constraints_dict,
+    #     solver_statistics=solution.asp_solution.stats,
+    #     solver_result=solution.answer_set,
+    #     solver_configuration=configuration_as_dict_from_control(solution.asp_solution.ctl),
+    #     solver_seed=solution.asp_solution.asp_seed_value
+    # ), solution
