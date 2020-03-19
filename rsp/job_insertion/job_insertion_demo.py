@@ -423,9 +423,11 @@ def main():
         title="re-schedule ASP"
     )
 
+    expected_lateness = 7
+    assert best_lateness == expected_lateness
     # ASP solution costs are with respect to propagated earliest times (which have delay added to them);
     # therefore, we have to add the delay to get the lateness at the target
-    assert reschedule_solution.optimization_costs + train_0_delay == best_lateness, \
+    assert reschedule_solution.optimization_costs + train_0_delay == expected_lateness, \
         f"{reschedule_solution.optimization_costs}, {best_lateness}"
 
     # ---------------------------------------------------------------
@@ -441,6 +443,24 @@ def naive_neighborhood_search_for_3_hardcoded_trains(
         schedule,
         topo_dict,
         minimum_travel_time_dict) -> Tuple[int, TrainrunDict]:
+    """Naive job-insertion based neighborhood search:
+
+    - loop over all trains to reinsert (but not permutations?!)
+    - loop over all routes
+    - choose one random critical arc (not enough to cover everything)
+    Enough for 3 trains.
+
+    Parameters
+    ----------
+    reschedule_start_time_dict
+    routes_dict
+    schedule
+    topo_dict
+    minimum_travel_time_dict
+
+    Returns
+    -------
+    """
     best_lateness = np.inf
     best_solutions = []
     for reinsert_train, topo_reinsert_train in topo_dict.items():
@@ -473,6 +493,7 @@ def naive_neighborhood_search_for_3_hardcoded_trains(
                     if len(selection) == 0:
                         print(f"no common resources between {reinsert_train} and the other trains on the chosen routes")
                         continue
+
                     random_critical_arc = selection[np.random.choice(len(selection))]
                     conjunctive_graph_after_left_closure, cl = left_closure(
                         conjunctive_graph=initial_conjunctive_graph,
@@ -487,7 +508,7 @@ def naive_neighborhood_search_for_3_hardcoded_trains(
                             f"{train} did not reach target: actual {actual_target}, expected {expected_target}"
 
                     # sum over lateness with respect to schedule
-                    # TODO extract objective
+                    # N.B: the trainrun from asp cuts of the last dummy segment!
                     lateness = sum([trainrun[-2].scheduled_at - schedule[train][-1].scheduled_at
                                     for train, trainrun in re_schedule.items()])
                     if lateness < best_lateness:
