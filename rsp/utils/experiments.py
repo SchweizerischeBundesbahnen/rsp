@@ -416,7 +416,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     if run_experiments_parallel:
         pool = multiprocessing.Pool()
         print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
-        # flush stdout before tqdm...
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
         run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
                                                       solver=solver,
@@ -434,12 +434,12 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                     experiment_agenda.experiments
                 ),
                 total=len(experiment_agenda.experiments))]
-        # flush stderr after tqdm...
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
         _print_log_files_from_experiment_data_directory(experiment_data_directory)
 
     else:
-        # flush stdout before tqdm...
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
         experiment_results_list = [
             run_and_save_one_experiment(current_experiment_parameters=current_experiment_parameters,
@@ -451,7 +451,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             for current_experiment_parameters
             in tqdm.tqdm(experiment_agenda.experiments)
         ]
-        # flush stderr after tqdm...
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
 
     # remove tees
@@ -754,7 +754,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
 
     files = os.listdir(experiment_data_folder_name)
     print(f"loading and expanding experiment results from {experiment_data_folder_name}")
-    # flush stdout before tqdm...
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
         file_name = os.path.join(experiment_data_folder_name, file)
@@ -769,7 +769,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
         with open(file_name, 'rb') as handle:
             file_data = pickle.load(handle)
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
-    # flush stderr after tqdm...
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     return experiment_results_list
 

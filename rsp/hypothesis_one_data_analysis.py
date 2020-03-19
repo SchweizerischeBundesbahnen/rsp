@@ -21,10 +21,10 @@ from pandas import DataFrame
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
-from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
+from rsp.utils.data_types import ExperimentAgenda
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -280,7 +280,7 @@ def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]
 
 def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis]):
     print("Running plausibility tests on experiment data...")
-    # flush stdout before tqdm...
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     for experiment_results_analysis in tqdm.tqdm(l):
         experiment_id = experiment_results_analysis.experiment_id
@@ -314,7 +314,7 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
             f"costs_delta_after_malfunction={costs_delta_after_malfunction}, " \
             f"costs_lateness_delta_after_malfunction={costs_lateness_delta_after_malfunction}, " \
             f"sum_all_route_section_penalties_delta_after_malfunction={sum_all_route_section_penalties_delta_after_malfunction}, "
-    # flush stderr after tqdm...
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     print("  -> Done plausibility tests on experiment data.")
 

@@ -4,7 +4,11 @@ import sys
 
 
 class multifile(object):
-    """Allows teeing."""
+    """Allows teeing: redirect stdout/stderr to a file as well for
+    serialization.
+
+    https://en.wikipedia.org/wiki/Tee_(command)
+    """
 
     def __init__(self, files):
         self._files = files

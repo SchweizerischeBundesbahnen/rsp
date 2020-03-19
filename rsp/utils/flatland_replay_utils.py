@@ -398,14 +398,15 @@ def create_controller_from_trainruns_and_malfunction(trainrun_dict: TrainrunDict
         expected_malfunction_end = expected_malfunction.time_step + expected_malfunction.malfunction_duration
         minimum_travel_time = int(np.ceil(1 / env.agents[malfunction_agend_id].speed_data['speed']))
 
-        # when is the next section entry after the malfunction?
+        # determine the next section entry after the malfunction
         trainrun_waypoint_after_malfunction: TrainrunWaypoint = next(
             trainrun_waypoint
             for trainrun_waypoint in controller_from_train_runs.trainrun_dict[malfunction_agend_id]
             if (trainrun_waypoint.scheduled_at >= (expected_malfunction_end))
         )
 
-        # in the action plan created by FLATland from the re-scheduling trainruns, may have a STOP before the next movement after the malfunction
+        # in the action plan created by FLATland from the re-scheduling trainruns,
+        # we may have a STOP before the next movement after the malfunction
         time_step_of_action_that_could_be_interrupted_by_malfunction = trainrun_waypoint_after_malfunction.scheduled_at - minimum_travel_time
         time_step_to_take_action_instead = (trainrun_waypoint_after_malfunction.scheduled_at
                                             - expected_malfunction.malfunction_duration
