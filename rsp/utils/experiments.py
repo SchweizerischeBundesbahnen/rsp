@@ -61,6 +61,7 @@ from rsp.utils.experiment_env_generators import create_flatland_environment_with
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
+from rsp.utils.psutil_helpers import virtual_memory_human_readable
 from rsp.utils.tee import reset_tee
 from rsp.utils.tee import tee_stdout_stderr_to_file
 
@@ -239,6 +240,7 @@ def run_experiment(solver: ASPExperimentSolver,
                       elapsed_overhead_time,
                       elapsed_overhead_time / elapsed_time * 100,
                       threading.get_ident()))
+        virtual_memory_human_readable()
 
     plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
