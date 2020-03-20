@@ -112,6 +112,7 @@ def three_dimensional_scatter_plot(data: DataFrame,
 
     if len(file_name) > 1:
         plt.savefig(file_name)
+        plt.savefig(file_name.replace(".png", ".pdf"))
         plt.close()
     elif show:
         plt.show()
@@ -264,6 +265,7 @@ def two_dimensional_scatter_plot(  # noqa: C901
 
     if file_name is not None:
         plt.savefig(file_name)
+        plt.savefig(file_name.replace(".png", ".pdf"))
         plt.close()
     elif output_folder is not None:
         check_create_folder(output_folder)
@@ -271,8 +273,9 @@ def two_dimensional_scatter_plot(  # noqa: C901
         if baseline_column is not None:
             columns_for_file_name.append(baseline_column)
         # file_name with y axis first
-        file_name = '_'.join(list(reversed(columns_for_file_name))) + '.png'
-        plt.savefig(os.path.join(output_folder, file_name))
+        full_file = os.path.join(output_folder, '_'.join(list(reversed(columns_for_file_name))) + '.png')
+        plt.savefig(full_file)
+        plt.savefig(full_file.replace(".png", ".pdf"))
         plt.close()
 
 
@@ -349,7 +352,9 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
     ax.set_xlabel('Time')
     ax.set_ylabel('Nr. active Agents')
     plt.plot(agent_density)
-    plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
+    file_name = os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png')
+    plt.savefig(file_name)
+    plt.savefig(file_name.replace(".png", ".pdf"))
     plt.close()
 
 
@@ -443,7 +448,9 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
     ax[2].set_ylabel('Time')
     ax[2].matshow(np.abs(np.transpose(weg_zeit_matrix_reschedule) - np.transpose(weg_zeit_matrix_schedule)),
                   cmap='gist_ncar')
-    plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
+    file_name = os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png')
+    plt.savefig(file_name)
+    plt.savefig(file_name.replace(".png", ".pdf"))
     plt.close()
 
 

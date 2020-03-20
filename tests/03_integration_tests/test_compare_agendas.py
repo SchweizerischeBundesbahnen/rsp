@@ -68,7 +68,7 @@ def test_compare_agendas():
         assert len(set(comparison_folders)) == len(comparison_folders)
         for comparison_folder in comparison_folders:
             print(comparison_folder)
-            assert len(os.listdir(comparison_folder)) == 4
+            assert len(os.listdir(comparison_folder)) == 8
     finally:
         for f in [comparison_folder, null_hypothesis_base_folder, alternative_hypothesis_base_folder]:
             delete_experiment_folder(f)

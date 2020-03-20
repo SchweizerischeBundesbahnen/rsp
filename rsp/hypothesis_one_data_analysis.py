@@ -11,15 +11,19 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
+from shutil import copyfile
 from typing import Dict
 from typing import List
 
 import pandas as pd
 import tqdm
+from importlib_resources import path
 from pandas import DataFrame
 
+from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
@@ -29,6 +33,7 @@ from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.file_utils import check_create_folder
@@ -193,23 +198,25 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  analysis_2d: bool = False,
                                  analysis_3d: bool = False,
                                  qualitative_analysis_experiment_ids: List[int] = None,
+                                 asp_export_experiment_ids: List[int] = None,
                                  flatland_rendering: bool = True
                                  ):
     """
 
     Parameters
     ----------
-    experiment_base_directory
     analysis_2d
     analysis_3d
     qualitative_analysis_experiment_ids
+    asp_export_experiment_ids
+    experiment_base_directory
     flatland_rendering
-    debug
     """
     # Import the desired experiment results
     experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
     experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
+    experiment_potassco_directory = f'{experiment_base_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}'
 
     # Create output directoreis
     check_create_folder(experiment_analysis_directory)
@@ -256,6 +263,103 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  analysis_2d=analysis_2d,
                                  analysis_3d=analysis_3d,
                                  flatland_rendering=flatland_rendering)
+    if asp_export_experiment_ids:
+        _potassco_export(experiment_potassco_directory=experiment_potassco_directory,
+                         experiment_results_list=experiment_results_list,
+                         asp_export_experiment_ids=asp_export_experiment_ids)
+
+
+def _potassco_export(experiment_potassco_directory: str,
+                     experiment_results_list: List[ExperimentResultsAnalysis],
+                     asp_export_experiment_ids: List[int]):
+    """Create subfolder potassco in the basefolder and export programs and data
+    for the given experiment ids and shell script to start them.
+
+    Parameters
+    ----------
+    experiment_potassco_directory
+    experiment_results_list
+    asp_export_experiment_ids
+    """
+
+    check_create_folder(experiment_potassco_directory)
+
+    # filter
+    filtered_experiments: List[ExperimentResultsAnalysis] = list(filter(
+        lambda experiment: experiment.experiment_id in asp_export_experiment_ids,
+        experiment_results_list))
+
+    # write .lp and .sh
+    schedule_programs = ["bound_all_events.lp", "encoding.lp", "minimize_total_sum_of_running_times.lp"]
+    reschedule_programs = ["bound_all_events.lp", "encoding.lp", "delay_linear_within_one_minute.lp",
+                           "minimize_delay_and_routes_combined.lp"]
+    for experiment in filtered_experiments:
+        experiment_id = experiment.experiment_id
+
+        _potassco_write_lp_and_sh_for_experiment(
+            experiment_id=experiment_id,
+            experiment_potassco_directory=experiment_potassco_directory,
+            name="schedule_full",
+            problem=experiment.problem_full,
+            programs=schedule_programs,
+            results=experiment.results_full
+        )
+        experiment.problem_full
+
+        _potassco_write_lp_and_sh_for_experiment(
+            experiment_id=experiment_id,
+            experiment_potassco_directory=experiment_potassco_directory,
+            name="reschedule_full_after_malfunction",
+            problem=experiment.problem_full_after_malfunction,
+            programs=reschedule_programs,
+            results=experiment.results_full_after_malfunction
+        )
+
+        _potassco_write_lp_and_sh_for_experiment(
+            experiment_id=experiment_id,
+            experiment_potassco_directory=experiment_potassco_directory,
+            name="reschedule_delta_after_malfunction",
+            problem=experiment.problem_delta_after_malfunction,
+            programs=reschedule_programs,
+            results=experiment.results_delta_after_malfunction
+        )
+    # copy program files
+    for file in schedule_programs + reschedule_programs:
+        with path('res.asp.encodings', file) as src:
+            copyfile(src, f"{experiment_potassco_directory}/{file}")
+
+
+def _potassco_write_lp_and_sh_for_experiment(
+        experiment_id: int,
+        experiment_potassco_directory: str, name: str,
+        problem: ScheduleProblemDescription,
+        programs: List[str],
+        results: SchedulingExperimentResult):
+    """Write .lp and .sh to the potassco folder.
+
+    Parameters
+    ----------
+    experiment_id
+    experiment_potassco_directory
+    name
+    problem
+    programs
+    results
+    """
+    file_name_prefix = f"{experiment_id :04d}_{name}"
+    with open(f"{experiment_potassco_directory}/{file_name_prefix}.lp", "w") as out:
+        out.write("\n".join(results.solver_program))
+    with open(f"{experiment_potassco_directory}/{file_name_prefix}.sh", "w", newline='\n') as out:
+        out.write("clingo-dl " + " ".join(programs) +
+                  f" {file_name_prefix}.lp "
+                  f"-c n={problem.max_episode_steps} "
+                  f"--seed={results.solver_seed} "
+                  f"-c use_decided=1 -t2 --lookahead=no "
+                  f"--opt-mode=opt 0\n"
+                  )
+        out.write(f"# configuration: {results.solver_statistics}\n")
+        out.write(f"# statistics: {results.solver_configuration}\n")
+        out.write(f"# result: {results.solver_result}\n")
 
 
 def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
@@ -324,5 +428,6 @@ if __name__ == '__main__':
         experiment_base_directory='./hypothesis_testing/exp_hypothesis_006_2020_03_17T11_10_03',
         analysis_2d=True,
         analysis_3d=False,
-        qualitative_analysis_experiment_ids=[]
+        qualitative_analysis_experiment_ids=[],
+        asp_export_experiment_ids=[]
     )

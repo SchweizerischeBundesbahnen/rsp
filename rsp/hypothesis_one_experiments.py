@@ -78,7 +78,8 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         experiment_base_directory=experiment_base_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        qualitative_analysis_experiment_ids=[]
+        qualitative_analysis_experiment_ids=[],
+        asp_export_experiment_ids=[]
     )
     return experiment_base_folder_name
 

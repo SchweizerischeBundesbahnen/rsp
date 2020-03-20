@@ -71,6 +71,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
 EXPERIMENT_DATA_SUBDIRECTORY_NAME = "data"
 EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
+EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
 
 
 def save_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction,
