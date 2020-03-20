@@ -11,7 +11,7 @@ from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 
 
-def get_params_null() -> ParameterRangesAndSpeedData:
+def get_dummy_params_null() -> ParameterRangesAndSpeedData:
     parameter_ranges = ParameterRanges(agent_range=[5, 5, 1],
                                        size_range=[30, 30, 1],
                                        in_city_rail_range=[6, 6, 1],
@@ -35,7 +35,7 @@ def get_params_null() -> ParameterRangesAndSpeedData:
 def get_params_alt(window_size: int) -> ParameterRangesAndSpeedData:
     """Take params null and change `max_window_size_from_earliest` to that
     given."""
-    params = get_params_null()
+    params = get_dummy_params_null()
     parameter_ranges_max_window_size_from_earliest = ParameterRanges(
         **dict(params.parameter_ranges._asdict(), **{'max_window_size_from_earliest': [window_size, window_size, 1]}))
     return ParameterRangesAndSpeedData(
@@ -47,7 +47,7 @@ def test_compare_agendas():
     """Run null and alt_0 and alt_1 hypotheses and check that expected files
     are present without inspecting them."""
     null_hypothesis_base_folder, alternative_hypothesis_base_folders, comparison_folders = compare_agendas(
-        get_params_null=get_params_null,
+        get_params_null=get_dummy_params_null,
         get_params_alternatives=[
             partial(get_params_alt, window_size=30),
             partial(get_params_alt, window_size=60)
