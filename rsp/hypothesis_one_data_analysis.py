@@ -73,8 +73,7 @@ def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResults
     # - number of routing alternatives (total and quantiles)
     data_frame = pd.DataFrame(data=[
         {
-            'experiment_id': r.experiment_id,
-            'speed_up': r.speed_up,
+            **r._asdict(),
             'ratio_nb_resource_conflicts': catch_zero_division_error_as_minus_one(
                 lambda:
                 r.nb_resource_conflicts_full_after_malfunction / r.nb_resource_conflicts_delta_after_malfunction),
@@ -85,7 +84,6 @@ def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResults
             **_derive_numbers_for_correlation_analysis(r=r.results_delta_after_malfunction,
                                                        p=r.problem_delta_after_malfunction,
                                                        suffix="delta_after_malfunction"),
-
         }
         for r in experiment_results_list])
     # 009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
@@ -94,7 +92,7 @@ def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResults
             data=data_frame,
             columns=['experiment_id', f'nb_resource_conflicts_{item}'],
             title='009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: \n'
-                  'Is number of resource_conflicts a good predictor for  ' + item,
+                  'Number of resource conflicts for ' + item,
             output_folder=output_folder,
             show_global_mean=True
         )
@@ -102,7 +100,7 @@ def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResults
         data=data_frame,
         columns=['ratio_nb_resource_conflicts', 'speed_up'],
         title='009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: \n'
-              'Correlation of ratio of nb_resource_conflicts and speed_up',
+              'Correlation of ratio of nb_resource_conflicts and speed_up?',
         output_folder=output_folder,
         show_global_mean=True
     )
