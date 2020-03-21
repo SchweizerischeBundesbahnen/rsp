@@ -110,3 +110,5 @@ venv.bak/
 # RSP test and pipeline outputs
 /**/test_*/
 /**/exp_*/
+ffmpeg.exe
+ffmpeg

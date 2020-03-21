@@ -130,7 +130,8 @@ def two_dimensional_scatter_plot(  # noqa: C901
         colors: Optional[List[str]] = None,
         xscale: Optional[str] = None,
         yscale: Optional[str] = None,
-        y_cutoff: Optional[float] = None
+        y_cutoff: Optional[float] = None,
+        higher_y_value_is_worse: bool = TrainrunDict
 ):
     """Adds a 2d-scatterplot as a subplot to a figure.
 
@@ -197,7 +198,9 @@ def two_dimensional_scatter_plot(  # noqa: C901
             ax=ax,
             y_baseline=y_values_baseline,
             x_values=x_values,
-            y_values=y_values)
+            y_values=y_values,
+            higher_y_value_is_worse=higher_y_value_is_worse
+        )
         _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values_baseline, suffix='b')
     elif baseline_data is not None:
         y_values_baseline: Series = baseline_data[y_column].values
@@ -205,7 +208,9 @@ def two_dimensional_scatter_plot(  # noqa: C901
             ax=ax,
             y_baseline=y_values_baseline,
             x_values=x_values,
-            y_values=y_values)
+            y_values=y_values,
+            higher_y_value_is_worse=higher_y_value_is_worse
+        )
         _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values_baseline, suffix='b')
     elif show_global_mean:
         y_mean = [np.mean(y_values)] * len(x_values)
@@ -226,7 +231,9 @@ def two_dimensional_scatter_plot(  # noqa: C901
             ax=ax,
             y_baseline=y_mean,
             x_values=x_values,
-            y_values=y_values)
+            y_values=y_values,
+            higher_y_value_is_worse=higher_y_value_is_worse
+        )
     else:
         # TODO extract into calling function?
         standard_deviation_data = data.groupby([x_column]).std().reset_index()
@@ -296,18 +303,29 @@ def _2d_plot_bar_two_sided_for_standard_deviation(ax: axes.Axes, x_values: Serie
                 color='b')
 
 
-def _2d_plot_bar_one_sided_for_deviation_from_baseline(ax: axes.Axes, x_values: Series, y_values: Series,
-                                                       y_baseline: Series, ):
+def _2d_plot_bar_one_sided_for_deviation_from_baseline(
+        ax: axes.Axes,
+        x_values: Series,
+        y_values: Series,
+        y_baseline: Series,
+        higher_y_value_is_worse: bool = True):
     """Plot deviation from global mean for every data point.
 
     If larger than baseline, plot red, if lower than baseline print line
     green.
     """
+
+    def is_worse(y_value, y_basline):
+        if higher_y_value_is_worse:
+            return y_values[i] > y_baseline[i]
+        else:
+            return not (y_values[i] > y_baseline[i])
+
     for i in np.arange(0, len(y_values)):
         ax.plot([x_values[i], x_values[i]],
                 [y_values[i], y_baseline[i]],
                 marker="_",
-                color='r' if y_values[i] > y_baseline[i] else 'g'
+                color='r' if is_worse(y_values[i], y_baseline[i]) else 'g'
                 )
 
 

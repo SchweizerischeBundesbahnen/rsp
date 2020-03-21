@@ -48,6 +48,7 @@ from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
+from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
@@ -464,9 +465,10 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     return experiment_base_directory, experiment_data_directory
 
 
+# TODO SIM-411 adapt to logger
 def _print_log_files_from_experiment_data_directory(experiment_data_directory):
     log_files = os.listdir(experiment_data_directory)
-    print(f"loading and expanding experiment results from {experiment_data_directory}")
+    rsp_logger.info(f"loading and expanding experiment results from {experiment_data_directory}")
     error_summay = []
     for file in [file for file in log_files if file.startswith("log_")]:
         print("\n\n\n\n")
@@ -503,8 +505,8 @@ def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, exper
     copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
                                                      EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
     files = os.listdir(copy_agenda_from_agenda_directory)
-    print(
-        f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
+    rsp_logger.info(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} "
+                    f"-> {experiment_agenda_directory}")
     for file in [file for file in files]:
         shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
 
@@ -760,7 +762,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     experiment_results_list = []
 
     files = os.listdir(experiment_data_folder_name)
-    print(f"loading and expanding experiment results from {experiment_data_folder_name}")
+    rsp_logger.info(f"loading and expanding experiment results from {experiment_data_folder_name}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
@@ -778,6 +780,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
+    rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
     return experiment_results_list
 
 
