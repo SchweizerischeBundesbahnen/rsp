@@ -34,7 +34,8 @@ def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
 
 
 def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-                            experiment_ids: Optional[List[int]] = None,
+                            qualitative_analysis_experiment_ids: Optional[List[int]] = None,
+                            asp_export_experiment_ids: Optional[List[int]] = None,
                             copy_agenda_from_base_directory: Optional[str] = None,
                             experiment_name: str = "exp_hypothesis_one"
                             ) -> str:
@@ -45,7 +46,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     ----------
     parameter_ranges
     speed_data
-    experiment_ids
+    qualitative_analysis_experiment_ids
         filter for experiment ids
     copy_agenda_from_base_directory
         base directory from the same agenda with serialized schedule and malfunction.
@@ -70,7 +71,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         run_experiments_parallel=True,
         show_results_without_details=True,
         verbose=False,
-        experiment_ids=experiment_ids,
+        experiment_ids=qualitative_analysis_experiment_ids,
         copy_agenda_from_base_directory=copy_agenda_from_base_directory
     )
     # C. Experiment Analysis
@@ -78,8 +79,8 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         experiment_base_directory=experiment_base_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        qualitative_analysis_experiment_ids=[],
-        asp_export_experiment_ids=[]
+        qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
+        asp_export_experiment_ids=asp_export_experiment_ids
     )
     return experiment_base_folder_name
 
@@ -88,7 +89,7 @@ def hypothesis_one_main():
     parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_ids=None,  # no filtering
+        qualitative_analysis_experiment_ids=None,
         copy_agenda_from_base_directory=None  # regenerate schedules
     )
 

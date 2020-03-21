@@ -39,7 +39,7 @@ def compare_agendas(
     print(f"=========================================================")
     null_hypothesis_base_folder = hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_ids=None,  # no filtering
+        qualitative_analysis_experiment_ids=None,
         copy_agenda_from_base_directory=None,  # generate schedules
         experiment_name=experiment_name + "_null"
     )
@@ -53,7 +53,7 @@ def compare_agendas(
         print(f"=========================================================")
         alternative_hypothesis_base_folder = hypothesis_one_pipeline(
             parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-            experiment_ids=None,  # no filtering
+            qualitative_analysis_experiment_ids=None,
             copy_agenda_from_base_directory=null_hypothesis_base_folder,
             experiment_name=experiment_name + f"_alt{i:03d}"
         )

@@ -11,19 +11,16 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
-from shutil import copyfile
 from typing import Dict
 from typing import List
 
-import pandas as pd
 import tqdm
-from importlib_resources import path
 from pandas import DataFrame
 
-from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.asp_plausibility.asp_plausi import asp_plausi_analysis
+from rsp.asp_plausibility.potassco_export import potassco_export
 from rsp.route_dag.analysis.rescheduling_analysis_utils import analyze_experiment
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
@@ -71,129 +68,6 @@ def _2d_analysis(data: DataFrame,
                 )
 
 
-def _asp_plausi_analysis(
-        experiment_results_list: List[ExperimentResultsAnalysis],
-        output_folder: str):
-    def _catch_zero_division_error_as_minus_one(l):
-        try:
-            return l()
-        except ZeroDivisionError:
-            return -1
-
-    data_frame = pd.DataFrame(data=[
-        {
-            'experiment_id': r.experiment_id,
-
-            # scheduling = full # noqa E800
-            'solve_total_ratio_full':
-                _catch_zero_division_error_as_minus_one(
-                    lambda:
-                    r.results_full.solver_statistics["summary"]["times"]["solve"] /
-                    r.results_full.solver_statistics["summary"]["times"]["total"]
-                ),
-            'solve_time_full':
-                r.results_full.solver_statistics["summary"]["times"]["solve"],
-            'total_time_full':
-                r.results_full.solver_statistics["summary"]["times"]["total"],
-            'choice_conflict_ratio_full':
-                _catch_zero_division_error_as_minus_one(
-                    lambda:
-                    r.results_full.solver_statistics["solving"]["solvers"]["choices"] /
-                    r.results_full.solver_statistics["solving"]["solvers"]["conflicts"]
-                ),
-            'user_accu_propagations_full':
-                sum(map(lambda d: d["Propagation(s)"],
-                        r.results_full.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
-            'user_step_propagations_full':
-                sum(map(lambda d: d["Propagation(s)"],
-                        r.results_full.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
-
-            # re-scheduling without delta = full_after_malfunction
-            'solve_total_ratio_full_after_malfunction':
-                _catch_zero_division_error_as_minus_one(
-                    lambda:
-                    r.results_full_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
-                    r.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-                ),
-            'solve_time_full_after_malfunction':
-                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["solve"],
-            'total_time_full_after_malfunction':
-                r.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"],
-            'choice_conflict_ratio_full_after_malfunction':
-                _catch_zero_division_error_as_minus_one(
-                    lambda:
-                    r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
-                    r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
-                ),
-            'user_accu_propagations_full_after_malfunction':
-                sum(map(lambda d: d["Propagation(s)"],
-                        r.results_full_after_malfunction.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
-            'user_step_propagations_full_after_malfunction':
-                sum(map(lambda d: d["Propagation(s)"],
-                        r.results_full_after_malfunction.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
-
-            # re-scheduling with delta = delta_after_malfunction
-            'solve_total_ratio_delta_after_malfunction':
-                _catch_zero_division_error_as_minus_one(
-                    lambda:
-                    r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["solve"] /
-                    r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-                ),
-            'solve_time_delta_after_malfunction':
-                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["solve"],
-            'total_time_delta_after_malfunction':
-                r.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"],
-            'choice_conflict_ratio_delta_after_malfunction':
-                _catch_zero_division_error_as_minus_one(
-                    lambda:
-                    r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"] /
-                    r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"]
-                ),
-            'user_accu_propagations_delta_after_malfunction':
-                sum(map(lambda d: d["Propagation(s)"],
-                        r.results_delta_after_malfunction.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
-            'user_step_propagations_delta_after_malfunction':
-                sum(map(lambda d: d["Propagation(s)"],
-                        r.results_delta_after_malfunction.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
-        }
-        for r in experiment_results_list])
-    for item in ['full', 'full_after_malfunction', 'delta_after_malfunction']:
-        # 1. solver should spend most of the time solving: compare solve and total times
-        two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'solve_total_ratio_' + item],
-                                     title='comparison of solve and total solver time for ' + item,
-                                     output_folder=output_folder,
-                                     show_global_mean=True
-                                     )
-        two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'solve_time_' + item],
-                                     baseline_column='total_time_' + item,
-                                     title='comparison of total solver time (b) and solve_time for ' + item,
-                                     output_folder=output_folder
-                                     )
-        # 2. propagation times should be low in comparison to solve times
-        two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'user_accu_propagations_' + item],
-                                     baseline_column='solve_time_' + item,
-                                     title='comparison of solve_time (b) against summed propagation times of user accu' + item,
-                                     output_folder=output_folder
-                                     )
-        two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'user_step_propagations_' + item],
-                                     baseline_column='solve_time_' + item,
-                                     title='comparison of solve_time (b) against summed propagation times of user step ' + item,
-                                     output_folder=output_folder
-                                     )
-
-        # 3. choice conflict ratio should be close to 1; if the ratio is high, the problem might be large, but not difficult
-        two_dimensional_scatter_plot(data=data_frame,
-                                     columns=['experiment_id', 'choice_conflict_ratio_' + item],
-                                     title='choice conflict ratio ' + item,
-                                     output_folder=output_folder,
-                                     show_global_mean=True
-                                     )
-
-
 def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  analysis_2d: bool = False,
                                  analysis_3d: bool = False,
@@ -233,14 +107,17 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     # convert to data frame for statistical analysis
     experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
 
+    # save experiment data to .tsv for Excel inspection
+    experiment_data.to_csv(f"{experiment_data_directory}/data.tsv", sep="\t")
+
     # quantitative analysis
     if analysis_2d:
         _2d_analysis(
             data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
-        _asp_plausi_analysis(
-            experiment_results_list,
+        asp_plausi_analysis(
+            experiment_results_list=experiment_results_list,
             output_folder=f'{experiment_analysis_directory}/asp_plausi'
         )
     if analysis_3d:
@@ -264,102 +141,9 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  analysis_3d=analysis_3d,
                                  flatland_rendering=flatland_rendering)
     if asp_export_experiment_ids:
-        _potassco_export(experiment_potassco_directory=experiment_potassco_directory,
-                         experiment_results_list=experiment_results_list,
-                         asp_export_experiment_ids=asp_export_experiment_ids)
-
-
-def _potassco_export(experiment_potassco_directory: str,
-                     experiment_results_list: List[ExperimentResultsAnalysis],
-                     asp_export_experiment_ids: List[int]):
-    """Create subfolder potassco in the basefolder and export programs and data
-    for the given experiment ids and shell script to start them.
-
-    Parameters
-    ----------
-    experiment_potassco_directory
-    experiment_results_list
-    asp_export_experiment_ids
-    """
-
-    check_create_folder(experiment_potassco_directory)
-
-    # filter
-    filtered_experiments: List[ExperimentResultsAnalysis] = list(filter(
-        lambda experiment: experiment.experiment_id in asp_export_experiment_ids,
-        experiment_results_list))
-
-    # write .lp and .sh
-    schedule_programs = ["bound_all_events.lp", "encoding.lp", "minimize_total_sum_of_running_times.lp"]
-    reschedule_programs = ["bound_all_events.lp", "encoding.lp", "delay_linear_within_one_minute.lp",
-                           "minimize_delay_and_routes_combined.lp"]
-    for experiment in filtered_experiments:
-        experiment_id = experiment.experiment_id
-
-        _potassco_write_lp_and_sh_for_experiment(
-            experiment_id=experiment_id,
-            experiment_potassco_directory=experiment_potassco_directory,
-            name="schedule_full",
-            problem=experiment.problem_full,
-            programs=schedule_programs,
-            results=experiment.results_full
-        )
-        experiment.problem_full
-
-        _potassco_write_lp_and_sh_for_experiment(
-            experiment_id=experiment_id,
-            experiment_potassco_directory=experiment_potassco_directory,
-            name="reschedule_full_after_malfunction",
-            problem=experiment.problem_full_after_malfunction,
-            programs=reschedule_programs,
-            results=experiment.results_full_after_malfunction
-        )
-
-        _potassco_write_lp_and_sh_for_experiment(
-            experiment_id=experiment_id,
-            experiment_potassco_directory=experiment_potassco_directory,
-            name="reschedule_delta_after_malfunction",
-            problem=experiment.problem_delta_after_malfunction,
-            programs=reschedule_programs,
-            results=experiment.results_delta_after_malfunction
-        )
-    # copy program files
-    for file in schedule_programs + reschedule_programs:
-        with path('res.asp.encodings', file) as src:
-            copyfile(src, f"{experiment_potassco_directory}/{file}")
-
-
-def _potassco_write_lp_and_sh_for_experiment(
-        experiment_id: int,
-        experiment_potassco_directory: str, name: str,
-        problem: ScheduleProblemDescription,
-        programs: List[str],
-        results: SchedulingExperimentResult):
-    """Write .lp and .sh to the potassco folder.
-
-    Parameters
-    ----------
-    experiment_id
-    experiment_potassco_directory
-    name
-    problem
-    programs
-    results
-    """
-    file_name_prefix = f"{experiment_id :04d}_{name}"
-    with open(f"{experiment_potassco_directory}/{file_name_prefix}.lp", "w") as out:
-        out.write("\n".join(results.solver_program))
-    with open(f"{experiment_potassco_directory}/{file_name_prefix}.sh", "w", newline='\n') as out:
-        out.write("clingo-dl " + " ".join(programs) +
-                  f" {file_name_prefix}.lp "
-                  f"-c n={problem.max_episode_steps} "
-                  f"--seed={results.solver_seed} "
-                  f"-c use_decided=1 -t2 --lookahead=no "
-                  f"--opt-mode=opt 0\n"
-                  )
-        out.write(f"# configuration: {results.solver_statistics}\n")
-        out.write(f"# statistics: {results.solver_configuration}\n")
-        out.write(f"# result: {results.solver_result}\n")
+        potassco_export(experiment_potassco_directory=experiment_potassco_directory,
+                        experiment_results_list=experiment_results_list,
+                        asp_export_experiment_ids=asp_export_experiment_ids)
 
 
 def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
@@ -425,9 +209,9 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 if __name__ == '__main__':
     hypothesis_one_data_analysis(
-        experiment_base_directory='./hypothesis_testing/exp_hypothesis_006_2020_03_17T11_10_03',
+        experiment_base_directory='./exp_hypothesis_one_2020_03_21T00_15_08',
         analysis_2d=True,
         analysis_3d=False,
-        qualitative_analysis_experiment_ids=[],
-        asp_export_experiment_ids=[]
+        qualitative_analysis_experiment_ids=range(270, 300),
+        asp_export_experiment_ids=range(270, 300)
     )

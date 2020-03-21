@@ -107,6 +107,6 @@ venv.bak/
 /.idea/
 
 
-# RSP outputs
-/**/test_*_experiment_*/
+# RSP test and pipeline outputs
+/**/test_*/
 /**/exp_*/
