@@ -34,6 +34,7 @@ def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
 
 
 def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+                            experiment_ids: Optional[List[int]] = None,
                             qualitative_analysis_experiment_ids: Optional[List[int]] = None,
                             asp_export_experiment_ids: Optional[List[int]] = None,
                             copy_agenda_from_base_directory: Optional[str] = None,
@@ -44,10 +45,15 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
 
     Parameters
     ----------
-    parameter_ranges
+    experiment_name
+    parameter_ranges_and_speed_data
     speed_data
+    experiment_ids
+        filter for experiment ids (data generation)
     qualitative_analysis_experiment_ids
-        filter for experiment ids
+        filter for data analysis; must be subset of generated data
+    asp_export_experiment_ids
+        filter for data analysis; must be subset of generated data
     copy_agenda_from_base_directory
         base directory from the same agenda with serialized schedule and malfunction.
         - if given, the schedule is not re-generated
@@ -71,7 +77,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         run_experiments_parallel=True,
         show_results_without_details=True,
         verbose=False,
-        experiment_ids=qualitative_analysis_experiment_ids,
+        experiment_ids=experiment_ids,
         copy_agenda_from_base_directory=copy_agenda_from_base_directory
     )
     # C. Experiment Analysis
@@ -89,7 +95,8 @@ def hypothesis_one_main():
     parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        qualitative_analysis_experiment_ids=None,
+        qualitative_analysis_experiment_ids=range(270, 300),
+        asp_export_experiment_ids=range(270, 300),
         copy_agenda_from_base_directory=None  # regenerate schedules
     )
 

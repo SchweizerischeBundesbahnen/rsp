@@ -42,7 +42,7 @@ def test_hypothesis_one():
 
     hypothesis_base_folder = hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=get_dummy_params(),
-        qualitative_analysis_experiment_ids=[0],
+        experiment_ids=[0],
         asp_export_experiment_ids=[0],
         copy_agenda_from_base_directory=None,  # generate schedules
         experiment_name="test_hypothesis_one",
