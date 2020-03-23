@@ -88,4 +88,5 @@ if __name__ == '__main__':
                                         analysis_2d=True,
                                         analysis_3d=False,
                                         route_dag=False,
-                                        qualitative_analysis_experiment_ids=[12])
+                                        flatland_rendering=True,
+                                        qualitative_analysis_experiment_ids=[12, 13, 14])
