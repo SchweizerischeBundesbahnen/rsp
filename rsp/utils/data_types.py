@@ -29,6 +29,14 @@ from rsp.route_dag.route_dag import TopoDict
 
 SpeedData = Mapping[float, float]
 
+UndirectedEncounterGraphDistance = NamedTuple('UndirectedEncounterGraphDistance', [('inverted_distance', float),
+                                                                                   ('time_of_min', int),
+                                                                                   ('train_0_position_at_min',
+                                                                                    Tuple[int, int]),
+                                                                                   ('train_1_position_at_min',
+                                                                                    Tuple[int, int])
+                                                                                   ])
+
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('agent_range', List[int]),
                                                  ('in_city_rail_range', List[int]),
@@ -37,13 +45,15 @@ ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('earliest_malfunction', List[int]),
                                                  ('malfunction_duration', List[int]),
                                                  ('number_of_shortest_paths_per_agent', List[int]),
-                                                 ('max_window_size_from_earliest', List[int])
+                                                 ('max_window_size_from_earliest', List[int]),
+                                                 ('asp_seed_value', List[int]),
+                                                 ('weight_route_change', List[int]),
+                                                 ('weight_lateness_seconds', List[int])
                                                  ])
 ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('parameter_ranges', ParameterRanges),
     ('speed_data', SpeedData)
-]
-                                         )
+])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',
@@ -227,12 +237,13 @@ def expand_experiment_results_for_analysis(
     if not isinstance(experiment_results, ExperimentResults):
         experiment_results_as_dict = dict(experiment_results[0])
         experiment_results = ExperimentResults(**experiment_results_as_dict)
-    experiment_id = experiment_results.experiment_parameters.experiment_id
+    experiment_parameters = experiment_results.experiment_parameters
+    experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
     time_full = experiment_results.results_full.solve_time
-    time_full_after_malfunction = experiment_results.results_full_after_malfunction.solve_time
-    time_delta_after_malfunction = experiment_results.results_delta_after_malfunction.solve_time
+    time_full_after_malfunction = experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    time_delta_after_malfunction = experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
     nb_resource_conflicts_delta_after_malfunction = experiment_results.results_delta_after_malfunction.nb_conflicts
     nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
     speed_up = time_full_after_malfunction / time_delta_after_malfunction
@@ -342,13 +353,13 @@ def expand_experiment_results_for_analysis(
 
     return ExperimentResultsAnalysis(
         **experiment_results._asdict(),
-        experiment_id=experiment_results.experiment_parameters.experiment_id,
-        grid_id=experiment_results.experiment_parameters.grid_id,
-        size=experiment_results.experiment_parameters.width,
-        n_agents=experiment_results.experiment_parameters.number_of_agents,
-        max_num_cities=experiment_results.experiment_parameters.max_num_cities,
-        max_rail_between_cities=experiment_results.experiment_parameters.max_rail_between_cities,
-        max_rail_in_city=experiment_results.experiment_parameters.max_rail_in_city,
+        experiment_id=experiment_parameters.experiment_id,
+        grid_id=experiment_parameters.grid_id,
+        size=experiment_parameters.width,
+        n_agents=experiment_parameters.number_of_agents,
+        max_num_cities=experiment_parameters.max_num_cities,
+        max_rail_between_cities=experiment_parameters.max_rail_between_cities,
+        max_rail_in_city=experiment_parameters.max_rail_in_city,
         time_full=time_full,
         time_full_after_malfunction=time_full_after_malfunction,
         time_delta_after_malfunction=time_delta_after_malfunction,
