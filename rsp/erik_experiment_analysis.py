@@ -31,13 +31,14 @@ from rsp.utils.file_utils import check_create_folder
 def hypothesis_one_qualitative_analysis(experiment_base_directory: str,
                                         analysis_2d: bool = False,
                                         analysis_3d: bool = False,
+                                        route_dag: bool = True,
                                         qualitative_analysis_experiment_ids: List[int] = None,
-                                        flatland_rendering: bool = False
-                                        ):
+                                        flatland_rendering: bool = False):
     """
 
     Parameters
     ----------
+    route_dag
     experiment_base_directory
     analysis_2d
     analysis_3d
@@ -74,17 +75,17 @@ def hypothesis_one_qualitative_analysis(experiment_base_directory: str,
                 row)
 
             visualize_experiment(experiment_parameters=experiment,
-                                 data_frame=experiment_data,
                                  experiment_results_analysis=experiment_results_analysis,
                                  experiment_analysis_directory=experiment_analysis_directory,
                                  analysis_2d=analysis_2d,
                                  analysis_3d=analysis_3d,
+                                 route_dag=route_dag,
                                  flatland_rendering=flatland_rendering)
 
 
 if __name__ == '__main__':
-    hypothesis_one_qualitative_analysis(experiment_base_directory='./exp_hypothesis_one_2020_03_12T12_12_43',
-                                        analysis_2d=False,
+    hypothesis_one_qualitative_analysis(experiment_base_directory='./exp_hypothesis_one_2020_03_17T07_01_49',
+                                        analysis_2d=True,
                                         analysis_3d=False,
-                                        qualitative_analysis_experiment_ids=[12]
-                                        )
+                                        route_dag=False,
+                                        qualitative_analysis_experiment_ids=[12])
