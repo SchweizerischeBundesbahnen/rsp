@@ -143,7 +143,7 @@ def test_regression_experiment_agenda(regen: bool = False):
             experiment_agenda=agenda)
 
     # Import the solver for the experiments
-    experiment_folder_name, experiment_data_folder, _ = run_experiment_agenda(
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(
         experiment_agenda=agenda,
         run_experiments_parallel=False,
         verbose=True,
@@ -407,7 +407,7 @@ def test_save_and_load_experiment_results():
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)])
 
-    experiment_folder_name, experiment_data_folder, experiment_results_list = \
+    experiment_folder_name, experiment_data_folder = \
         run_experiment_agenda(experiment_agenda=agenda,
                               run_experiments_parallel=False)
 
@@ -416,7 +416,10 @@ def test_save_and_load_experiment_results():
         experiment_data_folder_name=experiment_data_folder)
     delete_experiment_folder(experiment_folder_name)
 
-    _assert_results_dict_equals(experiment_results_list, loaded_results)
+    # since we do not return the results in memor from run_experiment_agenda (SIM-393), do some sanity checks:
+    assert len(loaded_results) == 1
+    loaded_result: ExperimentResultsAnalysis = loaded_results[0]
+    assert loaded_result.results_full_after_malfunction.solver_statistics is not None
 
 
 def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
@@ -633,5 +636,5 @@ def test_parallel_experiment_execution():
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf)])
 
-    experiment_folder_name, _, _ = run_experiment_agenda(agenda, run_experiments_parallel=True)
+    experiment_folder_name, _ = run_experiment_agenda(agenda, run_experiments_parallel=True)
     delete_experiment_folder(experiment_folder_name)
