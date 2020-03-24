@@ -115,3 +115,6 @@ venv.bak/
 /rsp/experiment_data/
 /test_*_experiment_*/
 /tests/test_*_experiment_*/
+
+# Jupyter Notebooks
+*.ipynb
