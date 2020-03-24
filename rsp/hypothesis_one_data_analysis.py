@@ -252,8 +252,10 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
             analyze_experiment(experiment_results_analysis=experiment_results_analysis)
             visualize_experiment(experiment_parameters=experiment,
                                  experiment_results_analysis=experiment_results_analysis,
-                                 experiment_analysis_directory=experiment_analysis_directory, analysis_2d=analysis_2d,
-                                 analysis_3d=analysis_3d, flatland_rendering=flatland_rendering)
+                                 experiment_analysis_directory=experiment_analysis_directory,
+                                 analysis_2d=analysis_2d,
+                                 analysis_3d=analysis_3d,
+                                 flatland_rendering=flatland_rendering)
 
 
 def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
