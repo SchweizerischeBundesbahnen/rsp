@@ -36,6 +36,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
     Parameters
     ----------
     route_dag
+        toggle route-dag rendering
     experiment_parameters: ExperimentParameters
         experiment parameters
     experiment_analysis_directory
