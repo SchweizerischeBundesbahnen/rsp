@@ -18,10 +18,14 @@ jupyter:
 
 ```{python}
 import pandas as pd
+import os
+import typing
+from rsp.utils.data_types import ExperimentResultsAnalysis
 
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 ```
 
 ### Data analysis and visualization of the RSP-Pipeline results
@@ -35,6 +39,11 @@ experiments_of_interest = [12]
 ```
 
 ```{python}
+
+experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
+experiments_of_interest = [12]
+
+
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 experiment_results_list = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_directory,experiment_ids=experiments_of_interest)
 experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)

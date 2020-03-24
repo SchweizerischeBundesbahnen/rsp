@@ -17,5 +17,55 @@ jupyter:
 ```
 
 ```{python}
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+
+import os
+import typing
+from rsp.utils.data_types import ExperimentResultsAnalysis
+
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+```
+
+```{python}
+experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
+experiments_of_interest = None
+```
+
+```{python}
+experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_directory,experiment_ids=experiments_of_interest)
+experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+experiment_data = experiment_data.drop(['experiment_parameters','problem_full','problem_full_after_malfunction','problem_delta_after_malfunction','results_full','results_full_after_malfunction','results_delta_after_malfunction'],axis=1)
+```
+
+```{python}
+axis_of_interest = 'n_agents'
+columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction','speed_up']
+```
+
+Extract computation time data
+
+```{python}
+fig = go.Figure()
+for column in columns_of_interest:
+    fig.add_trace(go.Box(x=experiment_data.n_agents, y=experiment_data[column],name=column,pointpos=-1,boxpoints='all', marker=dict(size=3)))
+fig.update_layout(boxmode='group')
+fig.update_layout(title_text="Computational Times")
+fig.update_xaxes(title="Agents[#]")
+fig.update_yaxes(title="Time[s]")
+fig.show()
+```
+
+```{python}
+error_data
+```
+
+```{python}
 
 ```
