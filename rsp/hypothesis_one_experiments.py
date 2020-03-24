@@ -65,7 +65,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         experiments_per_grid_element=1
     )
     # B. Experiments: setup, then run
-    experiment_base_folder_name, _, _ = run_experiment_agenda(
+    experiment_base_folder_name, _ = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=True,
         show_results_without_details=True,
