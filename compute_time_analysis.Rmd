@@ -29,7 +29,7 @@ from rsp.utils.experiments import load_and_expand_experiment_results_from_data_f
 
 ```{python}
 experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
-experiments_of_interest = [12,13,14]
+experiments_of_interest = None
 ```
 
 ```{python}
@@ -91,7 +91,7 @@ fig.show()
 ### Visualize Weg-Zeit-Diagram of specific experiment
 
 ```{python}
-experiment_of_interest = 13
+experiment_of_interest = 269
 ```
 
 ```{python}
@@ -100,12 +100,13 @@ schedule, reschedule, difference, ranges = notebook_plot_weg_zeit_diagramm_2d(ex
 
 ```{python}
 fig = go.Figure()
-for line in schedule:
+for idx, line in enumerate(schedule):
     x,y = zip(*line)
     fig.add_trace(go.Scatter(x=x,
                              y=y,
                              mode='lines+markers',
-                              marker=dict(size=2)
+                              marker=dict(size=2),
+                             name="Agent {}".format(idx)
                             ))
 fig.update_layout(title_text="Original Schedule")
 fig.update_yaxes(autorange="reversed")
@@ -117,12 +118,13 @@ fig.update_yaxes(range=[0,ranges[1]])
 fig.show()
 
 fig1 = go.Figure()
-for line in reschedule:
+for idx, line in enumerate(reschedule):
     x,y = zip(*line)
     fig1.add_trace(go.Scatter(x=x,
                              y=y,
                              mode='lines+markers',
-                              marker=dict(size=2)
+                              marker=dict(size=2),
+                              name="Agent {}".format(idx)
                             ))
 fig1.update_layout(title_text="reschedule")
 fig1.update_yaxes(autorange="reversed")
@@ -133,12 +135,13 @@ fig1.update_yaxes(range=[0,ranges[1]])
 fig1.show()
 
 fig2 = go.Figure()
-for line in difference:
+for idx, line in enumerate(difference):
     x,y = zip(*line)
     fig2.add_trace(go.Scatter(x=x,
                              y=y,
                              mode='lines+markers',
-                              marker=dict(size=2)
+                              marker=dict(size=2),
+                              name="Agent {}".format(idx)
                             ))
 fig2.update_layout(title_text="Difference")
 fig2.update_yaxes(autorange="reversed")

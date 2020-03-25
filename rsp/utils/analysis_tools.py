@@ -494,6 +494,9 @@ def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experim
 
         if len(trainrun_difference) > 0:
             schedule_difference.append(trainrun_difference)
+        else:
+            schedule_difference.append([(None, None)])
+
     return weg_zeit_matrix_schedule, weg_zeit_matrix_reschedule, schedule_difference, (max_ressource, max_time)
 
 
