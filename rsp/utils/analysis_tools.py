@@ -522,7 +522,7 @@ def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: in
             pre_time = pre_waypoint.scheduled_at
             time = waypoint.scheduled_at
             position = coordinate_to_position(width, [pre_waypoint.waypoint.position])  # or is it height?
-            weg_zeit_matrix[position, pre_time:time] += train_run
+            weg_zeit_matrix[position, pre_time:time] += train_run + 1
             pre_waypoint = waypoint
             if position not in sorting:
                 sorting.append(position)
