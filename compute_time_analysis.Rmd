@@ -14,39 +14,34 @@ jupyter:
 
 ```{python}
 # %autosave 0
+# %matplotlib inline
 ```
 
 ```{python}
 import pandas as pd
-import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
 
-import os
-import typing
-from rsp.utils.data_types import ExperimentResultsAnalysis
-
-from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.utils.analysis_tools import notebook_plot_weg_zeit_diagramm_2d
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 ```
 
 ```{python}
 experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
-experiments_of_interest = None
+experiments_of_interest = [12,30,60]
 ```
 
 ```{python}
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 experiment_results_list = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_directory,experiment_ids=experiments_of_interest)
 experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-experiment_data = experiment_data.drop(['experiment_parameters','problem_full','problem_full_after_malfunction','problem_delta_after_malfunction','results_full','results_full_after_malfunction','results_delta_after_malfunction'],axis=1)
+#experiment_data = experiment_data.drop(['experiment_parameters','problem_full','problem_full_after_malfunction','problem_delta_after_malfunction','results_full','results_full_after_malfunction','results_delta_after_malfunction'],axis=1)
 ```
 
 ```{python}
 axis_of_interest = 'n_agents'
-columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction','speed_up']
+columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
 ```
 
 Extract computation time data
@@ -54,7 +49,15 @@ Extract computation time data
 ```{python}
 fig = go.Figure()
 for column in columns_of_interest:
-    fig.add_trace(go.Box(x=experiment_data.n_agents, y=experiment_data[column],name=column,pointpos=-1,boxpoints='all', marker=dict(size=3)))
+    fig.add_trace(go.Box(x=experiment_data.n_agents,
+                         y=experiment_data[column],
+                         name=column,pointpos=-1,
+                         boxpoints='all',
+                         hovertext=experiment_data['experiment_id'],
+                         hovertemplate='<b>Time</b>: %{y:.2f}s'+
+                         '<br><b>Nr. Agents</b>: %{x}<br>'+
+                         '<b>Experiment id:</b>%{hovertext}',
+                         marker=dict(size=3)))
 fig.update_layout(boxmode='group')
 fig.update_layout(title_text="Computational Times")
 fig.update_xaxes(title="Agents[#]")
@@ -63,7 +66,45 @@ fig.show()
 ```
 
 ```{python}
-error_data
+fig = go.Figure()
+
+fig.add_trace(go.Box(x=experiment_data.n_agents, y=experiment_data['speed_up'],pointpos=-1,boxpoints=False, marker=dict(size=3)))
+fig.add_trace(go.Scatter(x=experiment_data.n_agents+0.4,
+                         y=experiment_data['speed_up'],
+                         mode='markers',
+                         marker=dict(size=5,color=experiment_data['size']),
+                         hovertext=experiment_data['experiment_id'],
+                         hovertemplate='<b>Speedup Factor </b>: %{y:.2f}'+
+                         '<br><b>Nr. Agents</b>: %{x:.0f}<br>'+
+                         '<b>Experiment id:</b>%{hovertext}'
+                         ))
+
+fig.update_layout(boxmode='group')
+fig.update_layout(title_text="Speed Up Factors")
+fig.update_xaxes(title="Agents[#]")
+fig.update_yaxes(title="Speed Up Factor")
+fig.show()
+```
+
+```{python}
+experiment_of_interest = 60
+```
+
+```{python}
+schedule, reschedule, sorting = notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
+
+```{python}
+fig = go.Figure()
+for line in reschedule:
+    x,y = zip(*line)
+    fig.add_trace(go.Scatter(x=x,
+                             y=y,
+                             mode='lines+markers',
+                              marker=dict(size=3)
+                            ))
+fig.update_yaxes(autorange="reversed")
+fig.show()
 ```
 
 ```{python}

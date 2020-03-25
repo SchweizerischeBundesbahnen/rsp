@@ -22,6 +22,7 @@ from pandas import Series
 
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.file_utils import check_create_folder
 
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
@@ -447,6 +448,40 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
     plt.close()
 
 
+def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experiment_id: int):
+    """Method to draw ressource-time diagrams in 2d or 3d.
+
+    Parameters
+    ----------
+    experiment_data_frame : DataFrame
+        Data from experiment for plot
+
+    Returns
+    -------
+    """
+    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
+    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
+        experiment_data_series)
+    schedule = experiment_data.solution_full
+    reschedule = experiment_data.solution_full_after_malfunction
+    malfunction_agent = experiment_data.malfunction.agent_id
+    malfunction_start = experiment_data.malfunction.time_step
+    malfunctin_duration = experiment_data.malfunction.malfunction_duration
+    width = experiment_data.experiment_parameters.width
+    print("Agent nr.{} has a malfunction at time {} for {} seconds".format(malfunction_agent, malfunction_start,
+                                                                           malfunctin_duration))
+    weg_zeit_matrix_schedule, sorting = weg_zeit_2d_path(schedule=schedule,
+                                                         width=width,
+                                                         malfunction_agent_id=malfunction_agent,
+                                                         sorting=None)
+
+    weg_zeit_matrix_reschedule, sorting = weg_zeit_2d_path(schedule=reschedule,
+                                                           width=width,
+                                                           malfunction_agent_id=malfunction_agent,
+                                                           sorting=None)
+    return weg_zeit_matrix_schedule, weg_zeit_matrix_reschedule, sorting
+
+
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
                                   malfunction_agent_id: int = -1, sorting: List[int] = None) -> (np.ndarray, List[int]):
     """Method to produce sorted matrix of all train runs. Each train run is
@@ -520,6 +555,58 @@ def weg_zeit_3d_path(schedule: TrainrunDict) -> List[Tuple[int, int, int]]:
             pre_waypoint = waypoint
         all_train_time_paths.append(train_time_path)
     return all_train_time_paths
+
+
+def weg_zeit_2d_path(schedule: TrainrunDict,
+                     width: int,
+                     malfunction_agent_id: int = -1,
+                     sorting: List[int] = None) -> List[Tuple[int, int]]:
+    """Method to define the time-space paths of each train in two dimensions.
+    Initially we order them by the malfunctioning train.
+
+    Parameters
+    ----------
+    schedule: TrainrunDict
+        Contains all the trainruns
+
+    width: int
+        width of grid, used to number ressources
+
+    malfunction_agent_id: int
+        agent which had malfunctino (used for sorting)
+
+    sorting: List[int]
+        Predefined sorting of ressources
+    Returns
+    -------
+    List of List of coordinate tuples (r,t)
+    """
+    all_train_time_paths = []
+    if sorting is None:
+        sorting = dict()
+        if malfunction_agent_id >= 0:
+            index = 0
+            for waypoint in schedule[malfunction_agent_id]:
+                position = coordinate_to_position(width, [waypoint.waypoint.position])[0]  # or is it height?
+                if position not in sorting:
+                    sorting.update({position: index})
+                    index += 1
+    for train_run in schedule:
+        train_time_path = []
+        pre_waypoint = schedule[train_run][0]
+        for waypoint in schedule[train_run][1:]:
+            pre_time = pre_waypoint.scheduled_at
+            time = waypoint.scheduled_at
+            position = coordinate_to_position(width, [pre_waypoint.waypoint.position])[0]  # or is it height?
+            if position not in sorting:
+                sorting.update({position: index})
+                index += 1
+            train_time_path.append((sorting[position], pre_time))
+            train_time_path.append((sorting[position], time))
+            train_time_path.append((None, None))
+            pre_waypoint = waypoint
+        all_train_time_paths.append(train_time_path)
+    return all_train_time_paths, sorting
 
 
 def weg_zeit_3d_voxels(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int) -> (

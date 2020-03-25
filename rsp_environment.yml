@@ -157,4 +157,3 @@ dependencies:
     - xarray==0.14.1
     - zipp==0.6.0
 prefix: C:\Users\erik\Anaconda3\envs\rsp
-
