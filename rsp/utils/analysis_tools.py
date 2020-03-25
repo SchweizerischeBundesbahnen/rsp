@@ -6,6 +6,7 @@ average_over_grid_id
     Average over all the experiments of the same grid_id
 """
 import os
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -470,16 +471,30 @@ def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experim
     width = experiment_data.experiment_parameters.width
     print("Agent nr.{} has a malfunction at time {} for {} seconds".format(malfunction_agent, malfunction_start,
                                                                            malfunctin_duration))
-    weg_zeit_matrix_schedule, sorting = weg_zeit_2d_path(schedule=schedule,
-                                                         width=width,
-                                                         malfunction_agent_id=malfunction_agent,
-                                                         sorting=None)
+    weg_zeit_matrix_schedule, max_ressource, max_time = weg_zeit_2d_path(schedule=schedule,
+                                                                         width=width,
+                                                                         malfunction_agent_id=malfunction_agent,
+                                                                         sorting=None)
 
-    weg_zeit_matrix_reschedule, sorting = weg_zeit_2d_path(schedule=reschedule,
-                                                           width=width,
-                                                           malfunction_agent_id=malfunction_agent,
-                                                           sorting=None)
-    return weg_zeit_matrix_schedule, weg_zeit_matrix_reschedule, sorting
+    weg_zeit_matrix_reschedule, _, _ = weg_zeit_2d_path(schedule=reschedule,
+                                                        width=width,
+                                                        malfunction_agent_id=malfunction_agent,
+                                                        sorting=None)
+
+    # Detect changes to original schedule
+    schedule_difference = []
+    for idx, trainrun in enumerate(weg_zeit_matrix_schedule):
+        trainrun_difference = []
+        for waypoint in trainrun:
+            if waypoint not in weg_zeit_matrix_reschedule[idx]:
+                if len(trainrun_difference) > 0:
+                    if waypoint[0] != trainrun_difference[-1][0]:
+                        trainrun_difference.append((None, None))
+                trainrun_difference.append(waypoint)
+
+        if len(trainrun_difference) > 0:
+            schedule_difference.append(trainrun_difference)
+    return weg_zeit_matrix_schedule, weg_zeit_matrix_reschedule, schedule_difference, (max_ressource, max_time)
 
 
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
@@ -560,7 +575,7 @@ def weg_zeit_3d_path(schedule: TrainrunDict) -> List[Tuple[int, int, int]]:
 def weg_zeit_2d_path(schedule: TrainrunDict,
                      width: int,
                      malfunction_agent_id: int = -1,
-                     sorting: List[int] = None) -> List[Tuple[int, int]]:
+                     sorting: Dict = None) -> (List[Tuple[int, int]], int):
     """Method to define the time-space paths of each train in two dimensions.
     Initially we order them by the malfunctioning train.
 
@@ -579,9 +594,10 @@ def weg_zeit_2d_path(schedule: TrainrunDict,
         Predefined sorting of ressources
     Returns
     -------
-    List of List of coordinate tuples (r,t)
+    List of List of coordinate tuples (r,t) and max ressource index and max time
     """
     all_train_time_paths = []
+    max_time = 0
     if sorting is None:
         sorting = dict()
         if malfunction_agent_id >= 0:
@@ -597,6 +613,8 @@ def weg_zeit_2d_path(schedule: TrainrunDict,
         for waypoint in schedule[train_run][1:]:
             pre_time = pre_waypoint.scheduled_at
             time = waypoint.scheduled_at
+            if time > max_time:
+                max_time = time
             position = coordinate_to_position(width, [pre_waypoint.waypoint.position])[0]  # or is it height?
             if position not in sorting:
                 sorting.update({position: index})
@@ -606,7 +624,7 @@ def weg_zeit_2d_path(schedule: TrainrunDict,
             train_time_path.append((None, None))
             pre_waypoint = waypoint
         all_train_time_paths.append(train_time_path)
-    return all_train_time_paths, sorting
+    return all_train_time_paths, index - 1, max_time
 
 
 def weg_zeit_3d_voxels(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int) -> (

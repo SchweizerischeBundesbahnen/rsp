@@ -29,7 +29,7 @@ from rsp.utils.experiments import load_and_expand_experiment_results_from_data_f
 
 ```{python}
 experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
-experiments_of_interest = [12,30,60]
+experiments_of_interest = [12,13,14]
 ```
 
 ```{python}
@@ -44,7 +44,7 @@ axis_of_interest = 'n_agents'
 columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
 ```
 
-Extract computation time data
+### Visualize Compuational time comparison
 
 ```{python}
 fig = go.Figure()
@@ -64,6 +64,8 @@ fig.update_xaxes(title="Agents[#]")
 fig.update_yaxes(title="Time[s]")
 fig.show()
 ```
+
+### Visualize Speed Up facotrs for experiments
 
 ```{python}
 fig = go.Figure()
@@ -86,26 +88,68 @@ fig.update_yaxes(title="Speed Up Factor")
 fig.show()
 ```
 
+### Visualize Weg-Zeit-Diagram of specific experiment
+
 ```{python}
-experiment_of_interest = 60
+experiment_of_interest = 13
 ```
 
 ```{python}
-schedule, reschedule, sorting = notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+schedule, reschedule, difference, ranges = notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 ```{python}
 fig = go.Figure()
-for line in reschedule:
+for line in schedule:
     x,y = zip(*line)
     fig.add_trace(go.Scatter(x=x,
                              y=y,
                              mode='lines+markers',
-                              marker=dict(size=3)
+                              marker=dict(size=2)
                             ))
+fig.update_layout(title_text="Original Schedule")
 fig.update_yaxes(autorange="reversed")
+fig.update_xaxes(title="Sorted Ressources")
+fig.update_yaxes(title="Time")
+fig.update_xaxes(range=[0,ranges[0]])
+fig.update_yaxes(range=[0,ranges[1]])
+
 fig.show()
+
+fig1 = go.Figure()
+for line in reschedule:
+    x,y = zip(*line)
+    fig1.add_trace(go.Scatter(x=x,
+                             y=y,
+                             mode='lines+markers',
+                              marker=dict(size=2)
+                            ))
+fig1.update_layout(title_text="reschedule")
+fig1.update_yaxes(autorange="reversed")
+fig1.update_xaxes(title="Sorted Ressources")
+fig1.update_yaxes(title="Time")
+fig1.update_xaxes(range=[0,ranges[0]])
+fig1.update_yaxes(range=[0,ranges[1]])
+fig1.show()
+
+fig2 = go.Figure()
+for line in difference:
+    x,y = zip(*line)
+    fig2.add_trace(go.Scatter(x=x,
+                             y=y,
+                             mode='lines+markers',
+                              marker=dict(size=2)
+                            ))
+fig2.update_layout(title_text="Difference")
+fig2.update_yaxes(autorange="reversed")
+fig2.update_xaxes(title="Sorted Ressources")
+fig2.update_yaxes(title="Time")
+fig2.update_xaxes(range=[0,ranges[0]])
+fig2.update_yaxes(range=[0,ranges[1]])
+fig2.show()
 ```
+
+### Visualize Route-DAG for specific agent
 
 ```{python}
 
