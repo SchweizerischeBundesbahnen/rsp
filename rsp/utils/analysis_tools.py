@@ -450,13 +450,90 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
     plt.close()
 
 
+def notebook_plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
+                                      columns_of_interest: List[str]):
+    """Plot the computational times of experiments.
+
+    Parameters
+    ----------
+    experiment_data: DataFrame
+        DataFrame containing all the results from hypothesis one experiments
+    axis_of_interest: str
+        Defines along what axis the data will be plotted
+    columns_of_interest: List[str]
+        Defines which columns of a dataset will be plotted as traces
+
+    Returns
+    -------
+    """
+    fig = go.Figure()
+    for column in columns_of_interest:
+        fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
+                             y=experiment_data[column],
+                             name=column, pointpos=-1,
+                             boxpoints='suspectedoutliers',
+                             customdata=np.dstack((experiment_data['size'], experiment_data['speed_up']))[0],
+                             hovertext=experiment_data['experiment_id'],
+                             hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
+                                           '<b>Nr. Agents</b>: %{x}<br>' +
+                                           '<b>Grid Size:</b> %{customdata[0]}<br>' +
+                                           '<b>Speed Up:</b> %{customdata[1]:.2f}<br>' +
+                                           '<b>Experiment id:</b>%{hovertext}',
+                             marker=dict(size=3)))
+    fig.update_layout(boxmode='group')
+    fig.update_layout(title_text="Computational Times")
+    fig.update_xaxes(title="Agents[#]")
+    fig.update_yaxes(title="Time[s]")
+    fig.show()
+
+
+def notebook_plot_speed_up(experiment_data: DataFrame, axis_of_interest: str):
+    """
+
+    Parameters
+    ----------
+    experiment_data: DataFrame
+        DataFrame containing all the results from hypothesis one experiments
+    axis_of_interest
+        Defines along what axis the data will be plotted
+    Returns
+    -------
+
+    """
+    fig = go.Figure()
+
+    fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
+                         y=experiment_data['speed_up'],
+                         pointpos=-1,
+                         customdata=np.dstack((experiment_data['size'], experiment_data['time_full'],
+                                               experiment_data['time_full_after_malfunction'],
+                                               experiment_data['time_delta_after_malfunction']))[0],
+                         hovertext=experiment_data['experiment_id'],
+                         hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
+                                       '<b>Nr. Agents</b>: %{x}<br>' +
+                                       '<b>Grid Size:</b> %{customdata[0]}<br>' +
+                                       '<b>Full Time:</b> %{customdata[1]:.2f}s<br>' +
+                                       '<b>Full Time after:</b> %{customdata[2]:.2f}s<br>' +
+                                       '<b>Full Delta after:</b> %{customdata[3]:.2f}s<br>' +
+                                       '<b>Experiment id:</b>%{hovertext}',
+                         marker=dict(size=3, color='blue')))
+
+    fig.update_layout(boxmode='group')
+    fig.update_layout(title_text="Speed Up Factors")
+    fig.update_xaxes(title="Agents[#]")
+    fig.update_yaxes(title="Speed Up Factor")
+    fig.show()
+
+
 def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experiment_id: int):
-    """Method to draw ressource-time diagrams in 2d or 3d.
+    """Method to draw ressource-time diagrams in 2d.
 
     Parameters
     ----------
     experiment_data_frame : DataFrame
         Data from experiment for plot
+    experiment_id: int
+        Experiment id used to plot the specific Weg-Zeit-Diagram
 
     Returns
     -------
@@ -470,8 +547,6 @@ def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experim
     malfunction_start = experiment_data.malfunction.time_step
     malfunctin_duration = experiment_data.malfunction.malfunction_duration
     width = experiment_data.experiment_parameters.width
-    print("Agent nr.{} has a malfunction at time {} for {} seconds".format(malfunction_agent, malfunction_start,
-                                                                           malfunctin_duration))
     weg_zeit_matrix_schedule, max_ressource, max_time = weg_zeit_2d_path(schedule=schedule,
                                                                          width=width,
                                                                          malfunction_agent_id=malfunction_agent,
@@ -484,6 +559,8 @@ def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experim
 
     # Detect changes to original schedule
     schedule_difference = []
+    influenced_agents = []
+    nr_influenced_agents = 0
     for idx, trainrun in enumerate(weg_zeit_matrix_schedule):
         trainrun_difference = []
         for waypoint in trainrun:
@@ -495,8 +572,15 @@ def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experim
 
         if len(trainrun_difference) > 0:
             schedule_difference.append(trainrun_difference)
+            influenced_agents.append([True for i in range(len(weg_zeit_matrix_reschedule[idx]))])
+            nr_influenced_agents += 1
         else:
             schedule_difference.append([(None, None)])
+            influenced_agents.append([False for i in range(len(weg_zeit_matrix_reschedule[idx]))])
+    # Printing situation overview
+    print("Agent nr.{} has a malfunction at time {} for {} seconds and influenced {} other agents".format(
+        malfunction_agent, malfunction_start,
+        malfunctin_duration, nr_influenced_agents))
 
     # Plotting the graphs
     ranges = (max_ressource, max_time)
@@ -527,7 +611,9 @@ def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experim
                                   y=y,
                                   mode='lines+markers',
                                   marker=dict(size=2),
-                                  name="Agent {}".format(idx)
+                                  name="Agent {}".format(idx),
+                                  hovertext=influenced_agents[idx],
+                                  hovertemplate='<b>Influenced by Malfunction</b>: %{hovertext}'
                                   ))
     fig1.update_layout(title_text="reschedule")
     fig1.update_yaxes(autorange="reversed")

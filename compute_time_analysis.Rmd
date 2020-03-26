@@ -18,11 +18,10 @@ jupyter:
 ```
 
 ```{python}
-import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 
-from rsp.utils.analysis_tools import notebook_plot_weg_zeit_diagramm_2d
+from rsp.utils.analysis_tools import notebook_plot_weg_zeit_diagramm_2d, notebook_plot_speed_up,
+    notebook_plot_computational_times
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -30,14 +29,13 @@ from rsp.utils.experiments import load_and_expand_experiment_results_from_data_f
 
 ```{python}
 experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
-experiments_of_interest = None
+experiments_of_interest = [14]
 ```
 
 ```{python}
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 experiment_results_list = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_directory,experiment_ids=experiments_of_interest)
 experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-#experiment_data = experiment_data.drop(['experiment_parameters','problem_full','problem_full_after_malfunction','problem_delta_after_malfunction','results_full','results_full_after_malfunction','results_delta_after_malfunction'],axis=1)
 ```
 
 ```{python}
@@ -48,61 +46,26 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_aft
 ### Visualize Compuational time comparison
 
 ```{python}
-fig = go.Figure()
-for column in columns_of_interest:
-    fig.add_trace(go.Box(x=experiment_data.n_agents,
-                         y=experiment_data[column],
-                         name=column,pointpos=-1,
-                         boxpoints='suspectedoutliers',
-                         customdata=np.dstack((experiment_data['size'], experiment_data['speed_up']))[0],
-                         hovertext=experiment_data['experiment_id'],
-                         hovertemplate='<b>Time</b>: %{y:.2f}s<br>'+
-                         '<b>Nr. Agents</b>: %{x}<br>'+
-                         '<b>Grid Size:</b> %{customdata[0]}<br>'+
-                         '<b>Speed Up:</b> %{customdata[1]:.2f}<br>'+
-                         '<b>Experiment id:</b>%{hovertext}',
-                         marker=dict(size=3)))
-fig.update_layout(boxmode='group')
-fig.update_layout(title_text="Computational Times")
-fig.update_xaxes(title="Agents[#]")
-fig.update_yaxes(title="Time[s]")
-fig.show()
+notebook_plot_computational_times(experiment_data=experiment_data,
+                                  axis_of_interest=axis_of_interest,
+                                  columns_of_interest=columns_of_interest)
 ```
 
 ### Visualize Speed Up facotrs for experiments
 
 ```{python}
-fig = go.Figure()
-
-fig.add_trace(go.Box(x=experiment_data.n_agents,
-                     y=experiment_data['speed_up'],
-                     pointpos=-1,
-                     customdata=np.dstack((experiment_data['size'], experiment_data['time_full'], experiment_data['time_full_after_malfunction'], experiment_data['time_delta_after_malfunction']))[0],
-                     hovertext=experiment_data['experiment_id'],
-                     hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>'+
-                     '<b>Nr. Agents</b>: %{x}<br>'+
-                     '<b>Grid Size:</b> %{customdata[0]}<br>'+
-                     '<b>Full Time:</b> %{customdata[1]:.2f}s<br>'+
-                     '<b>Full Time after:</b> %{customdata[2]:.2f}s<br>'+
-                     '<b>Full Delta after:</b> %{customdata[3]:.2f}s<br>'+
-                     '<b>Experiment id:</b>%{hovertext}',
-                     marker=dict(size=3,color='blue')))
-
-fig.update_layout(boxmode='group')
-fig.update_layout(title_text="Speed Up Factors")
-fig.update_xaxes(title="Agents[#]")
-fig.update_yaxes(title="Speed Up Factor")
-fig.show()
+notebook_plot_speed_up(experiment_data=experiment_data,
+                       axis_of_interest=axis_of_interest)
 ```
 
 ### Visualize Weg-Zeit-Diagram of specific experiment
 
 ```{python}
-experiment_of_interest = 269
+experiment_of_interest = 14
 ```
 
 ```{python}
-experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['malfunction','size',
+experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
        'n_agents', 'max_num_cities', 'max_rail_between_cities',
        'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
        'time_delta_after_malfunction','nb_resource_conflicts_full',
