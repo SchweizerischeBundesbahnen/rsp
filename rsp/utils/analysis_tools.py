@@ -14,6 +14,7 @@ from typing import Tuple
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import plotly.graph_objects as go
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from matplotlib import axes
@@ -497,7 +498,64 @@ def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experim
         else:
             schedule_difference.append([(None, None)])
 
-    return weg_zeit_matrix_schedule, weg_zeit_matrix_reschedule, schedule_difference, (max_ressource, max_time)
+    # Plotting the graphs
+    ranges = (max_ressource, max_time)
+
+    # Plot original schedule
+    fig = go.Figure()
+    for idx, line in enumerate(weg_zeit_matrix_schedule):
+        x, y = zip(*line)
+        fig.add_trace(go.Scatter(x=x,
+                                 y=y,
+                                 mode='lines+markers',
+                                 marker=dict(size=2),
+                                 name="Agent {}".format(idx)
+                                 ))
+    fig.update_layout(title_text="Original Schedule")
+    fig.update_yaxes(autorange="reversed")
+    fig.update_xaxes(title="Sorted Ressources")
+    fig.update_yaxes(title="Time")
+    fig.update_xaxes(range=[0, ranges[0]])
+    fig.update_yaxes(range=[0, ranges[1]])
+    fig.show()
+
+    # Plot re-schedule
+    fig1 = go.Figure()
+    for idx, line in enumerate(weg_zeit_matrix_reschedule):
+        x, y = zip(*line)
+        fig1.add_trace(go.Scatter(x=x,
+                                  y=y,
+                                  mode='lines+markers',
+                                  marker=dict(size=2),
+                                  name="Agent {}".format(idx)
+                                  ))
+    fig1.update_layout(title_text="reschedule")
+    fig1.update_yaxes(autorange="reversed")
+    fig1.update_xaxes(title="Sorted Ressources")
+    fig1.update_yaxes(title="Time")
+    fig1.update_xaxes(range=[0, ranges[0]])
+    fig1.update_yaxes(range=[0, ranges[1]])
+    fig1.show()
+
+    # Plot difference
+    fig2 = go.Figure()
+    for idx, line in enumerate(schedule_difference):
+        x, y = zip(*line)
+        fig2.add_trace(go.Scatter(x=x,
+                                  y=y,
+                                  mode='lines+markers',
+                                  marker=dict(size=2),
+                                  name="Agent {}".format(idx)
+                                  ))
+    fig2.update_layout(title_text="Difference")
+    fig2.update_yaxes(autorange="reversed")
+    fig2.update_xaxes(title="Sorted Ressources")
+    fig2.update_yaxes(title="Time")
+    fig2.update_xaxes(range=[0, ranges[0]])
+    fig2.update_yaxes(range=[0, ranges[1]])
+    fig2.show()
+
+    return
 
 
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
