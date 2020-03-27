@@ -20,16 +20,16 @@ jupyter:
 ```{python}
 import pandas as pd
 
-from rsp.utils.analysis_tools import notebook_plot_weg_zeit_diagramm_2d, notebook_plot_speed_up,
-    notebook_plot_computational_times
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams, plot_speed_up, plot_computational_times,
+    plot_histogram_from_delay_data
 ```
 
 ```{python}
 experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
-experiments_of_interest = [14]
+experiments_of_interest = [14,15,16,17]
 ```
 
 ```{python}
@@ -46,7 +46,7 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_aft
 ### Visualize Compuational time comparison
 
 ```{python}
-notebook_plot_computational_times(experiment_data=experiment_data,
+plot_computational_times(experiment_data=experiment_data,
                                   axis_of_interest=axis_of_interest,
                                   columns_of_interest=columns_of_interest)
 ```
@@ -54,14 +54,14 @@ notebook_plot_computational_times(experiment_data=experiment_data,
 ### Visualize Speed Up facotrs for experiments
 
 ```{python}
-notebook_plot_speed_up(experiment_data=experiment_data,
+plot_speed_up(experiment_data=experiment_data,
                        axis_of_interest=axis_of_interest)
 ```
 
 ### Visualize Weg-Zeit-Diagram of specific experiment
 
 ```{python}
-experiment_of_interest = 14
+experiment_of_interest = 16
 ```
 
 ```{python}
@@ -78,10 +78,14 @@ display(experiment_details.transpose())
 ```
 
 ```{python}
-notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
 ```
 
 ### Visualize Route-DAG for specific agent
+
+```{python}
+plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
 
 ```{python}
 

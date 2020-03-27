@@ -14,7 +14,6 @@ from typing import Tuple
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import plotly.graph_objects as go
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from matplotlib import axes
@@ -24,7 +23,6 @@ from pandas import Series
 
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.file_utils import check_create_folder
 
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
@@ -450,200 +448,6 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
     plt.close()
 
 
-def notebook_plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
-                                      columns_of_interest: List[str]):
-    """Plot the computational times of experiments.
-
-    Parameters
-    ----------
-    experiment_data: DataFrame
-        DataFrame containing all the results from hypothesis one experiments
-    axis_of_interest: str
-        Defines along what axis the data will be plotted
-    columns_of_interest: List[str]
-        Defines which columns of a dataset will be plotted as traces
-
-    Returns
-    -------
-    """
-    fig = go.Figure()
-    for column in columns_of_interest:
-        fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
-                             y=experiment_data[column],
-                             name=column, pointpos=-1,
-                             boxpoints='suspectedoutliers',
-                             customdata=np.dstack((experiment_data['size'], experiment_data['speed_up']))[0],
-                             hovertext=experiment_data['experiment_id'],
-                             hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
-                                           '<b>Nr. Agents</b>: %{x}<br>' +
-                                           '<b>Grid Size:</b> %{customdata[0]}<br>' +
-                                           '<b>Speed Up:</b> %{customdata[1]:.2f}<br>' +
-                                           '<b>Experiment id:</b>%{hovertext}',
-                             marker=dict(size=3)))
-    fig.update_layout(boxmode='group')
-    fig.update_layout(title_text="Computational Times")
-    fig.update_xaxes(title="Agents[#]")
-    fig.update_yaxes(title="Time[s]")
-    fig.show()
-
-
-def notebook_plot_speed_up(experiment_data: DataFrame, axis_of_interest: str):
-    """
-
-    Parameters
-    ----------
-    experiment_data: DataFrame
-        DataFrame containing all the results from hypothesis one experiments
-    axis_of_interest
-        Defines along what axis the data will be plotted
-    Returns
-    -------
-
-    """
-    fig = go.Figure()
-
-    fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
-                         y=experiment_data['speed_up'],
-                         pointpos=-1,
-                         customdata=np.dstack((experiment_data['size'], experiment_data['time_full'],
-                                               experiment_data['time_full_after_malfunction'],
-                                               experiment_data['time_delta_after_malfunction']))[0],
-                         hovertext=experiment_data['experiment_id'],
-                         hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
-                                       '<b>Nr. Agents</b>: %{x}<br>' +
-                                       '<b>Grid Size:</b> %{customdata[0]}<br>' +
-                                       '<b>Full Time:</b> %{customdata[1]:.2f}s<br>' +
-                                       '<b>Full Time after:</b> %{customdata[2]:.2f}s<br>' +
-                                       '<b>Full Delta after:</b> %{customdata[3]:.2f}s<br>' +
-                                       '<b>Experiment id:</b>%{hovertext}',
-                         marker=dict(size=3, color='blue')))
-
-    fig.update_layout(boxmode='group')
-    fig.update_layout(title_text="Speed Up Factors")
-    fig.update_xaxes(title="Agents[#]")
-    fig.update_yaxes(title="Speed Up Factor")
-    fig.show()
-
-
-def notebook_plot_weg_zeit_diagramm_2d(experiment_data_frame: DataFrame, experiment_id: int):
-    """Method to draw ressource-time diagrams in 2d.
-
-    Parameters
-    ----------
-    experiment_data_frame : DataFrame
-        Data from experiment for plot
-    experiment_id: int
-        Experiment id used to plot the specific Weg-Zeit-Diagram
-
-    Returns
-    -------
-    """
-    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
-    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
-        experiment_data_series)
-    schedule = experiment_data.solution_full
-    reschedule = experiment_data.solution_full_after_malfunction
-    malfunction_agent = experiment_data.malfunction.agent_id
-    malfunction_start = experiment_data.malfunction.time_step
-    malfunctin_duration = experiment_data.malfunction.malfunction_duration
-    width = experiment_data.experiment_parameters.width
-    weg_zeit_matrix_schedule, max_ressource, max_time = weg_zeit_2d_path(schedule=schedule,
-                                                                         width=width,
-                                                                         malfunction_agent_id=malfunction_agent,
-                                                                         sorting=None)
-
-    weg_zeit_matrix_reschedule, _, _ = weg_zeit_2d_path(schedule=reschedule,
-                                                        width=width,
-                                                        malfunction_agent_id=malfunction_agent,
-                                                        sorting=None)
-
-    # Detect changes to original schedule
-    schedule_difference = []
-    influenced_agents = []
-    nr_influenced_agents = 0
-    for idx, trainrun in enumerate(weg_zeit_matrix_schedule):
-        trainrun_difference = []
-        for waypoint in trainrun:
-            if waypoint not in weg_zeit_matrix_reschedule[idx]:
-                if len(trainrun_difference) > 0:
-                    if waypoint[0] != trainrun_difference[-1][0]:
-                        trainrun_difference.append((None, None))
-                trainrun_difference.append(waypoint)
-
-        if len(trainrun_difference) > 0:
-            schedule_difference.append(trainrun_difference)
-            influenced_agents.append([True for i in range(len(weg_zeit_matrix_reschedule[idx]))])
-            nr_influenced_agents += 1
-        else:
-            schedule_difference.append([(None, None)])
-            influenced_agents.append([False for i in range(len(weg_zeit_matrix_reschedule[idx]))])
-    # Printing situation overview
-    print("Agent nr.{} has a malfunction at time {} for {} seconds and influenced {} other agents".format(
-        malfunction_agent, malfunction_start,
-        malfunctin_duration, nr_influenced_agents))
-
-    # Plotting the graphs
-    ranges = (max_ressource, max_time)
-
-    # Plot original schedule
-    fig = go.Figure()
-    for idx, line in enumerate(weg_zeit_matrix_schedule):
-        x, y = zip(*line)
-        fig.add_trace(go.Scatter(x=x,
-                                 y=y,
-                                 mode='lines+markers',
-                                 marker=dict(size=2),
-                                 name="Agent {}".format(idx)
-                                 ))
-    fig.update_layout(title_text="Original Schedule")
-    fig.update_yaxes(autorange="reversed")
-    fig.update_xaxes(title="Sorted Ressources")
-    fig.update_yaxes(title="Time")
-    fig.update_xaxes(range=[0, ranges[0]])
-    fig.update_yaxes(range=[0, ranges[1]])
-    fig.show()
-
-    # Plot re-schedule
-    fig1 = go.Figure()
-    for idx, line in enumerate(weg_zeit_matrix_reschedule):
-        x, y = zip(*line)
-        fig1.add_trace(go.Scatter(x=x,
-                                  y=y,
-                                  mode='lines+markers',
-                                  marker=dict(size=2),
-                                  name="Agent {}".format(idx),
-                                  hovertext=influenced_agents[idx],
-                                  hovertemplate='<b>Influenced by Malfunction</b>: %{hovertext}'
-                                  ))
-    fig1.update_layout(title_text="reschedule")
-    fig1.update_yaxes(autorange="reversed")
-    fig1.update_xaxes(title="Sorted Ressources")
-    fig1.update_yaxes(title="Time")
-    fig1.update_xaxes(range=[0, ranges[0]])
-    fig1.update_yaxes(range=[0, ranges[1]])
-    fig1.show()
-
-    # Plot difference
-    fig2 = go.Figure()
-    for idx, line in enumerate(schedule_difference):
-        x, y = zip(*line)
-        fig2.add_trace(go.Scatter(x=x,
-                                  y=y,
-                                  mode='lines+markers',
-                                  marker=dict(size=2),
-                                  name="Agent {}".format(idx)
-                                  ))
-    fig2.update_layout(title_text="Difference")
-    fig2.update_yaxes(autorange="reversed")
-    fig2.update_xaxes(title="Sorted Ressources")
-    fig2.update_yaxes(title="Time")
-    fig2.update_xaxes(range=[0, ranges[0]])
-    fig2.update_yaxes(range=[0, ranges[1]])
-    fig2.show()
-
-    return
-
-
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
                                   malfunction_agent_id: int = -1, sorting: List[int] = None) -> (np.ndarray, List[int]):
     """Method to produce sorted matrix of all train runs. Each train run is
@@ -719,7 +523,7 @@ def weg_zeit_3d_path(schedule: TrainrunDict) -> List[Tuple[int, int, int]]:
     return all_train_time_paths
 
 
-def weg_zeit_2d_path(schedule: TrainrunDict,
+def resource_time_2d(schedule: TrainrunDict,
                      width: int,
                      malfunction_agent_id: int = -1,
                      sorting: Dict = None) -> (List[Tuple[int, int]], int):
