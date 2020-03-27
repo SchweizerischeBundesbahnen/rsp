@@ -4,13 +4,11 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_schedule_and_malfunction
 
-
 def test_exp_006_hypothesis_window_size_null_2020_03_17T18_34_47_experiment_158(
         verbose=True,
         debug=True):
     """Test-driven and regression test for SIM-355: STOP agent at malfunction
     time is ignored by FLATland.
-
     We pass the entry times from ASP to FLATland's `ControllerFromTrainruns`,
     which derives when to take which FLATland actions for which agents.
     However, this `ControllerFromTrainruns` does not know about malfunctions.
