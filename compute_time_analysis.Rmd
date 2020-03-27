@@ -20,6 +20,7 @@ jupyter:
 
 ```{python}
 import pandas as pd
+from IPython.display import Video
 
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -98,12 +99,10 @@ plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_
 ```
 
 ```{python}
-from IPython.display import Video
 Video(video_src_schedule, embed=True)
 ```
 
 ```{python}
-from IPython.display import Video
 Video(video_src_reschedule, embed=True)
 ```
 
