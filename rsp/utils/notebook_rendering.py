@@ -321,7 +321,7 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
         # Import the generated video
         video_src_schedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
                                           f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
-                                          f" experiment_{experiment_id}_flatland_data_analysis.mp4")
+                                          f"experiment_{experiment_id}_flatland_data_analysis.mp4")
     else:
         video_src_reschedule = None
 
