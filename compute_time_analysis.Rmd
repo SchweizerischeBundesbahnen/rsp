@@ -15,6 +15,7 @@ jupyter:
 ```{python}
 # %autosave 0
 # %matplotlib inline
+# %matplotlib notebook
 ```
 
 ```{python}
@@ -23,8 +24,11 @@ import pandas as pd
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams, plot_speed_up, plot_computational_times,
-    plot_histogram_from_delay_data
+from rsp.utils.notebook_rendering import plot_computational_times
+from rsp.utils.notebook_rendering import plot_histogram_from_delay_data
+from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams
+from rsp.utils.notebook_rendering import plot_speed_up
+from rsp.utils.notebook_rendering import render_flatland_env
 ```
 
 ```{python}
@@ -81,10 +85,26 @@ display(experiment_details.transpose())
 plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
 ```
 
-### Visualize Route-DAG for specific agent
+#### Histogram of delay per agent after re-scheduling
 
 ```{python}
 plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
+
+#### Render the current environment
+
+```{python}
+ video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
+
+```{python}
+from IPython.display import Video
+Video(video_src_schedule, embed=True)
+```
+
+```{python}
+from IPython.display import Video
+Video(video_src_reschedule, embed=True)
 ```
 
 ```{python}

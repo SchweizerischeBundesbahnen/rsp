@@ -1,4 +1,6 @@
 """Rendering methods to use with jupyter notebooks."""
+import os.path
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -10,6 +12,9 @@ from pandas import DataFrame
 from rsp.utils.analysis_tools import resource_time_2d
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
+from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
+from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 
 def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
@@ -272,6 +277,71 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
     fig.update_xaxes(title="Agents ID")
     fig.update_yaxes(title="Delay [s]")
     fig.show()
+
+
+def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, experiment_id: int,
+                        render_schedule: bool = True, render_reschedule: bool = True):
+    """
+
+    Parameters
+    ----------
+    data_folder
+    experiment_data_frame
+    experiment_id
+
+    Returns
+    -------
+
+    """
+
+    # Extract data
+    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
+    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
+        experiment_data_series)
+
+    # Generate environment for rendering
+    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_data.experiment_parameters)
+    # Generate aggregated visualization
+    output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
+
+    # Generate the Schedule video
+    if render_schedule:
+        title = 'Schedule'
+        replay_and_verify_trainruns(data_folder=output_folder,
+                                    experiment_id=experiment_data.experiment_id,
+                                    title=title,
+                                    rendering=True,
+                                    rail_env=static_rail_env,
+                                    trainruns=experiment_data.solution_full,
+                                    convert_to_mpeg=True)
+
+        # Import the generated video
+        video_src_schedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
+                                          f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
+                                          f" experiment_{experiment_id}_flatland_data_analysis.mp4")
+    else:
+        video_src_reschedule = None
+
+    # Generate the Reschedule video
+    if render_reschedule:
+        title = 'Reschedule'
+        replay_and_verify_trainruns(data_folder=output_folder,
+                                    experiment_id=experiment_data.experiment_id,
+                                    expected_malfunction=experiment_data.malfunction,
+                                    title='Reschedule',
+                                    rendering=True,
+                                    rail_env=malfunction_rail_env,
+                                    trainruns=experiment_data.solution_full_after_malfunction,
+                                    convert_to_mpeg=True)
+
+        # Import the generated video
+        video_src_reschedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
+                                            f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
+                                            f"experiment_{experiment_id}_flatland_data_analysis.mp4")
+    else:
+        video_src_reschedule = None
+
+    return Path(video_src_schedule), Path(video_src_reschedule)
 
 
 def _map_variable_to_trainruns(variable: Dict, trainruns: List[List[Tuple[int, int]]]) -> List[List[object]]:
