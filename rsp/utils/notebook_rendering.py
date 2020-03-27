@@ -282,16 +282,19 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
 def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, experiment_id: int,
                         render_schedule: bool = True, render_reschedule: bool = True):
     """
-
+    Method to render the environment for visual inspection
     Parameters
     ----------
-    data_folder
-    experiment_data_frame
-    experiment_id
+    data_folder: str
+        Folder name to store and load images from
+    experiment_data_frame: DataFrame
+        experiment data used for visualization
+    experiment_id: int
+        ID of experiment we like to visualize
 
     Returns
     -------
-
+    File paths to generated videos to render in the notebook
     """
 
     # Extract data
