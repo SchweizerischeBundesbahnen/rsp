@@ -51,9 +51,9 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     experiment_ids
         filter for experiment ids (data generation)
     qualitative_analysis_experiment_ids
-        filter for data analysis; must be subset of generated data
+        filter for data analysis on the generated data
     asp_export_experiment_ids
-        filter for data analysis; must be subset of generated data
+        filter for data analysis on the generated data
     copy_agenda_from_base_directory
         base directory from the same agenda with serialized schedule and malfunction.
         - if given, the schedule is not re-generated
