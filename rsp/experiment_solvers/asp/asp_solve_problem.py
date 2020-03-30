@@ -70,5 +70,6 @@ def solve_problem(
         solver_statistics=solution.asp_solution.stats,
         solver_result=solution.answer_set,
         solver_configuration=configuration_as_dict_from_control(solution.asp_solution.ctl),
-        solver_seed=solution.asp_solution.asp_seed_value
+        solver_seed=solution.asp_solution.asp_seed_value,
+        solver_program=problem.asp_program
     ), solution

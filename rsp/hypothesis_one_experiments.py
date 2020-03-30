@@ -35,6 +35,8 @@ def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
 
 def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
                             experiment_ids: Optional[List[int]] = None,
+                            qualitative_analysis_experiment_ids: Optional[List[int]] = None,
+                            asp_export_experiment_ids: Optional[List[int]] = None,
                             copy_agenda_from_base_directory: Optional[str] = None,
                             experiment_name: str = "exp_hypothesis_one"
                             ) -> str:
@@ -43,10 +45,15 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
 
     Parameters
     ----------
-    parameter_ranges
+    experiment_name
+    parameter_ranges_and_speed_data
     speed_data
     experiment_ids
-        filter for experiment ids
+        filter for experiment ids (data generation)
+    qualitative_analysis_experiment_ids
+        filter for data analysis on the generated data
+    asp_export_experiment_ids
+        filter for data analysis on the generated data
     copy_agenda_from_base_directory
         base directory from the same agenda with serialized schedule and malfunction.
         - if given, the schedule is not re-generated
@@ -78,7 +85,8 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         experiment_base_directory=experiment_base_folder_name,
         analysis_2d=True,
         analysis_3d=False,
-        qualitative_analysis_experiment_ids=[]
+        qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
+        asp_export_experiment_ids=asp_export_experiment_ids
     )
     return experiment_base_folder_name
 
@@ -87,7 +95,8 @@ def hypothesis_one_main():
     parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_ids=None,  # no filtering
+        qualitative_analysis_experiment_ids=range(270, 300),
+        asp_export_experiment_ids=range(270, 300),
         copy_agenda_from_base_directory=None  # regenerate schedules
     )
 

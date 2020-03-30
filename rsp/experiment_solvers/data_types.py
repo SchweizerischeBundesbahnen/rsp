@@ -1,5 +1,6 @@
 from typing import Callable
 from typing import Dict
+from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
@@ -27,10 +28,14 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solver_statistics', Dict),
                                          ('solver_result', Set[str]),
                                          ('solver_configuration', Dict),
-                                         ('solver_seed', int)
+                                         ('solver_seed', int),
+                                         ('solver_program', Optional[List[str]])
                                          ])
 if COMPATIBILITY_MODE:
     SchedulingExperimentResult.__new__.__defaults__ = (None,) * len(SchedulingExperimentResult._fields)
+else:
+    # backwards compatibility and space reduction: solver_program is optional
+    SchedulingExperimentResult.__new__.__defaults__ = (None,)
 SchedulingExperimentResult.__doc__ = """
     Parameters
     ----------

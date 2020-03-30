@@ -3,9 +3,9 @@ from typing import Set
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.analysis.rescheduling_analysis_utils import extract_path_search_space
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import extract_number_of_path_alternatives
+from rsp.utils.data_types import extract_path_search_space
 
 
 def plausibility_check_experiment_results(experiment_results: ExperimentResults):

@@ -479,11 +479,6 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     """Ensure that we get the exact same solution if we multiply the weights
     for route change and lateness by the same factor."""
 
-    # TODO SIM-339: skip this test in ci under Linux
-    from sys import platform
-    if platform == "linux" or platform == "linux2":
-        return
-
     experiment_parameters = ExperimentParameters(
         experiment_id=9, grid_id=0, number_of_agents=11,
         speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30,
@@ -502,17 +497,15 @@ def test_run_alpha_beta(regen_schedule: bool = False):
 
     solver = ASPExperimentSolver()
 
-    # since Linux and Windows do not produce do not produces the same results with the same seed,
-    #  we want to at least control the environments (the schedule will not be the same!)
-    # environments not correctly initialized if not created the same way, therefore use create_env_pair_for_experiment
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-    # override grid from loaded file
     static_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "static_env_alpha_beta.pkl")
     malfunction_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
 
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
+    # since schedule generation is not deterministic, we need to pickle the output of B.1 experiment setup
+    # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
         schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
             static_rail_env=static_rail_env,
@@ -558,6 +551,7 @@ def test_run_alpha_beta(regen_schedule: bool = False):
         experiment_parameters=experiment_parameters,
     )
 
+    # although re-scheduling is not deterministic, it should produce solutions with the same costs
     costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
     assert costs_full_after_malfunction > 0
     costs_full_after_malfunction_scaled = experiment_result_scaled.results_full_after_malfunction.optimization_costs

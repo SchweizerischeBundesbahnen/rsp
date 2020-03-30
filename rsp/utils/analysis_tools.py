@@ -122,14 +122,14 @@ def two_dimensional_scatter_plot(  # noqa: C901
         columns: DataFrame.columns,
         baseline_data: DataFrame = None,
         baseline_column: str = None,
-        file_name: Optional[str] = None,
         output_folder: Optional[str] = None,
         title: str = None,
         show_global_mean: bool = False,
         colors: Optional[List[str]] = None,
         xscale: Optional[str] = None,
         yscale: Optional[str] = None,
-        y_cutoff: Optional[float] = None
+        y_cutoff: Optional[float] = None,
+        higher_y_value_is_worse: bool = TrainrunDict
 ):
     """Adds a 2d-scatterplot as a subplot to a figure.
 
@@ -196,7 +196,9 @@ def two_dimensional_scatter_plot(  # noqa: C901
             ax=ax,
             y_baseline=y_values_baseline,
             x_values=x_values,
-            y_values=y_values)
+            y_values=y_values,
+            higher_y_value_is_worse=higher_y_value_is_worse
+        )
         _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values_baseline, suffix='b')
     elif baseline_data is not None:
         y_values_baseline: Series = baseline_data[y_column].values
@@ -204,7 +206,9 @@ def two_dimensional_scatter_plot(  # noqa: C901
             ax=ax,
             y_baseline=y_values_baseline,
             x_values=x_values,
-            y_values=y_values)
+            y_values=y_values,
+            higher_y_value_is_worse=higher_y_value_is_worse
+        )
         _2d_plot_label_scatterpoints(ax, experiment_ids, x_values, y_values_baseline, suffix='b')
     elif show_global_mean:
         y_mean = [np.mean(y_values)] * len(x_values)
@@ -225,7 +229,9 @@ def two_dimensional_scatter_plot(  # noqa: C901
             ax=ax,
             y_baseline=y_mean,
             x_values=x_values,
-            y_values=y_values)
+            y_values=y_values,
+            higher_y_value_is_worse=higher_y_value_is_worse
+        )
     else:
         # TODO extract into calling function?
         standard_deviation_data = data.groupby([x_column]).std().reset_index()
@@ -262,17 +268,16 @@ def two_dimensional_scatter_plot(  # noqa: C901
 
     ax.legend(loc='upper right')
 
-    if file_name is not None:
-        plt.savefig(file_name)
-        plt.close()
-    elif output_folder is not None:
+    if output_folder is not None:
         check_create_folder(output_folder)
         columns_for_file_name = list(columns)
         if baseline_column is not None:
             columns_for_file_name.append(baseline_column)
         # file_name with y axis first
-        file_name = '_'.join(list(reversed(columns_for_file_name))) + '.png'
-        plt.savefig(os.path.join(output_folder, file_name))
+        png_file = os.path.join(output_folder, '_'.join(list(reversed(columns_for_file_name))) + '.png')
+        pdf_file = png_file.replace(".png", ".pdf")
+        plt.savefig(png_file)
+        plt.savefig(pdf_file)
         plt.close()
 
 
@@ -293,18 +298,29 @@ def _2d_plot_bar_two_sided_for_standard_deviation(ax: axes.Axes, x_values: Serie
                 color='b')
 
 
-def _2d_plot_bar_one_sided_for_deviation_from_baseline(ax: axes.Axes, x_values: Series, y_values: Series,
-                                                       y_baseline: Series, ):
+def _2d_plot_bar_one_sided_for_deviation_from_baseline(
+        ax: axes.Axes,
+        x_values: Series,
+        y_values: Series,
+        y_baseline: Series,
+        higher_y_value_is_worse: bool = True):
     """Plot deviation from global mean for every data point.
 
     If larger than baseline, plot red, if lower than baseline print line
     green.
     """
+
+    def is_worse(y_value, y_basline):
+        if higher_y_value_is_worse:
+            return y_values[i] > y_baseline[i]
+        else:
+            return not (y_values[i] > y_baseline[i])
+
     for i in np.arange(0, len(y_values)):
         ax.plot([x_values[i], x_values[i]],
                 [y_values[i], y_baseline[i]],
                 marker="_",
-                color='r' if y_values[i] > y_baseline[i] else 'g'
+                color='r' if is_worse(y_values[i], y_baseline[i]) else 'g'
                 )
 
 
@@ -349,7 +365,10 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
     ax.set_xlabel('Time')
     ax.set_ylabel('Nr. active Agents')
     plt.plot(agent_density)
-    plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png'))
+    file_name_png = os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png')
+    plt.savefig(file_name_png)
+    file_name_pdf = file_name_png.replace(".png", ".pdf")
+    plt.savefig(file_name_pdf)
     plt.close()
 
 
@@ -443,7 +462,10 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
     ax[2].set_ylabel('Time')
     ax[2].matshow(np.abs(np.transpose(weg_zeit_matrix_reschedule) - np.transpose(weg_zeit_matrix_schedule)),
                   cmap='gist_ncar')
-    plt.savefig(os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png'))
+    file_name_png = os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png')
+    plt.savefig(file_name_png)
+    file_name_pdf = file_name_png.replace(".png", ".pdf")
+    plt.savefig(file_name_pdf)
     plt.close()
 
 
