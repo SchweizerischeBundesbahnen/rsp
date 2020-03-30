@@ -112,7 +112,6 @@ def three_dimensional_scatter_plot(data: DataFrame,
 
     if len(file_name) > 1:
         plt.savefig(file_name)
-        plt.savefig(file_name.replace(".png", ".pdf"))
         plt.close()
     elif show:
         plt.show()
@@ -123,7 +122,6 @@ def two_dimensional_scatter_plot(  # noqa: C901
         columns: DataFrame.columns,
         baseline_data: DataFrame = None,
         baseline_column: str = None,
-        file_name: Optional[str] = None,
         output_folder: Optional[str] = None,
         title: str = None,
         show_global_mean: bool = False,
@@ -270,19 +268,16 @@ def two_dimensional_scatter_plot(  # noqa: C901
 
     ax.legend(loc='upper right')
 
-    if file_name is not None:
-        plt.savefig(file_name)
-        plt.savefig(file_name.replace(".png", ".pdf"))
-        plt.close()
-    elif output_folder is not None:
+    if output_folder is not None:
         check_create_folder(output_folder)
         columns_for_file_name = list(columns)
         if baseline_column is not None:
             columns_for_file_name.append(baseline_column)
         # file_name with y axis first
-        full_file = os.path.join(output_folder, '_'.join(list(reversed(columns_for_file_name))) + '.png')
-        plt.savefig(full_file)
-        plt.savefig(full_file.replace(".png", ".pdf"))
+        png_file = os.path.join(output_folder, '_'.join(list(reversed(columns_for_file_name))) + '.png')
+        pdf_file = png_file.replace(".png", ".pdf")
+        plt.savefig(png_file)
+        plt.savefig(pdf_file)
         plt.close()
 
 
@@ -370,9 +365,10 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
     ax.set_xlabel('Time')
     ax.set_ylabel('Nr. active Agents')
     plt.plot(agent_density)
-    file_name = os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png')
-    plt.savefig(file_name)
-    plt.savefig(file_name.replace(".png", ".pdf"))
+    file_name_png = os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png')
+    plt.savefig(file_name_png)
+    file_name_pdf = file_name_png.replace(".png", ".pdf")
+    plt.savefig(file_name_pdf)
     plt.close()
 
 
@@ -466,9 +462,10 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
     ax[2].set_ylabel('Time')
     ax[2].matshow(np.abs(np.transpose(weg_zeit_matrix_reschedule) - np.transpose(weg_zeit_matrix_schedule)),
                   cmap='gist_ncar')
-    file_name = os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png')
-    plt.savefig(file_name)
-    plt.savefig(file_name.replace(".png", ".pdf"))
+    file_name_png = os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png')
+    plt.savefig(file_name_png)
+    file_name_pdf = file_name_png.replace(".png", ".pdf")
+    plt.savefig(file_name_pdf)
     plt.close()
 
 
