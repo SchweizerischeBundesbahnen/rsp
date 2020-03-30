@@ -5,8 +5,8 @@ from typing import List
 from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
 from rsp.hypothesis_testing.compare_runtimes import compare_runtimes
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.file_utils import check_create_folder
 
 GetParams = Callable[[], ParameterRangesAndSpeedData]
@@ -38,11 +38,8 @@ def compare_agendas(
     print(f"NULL HYPOTHESIS {parameter_ranges_and_speed_data}")
     print(f"=========================================================")
     null_hypothesis_base_folder = hypothesis_one_pipeline(
-        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_ids=None,  # no filtering
-        copy_agenda_from_base_directory=None,  # generate schedules
-        experiment_name=experiment_name + "_null"
-    )
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data, experiment_ids=None,
+        copy_agenda_from_base_directory=None, experiment_name=experiment_name + "_null")
     alternative_hypothesis_base_folders = []
     comparison_folders = []
     for i, get_params_alt in enumerate(get_params_alternatives):
@@ -52,11 +49,9 @@ def compare_agendas(
         print(f"ALTERNATIVE HYPOTHESIS {i}:  {parameter_ranges_and_speed_data}")
         print(f"=========================================================")
         alternative_hypothesis_base_folder = hypothesis_one_pipeline(
-            parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-            experiment_ids=None,  # no filtering
+            parameter_ranges_and_speed_data=parameter_ranges_and_speed_data, experiment_ids=None,
             copy_agenda_from_base_directory=null_hypothesis_base_folder,
-            experiment_name=experiment_name + f"_alt{i:03d}"
-        )
+            experiment_name=experiment_name + f"_alt{i:03d}")
         alternative_hypothesis_base_folders.append(alternative_hypothesis_base_folder)
         comparison_folder = compare_runtimes(
             data_folder1=os.path.join(null_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),

@@ -49,7 +49,7 @@ def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
                              marker=dict(size=3)))
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text="Computational Times")
-    fig.update_xaxes(title="Agents[#]")
+    fig.update_xaxes(title=axis_of_interest)
     fig.update_yaxes(title="Time[s]")
     fig.show()
 
@@ -339,7 +339,7 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
             replay_and_verify_trainruns(data_folder=output_folder,
                                         experiment_id=experiment_data.experiment_id,
                                         expected_malfunction=experiment_data.malfunction,
-                                        title='Reschedule',
+                                        title=title,
                                         rendering=True,
                                         rail_env=malfunction_rail_env,
                                         trainruns=experiment_data.solution_full_after_malfunction,
