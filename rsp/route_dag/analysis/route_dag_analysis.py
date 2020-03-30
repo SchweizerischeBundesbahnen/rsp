@@ -11,6 +11,8 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.logger import rsp_logger
+from rsp.logger import VERBOSE
 from rsp.route_dag.route_dag import RouteDagEdge
 from rsp.route_dag.route_dag import RouteSectionPenalties
 from rsp.route_dag.route_dag import WaypointPenalties
@@ -299,7 +301,7 @@ def visualize_route_dag_constraints(
     nx.draw_networkx_edge_labels(topo, plt_pos, edge_labels=edge_labels)
 
     plt.gca().invert_yaxis()
-    print(file_name)
+    rsp_logger.log(VERBOSE, file_name)
     if file_name is not None:
         plt.savefig(file_name)
     else:

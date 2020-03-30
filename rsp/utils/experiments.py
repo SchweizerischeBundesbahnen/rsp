@@ -48,6 +48,7 @@ from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
+from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
@@ -61,6 +62,8 @@ from rsp.utils.experiment_env_generators import create_flatland_environment_with
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
+from rsp.utils.psutil_helpers import current_process_stats_human_readable
+from rsp.utils.psutil_helpers import virtual_memory_human_readable
 from rsp.utils.tee import reset_tee
 from rsp.utils.tee import tee_stdout_stderr_to_file
 
@@ -69,6 +72,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
 EXPERIMENT_DATA_SUBDIRECTORY_NAME = "data"
 EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
+EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
 
 
 def save_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction,
@@ -149,7 +153,7 @@ def run_experiment(solver: ASPExperimentSolver,
     check_create_folder(experiment_agenda_directory)
 
     if show_results_without_details:
-        print("Running experiment {} in thread {}".format(experiment_parameters.experiment_id, threading.get_ident()))
+        print("Running experiment {} under pid {}".format(experiment_parameters.experiment_id, os.getpid()))
     start_time = time.time()
     if show_results_without_details:
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
@@ -221,7 +225,6 @@ def run_experiment(solver: ASPExperimentSolver,
             elapsed_time - solver_time_full -
             solver_time_full_after_malfunction -
             solver_time_delta_after_malfunction)
-    # TODO does not work properly with tqdm together! do this as plots?
     if show_results_without_details:
         print(("Running experiment {}: took {:5.3f}s "
                "(sched: {:5.3f}s = {:5.2f}% / "
@@ -239,7 +242,10 @@ def run_experiment(solver: ASPExperimentSolver,
                       elapsed_overhead_time,
                       elapsed_overhead_time / elapsed_time * 100,
                       threading.get_ident()))
+        virtual_memory_human_readable()
+        current_process_stats_human_readable()
 
+    # TODO SIM-324 pull out validation steps
     plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
 
@@ -313,7 +319,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                 verbose: bool,
                                 show_results_without_details: bool,
                                 experiment_base_directory: str,
-                                rendering: bool = False) -> List[ExperimentResults]:
+                                rendering: bool = False):
     """B. Run and save one experiment from experiment parameters.
 
     Parameters
@@ -329,8 +335,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
 
     # tee stdout to thread-specific log file
     tee_orig = tee_stdout_stderr_to_file(
-        stdout_log_file=os.path.join(experiment_data_directory, f"log_{threading.get_ident()}.txt"),
-        stderr_log_file=os.path.join(experiment_data_directory, f"err_{threading.get_ident()}.txt")
+        stdout_log_file=os.path.join(experiment_data_directory, f"log_{os.getpid()}.txt"),
+        stderr_log_file=os.path.join(experiment_data_directory, f"err_{os.getpid()}.txt")
     )
     try:
 
@@ -359,7 +365,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: bool = True,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
-                          verbose: bool = False) -> (str, str, List[ExperimentResultsAnalysis]):
+                          verbose: bool = False) -> (str, str):
     """Run a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
 
@@ -382,7 +388,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     Returns
     -------
-    Returns the name of the experiment folder
+    Returns the name of the experiment base and data folders
     """
     experiment_base_directory = create_experiment_folder_name(experiment_agenda.experiment_name)
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
@@ -414,26 +420,27 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     solver = ASPExperimentSolver()
 
     if run_experiments_parallel:
-        pool = multiprocessing.Pool()
+        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+        # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
+        pool = multiprocessing.Pool(maxtasksperchild=1)
         print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
-        run_and_save_one_experiment_partial = partial(run_and_save_one_experiment,
-                                                      solver=solver,
-                                                      verbose=verbose,
-                                                      show_results_without_details=show_results_without_details,
-                                                      experiment_base_directory=experiment_base_directory
-                                                      )
+        run_and_save_one_experiment_partial = partial(
+            run_and_save_one_experiment,
+            solver=solver,
+            verbose=verbose,
+            show_results_without_details=show_results_without_details,
+            experiment_base_directory=experiment_base_directory
+        )
 
-        experiment_results_list = [
-            experiment_results
-            for experiment_results
-            in tqdm.tqdm(
+        for _ in tqdm.tqdm(
                 pool.imap_unordered(
                     run_and_save_one_experiment_partial,
                     experiment_agenda.experiments
                 ),
-                total=len(experiment_agenda.experiments))]
+                total=len(experiment_agenda.experiments)):
+            pass
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
         _print_log_files_from_experiment_data_directory(experiment_data_directory)
@@ -441,27 +448,27 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     else:
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
-        experiment_results_list = [
-            run_and_save_one_experiment(current_experiment_parameters=current_experiment_parameters,
-                                        solver=solver,
-                                        verbose=verbose,
-                                        show_results_without_details=show_results_without_details,
-                                        experiment_base_directory=experiment_base_directory,
-                                        rendering=rendering)
-            for current_experiment_parameters
-            in tqdm.tqdm(experiment_agenda.experiments)
-        ]
+        for current_experiment_parameters in tqdm.tqdm(experiment_agenda.experiments):
+            run_and_save_one_experiment(
+                current_experiment_parameters=current_experiment_parameters,
+                solver=solver,
+                verbose=verbose,
+                show_results_without_details=show_results_without_details,
+                experiment_base_directory=experiment_base_directory,
+                rendering=rendering)
+
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
 
     # remove tees
     reset_tee(*tee_orig)
-    return experiment_base_directory, experiment_data_directory, experiment_results_list
+    return experiment_base_directory, experiment_data_directory
 
 
+# TODO SIM-411 adapt to logger
 def _print_log_files_from_experiment_data_directory(experiment_data_directory):
     log_files = os.listdir(experiment_data_directory)
-    print(f"loading and expanding experiment results from {experiment_data_directory}")
+    rsp_logger.info(f"loading and expanding experiment results from {experiment_data_directory}")
     error_summay = []
     for file in [file for file in log_files if file.startswith("log_")]:
         print("\n\n\n\n")
@@ -498,8 +505,8 @@ def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, exper
     copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
                                                      EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
     files = os.listdir(copy_agenda_from_agenda_directory)
-    print(
-        f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} -> {experiment_agenda_directory}")
+    rsp_logger.info(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} "
+                    f"-> {experiment_agenda_directory}")
     for file in [file for file in files]:
         shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
 
@@ -510,7 +517,8 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 
 def create_experiment_agenda(experiment_name: str,
                              parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-                             experiments_per_grid_element: int = 10
+                             experiments_per_grid_element: int = 10,
+                             debug: bool = False
                              ) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
@@ -539,7 +547,8 @@ def create_experiment_agenda(experiment_name: str,
     # Setup experiment parameters
     for dim_idx, dimensions in enumerate(parameter_ranges):
         if dimensions[-1] > 1:
-            print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
+            if debug:
+                print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
             parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1],
                                                   np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
         else:
@@ -753,7 +762,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     experiment_results_list = []
 
     files = os.listdir(experiment_data_folder_name)
-    print(f"loading and expanding experiment results from {experiment_data_folder_name}")
+    rsp_logger.info(f"loading and expanding experiment results from {experiment_data_folder_name}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
@@ -771,6 +780,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
+    rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
     return experiment_results_list
 
 

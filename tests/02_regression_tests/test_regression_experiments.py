@@ -143,7 +143,7 @@ def test_regression_experiment_agenda(regen: bool = False):
             experiment_agenda=agenda)
 
     # Import the solver for the experiments
-    experiment_folder_name, experiment_data_folder, _ = run_experiment_agenda(
+    experiment_folder_name, experiment_data_folder = run_experiment_agenda(
         experiment_agenda=agenda,
         run_experiments_parallel=False,
         verbose=True,
@@ -407,7 +407,7 @@ def test_save_and_load_experiment_results():
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)])
 
-    experiment_folder_name, experiment_data_folder, experiment_results_list = \
+    experiment_folder_name, experiment_data_folder = \
         run_experiment_agenda(experiment_agenda=agenda,
                               run_experiments_parallel=False)
 
@@ -416,7 +416,10 @@ def test_save_and_load_experiment_results():
         experiment_data_folder_name=experiment_data_folder)
     delete_experiment_folder(experiment_folder_name)
 
-    _assert_results_dict_equals(experiment_results_list, loaded_results)
+    # since we do not return the results in memor from run_experiment_agenda (SIM-393), do some sanity checks:
+    assert len(loaded_results) == 1
+    loaded_result: ExperimentResultsAnalysis = loaded_results[0]
+    assert loaded_result.results_full_after_malfunction.solver_statistics is not None
 
 
 def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
@@ -476,11 +479,6 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     """Ensure that we get the exact same solution if we multiply the weights
     for route change and lateness by the same factor."""
 
-    # TODO SIM-339: skip this test in ci under Linux
-    from sys import platform
-    if platform == "linux" or platform == "linux2":
-        return
-
     experiment_parameters = ExperimentParameters(
         experiment_id=9, grid_id=0, number_of_agents=11,
         speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30,
@@ -499,17 +497,15 @@ def test_run_alpha_beta(regen_schedule: bool = False):
 
     solver = ASPExperimentSolver()
 
-    # since Linux and Windows do not produce do not produces the same results with the same seed,
-    #  we want to at least control the environments (the schedule will not be the same!)
-    # environments not correctly initialized if not created the same way, therefore use create_env_pair_for_experiment
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-    # override grid from loaded file
     static_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "static_env_alpha_beta.pkl")
     malfunction_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
 
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
+    # since schedule generation is not deterministic, we need to pickle the output of B.1 experiment setup
+    # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
         schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
             static_rail_env=static_rail_env,
@@ -555,6 +551,7 @@ def test_run_alpha_beta(regen_schedule: bool = False):
         experiment_parameters=experiment_parameters,
     )
 
+    # although re-scheduling is not deterministic, it should produce solutions with the same costs
     costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
     assert costs_full_after_malfunction > 0
     costs_full_after_malfunction_scaled = experiment_result_scaled.results_full_after_malfunction.optimization_costs
@@ -633,5 +630,5 @@ def test_parallel_experiment_execution():
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf)])
 
-    experiment_folder_name, _, _ = run_experiment_agenda(agenda, run_experiments_parallel=True)
+    experiment_folder_name, _ = run_experiment_agenda(agenda, run_experiments_parallel=True)
     delete_experiment_folder(experiment_folder_name)
