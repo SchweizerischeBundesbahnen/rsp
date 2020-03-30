@@ -309,38 +309,41 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
 
     # Generate the Schedule video
     if render_schedule:
-        title = 'Schedule'
-        replay_and_verify_trainruns(data_folder=output_folder,
-                                    experiment_id=experiment_data.experiment_id,
-                                    title=title,
-                                    rendering=True,
-                                    rail_env=static_rail_env,
-                                    trainruns=experiment_data.solution_full,
-                                    convert_to_mpeg=True)
-
         # Import the generated video
+        title = 'Schedule'
         video_src_schedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
                                           f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
                                           f"experiment_{experiment_id}_flatland_data_analysis.mp4")
+
+        # Only render if file is not yet created
+        if not os.path.exists(video_src_schedule):
+            replay_and_verify_trainruns(data_folder=output_folder,
+                                        experiment_id=experiment_data.experiment_id,
+                                        title=title,
+                                        rendering=True,
+                                        rail_env=static_rail_env,
+                                        trainruns=experiment_data.solution_full,
+                                        convert_to_mpeg=True)
     else:
         video_src_reschedule = None
 
     # Generate the Reschedule video
     if render_reschedule:
-        title = 'Reschedule'
-        replay_and_verify_trainruns(data_folder=output_folder,
-                                    experiment_id=experiment_data.experiment_id,
-                                    expected_malfunction=experiment_data.malfunction,
-                                    title='Reschedule',
-                                    rendering=True,
-                                    rail_env=malfunction_rail_env,
-                                    trainruns=experiment_data.solution_full_after_malfunction,
-                                    convert_to_mpeg=True)
-
         # Import the generated video
+        title = 'Reschedule'
         video_src_reschedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
                                             f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
                                             f"experiment_{experiment_id}_flatland_data_analysis.mp4")
+        # Only render if file is not yet created
+        if not os.path.exists(video_src_reschedule):
+            replay_and_verify_trainruns(data_folder=output_folder,
+                                        experiment_id=experiment_data.experiment_id,
+                                        expected_malfunction=experiment_data.malfunction,
+                                        title='Reschedule',
+                                        rendering=True,
+                                        rail_env=malfunction_rail_env,
+                                        trainruns=experiment_data.solution_full_after_malfunction,
+                                        convert_to_mpeg=True)
     else:
         video_src_reschedule = None
 
