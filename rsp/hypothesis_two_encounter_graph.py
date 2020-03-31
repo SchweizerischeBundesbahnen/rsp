@@ -13,7 +13,7 @@ from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_pos
 
 
 def hypothesis_two_encounter_graph_undirected(experiment_base_directory: str,
-                                              qualitative_analysis_experiment_ids: List[int] = None):
+                                              experiment_ids: List[int] = None):
     """This method computes the encounter graphs of the specified experiments.
     Within this first approach, the distance measure within the encounter
     graphs is undirected.
@@ -21,16 +21,16 @@ def hypothesis_two_encounter_graph_undirected(experiment_base_directory: str,
     Parameters
     ----------
     experiment_base_directory
-    qualitative_analysis_experiment_ids
+    experiment_ids
     """
     experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
 
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_base_directory,
-        experiment_ids=qualitative_analysis_experiment_ids)
+        experiment_ids=experiment_ids)
 
     for i in list(range(len(experiment_results_list))):
-        experiment_output_folder = f"{experiment_analysis_directory}/experiment_{qualitative_analysis_experiment_ids[i]:04d}_analysis"
+        experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_ids[i]:04d}_analysis"
         encounter_graph_folder = f"{experiment_output_folder}/encounter_graphs"
 
         # Check and create the folders
@@ -73,4 +73,4 @@ def hypothesis_two_encounter_graph_undirected(experiment_base_directory: str,
 
 if __name__ == '__main__':
     hypothesis_two_encounter_graph_undirected(experiment_base_directory='./exp_hypothesis_one_2020_03_04T19_19_00',
-                                              qualitative_analysis_experiment_ids=[12, 13])
+                                              experiment_ids=[12, 13])

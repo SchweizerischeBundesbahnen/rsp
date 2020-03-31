@@ -12,10 +12,10 @@ from rsp.experiment_solvers.asp.asp_helper import ASPObjective
 from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraints
-from rsp.route_dag.route_dag import get_sinks_for_topo
-from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import get_sources_for_topo
 
 
 class ASPProblemDescription():
@@ -49,7 +49,7 @@ class ASPProblemDescription():
             asp_seed_value=asp_seed_value
 
         )
-        asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
+        asp_problem._build_asp_program(
             tc=tc,
             add_minimumrunnigtime_per_agent=False
         )
@@ -68,7 +68,7 @@ class ASPProblemDescription():
             asp_seed_value=asp_seed_value,
             nb_threads=2  # not deterministic any more!
         )
-        asp_problem.asp_program: List[str] = asp_problem._build_asp_program(
+        asp_problem._build_asp_program(
             tc=tc,
             # minimize_total_sum_of_running_times.lp requires minimumrunningtime(agent_id,<minimumrunningtime)
             add_minimumrunnigtime_per_agent=True
@@ -199,23 +199,6 @@ class ASPProblemDescription():
     def solve(self, verbose: bool = False) -> ASPSolutionDescription:
         """Return the solver and return solver-specific solution
         description."""
-        # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
-        # (we don't use all features in encoding.lp)
-        self.asp_program.append("bridge(0,0,0).")
-        self.asp_program.append("edge(0,0,0,0).")
-        self.asp_program.append("relevant(0,0,0).")
-        self.asp_program.append("m(0,1).")
-        self.asp_program.append("connection(0,(0,0),0,(0,0),0).")
-        self.asp_program.append("penalty(0,0).")
-        self.asp_program.append("penalty(0,0,0).")
-        # initially, not act_penalty_for_train activated
-        self.asp_program.append("act_penalty_for_train(0,0,0).")
-
-        # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
-        # TODO SIM-322 hard-coded value 1
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), visit(T,V), visit(T,V'), edge(T,V,V').")
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), visit(T,V), visit(T,V'), edge(T,V,V').")
-
         asp_solution = flux_helper(self.asp_program,
                                    bound_all_events=self.tc.max_episode_steps,
                                    asp_objective=self.asp_objective,
@@ -251,6 +234,23 @@ class ASPProblemDescription():
         # preparation
         _new_asp_program = []
         self.asp_program = _new_asp_program
+
+        # dirty work around to silence ASP complaining "info: atom does not occur in any rule head"
+        # (we don't use all features in encoding.lp)
+        self.asp_program.append("bridge(0,0,0).")
+        self.asp_program.append("edge(0,0,0,0).")
+        self.asp_program.append("relevant(0,0,0).")
+        self.asp_program.append("m(0,1).")
+        self.asp_program.append("connection(0,(0,0),0,(0,0),0).")
+        self.asp_program.append("penalty(0,0).")
+        self.asp_program.append("penalty(0,0,0).")
+        # initially, not act_penalty_for_train activated
+        self.asp_program.append("act_penalty_for_train(0,0,0).")
+
+        # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
+        # TODO SIM-322 hard-coded value 1
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), visit(T,V), visit(T,V'), edge(T,V,V').")
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), visit(T,V), visit(T,V'), edge(T,V,V').")
 
         # add trains
         for agent_id, topo in tc.topo_dict.items():

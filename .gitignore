@@ -107,14 +107,11 @@ venv.bak/
 /.idea/
 
 
-# RSP outputs
-/rsp/exp_hypothesis_one_*
-/rendering_output/
-/tests/rendering_output/
-/rsp/rendering_output/
-/rsp/experiment_data/
-/test_*_experiment_*/
-/tests/test_*_experiment_*/
+# RSP test and pipeline outputs
+/**/test_*/
+/**/exp_*/
+ffmpeg.exe
+ffmpeg
 
 # Jupyter Notebooks
 *.ipynb

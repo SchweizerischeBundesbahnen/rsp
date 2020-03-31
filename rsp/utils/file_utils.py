@@ -3,6 +3,7 @@ import errno
 import os
 import re
 import sys
+import time
 
 
 def newline_and_flush_stdout_and_stderr():
@@ -10,6 +11,8 @@ def newline_and_flush_stdout_and_stderr():
     sys.stderr.flush()
     sys.stdout.write("\n")
     sys.stdout.flush()
+    # give flushing a bit of time to finish...
+    time.sleep(0.1)
 
 
 def newline_and_flush_stdout():

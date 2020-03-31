@@ -6,9 +6,9 @@ import numpy as np
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import delete_experiment_folder
 
 
 def get_dummy_params_null() -> ParameterRangesAndSpeedData:
@@ -68,7 +68,7 @@ def test_compare_agendas():
         assert len(set(comparison_folders)) == len(comparison_folders)
         for comparison_folder in comparison_folders:
             print(comparison_folder)
-            assert len(os.listdir(comparison_folder)) == 4
+            assert len(os.listdir(comparison_folder)) == 8
     finally:
         for f in [comparison_folder, null_hypothesis_base_folder, alternative_hypothesis_base_folder]:
             delete_experiment_folder(f)
