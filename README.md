@@ -84,6 +84,16 @@ python setup.py install && python -m pytest && python -m flake8 rsp tests
 Taken from [this](https://towardsdatascience.com/version-control-with-jupyter-notebooks-f096f4d7035a) post,
 this is a short introduction on how to use Jupyter Notebooks with git.
 
+Start by installing the jupytext extensions
+```
+pip install jupytext --upgrade
+```
+and make the accessible by your notebooks in the conda env by installing ([Guide](https://stackoverflow.com/questions/37433363/link-conda-environment-with-jupyter-notebook))
+```
+conda install nb_conda
+
+```
+
 Generate a Jupyter config, if you don’t have one yet, with ```jupyter notebook --generate-config```
 edit ```.jupyter/jupyter_notebook_config.py``` and append the following:
 ```
