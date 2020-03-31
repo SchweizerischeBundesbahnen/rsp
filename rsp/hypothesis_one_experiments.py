@@ -37,7 +37,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             experiment_ids: Optional[List[int]] = None,
                             copy_agenda_from_base_directory: Optional[str] = None,
                             experiment_name: str = "exp_hypothesis_one",
-                            run_anaylsis: bool = False,
+                            run_anaylsis: bool = True,
                             parallel_compute: bool = True) -> str:
     """
     Run full pipeline A - B - C
