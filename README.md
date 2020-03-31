@@ -91,7 +91,6 @@ pip install jupytext --upgrade
 and make the accessible by your notebooks in the conda env by installing ([Guide](https://stackoverflow.com/questions/37433363/link-conda-environment-with-jupyter-notebook))
 ```
 conda install nb_conda
-
 ```
 
 Generate a Jupyter config, if you don’t have one yet, with ```jupyter notebook --generate-config```

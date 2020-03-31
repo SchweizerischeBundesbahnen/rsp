@@ -33,8 +33,8 @@ from rsp.utils.notebook_rendering import render_flatland_env
 ```
 
 ```{python}
-experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_17T07_01_49/'
-experiments_of_interest = [14,15,16,17]
+experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_31T07_11_03/'
+experiments_of_interest = None
 ```
 
 ```{python}
@@ -66,7 +66,7 @@ plot_speed_up(experiment_data=experiment_data,
 ### Visualize Weg-Zeit-Diagram of specific experiment
 
 ```{python}
-experiment_of_interest = 16
+experiment_of_interest = 84
 ```
 
 ```{python}

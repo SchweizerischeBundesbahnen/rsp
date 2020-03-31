@@ -16,6 +16,42 @@ from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
+PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
+                    'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
+                    'blueviolet', 'brown', 'burlywood', 'cadetblue',
+                    'chartreuse', 'chocolate', 'coral', 'cornflowerblue',
+                    'cornsilk', 'crimson', 'cyan', 'darkblue', 'darkcyan',
+                    'darkgoldenrod', 'darkgray', 'darkgrey', 'darkgreen',
+                    'darkkhaki', 'darkmagenta', 'darkolivegreen', 'darkorange',
+                    'darkorchid', 'darkred', 'darksalmon', 'darkseagreen',
+                    'darkslateblue', 'darkslategray', 'darkslategrey',
+                    'darkturquoise', 'darkviolet', 'deeppink', 'deepskyblue',
+                    'dimgray', 'dimgrey', 'dodgerblue', 'firebrick',
+                    'floralwhite', 'forestgreen', 'fuchsia', 'gainsboro',
+                    'ghostwhite', 'gold', 'goldenrod', 'gray', 'grey', 'green',
+                    'greenyellow', 'honeydew', 'hotpink', 'indianred', 'indigo',
+                    'ivory', 'khaki', 'lavender', 'lavenderblush', 'lawngreen',
+                    'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan',
+                    'lightgoldenrodyellow', 'lightgray', 'lightgrey',
+                    'lightgreen', 'lightpink', 'lightsalmon', 'lightseagreen',
+                    'lightskyblue', 'lightslategray', 'lightslategrey',
+                    'lightsteelblue', 'lightyellow', 'lime', 'limegreen',
+                    'linen', 'magenta', 'maroon', 'mediumaquamarine',
+                    'mediumblue', 'mediumorchid', 'mediumpurple',
+                    'mediumseagreen', 'mediumslateblue', 'mediumspringgreen',
+                    'mediumturquoise', 'mediumvioletred', 'midnightblue',
+                    'mintcream', 'mistyrose', 'moccasin', 'navajowhite', 'navy',
+                    'oldlace', 'olive', 'olivedrab', 'orange', 'orangered',
+                    'orchid', 'palegoldenrod', 'palegreen', 'paleturquoise',
+                    'palevioletred', 'papayawhip', 'peachpuff', 'peru', 'pink',
+                    'plum', 'powderblue', 'purple', 'red', 'rosybrown',
+                    'royalblue', 'saddlebrown', 'salmon', 'sandybrown',
+                    'seagreen', 'seashell', 'sienna', 'silver', 'skyblue',
+                    'slateblue', 'slategray', 'slategrey', 'snow', 'springgreen',
+                    'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise',
+                    'violet', 'wheat', 'white', 'whitesmoke', 'yellow',
+                    'yellowgreen']
+
 
 def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
                              columns_of_interest: List[str]):
@@ -198,34 +234,40 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
     -------
 
     """
-    fig = go.Figure()
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
     # Get keys and information to add to hover data
     hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
     if additional_data is not None:
         list_keys = [k for k in additional_data]
-        list_values = [v for v in additional_data.values()]
 
         # Build hovertemplate
         for idx, data_point in enumerate(list_keys):
             hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
         for idx, line in enumerate(time_resource_data):
             x, y = zip(*line)
+            trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
+
             fig.add_trace(go.Scatter(x=x,
                                      y=y,
                                      mode='lines+markers',
-                                     marker=dict(size=2),
+                                     marker=dict(size=2, color=trace_color),
+                                     line=dict(color=trace_color),
                                      name="Agent {}".format(idx),
-                                     customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
-                                         0],
                                      hovertemplate=hovertemplate
                                      ))
     else:
         for idx, line in enumerate(time_resource_data):
             x, y = zip(*line)
+            trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
+
             fig.add_trace(go.Scatter(x=x,
                                      y=y,
                                      mode='lines+markers',
-                                     marker=dict(size=2),
+                                     marker=dict(size=2, color=trace_color),
+                                     line=dict(color=trace_color),
                                      name="Agent {}".format(idx),
                                      hovertemplate=hovertemplate
                                      ))
