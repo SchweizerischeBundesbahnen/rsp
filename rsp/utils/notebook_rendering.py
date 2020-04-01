@@ -192,23 +192,23 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
                   time_resource_reschedule_delta.max_time))
 
     # Plot Schedule
-    plot_time_resource_data(time_resource_data=time_resource_matrix_schedule, title='Schedule', ranges=ranges)
+    plot_time_resource_data(time_resource_data=time_resource_schedule.trajectories, title='Schedule', ranges=ranges)
 
     # Plot Reschedule Full only plot this if there is an actual difference to the delta reschedule
     _, _, diff_full_delta = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_matrix_reschedule_delta,
-        time_resource_matrix_b=time_resource_matrix_reschedule_delta)
+        time_resource_matrix_a=time_resource_reschedule_full.trajectories,
+        time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
     if diff_full_delta > 0:
-        plot_time_resource_data(time_resource_data=time_resource_matrix_reschedule_full, title='Full Reschedule',
+        plot_time_resource_data(time_resource_data=time_resource_reschedule_full.trajectories, title='Full Reschedule',
                                 ranges=ranges)
 
     # Plot Reschedule Delta with additional data
     additional_data = dict()
     additional_data.update({'Changed': plotting_information_traces})
     delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
-                                                   trainruns=time_resource_matrix_reschedule_delta)
+                                                   trainruns=time_resource_reschedule_delta.trajectories)
     additional_data.update({'Delay': delay_information})
-    plot_time_resource_data(time_resource_data=time_resource_matrix_reschedule_delta, title='Delta Reschedule',
+    plot_time_resource_data(time_resource_data=time_resource_reschedule_delta.trajectories, title='Delta Reschedule',
                             ranges=ranges, additional_data=additional_data)
 
     # Plot difference
