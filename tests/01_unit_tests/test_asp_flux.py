@@ -42,7 +42,7 @@ def test_asp_helper():
         'train(t1)',
         'dl((t1,1),0)'
     ])
-    assert actual == expected, "actual {}, expected {}".format(actual, expected)
+    assert actual.issuperset(expected), "actual {}, expected {}".format(actual, expected)
 
 
 def test_mutual_exclusion():
@@ -134,14 +134,15 @@ def test_asp_helper_forcing():
         'visit(t1,4)',
         'end(t1,4)'
     ])
-    assert actual == expected, "actual {}, expected {}".format(actual, expected)
+    assert actual.issuperset(expected), "actual {}, expected {}".format(actual, expected)
 
 
 def test_minimize_sum_of_running_times_scheduling():
     """Case Study how to model minimizing sum of running times in a non optimal
     way."""
     encodings = []
-    with path('tests.01_unit_tests.data.asp.instances', 'dummy_two_agents_minimize_sum_of_running_times.lp') as instance_in:
+    with path('tests.01_unit_tests.data.asp.instances',
+              'dummy_two_agents_minimize_sum_of_running_times.lp') as instance_in:
         encodings.append(instance_in)
     with path('res.asp.encodings', 'encoding.lp') as encoding_in:
         encodings.append(encoding_in)
