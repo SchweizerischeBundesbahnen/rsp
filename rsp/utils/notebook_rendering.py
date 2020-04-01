@@ -246,7 +246,7 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
     hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
     if additional_data is not None:
         list_keys = [k for k in additional_data]
-
+        list_values = [v for v in additional_data.values()]
         # Build hovertemplate
         for idx, data_point in enumerate(list_keys):
             hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
@@ -260,6 +260,8 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
                                      marker=dict(size=2, color=trace_color),
                                      line=dict(color=trace_color),
                                      name="Agent {}".format(idx),
+                                     customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
+                                         0],
                                      hovertemplate=hovertemplate
                                      ))
     else:
