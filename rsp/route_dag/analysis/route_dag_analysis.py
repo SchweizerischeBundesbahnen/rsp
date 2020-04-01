@@ -9,8 +9,8 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.logger import VERBOSE
 from rsp.logger import rsp_logger
+from rsp.logger import VERBOSE
 from rsp.route_dag.route_dag import RouteDagEdge
 from rsp.route_dag.route_dag import RouteSectionPenalties
 from rsp.route_dag.route_dag import WaypointPenalties

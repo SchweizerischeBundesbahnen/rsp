@@ -6,9 +6,9 @@ import numpy as np
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import delete_experiment_folder
 
 
 def get_dummy_params_null() -> ParameterRangesAndSpeedData:

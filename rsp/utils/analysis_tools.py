@@ -22,7 +22,8 @@ from pandas import DataFrame
 from pandas import Series
 
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.data_types import ExperimentResultsAnalysis, TimeResourceTrajectories
+from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.file_utils import check_create_folder
 
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed

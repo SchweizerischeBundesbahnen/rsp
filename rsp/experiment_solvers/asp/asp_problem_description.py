@@ -12,10 +12,10 @@ from rsp.experiment_solvers.asp.asp_helper import ASPObjective
 from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraints
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
+from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 
 
 class ASPProblemDescription():

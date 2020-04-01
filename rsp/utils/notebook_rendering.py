@@ -10,10 +10,11 @@ import plotly.graph_objects as go
 from pandas import DataFrame
 
 from rsp.utils.analysis_tools import resource_time_2d
-from rsp.utils.data_types import ExperimentResultsAnalysis, TimeResourceTrajectories
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
-from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
+from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
@@ -74,7 +75,7 @@ def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
         fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                              y=experiment_data[column],
                              name=column, pointpos=-1,
-                             boxpoints='suspectedoutliers',
+                             boxpoints='all',
                              customdata=np.dstack((experiment_data['size'], experiment_data['speed_up']))[0],
                              hovertext=experiment_data['experiment_id'],
                              hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
@@ -108,6 +109,7 @@ def plot_speed_up(experiment_data: DataFrame, axis_of_interest: str):
     fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                          y=experiment_data['speed_up'],
                          pointpos=-1,
+                         boxpoints='all',
                          customdata=np.dstack((experiment_data['size'], experiment_data['time_full'],
                                                experiment_data['time_full_after_malfunction'],
                                                experiment_data['time_delta_after_malfunction']))[0],

@@ -5,10 +5,10 @@ import numpy as np
 from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
-from rsp.utils.experiments import delete_experiment_folder
 
 
 def get_dummy_params() -> ParameterRangesAndSpeedData:

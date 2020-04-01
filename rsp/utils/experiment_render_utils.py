@@ -7,10 +7,10 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
-from rsp.route_dag.route_dag import RouteDAGConstraints
-from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_in_route_dag
+from rsp.route_dag.route_dag import RouteDAGConstraints
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.analysis_tools import plot_weg_zeit_diagramm_3d
 from rsp.utils.analysis_tools import save_weg_zeit_diagramm_2d
 from rsp.utils.analysis_tools import visualize_agent_density
