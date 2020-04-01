@@ -20,7 +20,6 @@ def compare_agendas(
     """Run and compare two agendas. Scheduling is run only once (non-
     deterministic mode). Re-scheduling on same schedules for null and
     alternative hypotheses.
-
     Parameters
     ----------
     get_params_null: GetParams

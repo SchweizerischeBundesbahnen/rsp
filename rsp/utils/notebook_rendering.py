@@ -10,7 +10,7 @@ import plotly.graph_objects as go
 from pandas import DataFrame
 
 from rsp.utils.analysis_tools import resource_time_2d
-from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import ExperimentResultsAnalysis, TimeResourceTrajectories
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import create_env_pair_for_experiment
@@ -157,26 +157,25 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     total_delay = sum(lateness_delta_after_malfunction.values())
 
     # Get full schedule Time-resource-Data
-    time_resource_matrix_schedule, max_resource, max_time = resource_time_2d(schedule=schedule,
-                                                                             width=width,
-                                                                             malfunction_agent_id=malfunction_agent,
-                                                                             sorting=None)
+    time_resource_schedule: TimeResourceTrajectories = resource_time_2d(schedule=schedule,
+                                                                        width=width,
+                                                                        malfunction_agent_id=malfunction_agent,
+                                                                        sorting=None)
     # Get full reschedule Time-resource-Data
-    time_resource_matrix_reschedule_full, max_resource_full, max_time_full = resource_time_2d(schedule=reschedule_full,
-                                                                                              width=width,
-                                                                                              malfunction_agent_id=malfunction_agent,
-                                                                                              sorting=None)
+    time_resource_reschedule_full: TimeResourceTrajectories = resource_time_2d(schedule=reschedule_full,
+                                                                               width=width,
+                                                                               malfunction_agent_id=malfunction_agent,
+                                                                               sorting=None)
     # Get delta reschedule Time-resource-Data
-    time_resource_matrix_reschedule_delta, max_resource_delta, max_time_delta = resource_time_2d(
-        schedule=reschedule_delta,
-        width=width,
-        malfunction_agent_id=malfunction_agent,
-        sorting=None)
+    time_resource_reschedule_delta: TimeResourceTrajectories = resource_time_2d(schedule=reschedule_delta,
+                                                                                width=width,
+                                                                                malfunction_agent_id=malfunction_agent,
+                                                                                sorting=None)
 
     # Compute the difference between schedules and return traces for plotting
     traces_influenced_agents, plotting_information_traces, nr_influenced_agents = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_matrix_schedule,
-        time_resource_matrix_b=time_resource_matrix_reschedule_delta)
+        time_resource_matrix_a=time_resource_schedule.trajectories,
+        time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
 
     # Printing situation overview
     print(
@@ -185,7 +184,12 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
             malfunction_duration, nr_influenced_agents, total_delay))
 
     # Plotting the graphs
-    ranges = (max(max_resource, max_resource_full, max_resource_delta), max(max_time, max_time_full, max_time_delta))
+    ranges = (max(time_resource_schedule.max_resource_id,
+                  time_resource_reschedule_full.max_resource_id,
+                  time_resource_reschedule_delta.max_resource_id),
+              max(time_resource_schedule.max_time,
+                  time_resource_reschedule_full.max_time,
+                  time_resource_reschedule_delta.max_time))
 
     # Plot Schedule
     plot_time_resource_data(time_resource_data=time_resource_matrix_schedule, title='Schedule', ranges=ranges)

@@ -120,7 +120,6 @@ def test_created_env_tuple():
 
 def test_regression_experiment_agenda(regen: bool = False):
     """Run a simple agenda as regression test.
-
     It verifies that we can start from a set of schedules and
     deterministically and produces an equivalent results with the same
     costs. Results may differ on different platforms event with the same
@@ -395,7 +394,6 @@ def test_regression_experiment_agenda(regen: bool = False):
 
 def test_save_and_load_experiment_results():
     """Run a simple agenda and save and load the results.
-
     Check that loading gives the same result.
     """
     agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
@@ -455,20 +453,22 @@ def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
 
 def test_run_full_pipeline():
     """Ensure that the full pipeline runs without error on a simple agenda."""
-    experiment_folder_name = hypothesis_one_pipeline(ParameterRangesAndSpeedData(
-        parameter_ranges=ParameterRanges(agent_range=[2, 2, 1],
-                                         size_range=[30, 30, 1],
-                                         in_city_rail_range=[6, 6, 1],
-                                         out_city_rail_range=[2, 2, 1],
-                                         city_range=[20, 20, 1],
-                                         earliest_malfunction=[20, 20, 1],
-                                         malfunction_duration=[20, 20, 1],
-                                         number_of_shortest_paths_per_agent=[10, 10, 1],
-                                         max_window_size_from_earliest=[np.inf, np.inf, 1],
-                                         asp_seed_value=[94, 94, 1],
-                                         weight_route_change=[60, 60, 1],
-                                         weight_lateness_seconds=[1, 1, 1], ),
-        speed_data={1: 1.0}))
+    experiment_folder_name = hypothesis_one_pipeline(
+        ParameterRangesAndSpeedData(
+            parameter_ranges=ParameterRanges(agent_range=[2, 2, 1],
+                                             size_range=[30, 30, 1],
+                                             in_city_rail_range=[6, 6, 1],
+                                             out_city_rail_range=[2, 2, 1],
+                                             city_range=[20, 20, 1],
+                                             earliest_malfunction=[20, 20, 1],
+                                             malfunction_duration=[20, 20, 1],
+                                             number_of_shortest_paths_per_agent=[10, 10, 1],
+                                             max_window_size_from_earliest=[np.inf, np.inf, 1],
+                                             asp_seed_value=[94, 94, 1],
+                                             weight_route_change=[60, 60, 1],
+                                             weight_lateness_seconds=[1, 1, 1], ),
+            speed_data={1: 1.0})
+    )
     # cleanup
     delete_experiment_folder(experiment_folder_name)
 

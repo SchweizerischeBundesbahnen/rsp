@@ -128,15 +128,16 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         expected_malfunction=expected_malfunction,
         debug=debug)
     image_output_directory = None
+
     if data_folder:
+        foldername = f"experiment_{experiment_id}_rendering_output"
+
         if title is not None:
-            image_output_directory = os.path.join(data_folder,
-                                                  f"experiment_{experiment_id:04d}_analysis",
-                                                  f"experiment_{experiment_id}_rendering_output_{title}")
-        else:
-            image_output_directory = os.path.join(data_folder,
-                                                  f"experiment_{experiment_id:04d}_analysis",
-                                                  f"experiment_{experiment_id}_rendering_output")
+            foldername = f"experiment_{experiment_id}_rendering_output_{title}"
+        image_output_directory = os.path.join(data_folder,
+                                              f"experiment_{experiment_id:04d}_analysis",
+                                              foldername)
+
         check_create_folder(image_output_directory)
     total_reward = replay(
         controller_from_train_runs=controller_from_train_runs,

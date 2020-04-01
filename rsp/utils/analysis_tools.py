@@ -22,7 +22,7 @@ from pandas import DataFrame
 from pandas import Series
 
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import ExperimentResultsAnalysis, TimeResourceTrajectories
 from rsp.utils.file_utils import check_create_folder
 
 # workaround: WORKSPACE is defined in ci where we do not have Qt installed
@@ -471,7 +471,8 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
 
 
 def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int,
-                                  malfunction_agent_id: int = -1, sorting: List[int] = None) -> (np.ndarray, List[int]):
+                                  malfunction_agent_id: Optional[int] = None, sorting: Optional[List[int]] = None) -> (
+        np.ndarray, List[int]):
     """Method to produce sorted matrix of all train runs. Each train run is
     given an individual value for better visualization. The matrix can besorted
     according to a predefined soring or accordin to first agent or
@@ -499,7 +500,7 @@ def weg_zeit_matrix_from_schedule(schedule: TrainrunDict, width: int, height: in
     weg_zeit_matrix = np.zeros(shape=(width * height, max_episode_steps))
     if sorting is None:
         sorting = []
-        if malfunction_agent_id >= 0:
+        if malfunction_agent_id is not None:
             for waypoint in schedule[malfunction_agent_id]:
                 position = coordinate_to_position(width, [waypoint.waypoint.position])  # or is it height?
                 if position not in sorting:
@@ -547,8 +548,8 @@ def weg_zeit_3d_path(schedule: TrainrunDict) -> List[Tuple[int, int, int]]:
 
 def resource_time_2d(schedule: TrainrunDict,
                      width: int,
-                     malfunction_agent_id: int = -1,
-                     sorting: Dict = None) -> (List[Tuple[int, int]], int):
+                     malfunction_agent_id: Optional[int] = -1,
+                     sorting: Optional[Dict] = None) -> TimeResourceTrajectories:
     """Method to define the time-space paths of each train in two dimensions.
     Initially we order them by the malfunctioning train.
 
@@ -564,10 +565,10 @@ def resource_time_2d(schedule: TrainrunDict,
         agent which had malfunctino (used for sorting)
 
     sorting: List[int]
-        Predefined sorting of ressources
+        Predefined sorting of ressources, if nothing is defined soring is according to first appearing agent (id:0,...)
     Returns
     -------
-    List of List of coordinate tuples (r,t) and max ressource index and max time
+    All the train trajectories and the max time and max ressource number for plotting
     """
     all_train_time_paths = []
     max_time = 0
@@ -576,7 +577,7 @@ def resource_time_2d(schedule: TrainrunDict,
         if malfunction_agent_id >= 0:
             index = 0
             for waypoint in schedule[malfunction_agent_id]:
-                position = coordinate_to_position(width, [waypoint.waypoint.position])[0]  # or is it height?
+                position = coordinate_to_position(width, [waypoint.waypoint.position])[0]
                 if position not in sorting:
                     sorting.update({position: index})
                     index += 1
@@ -588,7 +589,7 @@ def resource_time_2d(schedule: TrainrunDict,
             time = waypoint.scheduled_at
             if time > max_time:
                 max_time = time
-            position = coordinate_to_position(width, [pre_waypoint.waypoint.position])[0]  # or is it height?
+            position = coordinate_to_position(width, [pre_waypoint.waypoint.position])[0]
             if position not in sorting:
                 sorting.update({position: index})
                 index += 1
@@ -597,7 +598,10 @@ def resource_time_2d(schedule: TrainrunDict,
             train_time_path.append((None, None))
             pre_waypoint = waypoint
         all_train_time_paths.append(train_time_path)
-    return all_train_time_paths, index - 1, max_time
+    time_ressource_data = TimeResourceTrajectories(trajectories=all_train_time_paths,
+                                                   max_resource_id=index - 1,
+                                                   max_time=max_time)
+    return time_ressource_data
 
 
 def weg_zeit_3d_voxels(schedule: TrainrunDict, width: int, height: int, max_episode_steps: int) -> (
