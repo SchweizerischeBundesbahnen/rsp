@@ -1,0 +1,111 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.1
+  kernelspec:
+    display_name: rsp
+    language: python
+    name: rsp
+---
+
+```{python}
+# %autosave 0
+# %matplotlib inline
+# %matplotlib notebook
+```
+
+```{python}
+import pandas as pd
+from IPython.display import Video
+
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.utils.notebook_rendering import plot_computational_times
+from rsp.utils.notebook_rendering import plot_histogram_from_delay_data
+from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams
+from rsp.utils.notebook_rendering import plot_speed_up
+from rsp.utils.notebook_rendering import render_flatland_env
+```
+
+```{python}
+experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_31T07_11_03/'
+experiments_of_interest = None
+```
+
+```{python}
+experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_directory,experiment_ids=experiments_of_interest)
+experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+```
+
+```{python}
+axis_of_interest = 'n_agents'
+columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
+```
+
+### Visualize Compuational time comparison
+
+```{python}
+plot_computational_times(experiment_data=experiment_data,
+                                  axis_of_interest=axis_of_interest,
+                                  columns_of_interest=columns_of_interest)
+```
+
+### Visualize Speed Up facotrs for experiments
+
+```{python}
+plot_speed_up(experiment_data=experiment_data,
+                       axis_of_interest=axis_of_interest)
+```
+
+### Visualize Weg-Zeit-Diagram of specific experiment
+
+```{python}
+experiment_of_interest = 84
+```
+
+```{python}
+experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
+       'n_agents', 'max_num_cities', 'max_rail_between_cities',
+       'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
+       'time_delta_after_malfunction','nb_resource_conflicts_full',
+       'nb_resource_conflicts_full_after_malfunction',
+       'nb_resource_conflicts_delta_after_malfunction', 'speed_up']]
+```
+
+```{python}
+display(experiment_details.transpose())
+```
+
+```{python}
+plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+```
+
+#### Histogram of delay per agent after re-scheduling
+
+```{python}
+plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
+
+#### Render the current environment
+
+```{python}
+ video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
+
+```{python}
+Video(video_src_schedule, embed=True)
+```
+
+```{python}
+Video(video_src_reschedule, embed=True)
+```
+
+```{python}
+
+```

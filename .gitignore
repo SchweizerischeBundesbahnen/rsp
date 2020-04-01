@@ -112,3 +112,6 @@ venv.bak/
 /**/exp_*/
 ffmpeg.exe
 ffmpeg
+
+# Jupyter Notebooks
+*.ipynb

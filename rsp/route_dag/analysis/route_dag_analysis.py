@@ -40,7 +40,6 @@ def visualize_route_dag_constraints_simple(
         scale: int = 4,
 ) -> nx.DiGraph:
     """Draws an agent's route graph with constraints into a file.
-
     Parameters
     ----------
     topo
@@ -138,7 +137,6 @@ def visualize_route_dag_constraints(
         scale: int = 4,
 ) -> nx.DiGraph:
     """Draws an agent's route graph with constraints into a file.
-
     Parameters
     ----------
     edge_lateness

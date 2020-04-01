@@ -88,6 +88,7 @@ def convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict: Tra
 
 def replay_and_verify_trainruns(rail_env: RailEnv,
                                 trainruns: TrainrunDict,
+                                title: str = None,
                                 expected_malfunction: Optional[ExperimentMalfunction] = None,
                                 rendering: bool = False,
                                 experiment_id: str = '0',
@@ -102,6 +103,8 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         FLATland `RailEnv`. Be aware it is `reset` correctly.
     trainruns: TrainrunDict
         a train run per agent
+    title: str
+        Title to set for folder
     expected_malfunction: Optional[ExperimentMalfunction]
         if a malfunction is supposed to happen, pass it here.
     rendering: bool
@@ -125,10 +128,16 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         expected_malfunction=expected_malfunction,
         debug=debug)
     image_output_directory = None
+
     if data_folder:
+        foldername = f"experiment_{experiment_id}_rendering_output"
+
+        if title is not None:
+            foldername = f"experiment_{experiment_id}_rendering_output_{title}"
         image_output_directory = os.path.join(data_folder,
                                               f"experiment_{experiment_id:04d}_analysis",
-                                              f"experiment_{experiment_id}_rendering_output")
+                                              foldername)
+
         check_create_folder(image_output_directory)
     total_reward = replay(
         controller_from_train_runs=controller_from_train_runs,

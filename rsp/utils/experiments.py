@@ -1,6 +1,5 @@
 """This library contains all utility functions to help you run your
 experiments.
-
 Methods
 -------
 run_experiment:
@@ -79,7 +78,6 @@ def save_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfuncti
                                   experiment_agenda_directory: str,
                                   experiment_id: int):
     """Persist `ScheduleAndMalfunction` to a file.
-
     Parameters
     ----------
     schedule_and_malfunction
@@ -95,12 +93,10 @@ def save_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfuncti
 
 def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> bool:
     """Does a persisted `ScheduleAndMalfunction` exist?
-
     Parameters
     ----------
     experiment_agenda_directory
     experiment_id
-
     Returns
     -------
     """
@@ -111,12 +107,10 @@ def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment
 
 def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> ScheduleAndMalfunction:
     """Load a persisted `ScheduleAndMalfunction` from a file.
-
     Parameters
     ----------
     experiment_agenda_directory
     experiment_id
-
     Returns
     -------
     """
@@ -136,7 +130,6 @@ def run_experiment(solver: ASPExperimentSolver,
                    debug: bool = False
                    ) -> ExperimentResults:
     """
-
     Run a single experiment with a given solver and ExperimentParameters
     Parameters
     ----------
@@ -144,7 +137,6 @@ def run_experiment(solver: ASPExperimentSolver,
         Solver from the class ASPExperimentSolver that should be solving the experiments
     experiment_parameters: ExperimentParameters
         Parameter set of the data form ExperimentParameters
-
     Returns
     -------
     Returns a DataFrame with the experiment results
@@ -258,7 +250,6 @@ def create_schedule_and_malfunction(
         debug: bool = False
 ) -> Tuple[RailEnv, ScheduleAndMalfunction]:
     """B.1 Create schedule and malfunction from experiment parameters.
-
     Parameters
     ----------
     experiment_parameters
@@ -266,7 +257,6 @@ def create_schedule_and_malfunction(
     debug
     rendering
     verbose
-
     Returns
     -------
     malfunction_rail_env, schedule_and_malfunction
@@ -321,7 +311,6 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                 experiment_base_directory: str,
                                 rendering: bool = False):
     """B. Run and save one experiment from experiment parameters.
-
     Parameters
     ----------
     current_experiment_parameters
@@ -368,7 +357,6 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           verbose: bool = False) -> (str, str):
     """Run a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
-
     Parameters
     ----------
     experiment_agenda: ExperimentAgenda
@@ -384,8 +372,6 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     copy_agenda_from_base_directory: bool
         copy schedule and malfunction data from this directory to the experiments folder if given
     rendering: bool
-
-
     Returns
     -------
     Returns the name of the experiment base and data folders
@@ -522,10 +508,8 @@ def create_experiment_agenda(experiment_name: str,
                              ) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
-
     Parameters
     ----------
-
     experiment_name: str
         Name of the experiment
     parameter_ranges: ParameterRanges
@@ -534,8 +518,6 @@ def create_experiment_agenda(experiment_name: str,
         Number of runs with different seed per parameter set we want to run
     speed_data
         Dictionary containing all the desired speeds in the environment
-
-
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges
@@ -600,14 +582,12 @@ def create_experiment_agenda(experiment_name: str,
 def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
     """Recursive function to generate all combinations of parameters given the
     open_dimensions.
-
     Parameters
     ----------
     collected_parameters: list
         The parameter sets filled so far in the recurions, starts out empty
     open_dimensions: list
         Parameter dimensions we have not yet included in the set
-
     Returns
     -------
     list of parameter sets for ExperimentAgenda
@@ -628,7 +608,6 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
     ----------
     params: ExperimentParameters
         Parameter set that we pass to the constructor of the RailEenv
-
     Returns
     -------
     Tuple[RailEnv, RailEnv]
@@ -679,7 +658,6 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
 def save_experiment_agenda_and_hash_to_file(experiment_folder_name: str, experiment_agenda: ExperimentAgenda):
     """Save experiment agenda and current git hash to the folder with the
     experiments.
-
     Parameters
     ----------
     experiment_folder_name: str
@@ -698,7 +676,6 @@ def save_experiment_agenda_and_hash_to_file(experiment_folder_name: str, experim
 
 def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
     """Save experiment agenda to the folder with the experiments.
-
     Parameters
     ----------
     experiment_folder_name: str
@@ -725,14 +702,12 @@ def create_experiment_filename(experiment_folder_name: str, experiment_id: int) 
 def save_experiment_results_to_file(experiment_results: List, file_name: str):
     """Save the data frame with all the result from an experiment into a given
     file.
-
     Parameters
     ----------
     experiment_results: List of experiment results
        List containing all the experiment results
     file_name: str
         File name containing path and name of file we want to store the experiment results
-
     Returns
     -------
     """
@@ -746,14 +721,12 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
                                                         experiment_ids: List[int] = None) -> \
         List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
-
     Parameters
     ----------
     experiment_data_folder_name: str
         Folder name of experiment where all experiment files are stored
     experiment_ids
         List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
-
     Returns
     -------
     DataFrame containing the loaded experiment results
@@ -786,12 +759,10 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
 
 def load_without_average(data_folder: str) -> DataFrame:
     """Load all data from the folder, expand and convert to data frame.
-
     Parameters
     ----------
     data_folder: str
         folder with pkl files.
-
     Returns
     -------
     DataFrame
@@ -804,12 +775,10 @@ def load_without_average(data_folder: str) -> DataFrame:
 
 def delete_experiment_folder(experiment_folder_name: str):
     """Delete experiment folder.
-
     Parameters
     ----------
     experiment_folder_name: str
         Folder name of experiment where all experiment files are stored
-
     Returns
     -------
     """

@@ -38,8 +38,9 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             qualitative_analysis_experiment_ids: Optional[List[int]] = None,
                             asp_export_experiment_ids: Optional[List[int]] = None,
                             copy_agenda_from_base_directory: Optional[str] = None,
-                            experiment_name: str = "exp_hypothesis_one"
-                            ) -> str:
+                            experiment_name: str = "exp_hypothesis_one",
+                            run_anaylsis: bool = True,
+                            parallel_compute: bool = True) -> str:
     """
     Run full pipeline A - B - C
 
@@ -47,6 +48,9 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     ----------
     experiment_name
     parameter_ranges_and_speed_data
+    parallel_compute
+    run_anaylsis
+    parameter_ranges
     speed_data
     experiment_ids
         filter for experiment ids (data generation)
@@ -74,20 +78,21 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     # B. Experiments: setup, then run
     experiment_base_folder_name, _ = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
-        run_experiments_parallel=True,
+        run_experiments_parallel=parallel_compute,
         show_results_without_details=True,
         verbose=False,
         experiment_ids=experiment_ids,
         copy_agenda_from_base_directory=copy_agenda_from_base_directory
     )
     # C. Experiment Analysis
-    hypothesis_one_data_analysis(
-        experiment_base_directory=experiment_base_folder_name,
-        analysis_2d=True,
-        analysis_3d=False,
-        qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
-        asp_export_experiment_ids=asp_export_experiment_ids
-    )
+    if run_anaylsis:
+        hypothesis_one_data_analysis(
+            experiment_base_directory=experiment_base_folder_name,
+            analysis_2d=True,
+            analysis_3d=False,
+            qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
+            asp_export_experiment_ids=asp_export_experiment_ids
+        )
     return experiment_base_folder_name
 
 

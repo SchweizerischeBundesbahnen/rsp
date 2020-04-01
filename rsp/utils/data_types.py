@@ -142,6 +142,10 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('vertex_eff_lateness_delta_after_malfunction', Dict[Waypoint, int]),
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
+
+TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
+                                      [('trajectories', List[Tuple[int, int]]), ('max_resource_id', int),
+                                       ('max_time', int)])
 if COMPATIBILITY_MODE:
     ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
 COLUMNS = ExperimentResults._fields
@@ -242,8 +246,10 @@ def expand_experiment_results_for_analysis(
 
     # derive speed up
     time_full = experiment_results.results_full.solve_time
-    time_full_after_malfunction = experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    time_delta_after_malfunction = experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    time_full_after_malfunction = \
+        experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    time_delta_after_malfunction = \
+        experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
     nb_resource_conflicts_delta_after_malfunction = experiment_results.results_delta_after_malfunction.nb_conflicts
     nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
     speed_up = time_full_after_malfunction / time_delta_after_malfunction
