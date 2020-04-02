@@ -55,7 +55,7 @@ dependencies:
       - more-itertools==8.0.2
       - msgpack==0.6.2
       - msgpack-numpy==0.4.4.3
-      - nb_conda==2.2.1
+      - nb_conda=2.2.1=py37_0
       - numpy==1.17.4
       - networkx==2.4
       - ortools==7.4.7247
