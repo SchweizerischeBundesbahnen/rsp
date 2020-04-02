@@ -490,6 +490,7 @@ def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, exper
     """
     copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
                                                      EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+    print(os.path.abspath(os.curdir))
     files = os.listdir(copy_agenda_from_agenda_directory)
     rsp_logger.info(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} "
                     f"-> {experiment_agenda_directory}")

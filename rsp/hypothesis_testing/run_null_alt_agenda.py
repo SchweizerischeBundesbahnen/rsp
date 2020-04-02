@@ -31,7 +31,7 @@ def compare_agendas(
     copy_agenda_from_base_directory: Optional[str] = None
     """
 
-    # do everything in a subfoleder
+    # do everything in a subfolder
     base_folder = create_experiment_folder_name(experiment_name=experiment_name)
     check_create_folder(base_folder)
     os.chdir(base_folder)

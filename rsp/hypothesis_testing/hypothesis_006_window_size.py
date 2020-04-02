@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
@@ -30,4 +32,5 @@ def hypothesis_006_window_size_main(copy_agenda_from_base_directory: str):
 
 
 if __name__ == '__main__':
-    hypothesis_006_window_size_main(copy_agenda_from_base_directory='exp_hypothesis_one_2020_03_31T07_11_03')
+    hypothesis_006_window_size_main(
+        copy_agenda_from_base_directory=os.path.abspath('exp_hypothesis_one_2020_03_31T07_11_03'))

@@ -1,3 +1,5 @@
+import os
+
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
 from rsp.hypothesis_testing.tweak_experiment_agenda import tweak_asp_seed_value
 from rsp.hypothesis_testing.tweak_experiment_agenda import tweak_name
@@ -34,4 +36,4 @@ def hypothesis_001_solver_seeding_irrelevant_main(copy_agenda_from_base_director
 
 if __name__ == '__main__':
     hypothesis_001_solver_seeding_irrelevant_main(
-        copy_agenda_from_base_directory='exp_hypothesis_one_2020_03_31T07_11_03')
+        copy_agenda_from_base_directory=os.path.abspath('exp_hypothesis_one_2020_03_31T07_11_03'))
