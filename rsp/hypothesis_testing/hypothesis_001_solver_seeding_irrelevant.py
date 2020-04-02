@@ -1,6 +1,7 @@
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
 from rsp.hypothesis_testing.tweak_experiment_agenda import tweak_asp_seed_value
 from rsp.hypothesis_testing.tweak_experiment_agenda import tweak_name
+from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_experiment_agenda_from_file
 
 
@@ -14,7 +15,8 @@ def hypothesis_001_solver_seeding_irrelevant_main(copy_agenda_from_base_director
     """
     experiment_name = "plausi_001"
     agenda_null = tweak_name(
-        agenda_null=load_experiment_agenda_from_file(copy_agenda_from_base_directory),
+        agenda_null=load_experiment_agenda_from_file(
+            f"{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}"),
         alt_index=None,
         experiment_name=experiment_name)
     compare_agendas(

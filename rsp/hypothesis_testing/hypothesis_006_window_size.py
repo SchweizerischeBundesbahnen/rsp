@@ -2,13 +2,15 @@ import numpy as np
 
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
 from rsp.hypothesis_testing.tweak_experiment_agenda import tweak_max_window_size_from_earliest
+from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_experiment_agenda_from_file
 
 
 def hypothesis_006_window_size_main(copy_agenda_from_base_directory: str):
     experiment_name = "plausi_006"
     agenda_null = tweak_max_window_size_from_earliest(
-        agenda_null=load_experiment_agenda_from_file(copy_agenda_from_base_directory),
+        agenda_null=load_experiment_agenda_from_file(
+            f"{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}"),
         max_window_size_from_earliest=np.inf,
         alt_index=None,
         experiment_name=experiment_name)(
