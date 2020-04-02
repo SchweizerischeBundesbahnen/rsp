@@ -13,7 +13,7 @@ from rsp.utils.experiments import load_experiment_agenda_from_file
 
 def hypothesis_006_window_size_main(
         copy_agenda_from_base_directory: str,
-        experiment_ids: Optional[List[int]]):
+        experiment_ids: Optional[List[int]] = None):
     experiment_name = "plausi_006"
     agenda_null = tweak_max_window_size_from_earliest(
         agenda_null=load_experiment_agenda_from_file(
@@ -40,4 +40,5 @@ def hypothesis_006_window_size_main(
 
 if __name__ == '__main__':
     hypothesis_006_window_size_main(
-        copy_agenda_from_base_directory=os.path.abspath('exp_hypothesis_one_2020_03_31T07_11_03'))
+        copy_agenda_from_base_directory=os.path.abspath('exp_hypothesis_one_2020_03_31T07_11_03')
+    )
