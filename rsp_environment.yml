@@ -11,6 +11,7 @@ dependencies:
   - clingo-dl=1.1.0
   - icu==58.2
   - libpng==1.6.37
+  - - nb_conda=2.2.1=py37_0
   - openssl=1.1.1
   - pip=19.3.1
   - pixman==0.38.0
@@ -55,7 +56,6 @@ dependencies:
       - more-itertools==8.0.2
       - msgpack==0.6.2
       - msgpack-numpy==0.4.4.3
-      - nb_conda==2.2.1
       - numpy==1.17.4
       - networkx==2.4
       - ortools==7.4.7247
