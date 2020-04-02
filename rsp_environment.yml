@@ -11,6 +11,7 @@ dependencies:
   - clingo-dl=1.1.0
   - icu==58.2
   - libpng==1.6.37
+  - nb_conda=2.2.1
   - openssl=1.1.1
   - pip=19.3.1
   - pixman==0.38.0
@@ -41,6 +42,7 @@ dependencies:
       - flake8-bugbear==20.1.2
       # TODO we should pin to FLATland version
       - git+https://gitlab.aicrowd.com/flatland/flatland.git@master#egg=flatland-rl
+      - jupytext==1.4.1
       - future==0.18.2
       - gitpython==3.1.0
       - gym==0.14.0
