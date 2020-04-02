@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
+from rsp.hypothesis_testing.tweak_experiment_agenda import merge_agendas_under_new_name
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import create_experiment_agenda
@@ -47,37 +48,28 @@ def test_compare_agendas():
     """Run null and alt_0 and alt_1 hypotheses and check that expected files
     are present without inspecting them."""
     experiment_name = "test_compare_agendas"
-    null_hypothesis_base_folder, alternative_hypothesis_base_folders, comparison_folders = compare_agendas(
-        experiment_agenda_null=create_experiment_agenda(
+    experiment_agenda_null = create_experiment_agenda(
+        experiment_name=experiment_name,
+        parameter_ranges_and_speed_data=get_dummy_params_null(),
+        experiments_per_grid_element=1
+    )
+    experiment_agendas = [
+        create_experiment_agenda(
             experiment_name=experiment_name,
-            parameter_ranges_and_speed_data=get_dummy_params_null(),
+            parameter_ranges_and_speed_data=get_params_alt(window_size=window_size),
             experiments_per_grid_element=1
-        ),
-        experiment_agenda_alternatives=[
-            create_experiment_agenda(
-                experiment_name=experiment_name,
-                parameter_ranges_and_speed_data=get_params_alt(window_size=window_size),
-                experiments_per_grid_element=1
-            )
-            for window_size in [30, 60]
-        ],
+        )
+        for window_size in [30, 60]
+    ]
+
+    base_folder = compare_agendas(
+        experiment_agenda=merge_agendas_under_new_name(
+            experiment_name=experiment_name,
+            agendas=[experiment_agenda_null] + experiment_agendas),
         experiment_name=experiment_name
     )
     try:
-        assert len(os.listdir(os.path.join(null_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME))) > 0
-        assert len(os.listdir(os.path.join(null_hypothesis_base_folder, EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME))) > 0
-        assert len(alternative_hypothesis_base_folders) == len(set(alternative_hypothesis_base_folders))
-        assert len(alternative_hypothesis_base_folders) == 2
-        for alternative_hypothesis_base_folder in alternative_hypothesis_base_folders:
-            assert len(
-                os.listdir(os.path.join(alternative_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME))) > 0
-            assert len(
-                os.listdir(os.path.join(alternative_hypothesis_base_folder, EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME))) > 0
-        assert len(comparison_folders) == 2
-        assert len(set(comparison_folders)) == len(comparison_folders)
-        for comparison_folder in comparison_folders:
-            print(comparison_folder)
-            assert len(os.listdir(comparison_folder)) == 8
+        assert len(os.listdir(os.path.join(base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME))) > 0
+        assert len(os.listdir(os.path.join(base_folder, EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME))) > 0
     finally:
-        for f in [comparison_folder, null_hypothesis_base_folder, alternative_hypothesis_base_folder]:
-            delete_experiment_folder(f)
+        delete_experiment_folder(base_folder)

@@ -1,3 +1,4 @@
+from typing import List
 from typing import Optional
 
 from rsp.utils.data_types import ExperimentAgenda
@@ -44,6 +45,15 @@ def tweak_max_window_size_from_earliest(
                                         **{'max_window_size_from_earliest': max_window_size_from_earliest}))
             for experiment in agenda_null.experiments]
     )
+
+
+def merge_agendas_under_new_name(experiment_name: str, agendas: List[ExperimentAgenda]) -> ExperimentAgenda:
+    return ExperimentAgenda(experiment_name=experiment_name, experiments=[
+        experiment
+        for experiment_agenda in agendas
+        for experiment in experiment_agenda.experiments
+
+    ])
 
 
 def _make_suffix(alt_index: Optional[int]) -> str:
