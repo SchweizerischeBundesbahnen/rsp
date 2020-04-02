@@ -16,7 +16,9 @@ def compare_agendas(
         experiment_agenda: ExperimentAgenda,
         experiment_name: str,
         experiment_ids: Optional[List[int]] = None,
-        copy_agenda_from_base_directory: Optional[str] = None
+        copy_agenda_from_base_directory: Optional[str] = None,
+        run_analysis: bool = True,
+        parallel_compute: bool = True
 ) -> str:
     """Run and compare two agendas. Scheduling is run only once (non-
     deterministic mode). Re-scheduling on same schedules for null and
@@ -26,7 +28,9 @@ def compare_agendas(
     experiment_agenda: ExperimentAgenda
     experiment_name: str
     copy_agenda_from_base_directory: Optional[str] = None,
-    experiment_ids: Optional[List[int]] = None,
+    experiment_ids: Optional[List[int]] = None
+    parallel_compute
+    run_analysis
     """
 
     # do everything in a subfolder
@@ -41,7 +45,9 @@ def compare_agendas(
     experiment_base_folder = hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
         experiment_ids=experiment_ids,
-        copy_agenda_from_base_directory=copy_agenda_from_base_directory
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        run_analysis=run_analysis,
+        parallel_compute=parallel_compute
     )
 
     # TODO compare

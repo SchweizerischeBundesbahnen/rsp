@@ -34,7 +34,9 @@ def hypothesis_001_solver_seeding_irrelevant_main(
                 experiment_name=experiment_name)
             for inc in range(5)]),
         # TODO column and baseline value
-        copy_agenda_from_base_directory=copy_agenda_from_base_directory
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        run_analysis=False,
+        parallel_compute=True
     )
 
 

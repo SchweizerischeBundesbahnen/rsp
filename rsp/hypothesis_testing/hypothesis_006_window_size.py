@@ -20,7 +20,6 @@ def hypothesis_006_window_size_main(
             f"{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}"),
         max_window_size_from_earliest=np.inf,
         alt_index=None,
-        experiment_name=experiment_name)(
         experiment_name=experiment_name)
     compare_agendas(
         experiment_name=experiment_name,
@@ -33,7 +32,9 @@ def hypothesis_006_window_size_main(
                 experiment_name=experiment_name)
             for index, s in enumerate([30, 60])]),
         # TODO column and baseline value
-        copy_agenda_from_base_directory=copy_agenda_from_base_directory
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        run_analysis=False,
+        parallel_compute=True
     )
 
 
