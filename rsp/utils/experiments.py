@@ -151,7 +151,7 @@ def run_experiment(solver: ASPExperimentSolver,
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
         _pp.pprint(experiment_parameters)
 
-    # B.1: load or re-generate?
+    # A.2: load or re-generate?
     # we want to be able to reuse the same schedule and malfunction to be able to compare
     # identical re-scheduling problems between runs and to debug them
     # if the data already exists, load it and do not re-generate it
@@ -249,7 +249,7 @@ def create_schedule_and_malfunction(
         verbose: bool = False,
         debug: bool = False
 ) -> Tuple[RailEnv, ScheduleAndMalfunction]:
-    """B.1 Create schedule and malfunction from experiment parameters.
+    """A.2 Create schedule and malfunction from experiment parameters.
     Parameters
     ----------
     experiment_parameters

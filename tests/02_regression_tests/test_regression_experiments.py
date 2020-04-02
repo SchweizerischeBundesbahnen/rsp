@@ -504,7 +504,7 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
-    # since schedule generation is not deterministic, we need to pickle the output of B.1 experiment setup
+    # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
         schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(

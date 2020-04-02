@@ -69,13 +69,13 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         experiment_base_folder_name
     """
 
-    # A. Experiment Planning: Create an experiment agenda out of the parameter ranges
+    # A.1 Experiment Planning: Create an experiment agenda out of the parameter ranges
     experiment_agenda = create_experiment_agenda(
         experiment_name=experiment_name,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiments_per_grid_element=1
     )
-    # B. Experiments: setup, then run
+    # A.2 + B. Experiments: setup, then run
     experiment_base_folder_name, _ = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,

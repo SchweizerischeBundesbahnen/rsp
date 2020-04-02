@@ -27,7 +27,7 @@ FLATLAND_OFFSET_PATTERN = {
     # heading west = coming from east: +col
     3: np.array([0, OFFSET]),
     # dummy heading = no offset
-    5: np.array([300, 300])
+    5: np.array([0.5 * -OFFSET, 0.5 * -OFFSET])
 }
 
 
