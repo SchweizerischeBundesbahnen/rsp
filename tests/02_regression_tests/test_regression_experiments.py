@@ -145,7 +145,7 @@ def test_regression_experiment_agenda(regen: bool = False):
     # Import the solver for the experiments
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(
         experiment_agenda=agenda,
-        run_experiments_parallel=False,
+        run_experiments_parallel=1,
         verbose=True,
         copy_agenda_from_base_directory="tests/02_regression_tests/data/test_regression_experiment_agenda"
     )
@@ -409,7 +409,7 @@ def test_save_and_load_experiment_results():
 
     experiment_folder_name, experiment_data_folder = \
         run_experiment_agenda(experiment_agenda=agenda,
-                              run_experiments_parallel=False)
+                              run_experiments_parallel=1)
 
     # load results
     loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
@@ -630,5 +630,5 @@ def test_parallel_experiment_execution():
                              number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
                              max_window_size_from_earliest=np.inf)])
 
-    experiment_folder_name, _ = run_experiment_agenda(agenda, run_experiments_parallel=True)
+    experiment_folder_name, _ = run_experiment_agenda(agenda, run_experiments_parallel=os.cpu_count())
     delete_experiment_folder(experiment_folder_name)

@@ -150,6 +150,7 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         expected_flatland_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainruns)
     )
     if rendering and convert_to_mpeg:
+        print("curdir=" + str(os.curdir))
         import ffmpeg
         (ffmpeg
          .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s='1920x1080')

@@ -66,6 +66,12 @@ from rsp.utils.psutil_helpers import virtual_memory_human_readable
 from rsp.utils.tee import reset_tee
 from rsp.utils.tee import tee_stdout_stderr_to_file
 
+#  B008 Do not perform function calls in argument defaults.
+#  The call is performed only once at function definition time.
+#  All calls to your function will reuse the result of that definition-time function call.
+#  If this is intended, ass ign the function call to a module-level variable and use that variable as a default value.
+AVAILABLE_CPUS = os.cpu_count()
+
 _pp = pprint.PrettyPrinter(indent=4)
 
 EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
@@ -351,7 +357,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           experiment_ids: Optional[List[int]] = None,
                           copy_agenda_from_base_directory: Optional[str] = None,
-                          run_experiments_parallel: bool = True,
+                          run_experiments_parallel: int = AVAILABLE_CPUS,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
                           verbose: bool = False) -> (str, str):
@@ -363,7 +369,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         Full list of experiments
     experiment_ids: Optional[List[int]]
         List of experiment IDs we want to run
-    run_experiments_parallel: bool
+    run_experiments_parallel: in
         run experiments in parallel
     show_results_without_details: bool
         Print results
@@ -405,46 +411,32 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     solver = ASPExperimentSolver()
 
-    if run_experiments_parallel:
-        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
-        # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
-        pool = multiprocessing.Pool(maxtasksperchild=1)
-        print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
-        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-        newline_and_flush_stdout_and_stderr()
-        run_and_save_one_experiment_partial = partial(
-            run_and_save_one_experiment,
-            solver=solver,
-            verbose=verbose,
-            show_results_without_details=show_results_without_details,
-            experiment_base_directory=experiment_base_directory
-        )
+    # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+    # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
+    # N.B. even with parallelization degree 1, we want to run each experiment in a new process
+    #      in order to get around https://github.com/potassco/clingo/issues/203
+    pool = multiprocessing.Pool(processes=run_experiments_parallel, maxtasksperchild=1)
+    print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    newline_and_flush_stdout_and_stderr()
+    run_and_save_one_experiment_partial = partial(
+        run_and_save_one_experiment,
+        solver=solver,
+        verbose=verbose,
+        show_results_without_details=show_results_without_details,
+        experiment_base_directory=experiment_base_directory
+    )
 
-        for _ in tqdm.tqdm(
-                pool.imap_unordered(
-                    run_and_save_one_experiment_partial,
-                    experiment_agenda.experiments
-                ),
-                total=len(experiment_agenda.experiments)):
-            pass
-        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-        newline_and_flush_stdout_and_stderr()
-        _print_log_files_from_experiment_data_directory(experiment_data_directory)
-
-    else:
-        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-        newline_and_flush_stdout_and_stderr()
-        for current_experiment_parameters in tqdm.tqdm(experiment_agenda.experiments):
-            run_and_save_one_experiment(
-                current_experiment_parameters=current_experiment_parameters,
-                solver=solver,
-                verbose=verbose,
-                show_results_without_details=show_results_without_details,
-                experiment_base_directory=experiment_base_directory,
-                rendering=rendering)
-
-        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-        newline_and_flush_stdout_and_stderr()
+    for _ in tqdm.tqdm(
+            pool.imap_unordered(
+                run_and_save_one_experiment_partial,
+                experiment_agenda.experiments
+            ),
+            total=len(experiment_agenda.experiments)):
+        pass
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    newline_and_flush_stdout_and_stderr()
+    _print_log_files_from_experiment_data_directory(experiment_data_directory)
 
     # remove tees
     reset_tee(*tee_orig)

@@ -29,38 +29,48 @@ def compare_agendas(
     # do everything in a subfoleder
     base_folder = create_experiment_folder_name(experiment_name=experiment_name)
     check_create_folder(base_folder)
-    os.chdir(base_folder)
 
-    parameter_ranges_and_speed_data = get_params_null()
-    print("\n\n\n\n")
-    print(f"=========================================================")
-    print(f"NULL HYPOTHESIS {parameter_ranges_and_speed_data}")
-    print(f"=========================================================")
-    null_hypothesis_base_folder = hypothesis_one_pipeline(
-        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_ids=None,
-        copy_agenda_from_base_directory=None,  # generate schedules
-        experiment_name=experiment_name + "_null"
-    )
-    alternative_hypothesis_base_folders = []
-    comparison_folders = []
-    for i, get_params_alt in enumerate(get_params_alternatives):
-        parameter_ranges_and_speed_data = get_params_alt()
+    # TODO can we do without changing directory and riksing side effects?
+    curdir_before = os.path.abspath(os.curdir)
+    os.chdir(base_folder)
+    try:
+
+        parameter_ranges_and_speed_data = get_params_null()
         print("\n\n\n\n")
         print(f"=========================================================")
-        print(f"ALTERNATIVE HYPOTHESIS {i}:  {parameter_ranges_and_speed_data}")
+        print(f"NULL HYPOTHESIS {parameter_ranges_and_speed_data}")
         print(f"=========================================================")
-        alternative_hypothesis_base_folder = hypothesis_one_pipeline(
+        null_hypothesis_base_folder = hypothesis_one_pipeline(
             parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
             experiment_ids=None,
-            copy_agenda_from_base_directory=null_hypothesis_base_folder,
-            experiment_name=experiment_name + f"_alt{i:03d}"
+            copy_agenda_from_base_directory=None,  # generate schedules
+            experiment_name=experiment_name + "_null"
         )
-        alternative_hypothesis_base_folders.append(alternative_hypothesis_base_folder)
-        comparison_folder = compare_runtimes(
-            data_folder1=os.path.join(null_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
-            data_folder2=os.path.join(alternative_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
-            experiment_ids=[]
-        )
-        comparison_folders.append(comparison_folder)
+        alternative_hypothesis_base_folders = []
+        comparison_folders = []
+        for i, get_params_alt in enumerate(get_params_alternatives):
+            parameter_ranges_and_speed_data = get_params_alt()
+            print("\n\n\n\n")
+            print(f"=========================================================")
+            print(f"ALTERNATIVE HYPOTHESIS {i}:  {parameter_ranges_and_speed_data}")
+            print(f"=========================================================")
+            alternative_hypothesis_base_folder = hypothesis_one_pipeline(
+                parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                experiment_ids=None,
+                copy_agenda_from_base_directory=null_hypothesis_base_folder,
+                experiment_name=experiment_name + f"_alt{i:03d}"
+            )
+            alternative_hypothesis_base_folders.append(alternative_hypothesis_base_folder)
+            comparison_folder = compare_runtimes(
+                data_folder1=os.path.join(null_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
+                data_folder2=os.path.join(alternative_hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME),
+                experiment_ids=[]
+            )
+            comparison_folders.append(comparison_folder)
+        null_hypothesis_base_folder = os.path.abspath(null_hypothesis_base_folder)
+        alternative_hypothesis_base_folders = [os.path.abspath(f) for f in alternative_hypothesis_base_folders]
+        comparison_folders = [os.path.abspath(f) for f in comparison_folders]
+    finally:
+        print(f"changing back from {os.path.abspath(os.curdir)} to {curdir_before}")
+        os.chdir(curdir_before)
     return null_hypothesis_base_folder, alternative_hypothesis_base_folders, comparison_folders
