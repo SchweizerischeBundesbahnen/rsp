@@ -1,14 +1,18 @@
 """Rendering methods to use with jupyter notebooks."""
 import os.path
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 from typing import List
 from typing import Tuple
 
+import networkx as nx
 import numpy as np
 import plotly.graph_objects as go
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict, Trainrun, Waypoint
 from pandas import DataFrame
 
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints, _get_edge_label
+from rsp.route_dag.route_dag import ScheduleProblemDescription, RouteDAGConstraints, RouteSectionPenalties, WaypointPenalties
 from rsp.utils.analysis_tools import resource_time_2d
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
@@ -332,6 +336,59 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
     fig.update_yaxes(title="Delay [s]")
     fig.show()
 
+def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis, agent_id: int):
+    train_runs_input: TrainrunDict = experiment_results_analysis.solution_full
+    train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
+    train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
+
+    train_run_input: Trainrun = train_runs_input[agent_id]
+    train_run_full_after_malfunction: Trainrun = train_runs_full_after_malfunction[agent_id]
+    train_run_delta_after_malfunction: Trainrun = train_runs_delta_after_malfunction[agent_id]
+
+    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
+    problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
+    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_after_malfunction
+
+    topo = problem_schedule.topo_dict[agent_id]
+
+    # Visualize Schedule RouteDAG for agent
+    visualize_route_dag_constraints(
+            topo=topo,
+            train_run_input=train_run_input,
+            train_run_full_after_malfunction=train_run_full_after_malfunction,
+            train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+            f=problem_schedule.route_dag_constraints_dict[agent_id],
+            vertex_eff_lateness={},
+            edge_eff_route_penalties={},
+            route_section_penalties=problem_schedule.route_section_penalties[agent_id],
+            title=f'Schedule RouteDAG for agent {agent_id}',
+            file_name=None)
+
+    # Visualize Schedule RouteDAG for agent
+    visualize_route_dag_constraints(
+        topo=topo,
+        train_run_input=train_run_input,
+        train_run_full_after_malfunction=train_run_full_after_malfunction,
+        train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+        f=problem_rsp_full.route_dag_constraints_dict[agent_id],
+        vertex_eff_lateness={},
+        edge_eff_route_penalties={},
+        route_section_penalties=problem_schedule.route_section_penalties[agent_id],
+        title=f'Full Reschedule RouteDAG for agent {agent_id}',
+        file_name=None)
+
+    # Visualize Schedule RouteDAG for agent
+    visualize_route_dag_constraints(
+            topo=topo,
+            train_run_input=train_run_input,
+            train_run_full_after_malfunction=train_run_full_after_malfunction,
+            train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+            f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
+            vertex_eff_lateness={},
+            edge_eff_route_penalties={},
+            route_section_penalties=problem_schedule.route_section_penalties[agent_id],
+            title=f'Delta Reschedule RouteDAG for agent {agent_id}',
+            file_name=None)
 
 def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, experiment_id: int,
                         render_schedule: bool = True, render_reschedule: bool = True):

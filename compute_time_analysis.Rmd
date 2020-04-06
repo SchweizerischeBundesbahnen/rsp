@@ -22,7 +22,7 @@ jupyter:
 import pandas as pd
 from IPython.display import Video
 
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_data_frame_row_to_experiment_results
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.notebook_rendering import plot_computational_times
@@ -30,10 +30,11 @@ from rsp.utils.notebook_rendering import plot_histogram_from_delay_data
 from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams
 from rsp.utils.notebook_rendering import plot_speed_up
 from rsp.utils.notebook_rendering import render_flatland_env
+from rsp.utils.notebook_rendering import plot_route_dag
 ```
 
 ```{python}
-experiment_base_directory = './rsp/exp_hypothesis_one_2020_04_06T15_58_44/'
+experiment_base_directory = './rsp/mini_toy_example/'
 experiments_of_interest = None
 ```
 
@@ -70,8 +71,8 @@ experiment_of_interest = 0
 ```
 
 ```{python}
-single_experiment_dataframe = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest]
-single_exp_results = convert_data_frame_row_to_experiment_results(single_experiment_dataframe)
+single_experiment_dataframe = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest].iloc[0]
+single_exp_results = convert_pandas_series_experiment_results_analysis(single_experiment_dataframe)
 choices_full_schedule = single_exp_results.results_full.solver_statistics["solving"]["solvers"]["choices"]
 choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
@@ -120,6 +121,10 @@ Video(video_src_schedule, embed=True)
 
 ```{python}
 Video(video_src_reschedule, embed=True)
+```
+
+```{python}
+plot_route_dag(single_exp_results,0)
 ```
 
 ```{python}
