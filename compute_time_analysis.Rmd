@@ -14,8 +14,8 @@ jupyter:
 
 ```{python}
 # %autosave 0
-# %matplotlib inline
 # %matplotlib notebook
+
 ```
 
 ```{python}

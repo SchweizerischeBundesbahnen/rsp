@@ -159,8 +159,8 @@ def visualize_route_dag_constraints(
     # figsize
     flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
     flatland_figsize = np.max(flatland_positions, axis=0) - np.min(flatland_positions, axis=0)
-    #plt.figure(figsize=(flatland_figsize[1] * scale, flatland_figsize[0] * scale))
-    plt.figure()
+    plt.figure(figsize=(flatland_figsize[1] * scale, flatland_figsize[0] * scale))
+
     # plt title
     if title:
         plt.title(title)
