@@ -17,6 +17,12 @@ pot_penalty_for_train(T,M+D,P) :- train(T), minimumrunningtime(T,M), penalty_for
 %  minimize_total_sum_of_running_times.lp:20:33-54: info: atom does not occur in any rule head: act_penalty_for_train
 {act_penalty_for_train(T,M+D,P)} :- train(T), minimumrunningtime(T,M), penalty_for_delay(D,P).
 
+
+%  next/ should enhance propagation of atoms.
+next(T,A,B) :- pot_penalty_for_train(T,A,_), pot_penalty_for_train(T,B,_), A < B,
+               not pot_penalty_for_train(T,C,_) : pot_penalty_for_train(T,C,_), A < C, C < B.
+:- act_penalty_for_train(T,B,P), next(T,A,B), not act_penalty_for_train(T,B,_).
+
 % activate penalty if
 % (T,V') - (T,V) >= R
 &diff{ (T,V)-(T,V') } <=  -R :- act_penalty_for_train(T,R,P), pot_penalty_for_train(T,R,P), train(T), start(T,V), end(T,V'), visit(T,V), visit(T,V').

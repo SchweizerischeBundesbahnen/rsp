@@ -43,8 +43,9 @@ shared(T,(V,V'),T',(U,U')) :- edge(T,V,V'), edge(T',U,U'), T!=T',
 
 
 shared(T',(U,U'),T,(V,V')) :- shared(T,(V,V'),T',(U,U')).
-                              % what about the following line? Does not seem to work.
+% / MODIFICATION: what about the following line? Does not seem to work.
                               %, e(T,V,E), e(T',U,E'), (E,T)<(E',T').
+% \ MODIFICIATION
 % Now, if both trains are routed through those edges a conflict occurs
 % (lines 9 and 10). We resolve the conflict by making a choice which train passes through
 %  their edge first (lines 11 and 12).
@@ -110,6 +111,7 @@ conflict(T,E,T',E') :- shared(T,E,T',E'), T < T',
 % Target must be reached.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %exactly one valid end node is chosen for each train to be visited (Line 1).
-1 { visit(T,V)      : end(T,V)    } 1 :- train(T).
-% passing times need to be non-negative
-&diff{ 0-(T,V) }  <= 0:- visit(T,V).
+% / MODIFICIATION more direct version wihtout choice
+ended(T) :- visit(T,V), end(T,V).
+:- not ended(T), train(T).
+% \ MODIFICIATION
