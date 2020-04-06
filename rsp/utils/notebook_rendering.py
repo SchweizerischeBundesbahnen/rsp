@@ -215,8 +215,12 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
 
     # Plot difference
     if with_diff:
+        additional_data = dict()
+        delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
+                                                       trainruns=traces_influenced_agents)
+        additional_data.update({'Delay': delay_information})
         plot_time_resource_data(time_resource_data=traces_influenced_agents, title='Changed Agents',
-                                ranges=ranges)
+                                ranges=ranges, additional_data=additional_data)
 
     return
 
