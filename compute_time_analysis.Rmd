@@ -15,7 +15,7 @@ jupyter:
 ```{python}
 # %autosave 0
 # %matplotlib notebook
-
+# %matplotlib qt4
 ```
 
 ```{python}
