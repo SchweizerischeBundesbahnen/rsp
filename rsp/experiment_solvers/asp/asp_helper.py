@@ -66,6 +66,7 @@ def flux_helper(
         asp_heurisics: List[ASPHeuristics] = None,
         asp_seed_value: int = 94,
         nb_threads: int = 2,
+        no_optimize: bool = False,
         verbose: bool = False,
         debug: bool = False
 ) -> FluxHelperResult:
@@ -101,7 +102,7 @@ def flux_helper(
                 continue
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
                 paths.append(heuristic_routes_path)
-    if asp_objective:
+    if asp_objective and not no_optimize:
         with path('res.asp.encodings', f'{asp_objective.value}.lp') as objetive_path:
             paths.append(objetive_path)
         if asp_objective in [ASPObjective.MINIMIZE_DELAY, ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED]:
@@ -115,7 +116,8 @@ def flux_helper(
         asp_seed_value=asp_seed_value,
         nb_threads=nb_threads,
         verbose=verbose,
-        debug=debug
+        debug=debug,
+        no_optimize=no_optimize
     )
 
     return flux_result
@@ -128,6 +130,7 @@ def _asp_helper(encoding_files: List[str],
                 debug: bool = False,
                 bound_all_events: Optional[int] = None,
                 nb_threads: int = 2,
+                no_optimize: bool = False,
                 asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
 
@@ -180,7 +183,7 @@ def _asp_helper(encoding_files: List[str],
 
     if bound_all_events:
         ctl.ground([("bound_all_events", [int(bound_all_events)])])
-    all_answers = _asp_loop(ctl, dl, verbose, debug)
+    all_answers = _asp_loop(ctl, dl, verbose, debug, no_optimize=no_optimize)
     statistics: Dict = ctl.statistics
 
     if verbose:
@@ -191,7 +194,7 @@ def _asp_helper(encoding_files: List[str],
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
-def _asp_loop(ctl, dl, verbose, debug):
+def _asp_loop(ctl, dl, verbose, debug, no_optimize: bool = False):
     all_answers = []
     min_cost = np.inf
     with ctl.solve(yield_=True, on_statistics=dl.on_statistics) as handle:
@@ -214,15 +217,18 @@ def _asp_loop(ctl, dl, verbose, debug):
                 if debug:
                     print(v)
             all_answers.append(frozenset(sol))
+            if no_optimize:
+                break
     return all_answers
 
 
-def _print_stats(statistics):
-    print("=================================================================================")
-    print("= FULL STATISTICS                                                               =")
-    print("=================================================================================")
-    print(json.dumps(statistics, sort_keys=True, indent=4, separators=(',', ': ')))
-    print("")
+def _print_stats(statistics, print_full_statistics: bool = False):
+    if print_full_statistics:
+        print("=================================================================================")
+        print("= FULL STATISTICS                                                               =")
+        print("=================================================================================")
+        print(json.dumps(statistics, sort_keys=True, indent=4, separators=(',', ': ')))
+        print("")
     print("=================================================================================")
     print("= SUMMARY                                                                       =")
     print("=================================================================================")
