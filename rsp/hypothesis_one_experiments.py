@@ -6,6 +6,7 @@ import numpy as np
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import run_experiment_agenda
 
@@ -63,8 +64,9 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             copy_agenda_from_base_directory: Optional[str] = None,
                             experiment_name: str = "exp_hypothesis_one",
                             run_analysis: bool = True,
-                            parallel_compute: bool = True,
-                            gen_only: bool = False) -> str:
+                            parallel_compute: int = AVAILABLE_CPUS,
+                            gen_only: bool = False
+                            ) -> str:
     """
     Run full pipeline A - B - C
 
@@ -72,8 +74,6 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     ----------
     experiment_name
     parameter_ranges_and_speed_data
-    parallel_compute
-    run_analysis
     experiment_ids
         filter for experiment ids (data generation)
     qualitative_analysis_experiment_ids
@@ -84,6 +84,9 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
         base directory from the same agenda with serialized schedule and malfunction.
         - if given, the schedule is not re-generated
         - if not given, a schedule is generate in a non-deterministc fashion
+    parallel_compute
+        degree of parallelization; must not be larger than available cores.
+    run_analysis
 
     Returns
     -------
@@ -128,7 +131,8 @@ def hypothesis_one_main():
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=list(range(270, 300)),
         asp_export_experiment_ids=list(range(270, 300)),
-        copy_agenda_from_base_directory=None  # regenerate schedules
+        copy_agenda_from_base_directory=None,  # regenerate schedules
+        parallel_compute=1
     )
 
 
@@ -137,8 +141,7 @@ def hypothesis_one_gen_schedule():
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         gen_only=True,
-        parallel_compute=False,
-
+        parallel_compute=1
     )
 
 
