@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python [conda env:.conda-rsp] *
+    display_name: Python [conda env:rsp] *
     language: python
-    name: conda-env-.conda-rsp-py
+    name: conda-env-rsp-py
 ---
 
 ```{python}
@@ -126,6 +126,8 @@ Video(video_src_schedule, embed=True)
 Video(video_src_reschedule, embed=True)
 ```
 
+#### Route DAGs
+
 ```{python}
 # %matplotlib inline
 plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_SCHEDULE)
@@ -139,4 +141,11 @@ plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_FULL)
 ```{python}
 # %matplotlib inline
 plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+```
+
+#### Encounter Graphs
+
+```{python}
+from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
+plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results)
 ```
