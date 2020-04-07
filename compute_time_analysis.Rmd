@@ -27,17 +27,17 @@ from IPython.display import Video
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.utils.notebook_rendering import plot_computational_times
-from rsp.utils.notebook_rendering import plot_histogram_from_delay_data
-from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams
-from rsp.utils.notebook_rendering import plot_speed_up
-from rsp.utils.notebook_rendering import render_flatland_env
-from rsp.utils.notebook_rendering import plot_route_dag
+from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resource_diagrams
+from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
+from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
+from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './mini_toy_example/'
+experiment_base_directory = './res/mini_toy_example/'
 experiments_of_interest = None
 ```
 
@@ -115,7 +115,7 @@ plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_
 #### Render the current environment
 
 ```{python}
- video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 ```{python}

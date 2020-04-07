@@ -340,7 +340,9 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
 
 def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
                    agent_id: int,
-                   suffix_of_constraints_to_visualize: ScheduleProblemEnum):
+                   suffix_of_constraints_to_visualize: ScheduleProblemEnum,
+                   save: bool = False
+                   ):
     train_runs_input: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
     train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
@@ -357,6 +359,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
         ScheduleProblemEnum.PROBLEM_RSP_FULL: [problem_rsp_full, f'Full Reschedule RouteDAG for agent {agent_id}'],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA: [problem_rsp_delta, f'Delta Reschedule RouteDAG for agent {agent_id}'],
     }
+
     problem_to_visualize, title = config[suffix_of_constraints_to_visualize]
 
     visualize_route_dag_constraints(
@@ -368,7 +371,11 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
         vertex_eff_lateness={},
         edge_eff_route_penalties={},
         route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],
-        title=title)
+        title=title,
+        file_name=(
+            f"experiment_{experiment_results_analysis.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf"
+            if save else None)
+    )
 
 
 def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, experiment_id: int,

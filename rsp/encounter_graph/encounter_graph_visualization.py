@@ -1,4 +1,5 @@
 import os
+from typing import List
 from typing import Optional
 
 import networkx as nx
@@ -101,13 +102,15 @@ def plot_encounter_graphs_for_experiment_result(
         ScheduleProblemEnum.PROBLEM_RSP_FULL: distance_matrix_full_after_malfunction,
         ScheduleProblemEnum.PROBLEM_RSP_DELTA: distance_matrix_diff
     }
-    schedule_problems_to_visualize = [ScheduleProblemEnum.PROBLEM_SCHEDULE,
-                                      ScheduleProblemEnum.PROBLEM_RSP_FULL,
-                                      ScheduleProblemEnum.PROBLEM_RSP_DELTA],
-    for schedule_problems_to_visualize in schedule_problems_to_visualize:
+    schedule_problems_to_visualize: List[ScheduleProblemEnum] = [
+        ScheduleProblemEnum.PROBLEM_SCHEDULE,
+        ScheduleProblemEnum.PROBLEM_RSP_FULL,
+        ScheduleProblemEnum.PROBLEM_RSP_DELTA
+    ]
+    for schedule_problem_to_visualize in schedule_problems_to_visualize:
         _plot_encounter_graph_undirected(
-            distance_matrix=distance_matrices[schedule_problems_to_visualize],
-            title=titles[schedule_problems_to_visualize],
-            file_name=(file_names[schedule_problems_to_visualize] if encounter_graph_folder is not None else None),
+            distance_matrix=distance_matrices[schedule_problem_to_visualize],
+            title=titles[schedule_problem_to_visualize],
+            file_name=(file_names[schedule_problem_to_visualize] if encounter_graph_folder is not None else None),
             pos=pos
         )
