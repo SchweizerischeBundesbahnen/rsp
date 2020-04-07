@@ -231,7 +231,7 @@ def visualize_route_dag_constraints(
         plt.savefig(file_name)
     else:
         plt.show()
-    plt.close()
+    #plt.close()
 
     return topo
 
