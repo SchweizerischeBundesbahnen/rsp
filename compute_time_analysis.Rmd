@@ -16,6 +16,8 @@ jupyter:
 # %autosave 0
 # %matplotlib notebook
 # %matplotlib qt4
+# %load_ext autoreload
+# %autoreload 2
 ```
 
 ```{python}
@@ -31,10 +33,11 @@ from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams
 from rsp.utils.notebook_rendering import plot_speed_up
 from rsp.utils.notebook_rendering import render_flatland_env
 from rsp.utils.notebook_rendering import plot_route_dag
+from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './rsp/mini_toy_example/'
+experiment_base_directory = './mini_toy_example/'
 experiments_of_interest = None
 ```
 
@@ -124,9 +127,16 @@ Video(video_src_reschedule, embed=True)
 ```
 
 ```{python}
-plot_route_dag(single_exp_results,0)
+# %matplotlib inline
+plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
 ```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+```
 
+```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```

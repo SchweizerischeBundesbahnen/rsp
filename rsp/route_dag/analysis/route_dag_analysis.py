@@ -229,9 +229,9 @@ def visualize_route_dag_constraints(
     rsp_logger.log(VERBOSE, file_name)
     if file_name is not None:
         plt.savefig(file_name)
+        plt.close()
     else:
         plt.show()
-    #plt.close()
 
     return topo
 

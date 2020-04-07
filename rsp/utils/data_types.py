@@ -231,7 +231,7 @@ def convert_list_of_experiment_results_to_data_frame(l: List[ExperimentResults])
 
 
 def expand_experiment_results_list_for_analysis(l: List[ExperimentResults]) -> List[ExperimentResultsAnalysis]:
-        return list(map(expand_experiment_results_for_analysis, l))
+    return list(map(expand_experiment_results_for_analysis, l))
 
 
 def expand_experiment_results_for_analysis(
