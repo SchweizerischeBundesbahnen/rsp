@@ -1,4 +1,3 @@
-import os
 from typing import Callable
 from typing import List
 from typing import Optional
@@ -36,7 +35,6 @@ def compare_agendas(
     # do everything in a subfolder
     base_folder = create_experiment_folder_name(experiment_name=experiment_name)
     check_create_folder(base_folder)
-    os.chdir(base_folder)
 
     print("\n\n\n\n")
     print(f"=========================================================")

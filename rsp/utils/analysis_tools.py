@@ -276,9 +276,7 @@ def two_dimensional_scatter_plot(  # noqa: C901
         if baseline_column is not None:
             columns_for_file_name.append(baseline_column)
         # file_name with y axis first
-        png_file = os.path.join(output_folder, '_'.join(list(reversed(columns_for_file_name))) + '.png')
-        pdf_file = png_file.replace(".png", ".pdf")
-        plt.savefig(png_file)
+        pdf_file = os.path.join(output_folder, '_'.join(list(reversed(columns_for_file_name))) + '.pdf')
         plt.savefig(pdf_file)
         plt.close()
 
@@ -367,9 +365,7 @@ def visualize_agent_density(experiment_data: ExperimentResultsAnalysis, output_f
     ax.set_xlabel('Time')
     ax.set_ylabel('Nr. active Agents')
     plt.plot(agent_density)
-    file_name_png = os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.png')
-    plt.savefig(file_name_png)
-    file_name_pdf = file_name_png.replace(".png", ".pdf")
+    file_name_pdf = os.path.join(output_folder, 'experiment_agenda_analysis_agent_density.pdf')
     plt.savefig(file_name_pdf)
     plt.close()
 
@@ -464,9 +460,7 @@ def save_weg_zeit_diagramm_2d(experiment_data: ExperimentResultsAnalysis, output
     ax[2].set_ylabel('Time')
     ax[2].matshow(np.abs(np.transpose(weg_zeit_matrix_reschedule) - np.transpose(weg_zeit_matrix_schedule)),
                   cmap='gist_ncar')
-    file_name_png = os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.png')
-    plt.savefig(file_name_png)
-    file_name_pdf = file_name_png.replace(".png", ".pdf")
+    file_name_pdf = os.path.join(output_folder, 'experiment_agenda_analysis_time_ressource_diagram.pdf')
     plt.savefig(file_name_pdf)
     plt.close()
 

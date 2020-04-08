@@ -101,7 +101,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                                   problem_schedule.route_dag_constraints_dict[agent_id],
                                   k=experiment_parameters.number_of_shortest_paths_per_agent),
                 file_name=(os.path.join(route_dag_folder,
-                                        f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.png")
+                                        f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf")
                            if experiment_analysis_directory is not None else None)
             )
             # delta after malfunction
@@ -124,7 +124,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                     eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[
                         agent_id]),
                 file_name=(os.path.join(route_dag_folder,
-                                        f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.png")
+                                        f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.pdf")
                            if experiment_analysis_directory is not None else None)
             )
             # full rescheduling
@@ -146,7 +146,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                     eff_lateness_agent=lateness_full_after_malfunction[agent_id],
                     eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
                 file_name=(os.path.join(route_dag_folder,
-                                        f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.png")
+                                        f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.pdf")
                            if experiment_analysis_directory is not None else None)
             )
 

@@ -55,19 +55,19 @@ def hypothesis_two_encounter_graph_undirected(experiment_base_directory: str,
         pos = plot_encounter_graph_undirected(
             distance_matrix=distance_matrix_full,
             title="encounter graph initial schedule",
-            file_name=os.path.join(encounter_graph_folder, f"encounter_graph_initial_schedule.png")
+            file_name=os.path.join(encounter_graph_folder, f"encounter_graph_initial_schedule.pdf")
         )
 
         plot_encounter_graph_undirected(
             distance_matrix=distance_matrix_full_after_malfunction,
             title="encounter graph schedule after malfunction",
-            file_name=os.path.join(encounter_graph_folder, f"encounter_graph_schedule_after_malfunction.png"),
+            file_name=os.path.join(encounter_graph_folder, f"encounter_graph_schedule_after_malfunction.pdf"),
             pos=pos)
 
         plot_encounter_graph_undirected(
             distance_matrix=distance_matrix_diff,
             title="encounter graph difference",
-            file_name=os.path.join(encounter_graph_folder, f"encounter_graph_difference.png"),
+            file_name=os.path.join(encounter_graph_folder, f"encounter_graph_difference.pdf"),
             pos=pos)
 
 

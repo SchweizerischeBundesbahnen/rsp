@@ -44,6 +44,7 @@ def test_hypothesis_one():
         parameter_ranges_and_speed_data=get_dummy_params(),
         experiment_ids=[0],
         asp_export_experiment_ids=[0],
+        qualitative_analysis_experiment_ids=[0],
         copy_agenda_from_base_directory=None,  # generate schedules
         experiment_name="test_hypothesis_one",
 
