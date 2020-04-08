@@ -21,6 +21,7 @@ from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
+from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
@@ -63,7 +64,8 @@ PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
 def plot_computational_times(
         experiment_data: DataFrame, axis_of_interest: str,
         columns_of_interest: List[str],
-        output_folder: Optional[str] = None
+        output_folder: Optional[str] = None,
+        title: str = "Computational Times"
 ):
     """Plot the computational times of experiments.
 
@@ -77,11 +79,48 @@ def plot_computational_times(
         Defines which columns of a dataset will be plotted as traces
     output_folder
         if defined, do not show plot but write to file in this folder
+    title
+        title of the diagrma
+    Returns
+    -------
+    """
+    traces = [(axis_of_interest, column) for column in columns_of_interest]
+    pdf_file = f'{axis_of_interest}__' + '_'.join(columns_of_interest) + '.pdf'
+    plot_computional_times_from_traces(experiment_data=experiment_data,
+                                       traces=traces,
+                                       output_folder=output_folder,
+                                       x_axis_title=axis_of_interest,
+                                       pdf_file=pdf_file,
+                                       title=f"{title} {axis_of_interest}")
+
+
+def plot_computional_times_from_traces(experiment_data: DataFrame,
+                                       traces: List[Tuple[str, str]],
+                                       x_axis_title: str,
+                                       output_folder: Optional[str] = None,
+                                       pdf_file: Optional[str] = None,
+                                       title: str = "Computational Times"):
+    """Plot the computational times of experiments.
+
+    Parameters
+    ----------
+
+    experiment_data: DataFrame
+        DataFrame containing all the results from hypothesis one experiments
+        Defines which columns of a dataset will be plotted as traces
+    traces: List[Tuple[str,str]]
+         which pairings of axis_of_interest and column should be displayed?
+    output_folder
+    pdf_file
+        if both defined, do not show plot but write to file in this folder
+    title
+        title of the diagram
+      x_axis_title
     Returns
     -------
     """
     fig = go.Figure()
-    for column in columns_of_interest:
+    for axis_of_interest, column in traces:
         fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                              y=experiment_data[column],
                              name=column, pointpos=-1,
@@ -95,13 +134,14 @@ def plot_computational_times(
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
     fig.update_layout(boxmode='group')
-    fig.update_layout(title_text=f"Computational Times {column}")
-    fig.update_xaxes(title=axis_of_interest)
+    fig.update_layout(title_text=f"{title}")
+    fig.update_xaxes(title=x_axis_title)
     fig.update_yaxes(title="Time[s]")
-    if output_folder is None:
+    if output_folder is None or pdf_file is None:
         fig.show()
     else:
-        pdf_file = os.path.join(output_folder, f'{axis_of_interest}__' + '_'.join(columns_of_interest) + '.pdf')
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, pdf_file)
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
@@ -146,12 +186,13 @@ def plot_speed_up(
                          marker=dict(size=3, color='blue')))
 
     fig.update_layout(boxmode='group')
-    fig.update_layout(title_text="Speed Up Factors")
+    fig.update_layout(title_text=f"Speed Up Factors {axis_of_interest}")
     fig.update_xaxes(title="Agents[#]")
     fig.update_yaxes(title="Speed Up Factor")
     if output_folder is None:
         fig.show()
     else:
+        check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f'{axis_of_interest}__speed_up.pdf')
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)

@@ -40,7 +40,7 @@ def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, 
     }
 
 
-def asp_plausi_analysis(
+def _visualize_asp_plausibility(
         experiment_results_list: List[ExperimentResultsAnalysis],
         output_folder: str):
     data_frame = pd.DataFrame(data=[

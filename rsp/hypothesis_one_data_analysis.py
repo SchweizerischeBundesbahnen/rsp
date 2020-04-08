@@ -13,22 +13,23 @@ Hypothesis 2:
 """
 from typing import Dict
 from typing import List
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 import tqdm
 from pandas import DataFrame
 
-from rsp.asp_plausibility.asp_plausi import asp_plausi_analysis
+from rsp.asp_plausibility.asp_plausi import _visualize_asp_plausibility
 from rsp.asp_plausibility.potassco_export import potassco_export
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_computional_times_from_traces
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -67,12 +68,9 @@ def _derive_numbers_for_correlation_analysis(
     return d
 
 
-def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResultsAnalysis],
-                                 output_folder: str):
-    #  1. per experiment_id (absolute and relative comparison) and correlation with solve time for
-    # - resource conflicts
-    # - number of edges per agent (total and quantiles)
-    # - number of routing alternatives (total and quantiles)
+def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
+        experiment_results_list: List[ExperimentResultsAnalysis],
+        output_folder: Optional[str] = None):
     data_frame = pd.DataFrame(data=[
         {
             **r._asdict(),
@@ -88,47 +86,58 @@ def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResults
                                                        suffix="delta_after_malfunction"),
         }
         for r in experiment_results_list])
-    # 009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
-    for item in ['full', 'full_after_malfunction', 'delta_after_malfunction']:
-        two_dimensional_scatter_plot(
-            data=data_frame,
-            columns=['experiment_id', f'nb_resource_conflicts_{item}'],
-            title='009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: \n'
-                  'Number of resource conflicts for ' + item,
-            output_folder=output_folder,
-            show_global_mean=True
-        )
-    two_dimensional_scatter_plot(
-        data=data_frame,
-        columns=['ratio_nb_resource_conflicts', 'speed_up'],
-        title='009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: \n'
-              'Correlation of ratio of nb_resource_conflicts and speed_up?',
-        output_folder=output_folder,
-        show_global_mean=True
-    )
-    for x_axis_prefix in ['nb_resource_conflicts_']:
-        for y_axis_prefix in ['time_']:
-            for suffix in ['full_after_malfunction', 'delta_after_malfunction']:
-                x_axis = x_axis_prefix + suffix
-                y_axis = y_axis_prefix + suffix
-                two_dimensional_scatter_plot(
-                    data=data_frame,
-                    columns=[x_axis, y_axis],
-                    title=f'009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps\n'
-                          f' {y_axis} per {x_axis})',
-                    output_folder=output_folder
-                )
 
-
-def _2d_analysis(experiment_data: DataFrame,
-                 output_folder: str = None):
-    columns_of_interest = ['time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction']
+    columns_of_interest = [
+        f'nb_resource_conflicts_{item}'
+        for item in ['full', 'full_after_malfunction', 'delta_after_malfunction']
+    ]
     for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
-        check_create_folder(output_folder)
+        plot_computational_times(
+            experiment_data=data_frame,
+            axis_of_interest=axis_of_interest,
+            columns_of_interest=columns_of_interest,
+            title=f"009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: "
+                  f"correlation of {axis_of_interest} with resource conflicts",
+            output_folder=output_folder)
+
+    plot_computional_times_from_traces(
+        experiment_data=data_frame,
+        output_folder=output_folder,
+        pdf_file="009_nb_resource_conflict__time.pdf",
+        title="009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps:\n"
+              "Correlation of resource conflicts and runtime",
+        traces=[(f'nb_resource_conflicts_{item}', f'time_{item}') for item in
+                ['full', 'full_after_malfunction', 'delta_after_malfunction']],
+        x_axis_title='nb_resource_conflict'
+    )
+
+    plot_computional_times_from_traces(
+        experiment_data=data_frame,
+        output_folder=output_folder,
+        pdf_file="009_nb_resource_conflict__time.pdf",
+        title="009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps:\n"
+              'Correlation of ratio of nb_resource_conflicts and speed_up?',
+        traces=[('ratio_nb_resource_conflicts', 'speed_up')],
+        x_axis_title='ratio_nb_resource_conflicts'
+    )
+
+
+HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = ['time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction']
+
+
+def hypothesis_one_analysis_visualize_computational_time_comparison(
+        experiment_data: DataFrame,
+        output_folder: str = None):
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
         plot_computational_times(experiment_data=experiment_data,
                                  axis_of_interest=axis_of_interest,
-                                 columns_of_interest=columns_of_interest,
+                                 columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
                                  output_folder=output_folder)
+
+
+def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
+                                               output_folder: str = None):
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
         plot_speed_up(experiment_data=experiment_data,
                       axis_of_interest=axis_of_interest,
                       output_folder=output_folder)
@@ -181,17 +190,22 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
 
     # quantitative analysis
     if analysis_2d:
-        _2d_analysis(
+        # main results
+        hypothesis_one_analysis_visualize_computational_time_comparison(
+            experiment_data=experiment_data,
+            output_folder=f'{experiment_analysis_directory}/main_results'
+        )
+        hypothesis_one_analysis_visualize_speed_up(
             experiment_data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
         # TODO SIM-417
-        _2d_analysis_space_reduction(
+        visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
             experiment_results_list=experiment_results_list,
-            output_folder=f'{experiment_analysis_directory}/main_results'
+            output_folder=f'{experiment_analysis_directory}/space_reduction'
         )
         # TODO SIM-417
-        asp_plausi_analysis(
+        _visualize_asp_plausibility(
             experiment_results_list=experiment_results_list,
             output_folder=f'{experiment_analysis_directory}/asp_plausi'
         )

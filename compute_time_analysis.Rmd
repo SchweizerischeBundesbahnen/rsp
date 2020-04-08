@@ -38,6 +38,7 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 
 ```{python}
 experiment_base_directory = './res/mini_toy_example/'
+# experiment_base_directory = './res/many_agents_example/'
 experiments_of_interest = None
 ```
 
@@ -55,16 +56,24 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_aft
 ### Visualize Compuational time comparison
 
 ```{python}
-plot_computational_times(experiment_data=experiment_data,
-                                  axis_of_interest=axis_of_interest,
-                                  columns_of_interest=columns_of_interest)
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
+
+# for exploration, use:
+# plot_computational_times(experiment_data=experiment_data,
+#                                   axis_of_interest=axis_of_interest,
+#                                   columns_of_interest=columns_of_interest)
 ```
 
-### Visualize Speed Up facotrs for experiments
+### Visualize Speed Up factors for experiments
 
 ```{python}
-plot_speed_up(experiment_data=experiment_data,
-                       axis_of_interest=axis_of_interest)
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_speed_up
+hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
+
+# for exploration, use:
+# plot_speed_up(experiment_data=experiment_data,
+#                        axis_of_interest=axis_of_interest)
 ```
 
 ### Visualize Weg-Zeit-Diagram of specific experiment
@@ -126,7 +135,7 @@ Video(video_src_schedule, embed=True)
 Video(video_src_reschedule, embed=True)
 ```
 
-#### Route DAGs
+#### Route DAGs for individual agents
 
 ```{python}
 # %matplotlib inline
@@ -148,4 +157,12 @@ plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```{python}
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results)
+```
+
+### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?
+
+```{python}
+from rsp.hypothesis_one_data_analysis import visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
+visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(experiment_results_list=experiment_results_list)
+
 ```
