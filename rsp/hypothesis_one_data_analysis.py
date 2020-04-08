@@ -21,6 +21,8 @@ from pandas import DataFrame
 
 from rsp.asp_plausibility.asp_plausi import asp_plausi_analysis
 from rsp.asp_plausibility.potassco_export import potassco_export
+from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
@@ -118,24 +120,18 @@ def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResults
                 )
 
 
-def _2d_analysis(data: DataFrame,
+def _2d_analysis(experiment_data: DataFrame,
                  output_folder: str = None):
-    explanations = {
-        'speed_up': 'time_full_after_malfunction / time_delta_after_malfunction',
-        'time_full_after_malfunction': 'solver time for re-scheduling without Oracle information',
-        'time_delta_after_malfunction': 'solver time for re-scheduling with Oracle information'
-    }
-    for y_axis in ['speed_up', 'time_full_after_malfunction', 'time_delta_after_malfunction']:
-        for x_axis in ['experiment_id', 'n_agents', 'size', 'size_used']:
-            explanation = (f"({explanations[y_axis]})" if y_axis in explanations else "")
-            two_dimensional_scatter_plot(
-                columns=[x_axis, y_axis],
-                data=data,
-                show_global_mean=True if x_axis == 'experiment_id' else False,
-                title=f'{y_axis} per {x_axis} {explanation}',
-                output_folder=output_folder,
-                higher_y_value_is_worse=False if y_axis == 'speed_up' else True
-            )
+    columns_of_interest = ['time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction']
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+        check_create_folder(output_folder)
+        plot_computational_times(experiment_data=experiment_data,
+                                 axis_of_interest=axis_of_interest,
+                                 columns_of_interest=columns_of_interest,
+                                 output_folder=output_folder)
+        plot_speed_up(experiment_data=experiment_data,
+                      axis_of_interest=axis_of_interest,
+                      output_folder=output_folder)
 
 
 def hypothesis_one_data_analysis(experiment_base_directory: str,
@@ -186,13 +182,15 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     # quantitative analysis
     if analysis_2d:
         _2d_analysis(
-            data=experiment_data,
+            experiment_data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
+        # TODO SIM-417
         _2d_analysis_space_reduction(
             experiment_results_list=experiment_results_list,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
+        # TODO SIM-417
         asp_plausi_analysis(
             experiment_results_list=experiment_results_list,
             output_folder=f'{experiment_analysis_directory}/asp_plausi'

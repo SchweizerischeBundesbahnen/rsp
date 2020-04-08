@@ -3,6 +3,7 @@ import os.path
 from pathlib import Path
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
@@ -59,8 +60,11 @@ PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'yellowgreen']
 
 
-def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
-                             columns_of_interest: List[str]):
+def plot_computational_times(
+        experiment_data: DataFrame, axis_of_interest: str,
+        columns_of_interest: List[str],
+        output_folder: Optional[str] = None
+):
     """Plot the computational times of experiments.
 
     Parameters
@@ -71,7 +75,8 @@ def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
         Defines along what axis the data will be plotted
     columns_of_interest: List[str]
         Defines which columns of a dataset will be plotted as traces
-
+    output_folder
+        if defined, do not show plot but write to file in this folder
     Returns
     -------
     """
@@ -90,21 +95,33 @@ def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
     fig.update_layout(boxmode='group')
-    fig.update_layout(title_text="Computational Times")
+    fig.update_layout(title_text=f"Computational Times {column}")
     fig.update_xaxes(title=axis_of_interest)
     fig.update_yaxes(title="Time[s]")
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        pdf_file = os.path.join(output_folder, f'{axis_of_interest}__' + '_'.join(columns_of_interest) + '.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_speed_up(experiment_data: DataFrame, axis_of_interest: str):
+def plot_speed_up(
+        experiment_data: DataFrame,
+        axis_of_interest: str,
+        output_folder: Optional[str] = None
+):
     """
 
     Parameters
     ----------
+
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
     axis_of_interest
         Defines along what axis the data will be plotted
+    output_folder
+        if defined, do not show plot but write to file in this folder
     Returns
     -------
 
@@ -132,7 +149,12 @@ def plot_speed_up(experiment_data: DataFrame, axis_of_interest: str):
     fig.update_layout(title_text="Speed Up Factors")
     fig.update_xaxes(title="Agents[#]")
     fig.update_yaxes(title="Speed Up Factor")
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        pdf_file = os.path.join(output_folder, f'{axis_of_interest}__speed_up.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
 def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff):
