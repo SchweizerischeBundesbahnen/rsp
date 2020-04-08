@@ -85,7 +85,8 @@ def plot_computational_times(
     -------
     """
     traces = [(axis_of_interest, column) for column in columns_of_interest]
-    pdf_file = f'{axis_of_interest}__' + '_'.join(columns_of_interest) + '.pdf'
+    # prevent too long file names
+    pdf_file = f'{axis_of_interest}__' + ('_'.join(columns_of_interest))[0:15] + '.pdf'
     plot_computional_times_from_traces(experiment_data=experiment_data,
                                        traces=traces,
                                        output_folder=output_folder,
@@ -104,7 +105,6 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
 
     Parameters
     ----------
-
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
         Defines which columns of a dataset will be plotted as traces
@@ -115,7 +115,8 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
         if both defined, do not show plot but write to file in this folder
     title
         title of the diagram
-      x_axis_title
+    x_axis_title
+        title for x axis (in the case of traces, cannot derived directly from column name)
     Returns
     -------
     """

@@ -20,7 +20,7 @@ import pandas as pd
 import tqdm
 from pandas import DataFrame
 
-from rsp.asp_plausibility.asp_plausi import _visualize_asp_plausibility
+from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
 from rsp.asp_plausibility.potassco_export import potassco_export
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
 from rsp.compute_time_analysis.compute_time_analysis import plot_computional_times_from_traces
@@ -199,15 +199,13 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
             experiment_data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
-        # TODO SIM-417
         visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
             experiment_results_list=experiment_results_list,
-            output_folder=f'{experiment_analysis_directory}/space_reduction'
+            output_folder=f'{experiment_analysis_directory}/plausi'
         )
-        # TODO SIM-417
-        _visualize_asp_plausibility(
+        visualize_hypotheses_asp(
             experiment_results_list=experiment_results_list,
-            output_folder=f'{experiment_analysis_directory}/asp_plausi'
+            output_folder=f'{experiment_analysis_directory}/plausi'
         )
     if analysis_3d:
         raise NotImplementedError()
