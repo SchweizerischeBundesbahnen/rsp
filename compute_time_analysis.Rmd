@@ -166,3 +166,9 @@ from rsp.hypothesis_one_data_analysis import visualize_hypothesis_009_rescheduli
 visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(experiment_results_list=experiment_results_list)
 
 ```
+
+```{python}
+from rsp.hypothesis_one_data_analysis import visualize_hypotheses_asp
+visualize_hypotheses_asp(experiment_results_list=experiment_results_list)
+
+```
