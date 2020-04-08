@@ -98,7 +98,9 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
             columns_of_interest=columns_of_interest,
             title=f"009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: "
                   f"correlation of {axis_of_interest} with resource conflicts",
-            output_folder=output_folder)
+            output_folder=output_folder,
+            file_name_prefix="009"
+        )
 
     plot_computional_times_from_traces(
         experiment_data=data_frame,
@@ -108,7 +110,7 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
               "Correlation of resource conflicts and runtime",
         traces=[(f'nb_resource_conflicts_{item}', f'time_{item}') for item in
                 ['full', 'full_after_malfunction', 'delta_after_malfunction']],
-        x_axis_title='nb_resource_conflict'
+        x_axis_title='nb_resource_conflict',
     )
 
     plot_computional_times_from_traces(

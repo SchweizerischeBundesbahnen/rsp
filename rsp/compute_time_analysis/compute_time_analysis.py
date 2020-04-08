@@ -65,12 +65,14 @@ def plot_computational_times(
         experiment_data: DataFrame, axis_of_interest: str,
         columns_of_interest: List[str],
         output_folder: Optional[str] = None,
-        title: str = "Computational Times"
+        title: str = "Computational Times",
+        file_name_prefix: str = ""
 ):
     """Plot the computational times of experiments.
 
     Parameters
     ----------
+
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
     axis_of_interest: str
@@ -80,13 +82,15 @@ def plot_computational_times(
     output_folder
         if defined, do not show plot but write to file in this folder
     title
-        title of the diagrma
+        title of the diagram
+    file_name_prefix
+        prefix for file name
     Returns
     -------
     """
     traces = [(axis_of_interest, column) for column in columns_of_interest]
     # prevent too long file names
-    pdf_file = f'{axis_of_interest}__' + ('_'.join(columns_of_interest))[0:15] + '.pdf'
+    pdf_file = f'{file_name_prefix}_{axis_of_interest}__' + ('_'.join(columns_of_interest))[0:15] + '.pdf'
     plot_computional_times_from_traces(experiment_data=experiment_data,
                                        traces=traces,
                                        output_folder=output_folder,
