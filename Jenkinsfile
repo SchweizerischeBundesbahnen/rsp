@@ -17,11 +17,33 @@ pipeline {
         // maximal 5 Builds und maximal 30 Tage
         buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5', daysToKeepStr: '30', artifactDaysToKeepStr: '30'))
     }
+    parameters {
+        booleanParam(
+                name: 'deploy',
+                defaultValue: false,
+                description: 'Deploy Jupyter Workspace? If ticked, no image will be built, workspace deployment only.'
+        )
+        // TODO SIM-194 helm integration
+        string(name: 'version', defaultValue: 'latest', description: 'Version of rsp-workspace (use latest/<commit sha>)')
+        string(name: 'helm_release_name', defaultValue: 'rsp-workspace-0', description: 'Workspace id (Helm release to install). If it does not exist, a new will be created.')
+    }
     environment {
         // access token with repo:status permission created via https://github.com/settings/tokens in personal account
         // uploaded to Jenkins via https://ssp.app.ose.sbb-cloud.net/wzu/jenkinscredentials
         // list of credentials: https://ci.sbb.ch/job/KS_PFI/credentials/
         GITHUB_TOKEN = credentials('19fbbc7a-7243-431c-85d8-0f1cc63d413b')
+
+        //-------------------------------------------------------------
+        // Configuration for base image
+        //-------------------------------------------------------------
+        // Enter the name of your Artifactory Docker Repository.
+        //   Artifactory Docker Repositories can be created on:
+        //   https://ssp.app.ose.sbb-cloud.net --> WZU-Dienste --> Artifactory
+        ARTIFACTORY_PROJECT = 'pfi'
+        BASE_IMAGE_NAME = 'rsp-workspace'
+        OPENSHIFT_CLUSTER = "https://master.gpu.otc.sbb.ch:8443"
+        OPENSHIFT_PROJECT = "pfi-digitaltwin-ci"
+        SERVICE_ACCOUNT_TOKEN = credentials('bf9665e5-a8a8-4287-9738-9a07f5f31ad0')
     }
     stages {
         stage('github pending') {
@@ -50,6 +72,70 @@ python -m tox . --recreate -v
 """
                         }
                 )
+            }
+        }
+        // build docker image on every commit with the commit hash as its version so it is unique (modulo re-building)
+        stage("Build Docker Image") {
+            when {
+                allOf {
+                    // if the build was triggered manually with deploy=true, skip image building
+                    expression { !params.deploy }
+                }
+            }
+            steps {
+                script {
+                    echo """cloud_buildDockerImage()"""
+                    echo """GIT_COMMIT=${env.GIT_COMMIT}"""
+                    cloud_buildDockerImage(
+                            artifactoryProject: env.ARTIFACTORY_PROJECT,
+                            ocApp: env.BASE_IMAGE_NAME,
+                            ocAppVersion: env.GIT_COMMIT,
+                            dockerfilePath: 'Dockerfile'
+                    )
+                }
+            }
+        }
+        // if we're on master, tag the docker image with the new semantic version
+        stage("Tag Docker Image if on master") {
+            when {
+                allOf {
+                    expression { BRANCH_NAME == 'master' }
+                    expression { !params.deploy }
+                }
+            }
+            steps {
+                script {
+                    cloud_tagDockerImage(
+                            artifactoryProject: env.ARTIFACTORY_PROJECT,
+                            ocApp: env.BASE_IMAGE_NAME,
+                            tag: env.GIT_COMMIT,
+                            targetTag: "latest"
+                    )
+                }
+            }
+        }
+        stage("Run Jupyter Workspace") {
+            when {
+                allOf {
+                    expression { params.deploy }
+                }
+            }
+            steps {
+                // TODO SIM-194 helmcharts deploy
+                script {
+                    helmcharts_deploy(
+                            CHART_ROOT_FOLDER: './charts/',
+                            CHART: 'hpc_quickstart_workspace',
+                            GIT_VERSION: GIT_COMMIT,
+                            STAGES: ['ci'],
+                            HELM_RELEASE: params.helm_release_name,
+                            STAGE: "ci",
+                            OPENSHIFT_PROJECT: env.OPENSHIFT_PROJECT,
+                            ADDITIONAL_VALUES: "HpcQuickstartJupyterWorkspaceVersion=${params.hpc_quickstart_jupyter_workspace_version},QuickstartVersion=${params.hpc_quickstart_version}"
+                    )
+                    echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
+                    echo "If you start the tensorboard in the pod, it will be available through https://${params.helm_release_name}-tensorboard.app.gpu.otc.sbb.ch"
+                }
             }
         }
     }
