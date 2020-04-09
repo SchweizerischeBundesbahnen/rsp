@@ -2,8 +2,8 @@ import os
 
 import numpy as np
 
-from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
-from rsp.hypothesis_testing.tweak_experiment_agenda import merge_agendas_under_new_name
+from rsp.hypothesis_testing.utils.run_null_alt_agenda import compare_agendas
+from rsp.hypothesis_testing.utils.tweak_experiment_agenda import merge_agendas_under_new_name
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import create_experiment_agenda

@@ -48,6 +48,5 @@ def compare_agendas(
         parallel_compute=parallel_compute
     )
 
-    # TODO compare
-
+    # TODO SIM-270 SIM-351 compare runtimes
     return experiment_base_folder

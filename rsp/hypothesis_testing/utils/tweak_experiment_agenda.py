@@ -9,6 +9,17 @@ def tweak_name(
         agenda_null: ExperimentAgenda,
         alt_index: Optional[int],
         experiment_name: str) -> ExperimentAgenda:
+    """Produce a new `ExperimentAgenda` under a "tweaked" name.
+
+    Parameters
+    ----------
+    agenda_null
+    alt_index
+    experiment_name
+
+    Returns
+    -------
+    """
     suffix = _make_suffix(alt_index)
     return ExperimentAgenda(
         experiment_name=f"{experiment_name}_{suffix}",
@@ -22,6 +33,18 @@ def tweak_asp_seed_value(
         alt_index: Optional[int],
         experiment_name: str,
 ) -> ExperimentAgenda:
+    """Produce a new `ExperimentAgenda` with `asp_seed_value` "tweaked".
+
+    Parameters
+    ----------
+    agenda_null
+    seed
+    alt_index
+    experiment_name
+
+    Returns
+    -------
+    """
     suffix = _make_suffix(alt_index)
     return ExperimentAgenda(
         experiment_name=f"{experiment_name}_{suffix}",
@@ -37,6 +60,19 @@ def tweak_max_window_size_from_earliest(
         max_window_size_from_earliest: int,
         alt_index: Optional[int],
         experiment_name: str) -> ExperimentAgenda:
+    """Produce a new `ExperimentAgenda` with `max_window_size_from_earliest`
+    "tweaked".
+
+    Parameters
+    ----------
+    agenda_null
+    max_window_size_from_earliest
+    alt_index
+    experiment_name
+
+    Returns
+    -------
+    """
     suffix = _make_suffix(alt_index)
     return ExperimentAgenda(
         experiment_name=f"{experiment_name}_{suffix}",
@@ -48,11 +84,22 @@ def tweak_max_window_size_from_earliest(
 
 
 def merge_agendas_under_new_name(experiment_name: str, agendas: List[ExperimentAgenda]) -> ExperimentAgenda:
+    """Merge two agendas under a new name. Notice that `experiment_id`s may
+    overlap and the merged agenda may have duplicate ids. This side-effect is
+    exploited in `compare_agendas`.
+
+    Parameters
+    ----------
+    experiment_name
+    agendas
+
+    Returns
+    -------
+    """
     return ExperimentAgenda(experiment_name=experiment_name, experiments=[
         experiment
         for experiment_agenda in agendas
         for experiment in experiment_agenda.experiments
-
     ])
 
 

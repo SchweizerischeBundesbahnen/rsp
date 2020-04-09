@@ -1,10 +1,12 @@
+"""Plausibility hypothesis 001: https://confluence.sbb.ch/display/SIM/001_effec
+t_of_asp_solver_seed_negligible."""
 import os
 from typing import List
 from typing import Optional
 
-from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
-from rsp.hypothesis_testing.tweak_experiment_agenda import merge_agendas_under_new_name
-from rsp.hypothesis_testing.tweak_experiment_agenda import tweak_asp_seed_value
+from rsp.hypothesis_testing.utils.run_null_alt_agenda import compare_agendas
+from rsp.hypothesis_testing.utils.tweak_experiment_agenda import merge_agendas_under_new_name
+from rsp.hypothesis_testing.utils.tweak_experiment_agenda import tweak_asp_seed_value
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_experiment_agenda_from_file
 
