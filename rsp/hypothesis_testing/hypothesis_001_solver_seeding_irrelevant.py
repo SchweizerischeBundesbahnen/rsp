@@ -1,30 +1,48 @@
-from functools import partial
+"""Plausibility hypothesis 001: https://confluence.sbb.ch/display/SIM/001_effec
+t_of_asp_solver_seed_negligible."""
+import os
+from typing import List
+from typing import Optional
 
-from rsp.hypothesis_one_experiments import get_first_agenda_pipeline_params
-from rsp.hypothesis_testing.run_null_alt_agenda import compare_agendas
-from rsp.utils.data_types import ParameterRanges
-from rsp.utils.data_types import ParameterRangesAndSpeedData
-
-
-def get_params_alt(seed: int) -> ParameterRangesAndSpeedData:
-    params = get_params_null()
-    parameter_ranges_max_window_size_from_earliest = ParameterRanges(
-        **dict(params.parameter_ranges._asdict(), **{'asp_seed_value': [seed, seed, 1]}))
-    return ParameterRangesAndSpeedData(
-        parameter_ranges=parameter_ranges_max_window_size_from_earliest,
-        speed_data=params.speed_data)
+from rsp.hypothesis_testing.utils.run_null_alt_agenda import compare_agendas
+from rsp.hypothesis_testing.utils.tweak_experiment_agenda import merge_agendas_under_new_name
+from rsp.hypothesis_testing.utils.tweak_experiment_agenda import tweak_asp_seed_value
+from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import load_experiment_agenda_from_file
 
 
-get_params_null = get_first_agenda_pipeline_params
+def hypothesis_001_solver_seeding_irrelevant_main(
+        copy_agenda_from_base_directory: str,
+        experiment_ids: Optional[List[int]] = None
+):
+    """Copy agenda (A.1) and schedule/malfunction (A.2) and run pipeline from B
+    multiple times with tweaked agenda and compare the runs D.
 
-
-def hypothesis_001_solver_seeding_irrelevant_main():
+    Parameters
+    ----------
+    copy_agenda_from_base_directory: str
+    experiment_ids: Optional[List[int]]
+    """
+    experiment_name = "plausi_001"
+    agenda_null = load_experiment_agenda_from_file(
+        f"{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}")
     compare_agendas(
-        get_params_null=get_params_null,
-        get_params_alternatives=[partial(get_params_alt, seed=(94 + inc)) for inc in range(5)],
-        experiment_name="exp_001"
+        experiment_name=experiment_name,
+        experiment_ids=experiment_ids,
+        experiment_agenda=merge_agendas_under_new_name(experiment_name=experiment_name, agendas=[agenda_null] + [
+            tweak_asp_seed_value(
+                agenda_null=agenda_null, seed=(94 + inc),
+                alt_index=inc,
+                experiment_name=experiment_name)
+            for inc in range(5)]),
+        # TODO column and baseline value
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        run_analysis=False,
+        parallel_compute=True
     )
 
 
 if __name__ == '__main__':
-    hypothesis_001_solver_seeding_irrelevant_main()
+    hypothesis_001_solver_seeding_irrelevant_main(
+        copy_agenda_from_base_directory=os.path.abspath('exp_hypothesis_one_2020_03_31T07_11_03')
+    )

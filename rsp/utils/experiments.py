@@ -361,7 +361,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
                           verbose: bool = False) -> (str, str):
-    """Run a subset of experiments of a given agenda. This is useful when
+    """Run B. a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
     Parameters
     ----------
@@ -482,6 +482,7 @@ def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, exper
     """
     copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
                                                      EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+    print(os.path.abspath(os.curdir))
     files = os.listdir(copy_agenda_from_agenda_directory)
     rsp_logger.info(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} "
                     f"-> {experiment_agenda_directory}")
