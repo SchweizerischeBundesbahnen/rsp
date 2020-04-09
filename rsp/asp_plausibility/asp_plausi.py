@@ -65,7 +65,9 @@ def visualize_hypotheses_asp(
         title='003_ratio_asp_grounding_solving:\n'
               'solver should spend most of the time solving: compare solve and total solver time',
         y_axis_title="Ratio[-]",
-        output_folder=output_folder)
+        file_name_prefix="003",
+        output_folder=output_folder
+    )
     # 002_asp_absolute_total_solver_times
     plot_computational_times(
         experiment_data=data_frame,
@@ -73,7 +75,8 @@ def visualize_hypotheses_asp(
         columns_of_interest=[f'solve_time_' + item for item in suffixes] + [f'total_time_' + item for item in suffixes],
         title=f'002_asp_absolute_total_solver_times:\n'
               f' solver should spend most of the time solving: comparison total_time time and solve_time ',
-        output_folder=output_folder
+        output_folder=output_folder,
+        file_name_prefix="002"
     )
     # 004_ratio_asp_solve_propagation: propagation times should be low in comparison to solve times
     plot_computational_times(
@@ -85,7 +88,8 @@ def visualize_hypotheses_asp(
               'propagation times should be low in comparison to solve times: '
               f'compare solve_time (b) against summed propagation times of user accu',
         y_axis_title="Nb user_accu_propagations[-]",
-        output_folder=output_folder
+        output_folder=output_folder,
+        file_name_prefix="004"
     )
     plot_computational_times(
         experiment_data=data_frame,
@@ -95,8 +99,9 @@ def visualize_hypotheses_asp(
         title='004_ratio_asp_solve_propagation:\n'
               'propagation times should be low in comparison to solve times: '
               f'comparison of solve_time (b) against summed propagation times of user step',
-        y_axis_title="Nb user_step_propagations[-]",
-        output_folder=output_folder
+        output_folder=output_folder,
+        file_name_prefix="004",
+        y_axis_title="Nb user_step_propagations[-]"
     )
 
     # 005_ratio_asp_conflict_choice: choice conflict ratio should be close to 1;
@@ -109,7 +114,8 @@ def visualize_hypotheses_asp(
               f'if the ratio is high, the problem might be large, but not difficult; '
               f'choice conflict ratio',
         y_axis_title="Ratio[-]",
-        output_folder=output_folder
+        output_folder=output_folder,
+        file_name_prefix="005"
     )
 
     # Choices
@@ -121,8 +127,8 @@ def visualize_hypotheses_asp(
               f'how many potential resource conflicts).\n'
               f'How much are choices and solution times correlated?',
         output_folder=output_folder,
-        pdf_file="choices.pdf",
-        x_axis_title="choices"
+        x_axis_title="choices",
+        pdf_file="XXX_choices.pdf"
     )
     # Conflicts
     plot_computional_times_from_traces(
@@ -132,7 +138,7 @@ def visualize_hypotheses_asp(
               'Conflicts represent the number of routing alternatives and .\n'
               f'How much are conflicts and solution times correlated?',
         output_folder=output_folder,
-        pdf_file="conflicts.pdf",
+        pdf_file="XXX_conflicts.pdf",
         x_axis_title="conflicts"
     )
 
@@ -144,8 +150,9 @@ def visualize_hypotheses_asp(
         columns_of_interest=[f'costs_' + item for item in suffixes],
         title=f'XXX_low_cost_optimal_solutions_may_be_harder_to_find:\n'
               f'final optimization costs per experiment_id',
-        output_folder=output_folder,
         y_axis_title="Costs[??]",
+        output_folder=output_folder,
+        file_name_prefix="XXX"
     )
     plot_computional_times_from_traces(
         experiment_data=data_frame,
@@ -154,5 +161,6 @@ def visualize_hypotheses_asp(
               f'Are solver times and optimization costs correlated? '
               f'Final optimization costs per total_time',
         output_folder=output_folder,
-        x_axis_title="costs"
+        x_axis_title="costs",
+        pdf_file="XXX_costs.pdf",
     )

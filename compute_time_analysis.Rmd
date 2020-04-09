@@ -49,6 +49,39 @@ experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_d
 ```
 
 ```{python}
+import pandas as pd
+data_frame = pd.DataFrame(data=[
+    {
+'experiment_id': r.experiment_id,
+'grid_id': r.grid_id,
+'size': r.size,
+'n_agents': r.n_agents,
+'max_num_cities': r.max_num_cities,
+'max_rail_between_cities': r.max_rail_between_cities,
+'max_rail_in_city': r.max_rail_in_city,
+'time_full': r.time_full,
+'time_full_after_malfunction': r.time_full_after_malfunction,
+'time_delta_after_malfunction': r.time_delta_after_malfunction,
+'costs_full': r.costs_full,
+'costs_full_after_malfunction': r.costs_full_after_malfunction,
+'costs_delta_after_malfunction': r.costs_delta_after_malfunction,
+'nb_resource_conflicts_full': r.nb_resource_conflicts_full,
+'nb_resource_conflicts_full_after_malfunction': r.nb_resource_conflicts_full_after_malfunction,
+'nb_resource_conflicts_delta_after_malfunction': r.nb_resource_conflicts_delta_after_malfunction,
+'speed_up': r.speed_up,
+'factor_resource_conflicts': r.factor_resource_conflicts,
+'path_search_space_schedule': r.path_search_space_schedule,
+'path_search_space_rsp_full': r.path_search_space_rsp_full,
+'path_search_space_rsp_delta': r.path_search_space_rsp_delta,
+'factor_path_search_space': r.factor_path_search_space,
+'size_used': r.size_used
+    }
+    for r in experiment_results_list])
+data_frame.to_csv(f"data.tsv", sep="\t")
+# display(data_frame)
+```
+
+```{python}
 axis_of_interest = 'n_agents'
 columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
 ```
