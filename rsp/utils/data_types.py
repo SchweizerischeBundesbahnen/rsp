@@ -260,7 +260,7 @@ def expand_experiment_results_for_analysis(
             nb_resource_conflicts_delta_after_malfunction / \
             nb_resource_conflicts_full_after_malfunction
     except ZeroDivisionError:
-        warnings.warn(f"no resource conflicts for experiment {experiment_id} -> set ratio to -1:\n{experiment_results}")
+        warnings.warn(f"no resource conflicts for experiment {experiment_id} -> set ratio to -1")
     path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = extract_path_search_space(
         experiment_results=experiment_results)
     factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full

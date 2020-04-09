@@ -85,6 +85,7 @@ def _copy_pdfs_from_analysis_subfolder_to_potassco_directory(analysis_folder, ex
     asp_plausi_dest_folder = f"{experiment_potassco_directory}/{subfolder}"
     check_create_folder(asp_plausi_dest_folder)
     asp_plausi_src_folder = f"{analysis_folder}/{subfolder}"
+    check_create_folder(asp_plausi_src_folder)
     log_files = os.listdir(asp_plausi_src_folder)
     for file in [file for file in log_files if file.endswith(".pdf")]:
         copyfile(f"{asp_plausi_src_folder}/{file}", f"{asp_plausi_dest_folder}/{file}")
@@ -107,7 +108,7 @@ def _potassco_write_lp_and_sh_for_experiment(
     programs
     results
     """
-
+    check_create_folder(experiment_potassco_directory)
     # TODO for cohesion, this should be part of asp_helper.py.
     #  However, we would have to refactor asp_helper.py too much in order to it.
     #  Do it later if this approach proves insufficient.

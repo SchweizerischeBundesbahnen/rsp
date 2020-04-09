@@ -13,12 +13,12 @@ from rsp.utils.experiments import run_experiment_agenda
 
 
 def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
-    parameter_ranges = ParameterRanges(agent_range=[2, 50, 30],
-                                       size_range=[30, 50, 10],
-                                       in_city_rail_range=[6, 6, 1],
-                                       out_city_rail_range=[2, 2, 1],
-                                       city_range=[20, 20, 1],
-                                       earliest_malfunction=[20, 20, 1],
+    parameter_ranges = ParameterRanges(agent_range=[2, 2, 1],
+                                       size_range=[18, 18, 1],
+                                       in_city_rail_range=[2, 2, 1],
+                                       out_city_rail_range=[1, 1, 1],
+                                       city_range=[2, 2, 1],
+                                       earliest_malfunction=[5, 5, 1],
                                        malfunction_duration=[20, 20, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
                                        max_window_size_from_earliest=[np.inf, np.inf, 1],
@@ -78,7 +78,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     experiment_agenda = create_experiment_agenda(
         experiment_name=experiment_name,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiments_per_grid_element=1
+        experiments_per_grid_element=10
     )
     # [ A.2 -> B ]* -> C
     experiment_base_folder_name = hypothesis_one_pipeline_without_setup(
@@ -125,8 +125,7 @@ def hypothesis_one_main():
     parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_ids=range(90, 120),
-        copy_agenda_from_base_directory='exp_hypothesis_one_2020_03_31T07_11_03',
+        experiment_ids=None,
         parallel_compute=1
     )
 

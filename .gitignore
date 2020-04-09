@@ -116,3 +116,6 @@ ffmpeg
 
 # Jupyter Notebooks
 *.ipynb
+
+# converted notebooks
+/notebooks/*.py

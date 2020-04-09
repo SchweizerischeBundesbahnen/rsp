@@ -3,18 +3,25 @@ import os.path
 from pathlib import Path
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
+from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
+from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.analysis_tools import resource_time_2d
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
+from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
@@ -54,24 +61,74 @@ PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'yellowgreen']
 
 
-def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
-                             columns_of_interest: List[str]):
+def plot_computational_times(
+        experiment_data: DataFrame, axis_of_interest: str,
+        columns_of_interest: List[str],
+        output_folder: Optional[str] = None,
+        y_axis_title: str = "Time[s]",
+        title: str = "Computational Times",
+        file_name_prefix: str = ""
+):
     """Plot the computational times of experiments.
 
     Parameters
     ----------
+
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
     axis_of_interest: str
         Defines along what axis the data will be plotted
     columns_of_interest: List[str]
         Defines which columns of a dataset will be plotted as traces
+    output_folder
+        if defined, do not show plot but write to file in this folder
+    title
+        title of the diagram
+    file_name_prefix
+        prefix for file name
+    Returns
+    -------
+    """
+    traces = [(axis_of_interest, column) for column in columns_of_interest]
+    # prevent too long file names
+    pdf_file = f'{file_name_prefix}_{axis_of_interest}__' + ('_'.join(columns_of_interest))[0:15] + '.pdf'
+    plot_computional_times_from_traces(experiment_data=experiment_data,
+                                       traces=traces,
+                                       output_folder=output_folder,
+                                       x_axis_title=axis_of_interest,
+                                       y_axis_title=y_axis_title,
+                                       pdf_file=pdf_file,
+                                       title=f"{title} {axis_of_interest}")
 
+
+def plot_computional_times_from_traces(experiment_data: DataFrame,
+                                       traces: List[Tuple[str, str]],
+                                       x_axis_title: str,
+                                       y_axis_title: str = "Time[s]",
+                                       output_folder: Optional[str] = None,
+                                       pdf_file: Optional[str] = None,
+                                       title: str = "Computational Times"):
+    """Plot the computational times of experiments.
+
+    Parameters
+    ----------
+    experiment_data: DataFrame
+        DataFrame containing all the results from hypothesis one experiments
+        Defines which columns of a dataset will be plotted as traces
+    traces: List[Tuple[str,str]]
+         which pairings of axis_of_interest and column should be displayed?
+    output_folder
+    pdf_file
+        if both defined, do not show plot but write to file in this folder
+    title
+        title of the diagram
+    x_axis_title
+        title for x axis (in the case of traces, cannot derived directly from column name)
     Returns
     -------
     """
     fig = go.Figure()
-    for column in columns_of_interest:
+    for axis_of_interest, column in traces:
         fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                              y=experiment_data[column],
                              name=column, pointpos=-1,
@@ -85,21 +142,34 @@ def plot_computational_times(experiment_data: DataFrame, axis_of_interest: str,
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
     fig.update_layout(boxmode='group')
-    fig.update_layout(title_text="Computational Times")
-    fig.update_xaxes(title=axis_of_interest)
-    fig.update_yaxes(title="Time[s]")
-    fig.show()
+    fig.update_layout(title_text=f"{title}")
+    fig.update_xaxes(title=x_axis_title)
+    fig.update_yaxes(title=y_axis_title)
+    if output_folder is None or pdf_file is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, pdf_file)
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_speed_up(experiment_data: DataFrame, axis_of_interest: str):
+def plot_speed_up(
+        experiment_data: DataFrame,
+        axis_of_interest: str,
+        output_folder: Optional[str] = None
+):
     """
 
     Parameters
     ----------
+
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
     axis_of_interest
         Defines along what axis the data will be plotted
+    output_folder
+        if defined, do not show plot but write to file in this folder
     Returns
     -------
 
@@ -124,10 +194,16 @@ def plot_speed_up(experiment_data: DataFrame, axis_of_interest: str):
                          marker=dict(size=3, color='blue')))
 
     fig.update_layout(boxmode='group')
-    fig.update_layout(title_text="Speed Up Factors")
+    fig.update_layout(title_text=f"Speed Up Factors {axis_of_interest}")
     fig.update_xaxes(title="Agents[#]")
     fig.update_yaxes(title="Speed Up Factor")
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'{axis_of_interest}__speed_up.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
 def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff):
@@ -215,8 +291,12 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
 
     # Plot difference
     if with_diff:
+        additional_data = dict()
+        delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
+                                                       trainruns=traces_influenced_agents)
+        additional_data.update({'Delay': delay_information})
         plot_time_resource_data(time_resource_data=traces_influenced_agents, title='Changed Agents',
-                                ranges=ranges)
+                                ranges=ranges, additional_data=additional_data)
 
     return
 
@@ -327,6 +407,46 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
     fig.update_xaxes(title="Agents ID")
     fig.update_yaxes(title="Delay [s]")
     fig.show()
+
+
+def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
+                   agent_id: int,
+                   suffix_of_constraints_to_visualize: ScheduleProblemEnum,
+                   save: bool = False
+                   ):
+    train_runs_input: TrainrunDict = experiment_results_analysis.solution_full
+    train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
+    train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
+    train_run_input: Trainrun = train_runs_input[agent_id]
+    train_run_full_after_malfunction: Trainrun = train_runs_full_after_malfunction[agent_id]
+    train_run_delta_after_malfunction: Trainrun = train_runs_delta_after_malfunction[agent_id]
+    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
+    problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
+    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_after_malfunction
+    topo = problem_schedule.topo_dict[agent_id]
+
+    config = {
+        ScheduleProblemEnum.PROBLEM_SCHEDULE: [problem_schedule, f'Schedule RouteDAG for agent {agent_id}'],
+        ScheduleProblemEnum.PROBLEM_RSP_FULL: [problem_rsp_full, f'Full Reschedule RouteDAG for agent {agent_id}'],
+        ScheduleProblemEnum.PROBLEM_RSP_DELTA: [problem_rsp_delta, f'Delta Reschedule RouteDAG for agent {agent_id}'],
+    }
+
+    problem_to_visualize, title = config[suffix_of_constraints_to_visualize]
+
+    visualize_route_dag_constraints(
+        topo=topo,
+        train_run_input=train_run_input,
+        train_run_full_after_malfunction=train_run_full_after_malfunction,
+        train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+        f=problem_to_visualize.route_dag_constraints_dict[agent_id],
+        vertex_eff_lateness={},
+        edge_eff_route_penalties={},
+        route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],
+        title=title,
+        file_name=(
+            f"experiment_{experiment_results_analysis.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf"
+            if save else None)
+    )
 
 
 def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, experiment_id: int,
