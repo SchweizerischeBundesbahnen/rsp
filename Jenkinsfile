@@ -46,7 +46,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
                         ENVIRONMENT_YAML: 'rsp_environment.yml',
                         JENKINS_CLOSURE: {
                             sh """
-xvfb-run python -m tox . --recreate -v
+python -m tox . --recreate -v
 """
                         }
                 )
