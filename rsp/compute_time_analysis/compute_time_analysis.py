@@ -65,7 +65,7 @@ def plot_computational_times(
         experiment_data: DataFrame, axis_of_interest: str,
         columns_of_interest: List[str],
         output_folder: Optional[str] = None,
-        y_axis_title: str="Time[s]",
+        y_axis_title: str = "Time[s]",
         title: str = "Computational Times",
         file_name_prefix: str = ""
 ):
@@ -104,7 +104,7 @@ def plot_computational_times(
 def plot_computional_times_from_traces(experiment_data: DataFrame,
                                        traces: List[Tuple[str, str]],
                                        x_axis_title: str,
-                                       y_axis_title: str="Time[s]",
+                                       y_axis_title: str = "Time[s]",
                                        output_folder: Optional[str] = None,
                                        pdf_file: Optional[str] = None,
                                        title: str = "Computational Times"):
