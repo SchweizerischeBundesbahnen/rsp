@@ -65,7 +65,8 @@ def plot_computational_times(
         experiment_data: DataFrame, axis_of_interest: str,
         columns_of_interest: List[str],
         output_folder: Optional[str] = None,
-        title: str = "Computational Times"
+        title: str = "Computational Times",
+        y_axis_title: str="Time[s]"
 ):
     """Plot the computational times of experiments.
 
@@ -91,6 +92,7 @@ def plot_computational_times(
                                        traces=traces,
                                        output_folder=output_folder,
                                        x_axis_title=axis_of_interest,
+                                       y_axis_title=y_axis_title,
                                        pdf_file=pdf_file,
                                        title=f"{title} {axis_of_interest}")
 
@@ -98,6 +100,7 @@ def plot_computational_times(
 def plot_computional_times_from_traces(experiment_data: DataFrame,
                                        traces: List[Tuple[str, str]],
                                        x_axis_title: str,
+                                       y_axis_title: str="Time[s]",
                                        output_folder: Optional[str] = None,
                                        pdf_file: Optional[str] = None,
                                        title: str = "Computational Times"):
@@ -137,7 +140,7 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"{title}")
     fig.update_xaxes(title=x_axis_title)
-    fig.update_yaxes(title="Time[s]")
+    fig.update_yaxes(title=y_axis_title)
     if output_folder is None or pdf_file is None:
         fig.show()
     else:

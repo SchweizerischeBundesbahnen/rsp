@@ -64,6 +64,7 @@ def visualize_hypotheses_asp(
         columns_of_interest=[f'solve_total_ratio_' + item for item in suffixes],
         title='003_ratio_asp_grounding_solving:\n'
               'solver should spend most of the time solving: compare solve and total solver time',
+        y_axis_title="Ratio[-]",
         output_folder=output_folder)
     # 002_asp_absolute_total_solver_times
     plot_computational_times(
@@ -83,6 +84,7 @@ def visualize_hypotheses_asp(
         title=f'004_ratio_asp_solve_propagation:\n'
               'propagation times should be low in comparison to solve times: '
               f'compare solve_time (b) against summed propagation times of user accu',
+        y_axis_title="Nb user_accu_propagations[-]",
         output_folder=output_folder
     )
     plot_computational_times(
@@ -93,6 +95,7 @@ def visualize_hypotheses_asp(
         title='004_ratio_asp_solve_propagation:\n'
               'propagation times should be low in comparison to solve times: '
               f'comparison of solve_time (b) against summed propagation times of user step',
+        y_axis_title="Nb user_step_propagations[-]",
         output_folder=output_folder
     )
 
@@ -105,6 +108,7 @@ def visualize_hypotheses_asp(
         title=f'005_ratio_asp_conflict_choice: choice conflict ratio should be close to 1; '
               f'if the ratio is high, the problem might be large, but not difficult; '
               f'choice conflict ratio',
+        y_axis_title="Ratio[-]",
         output_folder=output_folder
     )
 
@@ -119,7 +123,6 @@ def visualize_hypotheses_asp(
         output_folder=output_folder,
         pdf_file="choices.pdf",
         x_axis_title="choices"
-
     )
     # Conflicts
     plot_computional_times_from_traces(
@@ -141,7 +144,8 @@ def visualize_hypotheses_asp(
         columns_of_interest=[f'costs_' + item for item in suffixes],
         title=f'XXX_low_cost_optimal_solutions_may_be_harder_to_find:\n'
               f'final optimization costs per experiment_id',
-        output_folder=output_folder
+        output_folder=output_folder,
+        y_axis_title="Costs[??]",
     )
     plot_computional_times_from_traces(
         experiment_data=data_frame,
