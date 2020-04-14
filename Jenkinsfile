@@ -125,6 +125,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
             }
             steps {
                 script {
+                    // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_helmchartsDeploy()-LintanddeployaHelmChart
                     cloud_helmchartsDeploy(
                             cluster: OPENSHIFT_CLUSTER,
                             project:  env.OPENSHIFT_PROJECT,

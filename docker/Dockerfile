@@ -39,6 +39,6 @@ USER $NB_USER
 RUN printenv && \
     id -u && \
     id -g && \
-    source set-sbb-proxy && \
+    set-sbb-proxy && \
     python3 -m pip config set global.cert /etc/ssl/certs/ca-certificates.crt
 # \  TODO HPC-101 -> DSKIT-28

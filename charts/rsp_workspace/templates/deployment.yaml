@@ -58,8 +58,11 @@ spec:
             - -c
             - |
               # echo shell commands and fail script on error
-              set -e;
-              set -x;
+              set -e
+              set -x
+              printenv
+
+              python3 -m pip config get global.cert
 
               export PATH=$PWD/conda_dir/bin:$PATH
               git clone https://code.sbb.ch/scm/ks_pfi/rsp.git
