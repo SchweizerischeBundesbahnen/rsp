@@ -40,10 +40,17 @@ pipeline {
         //   https://ssp.app.ose.sbb-cloud.net --> WZU-Dienste --> Artifactory
         ARTIFACTORY_PROJECT = 'pfi'
         BASE_IMAGE_NAME = 'rsp-workspace'
-        OPENSHIFT_CLUSTER = "otc_prod_gpu" // https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/browse/src/ch/sbb/util/OcClusters.groovy
+
+        //-------------------------------------------------------------
+        // Configuration for base image deployment
+        //-------------------------------------------------------------
+        // https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/browse/src/ch/sbb/util/OcClusters.groovy
+        OPENSHIFT_CLUSTER = "otc_prod_gpu"
         OPENSHIFT_PROJECT = "pfi-digitaltwin-ci"
-        SERVICE_ACCOUNT_TOKEN = credentials('bf9665e5-a8a8-4287-9738-9a07f5f31ad0')
         HELM_CHART = 'rsp_workspace'
+        // https://ssp.app.ose.sbb-cloud.net/ose/newserviceaccount
+        // https://ci.sbb.ch/job/KS_PFI/credentials/
+        SERVICE_ACCOUNT_TOKEN = credentials('aaff533e-7ebe-469d-a13a-31f786245d1b')
     }
     stages {
         stage('github pending') {

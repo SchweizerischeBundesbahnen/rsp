@@ -1,7 +1,6 @@
 FROM docker.bin.sbb.ch/dskit/jupyter-base:0.23.0
-LABEL maintainer="Data Science Kit Developers <xdsk001@sbb.ch>"
 LABEL author="Christian Eichenberger <u214892@sbb.ch>"
-LABEL description="hpc quickstart jupyter workspace"
+LABEL description="rsp jupyter workspace"
 
 USER root
 

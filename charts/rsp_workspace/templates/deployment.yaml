@@ -6,7 +6,7 @@ metadata:
   labels:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    hpc-quickstart-jupyter-workspace/version: {{ .Values.RspWorkspaceVersion }}
+    rsp-workspace/version: {{ .Values.RspWorkspaceVersion }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -18,11 +18,11 @@ spec:
       labels:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
-        hpc-quickstart-jupyter-workspace/version: {{ .Values.RspWorkspaceVersion }}
+        rsp-workspace/version: {{ .Values.RspWorkspaceVersion }}
     spec:
       restartPolicy: Always
       containers:
-        - image: "docker.bin.sbb.ch/hpc/hpc-quickstart-jupyter-workspace:{{ .Values.RspWorkspaceVersion }}"
+        - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
           imagePullPolicy: IfNotPresent # Always or IfNotPresent
           name: "{{ .Release.Name }}"
           # sbb-proxy is set in dskit-jupyter-base ENTRYPOINT https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile
@@ -35,6 +35,8 @@ spec:
           #          value: http://zscaler.sbb.ch:10465
           #        - name: NO_PROXY
           #          value: localhost,127.0.0.1,.svc.cluster.local,.sbb.ch,.cff.ch,.ffs.ch,.adrail.ch,.sbb-wzu.net,.wzu.io,.sbb-aws.net,.sbb-cloud.net,.sbbintra.ch,.swisspass.ch,.sbbcargo.com,.otc.t-systems.com,bin.sbb.ch
+
+          # TODO SIM-194 peristence
           env:
             # you need to define these secrets manually in the Openshift project, see HOWTO.md in hpc-quickstart-training
             - name: AWS_SECRET_ACCESS_KEY
