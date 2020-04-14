@@ -50,7 +50,7 @@ pipeline {
         HELM_CHART = 'rsp_workspace'
         // https://ssp.app.ose.sbb-cloud.net/ose/newserviceaccount
         // https://ci.sbb.ch/job/KS_PFI/credentials/
-        SERVICE_ACCOUNT_TOKEN = credentials('aaff533e-7ebe-469d-a13a-31f786245d1b')
+        SERVICE_ACCOUNT_TOKEN = 'aaff533e-7ebe-469d-a13a-31f786245d1b'
     }
     stages {
         stage('github pending') {
