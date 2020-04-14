@@ -12,6 +12,7 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/instance: {{ .Release.Name }}
+
   template:
     metadata:
       name: {{ .Release.Name }}
@@ -51,6 +52,8 @@ spec:
                   key: AWS_ACCESS_KEY_ID
 
 
+
+
           # https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
           #                                        Docker field name        Kubernetes field name
           #   The command run by the container	   Entrypoint	            command
@@ -73,6 +76,10 @@ spec:
               start-notebook.sh
           resources:
           {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          {{/*https://ssp.app.ose.sbb-cloud.net/ose/volume/new*/}}
+            - name: rsp-volume
+              mountPath: /tmp
           readinessProbe:
             tcpSocket:
               port: 8888
