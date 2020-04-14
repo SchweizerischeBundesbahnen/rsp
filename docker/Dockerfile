@@ -7,19 +7,11 @@ USER root
 # install miniconda
 RUN set -e && \
     set -x && \
-    echo $PWD && \
-    mkdir -p conda_dir && \
-    wget -nv https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-    /bin/bash Miniconda3-latest-Linux-x86_64.sh -f -b -p $PWD/conda_dir && \
-    rm -rf Miniconda3-latest-Linux-x86_64.sh && \
-    export PATH=$PWD/conda_dir/bin:$PATH && \
-    which python && \
-    which conda && \
-    conda update -n root conda -y && \
-    conda install -c conda-forge tox-conda && \
-    # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get update && \
     apt-get -y upgrade && \
+    # install dependencies for FLATland visualization: https://gitlab.aicrowd.com/flatland/flatland/blob/master/.gitlab-ci.yml
+    apt-get install -y libgl1-mesa-glx xvfb xdg-utils libcairo2-dev libjpeg-dev libgif-dev
+    # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev
 

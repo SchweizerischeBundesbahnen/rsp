@@ -14,12 +14,11 @@ service:
 #   - maximum cpu usage per Container is 4,
 #   - maximum memory usage per Container is 32Gi.
 
-# We recommend that requests == limits
 resources:
-  requests: # We recommend that requests == limits
+  requests:
     cpu: 2
     memory: 4Gi
   limits: # Maximum
-    cpu: 2
+    cpu: 4
     memory: 32Gi
     nvidia.com/gpu: 0

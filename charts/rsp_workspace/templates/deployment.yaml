@@ -37,22 +37,14 @@ spec:
           #        - name: NO_PROXY
           #          value: localhost,127.0.0.1,.svc.cluster.local,.sbb.ch,.cff.ch,.ffs.ch,.adrail.ch,.sbb-wzu.net,.wzu.io,.sbb-aws.net,.sbb-cloud.net,.sbbintra.ch,.swisspass.ch,.sbbcargo.com,.otc.t-systems.com,bin.sbb.ch
 
-          # TODO SIM-194 peristence
           env:
             # you need to define these secrets manually in the Openshift project, see HOWTO.md in hpc-quickstart-training
-            - name: AWS_SECRET_ACCESS_KEY
+            {{/*          https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/config/jupyter_config_initializer.py*/}}
+            - name: JUPYTER_NOTEBOOK_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: obs-hpc-quickstart-p-write-user-secret-acces-key
-                  key: AWS_SECRET_ACCESS_KEY
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: obs-hpc-quickstart-p-write-user-access-key-id
-                  key: AWS_ACCESS_KEY_ID
-
-
-
+                  name: jupyter-notebook-password
+                  key: JUPYTER_NOTEBOOK_PASSWORD
 
           # https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
           #                                        Docker field name        Kubernetes field name
@@ -65,19 +57,21 @@ spec:
               # echo shell commands and fail script on error
               set -e
               set -x
+              source set-sbb-proxy
               printenv
 
-              python3 -m pip config get global.cert
-
-              export PATH=$PWD/conda_dir/bin:$PATH
               git clone https://code.sbb.ch/scm/ks_pfi/rsp.git
+              cd rsp
+
+              eval "$(conda shell.bash hook)"
+              conda activate rsp
 
               # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!
               start-notebook.sh
           resources:
           {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-          {{/*https://ssp.app.ose.sbb-cloud.net/ose/volume/new*/}}
+
             - name: rsp-volume
               mountPath: /tmp
           readinessProbe:
@@ -90,3 +84,8 @@ spec:
               port: 8888
             initialDelaySeconds: 15
             periodSeconds: 20
+      volumes:
+        - name: rsp-volume
+          {{/*          https://ssp.app.ose.sbb-cloud.net/ose/volume/new*/}}
+          persistentVolumeClaim:
+            claimName: rsp-volume
