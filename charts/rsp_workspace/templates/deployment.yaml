@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+# need to use deployment instead of beacause of https://github.com/kubernetes/kubernetes/issues/24913
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    hpc-quickstart-jupyter-workspace/version: {{ .Values.RspWorkspaceVersion }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      name: {{ .Release.Name }}
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        hpc-quickstart-jupyter-workspace/version: {{ .Values.RspWorkspaceVersion }}
+    spec:
+      restartPolicy: Always
+      containers:
+        - image: "docker.bin.sbb.ch/hpc/hpc-quickstart-jupyter-workspace:{{ .Values.RspWorkspaceVersion }}"
+          imagePullPolicy: IfNotPresent # Always or IfNotPresent
+          name: "{{ .Release.Name }}"
+          # sbb-proxy is set in dskit-jupyter-base ENTRYPOINT https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile
+          # If you need to set proxy variables manually, add something along the lines:
+          # (On AWS you might need to unset the variables! On OTC/VIAS, you need the proxy to access the internet).
+          #      env:
+          #        - name: HTTP_PROXY
+          #          value: http://zscaler.sbb.ch:10465
+          #        - name: HTTPS_PROXY
+          #          value: http://zscaler.sbb.ch:10465
+          #        - name: NO_PROXY
+          #          value: localhost,127.0.0.1,.svc.cluster.local,.sbb.ch,.cff.ch,.ffs.ch,.adrail.ch,.sbb-wzu.net,.wzu.io,.sbb-aws.net,.sbb-cloud.net,.sbbintra.ch,.swisspass.ch,.sbbcargo.com,.otc.t-systems.com,bin.sbb.ch
+          env:
+            # you need to define these secrets manually in the Openshift project, see HOWTO.md in hpc-quickstart-training
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: obs-hpc-quickstart-p-write-user-secret-acces-key
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: obs-hpc-quickstart-p-write-user-access-key-id
+                  key: AWS_ACCESS_KEY_ID
+
+
+          # https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/
+          #                                        Docker field name        Kubernetes field name
+          #   The command run by the container	   Entrypoint	            command
+          #   The arguments passed to the command  Cmd                      args
+          args:
+            - /bin/bash
+            - -c
+            - |
+              # echo shell commands and fail script on error
+              set -e;
+              set -x;
+
+              export PATH=$PWD/conda_dir/bin:$PATH
+              git clone https://code.sbb.ch/scm/ks_pfi/rsp.git
+
+              # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!
+              start-notebook.sh
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            tcpSocket:
+              port: 8888
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8888
+            initialDelaySeconds: 15
+            periodSeconds: 20

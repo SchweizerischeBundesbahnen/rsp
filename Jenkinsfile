@@ -23,7 +23,6 @@ pipeline {
                 defaultValue: false,
                 description: 'Deploy Jupyter Workspace? If ticked, no image will be built, workspace deployment only.'
         )
-        // TODO SIM-194 helm integration
         string(name: 'version', defaultValue: 'latest', description: 'Version of rsp-workspace (use latest/<commit sha>)')
         string(name: 'helm_release_name', defaultValue: 'rsp-workspace-0', description: 'Workspace id (Helm release to install). If it does not exist, a new will be created.')
     }
@@ -41,9 +40,10 @@ pipeline {
         //   https://ssp.app.ose.sbb-cloud.net --> WZU-Dienste --> Artifactory
         ARTIFACTORY_PROJECT = 'pfi'
         BASE_IMAGE_NAME = 'rsp-workspace'
-        OPENSHIFT_CLUSTER = "https://master.gpu.otc.sbb.ch:8443"
+        OPENSHIFT_CLUSTER = "otc_prod_gpu" // https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/browse/src/ch/sbb/util/OcClusters.groovy
         OPENSHIFT_PROJECT = "pfi-digitaltwin-ci"
         SERVICE_ACCOUNT_TOKEN = credentials('bf9665e5-a8a8-4287-9738-9a07f5f31ad0')
+        HELM_CHART = 'rsp_workspace'
     }
     stages {
         stage('github pending') {
@@ -92,7 +92,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
                             ocAppVersion: env.GIT_COMMIT,
                             // we must be able to access rsp_environment.yml from within docker root!
                             // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
-                            dockerDir : '.',
+                            dockerDir: '.',
                             dockerfilePath: 'docker/Dockerfile'
                     )
                 }
@@ -124,20 +124,16 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
             steps {
-                // TODO SIM-194 helmcharts deploy
                 script {
-                    helmcharts_deploy(
-                            CHART_ROOT_FOLDER: './charts/',
-                            CHART: 'hpc_quickstart_workspace',
-                            GIT_VERSION: GIT_COMMIT,
-                            STAGES: ['ci'],
-                            HELM_RELEASE: params.helm_release_name,
-                            STAGE: "ci",
-                            OPENSHIFT_PROJECT: env.OPENSHIFT_PROJECT,
-                            ADDITIONAL_VALUES: "HpcQuickstartJupyterWorkspaceVersion=${params.hpc_quickstart_jupyter_workspace_version},QuickstartVersion=${params.hpc_quickstart_version}"
+                    cloud_helmchartsDeploy(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project:  env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            chart: env.HELM_CHART,
+                            release: params.helm_release_name,
+                            additionalValues : "RspWorkspaceVersion=${params.version}"
                     )
                     echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
-                    echo "If you start the tensorboard in the pod, it will be available through https://${params.helm_release_name}-tensorboard.app.gpu.otc.sbb.ch"
                 }
             }
         }

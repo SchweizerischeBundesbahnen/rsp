@@ -18,9 +18,9 @@ RUN set -e && \
     which conda && \
     conda update -n root conda -y && \
     conda install -c conda-forge tox-conda && \
+    # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get update && \
     apt-get -y upgrade && \
-    # https://github.com/giampaolo/psutil/issues/1714
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev
 
@@ -35,4 +35,10 @@ RUN conda env create -f /tmp/rsp_environment.yml
 RUN set -e && set -x && export NB_GID=0 && fix-permissions $HOME
 # Switch back to jovyan
 USER $NB_USER
+
+RUN printenv && \
+    id -u && \
+    id -g && \
+    source set-sbb-proxy && \
+    python3 -m pip config set global.cert /etc/ssl/certs/ca-certificates.crt
 # \  TODO HPC-101 -> DSKIT-28
