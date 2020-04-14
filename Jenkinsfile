@@ -62,18 +62,18 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
         }
-        stage('test') {
-            steps {
-                tox_conda_wrapper(
-                        ENVIRONMENT_YAML: 'rsp_environment.yml',
-                        JENKINS_CLOSURE: {
-                            sh """
-python -m tox . --recreate -v
-"""
-                        }
-                )
-            }
-        }
+//        stage('test') {
+//            steps {
+//                tox_conda_wrapper(
+//                        ENVIRONMENT_YAML: 'rsp_environment.yml',
+//                        JENKINS_CLOSURE: {
+//                            sh """
+//python -m tox . --recreate -v
+//"""
+//                        }
+//                )
+//            }
+//        }
         // build docker image on every commit with the commit hash as its version so it is unique (modulo re-building)
         stage("Build Docker Image") {
             when {

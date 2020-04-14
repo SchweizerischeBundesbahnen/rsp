@@ -18,8 +18,11 @@ RUN set -e && \
     which conda && \
     conda update -n root conda -y && \
     conda install -c conda-forge tox-conda && \
+    apt-get update && \
+    apt-get -y upgrade && \
     # https://github.com/giampaolo/psutil/issues/1714
-    apt-get install -y gcc python3-dev
+    apt-get -y install --no-install-recommends gcc && \
+    apt-get -y install --no-install-recommends python3-dev
 
 # setup conda env
 ADD rsp_environment.yml /tmp/rsp_environment.yml
