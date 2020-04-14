@@ -49,10 +49,20 @@ speed_data = {1.: 0.25,  # Fast passenger train
               1. / 4.: 0.25}  # Slow freight train
 parameter_ranges_and_speed_data = ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
-hypothesis_one_pipeline(
+experiment_base_folder = hypothesis_one_pipeline(
     parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
     experiment_ids=None,
     parallel_compute=1
 )
+```
 
+```{python}
+import shutil
+from rsp.utils.file_utils import check_create_folder
+import os
+
+# persistent data is under /home/jovyan/data
+dest =  "/home/jovyan/data"
+# check_create_folder(dest)
+# shutil.move(experiment_base_folder,dest)
 ```
