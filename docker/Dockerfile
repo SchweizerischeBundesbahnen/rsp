@@ -6,12 +6,12 @@ LABEL description="hpc quickstart jupyter workspace"
 # install miniconda
 RUN set -e && \
     set -x && \
-    echo \${PWD} && \
+    echo $PWD && \
     mkdir -p conda_dir && \
     wget -nv https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-    /bin/bash Miniconda3-latest-Linux-x86_64.sh -f -b -p \${WORKSPACE}/conda_dir && \
+    /bin/bash Miniconda3-latest-Linux-x86_64.sh -f -b -p $PWD/conda_dir && \
     rm -rf Miniconda3-latest-Linux-x86_64.sh && \
-    export PATH=${PWD}/conda_dir/bin:${PATH} && \
+    export PATH=$PWD/conda_dir/bin:$PATH && \
     which python && \
     which conda && \
     conda update -n root conda -y && \
