@@ -18,7 +18,7 @@ RUN set -e && \
     conda install -c conda-forge tox-conda
 
 # setup conda env
-ADD ../rsp_environment.yml /tmp/rsp_environment.yml
+ADD rsp_environment.yml /tmp/rsp_environment.yml
 RUN conda install -f /tmp/rsp_environment.yml
 
 # N.B. we inherit ENTRYPOINT from dskit/jupyter-base, no need to redefine
