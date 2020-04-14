@@ -128,11 +128,13 @@ curl --insecure -v --request POST -H "Authorization: token ${
                     // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_helmchartsDeploy()-LintanddeployaHelmChart
                     cloud_helmchartsDeploy(
                             cluster: OPENSHIFT_CLUSTER,
-                            project:  env.OPENSHIFT_PROJECT,
+                            project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             chart: env.HELM_CHART,
                             release: params.helm_release_name,
-                            additionalValues : "RspWorkspaceVersion=${params.version}"
+                            additionalValues: [
+                                    RspWorkspaceVersion: "${params.version}"
+                            ]
                     )
                     echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
                 }
