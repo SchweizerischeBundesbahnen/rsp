@@ -141,7 +141,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
                             chart: env.HELM_CHART,
                             release: params.helm_release_name,
                             additionalValues: [
-                                    RspWorkspaceVersion: params.version
+                                    RspWorkspaceVersion: "${params.version}"
                             ]
                     )
                     echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
