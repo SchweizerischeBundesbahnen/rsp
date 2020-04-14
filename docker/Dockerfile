@@ -3,6 +3,8 @@ LABEL maintainer="Data Science Kit Developers <xdsk001@sbb.ch>"
 LABEL author="Christian Eichenberger <u214892@sbb.ch>"
 LABEL description="hpc quickstart jupyter workspace"
 
+USER root
+
 # install miniconda
 RUN set -e && \
     set -x && \
@@ -27,7 +29,6 @@ RUN conda env create -f /tmp/rsp_environment.yml
 #   see https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile?at=refs%2Ftags%2F0.4.0#133-136
 # N.B. we do not re-define CMD since we specify args in deployment.yaml!
 # / TODO HPC-101 -> DSKIT-28  workaround for "fatal: could not create work tree dir 'hpc-quickstart-training': Permission denied"?
-USER root
 RUN set -e && set -x && export NB_GID=0 && fix-permissions $HOME
 # Switch back to jovyan
 USER $NB_USER
