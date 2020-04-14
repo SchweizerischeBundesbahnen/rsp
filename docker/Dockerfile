@@ -19,7 +19,7 @@ RUN set -e && \
 
 # setup conda env
 ADD rsp_environment.yml /tmp/rsp_environment.yml
-RUN conda install -f /tmp/rsp_environment.yml
+RUN conda env create -f /tmp/rsp_environment.yml
 
 # N.B. we inherit ENTRYPOINT from dskit/jupyter-base, no need to redefine
 #   see https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile?at=refs%2Ftags%2F0.4.0#133-136
