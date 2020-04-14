@@ -63,17 +63,19 @@ spec:
               git clone https://code.sbb.ch/scm/ks_pfi/rsp.git
               cd rsp
 
+              # activate conda activate
+              # https://docs.anaconda.com/anaconda/install/silent-mode/
               eval "$(conda shell.bash hook)"
               conda activate rsp
 
               # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!
+              # the password is injected via env variable JUPYTER_NOTEBOOK_PASSWORD from a secret, see above
               start-notebook.sh
           resources:
           {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-
             - name: rsp-volume
-              mountPath: /tmp
+              mountPath: /home/jovyan/data
           readinessProbe:
             tcpSocket:
               port: 8888
@@ -86,6 +88,6 @@ spec:
             periodSeconds: 20
       volumes:
         - name: rsp-volume
-          {{/*          https://ssp.app.ose.sbb-cloud.net/ose/volume/new*/}}
+          {{/* volum rsp-volume created via https://ssp.app.ose.sbb-cloud.net/ose/volume/new*/}}
           persistentVolumeClaim:
             claimName: rsp-volume

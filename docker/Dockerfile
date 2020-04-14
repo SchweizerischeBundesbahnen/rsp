@@ -27,6 +27,8 @@ RUN set -e && set -x && export NB_GID=0 && fix-permissions $HOME
 # Switch back to jovyan
 USER $NB_USER
 
+RUN mkdir -p $HOME/data
+
 RUN printenv && \
     id -u && \
     id -g && \
