@@ -87,7 +87,8 @@ python -m tox . --recreate -v
                     echo """cloud_buildDockerImage()"""
                     echo """GIT_COMMIT=${env.GIT_COMMIT}"""
                     // Dockerfile cannot ADD files outside its root -> copy there as a workaround
-                    sh """cp rsp_environment.yml docker"""
+                    sh """set -e && set -x && cp rsp_environment.yml docker/"""
+                    sh """set -e && set -x && find ."""
                     cloud_buildDockerImage(
                             artifactoryProject: env.ARTIFACTORY_PROJECT,
                             ocApp: env.BASE_IMAGE_NAME,
