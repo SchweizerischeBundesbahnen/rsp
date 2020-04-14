@@ -62,6 +62,7 @@ spec:
 
               git clone https://code.sbb.ch/scm/ks_pfi/rsp.git
               cd rsp
+              git checkout  {{ .Values.RspWorkspaceVersion }}
 
               # activate conda activate
               # https://docs.anaconda.com/anaconda/install/silent-mode/
@@ -70,7 +71,9 @@ spec:
 
               # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!
               # the password is injected via env variable JUPYTER_NOTEBOOK_PASSWORD from a secret, see above
-              start-notebook.sh
+
+              # run in xvfb to allow for DISPLAY
+              xvfb-run start-notebook.sh
           resources:
           {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
