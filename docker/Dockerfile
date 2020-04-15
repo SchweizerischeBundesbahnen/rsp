@@ -13,8 +13,8 @@ RUN set -e && \
     apt-get -y install  libgl1-mesa-glx xvfb xdg-utils libcairo2-dev libjpeg-dev libgif-dev && \
     # install ffmpeg for rsp conversion
     apt-get -y install ffmpeg && \
-    # install libnss3 required by plotly/orca, see https://github.com/plotly/orca/blob/3.3-release/deployment/Dockerfile
-    apt-get -y install libnss3 libgtk2.0-0 libgconf-2-4 && \
+    # install requirements for plotly/orca, see https://github.com/plotly/orca/blob/3.3-release/deployment/Dockerfile
+    apt-get -y install libgtk2.0-0 libgconf-2-4 && \
     # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev
