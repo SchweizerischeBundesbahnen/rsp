@@ -61,9 +61,8 @@ FluxHelperResult = NamedTuple('FluxHelperResult', [
 
 def flux_helper(
         asp_data: List[str],
-        bound_all_events: Optional[int] = None,
         asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-        asp_heurisics: List[ASPHeuristics] = None,
+        asp_heuristics: List[ASPHeuristics] = None,
         asp_seed_value: int = 94,
         nb_threads: int = 2,
         verbose: bool = False,
@@ -73,14 +72,17 @@ def flux_helper(
 
     Parameters
     ----------
+
     asp_data
         data part
-    bound_all_events
-        upper bound on all arrival times
-    asp_heuristics
-        which heuristics to apply?
     asp_objective
         which asp objective should be applied if any
+    debug
+    verbose
+    nb_threads
+    asp_seed_value
+    asp_heuristics
+        which heuristics to apply?
 
     Returns
     -------
@@ -92,8 +94,8 @@ def flux_helper(
     with path('res.asp.encodings', 'encoding.lp') as encoding_path:
         paths = [encoding_path]
 
-    if asp_heurisics:
-        for asp_heurisic in asp_heurisics:
+    if asp_heuristics:
+        for asp_heurisic in asp_heuristics:
             # TODO SIM-176 switch on heuristics
             if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ,
                                 ASPHeuristics.HEURISTIC_DELAY,
@@ -110,7 +112,6 @@ def flux_helper(
 
     flux_result = _asp_helper(
         encoding_files=paths,
-        bound_all_events=bound_all_events,
         plain_encoding=prg_text_joined,
         asp_seed_value=asp_seed_value,
         nb_threads=nb_threads,
@@ -126,7 +127,6 @@ def _asp_helper(encoding_files: List[str],
                 plain_encoding: Optional[str] = None,
                 verbose: bool = False,
                 debug: bool = False,
-                bound_all_events: Optional[int] = None,
                 nb_threads: int = 2,
                 asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
@@ -139,10 +139,6 @@ def _asp_helper(encoding_files: List[str],
         plain encoding as string
     verbose
         prints a lot to debug
-    bound_all_events
-        should the times have a global upper bound?
-    asp_objective
-        does multi or one-shot optimization depending on the objective
     """
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
@@ -178,8 +174,6 @@ def _asp_helper(encoding_files: List[str],
     if verbose:
         print("Grounding took {}s".format(time.time() - grounding_start_time))
 
-    if bound_all_events:
-        ctl.ground([("bound_all_events", [int(bound_all_events)])])
     all_answers = _asp_loop(ctl, dl, verbose, debug)
     statistics: Dict = ctl.statistics
 
