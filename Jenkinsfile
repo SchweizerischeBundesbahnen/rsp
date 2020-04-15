@@ -58,7 +58,6 @@ pipeline {
     }
     stages {
         stage('github pending') {
-
             steps {
                 // https://developer.github.com/v3/repos/statuses/
                 script {
@@ -74,6 +73,12 @@ curl --insecure -v --request POST -H "Authorization: token ${
             }
         }
         stage('test') {
+            when {
+                allOf {
+                    // if the build was triggered manually with deploy=true, skip testing
+                    expression { !params.deploy }
+                }
+            }
             steps {
                 tox_conda_wrapper(
                         ENVIRONMENT_YAML: 'rsp_environment.yml',
