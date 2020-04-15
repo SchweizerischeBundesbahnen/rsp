@@ -26,21 +26,8 @@ def test_asp_helper():
     actual = list(models)[0]
 
     expected = set([
-        'start(t1,1)',
-        'm((1,4),1)',
-        'visit(t1,4)',
-        'e(t1,1,0)',
-        'l(t1,1,6)',
-        'visit(t1,1)',
-        'edge(t1,1,4)',
-        'route(t1,(1,4))',
-        'w(t1,(1,4),0)',
-        'e(t1,4,0)',
-        'l(t1,4,6)',
-        'dl((t1,4),1)',
-        'end(t1,4)',
-        'train(t1)',
-        'dl((t1,1),0)'
+        'dl((t1,(t1,4)),1)',
+        'dl((t1,(t1,1)),0)'
     ])
     assert actual.issuperset(expected), "actual {}, expected {}".format(actual, expected)
 

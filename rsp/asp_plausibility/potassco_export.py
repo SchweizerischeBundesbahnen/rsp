@@ -56,7 +56,7 @@ def potassco_export(experiment_potassco_directory: str,
                 problem=experiment.problem_full,
                 programs=[f"encoding/{s}" for s in schedule_programs],
                 results=experiment.results_full,
-                factory=ASPProblemDescription.factory_scheduling
+                factory_method=ASPProblemDescription.factory_scheduling
             )
         if export_reschedule_full_after_malfunction:
             _potassco_write_lp_and_sh_for_experiment(
@@ -66,7 +66,7 @@ def potassco_export(experiment_potassco_directory: str,
                 problem=experiment.problem_full_after_malfunction,
                 programs=[f"encoding/{s}" for s in reschedule_programs],
                 results=experiment.results_full_after_malfunction,
-                factory=ASPProblemDescription.factory_rescheduling
+                factory_method=ASPProblemDescription.factory_rescheduling
             )
         if export_reschedule_delta_after_malfunction:
             _potassco_write_lp_and_sh_for_experiment(
@@ -76,7 +76,7 @@ def potassco_export(experiment_potassco_directory: str,
                 problem=experiment.problem_delta_after_malfunction,
                 programs=[f"encoding/{s}" for s in reschedule_programs],
                 results=experiment.results_delta_after_malfunction,
-                factory=ASPProblemDescription.factory_rescheduling
+                factory_method=ASPProblemDescription.factory_rescheduling
             )
 
     # copy program files
@@ -111,7 +111,7 @@ def _potassco_write_lp_and_sh_for_experiment(
         problem: ScheduleProblemDescription,
         programs: List[str],
         results: SchedulingExperimentResult,
-        factory: Callable[[ScheduleProblemDescription, int], ASPProblemDescription]
+        factory_method: Callable[[ScheduleProblemDescription, int], ASPProblemDescription]
 ):
     """Write .lp and .sh to the potassco folder.
 
@@ -123,6 +123,8 @@ def _potassco_write_lp_and_sh_for_experiment(
     problem
     programs
     results
+    factory_method: Callable[[ScheduleProblemDescription, int], ASPProblemDescription]
+        either `ASPProblemDescription.factory_scheduling` or `ASPProblemDescription.factory_rescheduling`
     """
     check_create_folder(experiment_potassco_directory)
     # TODO for cohesion, this should be part of asp_helper.py.
@@ -133,7 +135,7 @@ def _potassco_write_lp_and_sh_for_experiment(
         solver_program = results.solver_program
         # temporary workaround: data from Erik were produced without the new filed solver_program
         if solver_program is None:
-            asp_model = factory(
+            asp_model = factory_method(
                 tc=problem,
                 asp_seed_value=results.solver_seed
             )

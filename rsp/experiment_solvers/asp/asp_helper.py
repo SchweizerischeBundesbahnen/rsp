@@ -182,6 +182,8 @@ def _asp_helper(encoding_files: List[str],
         _print_configuration(ctl)
         _print_stats(statistics)
 
+    assert statistics["problem"]["lp"]["sccs"] == 0, f'not tight statistics["problem"]["lp"]["sccs"]={statistics["problem"]["lp"]["sccs"]}'
+
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
