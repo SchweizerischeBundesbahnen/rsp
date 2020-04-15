@@ -31,10 +31,8 @@ from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_
 from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -209,25 +207,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
             experiment_results_list=experiment_results_list,
             output_folder=f'{experiment_analysis_directory}/plausi'
         )
-    if analysis_3d:
-        raise NotImplementedError()
 
-    # qualitative explorative analysis
-    if qualitative_analysis_experiment_ids:
-        filtered_experiments = list(filter(
-            lambda experiment: experiment.experiment_id in qualitative_analysis_experiment_ids,
-            experiment_agenda.experiments))
-        for experiment in filtered_experiments:
-            row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
-            experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
-                row)
-
-            visualize_experiment(experiment_parameters=experiment,
-                                 experiment_results_analysis=experiment_results_analysis,
-                                 experiment_analysis_directory=experiment_analysis_directory,
-                                 analysis_2d=analysis_2d,
-                                 analysis_3d=analysis_3d,
-                                 flatland_rendering=flatland_rendering)
     if asp_export_experiment_ids:
         potassco_export(experiment_potassco_directory=experiment_potassco_directory,
                         experiment_results_list=experiment_results_list,

@@ -8,6 +8,7 @@ from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
+from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
@@ -15,7 +16,6 @@ from pandas import DataFrame
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
-from rsp.utils.analysis_tools import resource_time_2d
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import TimeResourceTrajectories
@@ -73,7 +73,6 @@ def plot_computational_times(
 
     Parameters
     ----------
-
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
     axis_of_interest: str
@@ -86,6 +85,8 @@ def plot_computational_times(
         title of the diagram
     file_name_prefix
         prefix for file name
+    y_axis_title
+
     Returns
     -------
     """
@@ -582,3 +583,61 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
             plotting_information_traces.append([False for i in range(len(time_resource_matrix_b[idx]))])
 
     return traces_influenced_agents, plotting_information_traces, nr_influenced_agents
+
+
+def resource_time_2d(schedule: TrainrunDict,
+                     width: int,
+                     malfunction_agent_id: Optional[int] = -1,
+                     sorting: Optional[Dict] = None) -> TimeResourceTrajectories:
+    """Method to define the time-space paths of each train in two dimensions.
+    Initially we order them by the malfunctioning train.
+
+    Parameters
+    ----------
+    schedule: TrainrunDict
+        Contains all the trainruns
+
+    width: int
+        width of grid, used to number ressources
+
+    malfunction_agent_id: int
+        agent which had malfunctino (used for sorting)
+
+    sorting: List[int]
+        Predefined sorting of ressources, if nothing is defined soring is according to first appearing agent (id:0,...)
+    Returns
+    -------
+    All the train trajectories and the max time and max ressource number for plotting
+    """
+    all_train_time_paths = []
+    max_time = 0
+    if sorting is None:
+        sorting = dict()
+        if malfunction_agent_id >= 0:
+            index = 0
+            for waypoint in schedule[malfunction_agent_id]:
+                position = coordinate_to_position(width, [waypoint.waypoint.position])[0]
+                if position not in sorting:
+                    sorting.update({position: index})
+                    index += 1
+    for train_run in schedule:
+        train_time_path = []
+        pre_waypoint = schedule[train_run][0]
+        for waypoint in schedule[train_run][1:]:
+            pre_time = pre_waypoint.scheduled_at
+            time = waypoint.scheduled_at
+            if time > max_time:
+                max_time = time
+            position = coordinate_to_position(width, [pre_waypoint.waypoint.position])[0]
+            if position not in sorting:
+                sorting.update({position: index})
+                index += 1
+            train_time_path.append((sorting[position], pre_time))
+            train_time_path.append((sorting[position], time))
+            train_time_path.append((None, None))
+            pre_waypoint = waypoint
+        all_train_time_paths.append(train_time_path)
+    time_ressource_data = TimeResourceTrajectories(trajectories=all_train_time_paths,
+                                                   max_resource_id=index - 1,
+                                                   max_time=max_time)
+    return time_ressource_data

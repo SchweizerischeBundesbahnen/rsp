@@ -1,6 +1,7 @@
 import os
 from shutil import copyfile
-from typing import List, Callable
+from typing import Callable
+from typing import List
 
 from importlib_resources import path
 
@@ -8,7 +9,8 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME, EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.file_utils import check_create_folder
 
