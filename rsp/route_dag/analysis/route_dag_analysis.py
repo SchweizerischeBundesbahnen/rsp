@@ -9,10 +9,13 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
+from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
 from rsp.logger import VERBOSE
 from rsp.route_dag.route_dag import RouteDagEdge
 from rsp.route_dag.route_dag import RouteSectionPenalties
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import WaypointPenalties
 from rsp.utils.data_types import RouteDAGConstraints
 
@@ -29,6 +32,22 @@ FLATLAND_OFFSET_PATTERN = {
     # dummy heading = no offset
     5: np.array([0.5 * -OFFSET, 0.5 * -OFFSET])
 }
+
+
+def visualize_route_dag_constraints_simple_wrapper(
+        schedule_problem_description: ScheduleProblemDescription,
+        schedule_experiment_result: SchedulingExperimentResult,
+        experiment_malfunction: ExperimentMalfunction,
+        agent_id: int,
+        file_name: Optional[str] = None,
+):
+    visualize_route_dag_constraints_simple(
+        topo=schedule_problem_description.topo_dict[agent_id],
+        f=schedule_problem_description.route_dag_constraints_dict[agent_id],
+        train_run=schedule_experiment_result.trainruns_dict[agent_id],
+        title=f"agent {agent_id}, malfunction={experiment_malfunction}",
+        file_name=file_name
+    )
 
 
 def visualize_route_dag_constraints_simple(
@@ -62,7 +81,6 @@ def visualize_route_dag_constraints_simple(
         trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
         for trainrun_waypoint in train_run
     }
-    print(schedule)
 
     # figsize
     flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
@@ -89,7 +107,6 @@ def visualize_route_dag_constraints_simple(
     }
     flatland_pos_with_offset = {wp: np.array(wp.position) + flatland_offset_pattern[wp.direction] for wp in
                                 all_waypoints}
-    print(flatland_pos_with_offset)
 
     plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
 
@@ -113,13 +130,11 @@ def visualize_route_dag_constraints_simple(
             alpha=0.9)
 
     plt.gca().invert_yaxis()
-    print(file_name)
     if file_name is not None:
         plt.savefig(file_name)
+        plt.close()
     else:
         plt.show()
-    plt.close()
-
     return topo
 
 
@@ -214,9 +229,9 @@ def visualize_route_dag_constraints(
     rsp_logger.log(VERBOSE, file_name)
     if file_name is not None:
         plt.savefig(file_name)
+        plt.close()
     else:
         plt.show()
-    plt.close()
 
     return topo
 

@@ -13,25 +13,26 @@ Hypothesis 2:
 """
 from typing import Dict
 from typing import List
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 import tqdm
 from pandas import DataFrame
 
-from rsp.asp_plausibility.asp_plausi import asp_plausi_analysis
+from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
 from rsp.asp_plausibility.potassco_export import potassco_export
+from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_computional_times_from_traces
+from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.analysis_tools import two_dimensional_scatter_plot
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -65,12 +66,9 @@ def _derive_numbers_for_correlation_analysis(
     return d
 
 
-def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResultsAnalysis],
-                                 output_folder: str):
-    #  1. per experiment_id (absolute and relative comparison) and correlation with solve time for
-    # - resource conflicts
-    # - number of edges per agent (total and quantiles)
-    # - number of routing alternatives (total and quantiles)
+def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
+        experiment_results_list: List[ExperimentResultsAnalysis],
+        output_folder: Optional[str] = None):
     data_frame = pd.DataFrame(data=[
         {
             **r._asdict(),
@@ -86,56 +84,63 @@ def _2d_analysis_space_reduction(experiment_results_list: List[ExperimentResults
                                                        suffix="delta_after_malfunction"),
         }
         for r in experiment_results_list])
-    # 009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
-    for item in ['full', 'full_after_malfunction', 'delta_after_malfunction']:
-        two_dimensional_scatter_plot(
-            data=data_frame,
-            columns=['experiment_id', f'nb_resource_conflicts_{item}'],
-            title='009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: \n'
-                  'Number of resource conflicts for ' + item,
+
+    columns_of_interest = [
+        f'nb_resource_conflicts_{item}'
+        for item in ['full', 'full_after_malfunction', 'delta_after_malfunction']
+    ]
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+        plot_computational_times(
+            experiment_data=data_frame,
+            axis_of_interest=axis_of_interest,
+            columns_of_interest=columns_of_interest,
+            title=f"009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: "
+                  f"correlation of {axis_of_interest} with resource conflicts",
             output_folder=output_folder,
-            show_global_mean=True
+            file_name_prefix="009"
         )
-    two_dimensional_scatter_plot(
-        data=data_frame,
-        columns=['ratio_nb_resource_conflicts', 'speed_up'],
-        title='009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps: \n'
-              'Correlation of ratio of nb_resource_conflicts and speed_up?',
+
+    plot_computional_times_from_traces(
+        experiment_data=data_frame,
         output_folder=output_folder,
-        show_global_mean=True
+        pdf_file="009_nb_resource_conflict__time.pdf",
+        title="009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps:\n"
+              "Correlation of resource conflicts and runtime",
+        traces=[(f'nb_resource_conflicts_{item}', f'time_{item}') for item in
+                ['full', 'full_after_malfunction', 'delta_after_malfunction']],
+        x_axis_title='nb_resource_conflict',
     )
-    for x_axis_prefix in ['nb_resource_conflicts_']:
-        for y_axis_prefix in ['time_']:
-            for suffix in ['full_after_malfunction', 'delta_after_malfunction']:
-                x_axis = x_axis_prefix + suffix
-                y_axis = y_axis_prefix + suffix
-                two_dimensional_scatter_plot(
-                    data=data_frame,
-                    columns=[x_axis, y_axis],
-                    title=f'009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps\n'
-                          f' {y_axis} per {x_axis})',
-                    output_folder=output_folder
-                )
+
+    plot_computional_times_from_traces(
+        experiment_data=data_frame,
+        output_folder=output_folder,
+        pdf_file="009_nb_resource_conflict__time.pdf",
+        title="009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps:\n"
+              'Correlation of ratio of nb_resource_conflicts and speed_up?',
+        traces=[('ratio_nb_resource_conflicts', 'speed_up')],
+        x_axis_title='ratio_nb_resource_conflicts'
+    )
 
 
-def _2d_analysis(data: DataFrame,
-                 output_folder: str = None):
-    explanations = {
-        'speed_up': 'time_full_after_malfunction / time_delta_after_malfunction',
-        'time_full_after_malfunction': 'solver time for re-scheduling without Oracle information',
-        'time_delta_after_malfunction': 'solver time for re-scheduling with Oracle information'
-    }
-    for y_axis in ['speed_up', 'time_full_after_malfunction', 'time_delta_after_malfunction']:
-        for x_axis in ['experiment_id', 'n_agents', 'size', 'size_used']:
-            explanation = (f"({explanations[y_axis]})" if y_axis in explanations else "")
-            two_dimensional_scatter_plot(
-                columns=[x_axis, y_axis],
-                data=data,
-                show_global_mean=True if x_axis == 'experiment_id' else False,
-                title=f'{y_axis} per {x_axis} {explanation}',
-                output_folder=output_folder,
-                higher_y_value_is_worse=False if y_axis == 'speed_up' else True
-            )
+HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = ['time_full', 'time_full_after_malfunction', 'time_delta_after_malfunction']
+
+
+def hypothesis_one_analysis_visualize_computational_time_comparison(
+        experiment_data: DataFrame,
+        output_folder: str = None):
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+        plot_computational_times(experiment_data=experiment_data,
+                                 axis_of_interest=axis_of_interest,
+                                 columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
+                                 output_folder=output_folder)
+
+
+def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
+                                               output_folder: str = None):
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+        plot_speed_up(experiment_data=experiment_data,
+                      axis_of_interest=axis_of_interest,
+                      output_folder=output_folder)
 
 
 def hypothesis_one_data_analysis(experiment_base_directory: str,
@@ -185,37 +190,24 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
 
     # quantitative analysis
     if analysis_2d:
-        _2d_analysis(
-            data=experiment_data,
+        # main results
+        hypothesis_one_analysis_visualize_computational_time_comparison(
+            experiment_data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
-        _2d_analysis_space_reduction(
-            experiment_results_list=experiment_results_list,
+        hypothesis_one_analysis_visualize_speed_up(
+            experiment_data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
-        asp_plausi_analysis(
+        visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
             experiment_results_list=experiment_results_list,
-            output_folder=f'{experiment_analysis_directory}/asp_plausi'
+            output_folder=f'{experiment_analysis_directory}/plausi'
         )
-    if analysis_3d:
-        raise NotImplementedError()
+        visualize_hypotheses_asp(
+            experiment_results_list=experiment_results_list,
+            output_folder=f'{experiment_analysis_directory}/plausi'
+        )
 
-    # qualitative explorative analysis
-    if qualitative_analysis_experiment_ids:
-        filtered_experiments = list(filter(
-            lambda experiment: experiment.experiment_id in qualitative_analysis_experiment_ids,
-            experiment_agenda.experiments))
-        for experiment in filtered_experiments:
-            row = experiment_data[experiment_data['experiment_id'] == experiment.experiment_id].iloc[0]
-            experiment_results_analysis: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
-                row)
-
-            visualize_experiment(experiment_parameters=experiment,
-                                 experiment_results_analysis=experiment_results_analysis,
-                                 experiment_analysis_directory=experiment_analysis_directory,
-                                 analysis_2d=analysis_2d,
-                                 analysis_3d=analysis_3d,
-                                 flatland_rendering=flatland_rendering)
     if asp_export_experiment_ids:
         potassco_export(experiment_potassco_directory=experiment_potassco_directory,
                         experiment_results_list=experiment_results_list,

@@ -1,4 +1,5 @@
 """Route DAG data structures and utils."""
+from enum import Enum
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -36,6 +37,12 @@ ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
     ('route_section_penalties', RouteSectionPenaltiesDict),
     ('weight_lateness_seconds', int),
 ])
+
+
+class ScheduleProblemEnum(Enum):
+    PROBLEM_SCHEDULE = "PROBLEM_SCHEDULE"
+    PROBLEM_RSP_FULL = "PROBLEM_RSP_FULL"
+    PROBLEM_RSP_DELTA = "PROBLEM_RSP_DELTA"
 
 
 def schedule_problem_description_equals(s1: ScheduleProblemDescription, s2: ScheduleProblemDescription):

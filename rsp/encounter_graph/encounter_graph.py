@@ -1,10 +1,8 @@
 from typing import Dict
 
-import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from matplotlib import pyplot as plt
 
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
@@ -62,7 +60,7 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
     dist_between_trains = np.min(distances_in_time_window)
     index_min_dist = np.argmin(distances_in_time_window)
 
-    distance = UndirectedEncounterGraphDistance(inverted_distance=(1./dist_between_trains),
+    distance = UndirectedEncounterGraphDistance(inverted_distance=(1. / dist_between_trains),
                                                 time_of_min=(start_time_step + index_min_dist),
                                                 train_0_position_at_min=train_0_positions[int(index_min_dist)],
                                                 train_1_position_at_min=train_1_positions[int(index_min_dist)])
@@ -98,56 +96,9 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
                 train_run_row = trainrun_dict.get(row)
                 train_run_column = trainrun_dict.get(column)
                 undirected_distance = undirected_distance_between_trains(
-                        train_schedule_row, train_run_row,
-                        train_schedule_column, train_run_column)
+                    train_schedule_row, train_run_row,
+                    train_schedule_column, train_run_column)
                 distance_matrix[row, column] = undirected_distance.inverted_distance
                 distance_matrix[column, row] = undirected_distance.inverted_distance
                 additional_info[(row, column)] = undirected_distance
     return distance_matrix, additional_info
-
-
-def plot_encounter_graph_undirected(distance_matrix: np.ndarray, title: str, file_name: str, pos: dict = None):
-    """This method plots the encounter graph and the heatmap of the distance
-    matrix into one file.
-
-    Parameters
-    ----------
-    distance_matrix
-    title
-    file_name
-    pos
-
-    Returns
-    -------
-    """
-    dt = [('weight', float)]
-    distance_matrix_as_weight = np.matrix(distance_matrix, dtype=dt)
-    graph = nx.from_numpy_matrix(distance_matrix_as_weight)
-
-    # position of nodes
-    if pos is None:
-        # Position nodes using Fruchterman-Reingold force-directed algorithm
-        # https://networkx.github.io/documentation/stable/reference/generated/networkx.drawing.layout.spring_layout.html
-        pos = nx.spring_layout(graph, seed=42)
-
-    fig = plt.figure(figsize=(18, 12), dpi=80)
-    fig.suptitle(title, fontsize=16)
-    plt.subplot(121)
-
-    # draw nodes
-    nx.draw_networkx_nodes(graph, pos)
-
-    # draw edges with corresponding weights
-    for edge in graph.edges(data=True):
-        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
-
-    # draw labels
-    nx.draw_networkx_labels(graph, pos, font_size=10, font_family='sans-serif')
-
-    # visualize distance matrix as heat plot
-    plt.subplot(122)
-    plt.imshow(distance_matrix, cmap='hot', interpolation='nearest')
-    fig.savefig(file_name)
-    plt.close(fig)
-
-    return pos

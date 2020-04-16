@@ -382,7 +382,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           verbose: bool = False,
                           gen_only: bool = False
                           ) -> (str, str):
-    """Run a subset of experiments of a given agenda. This is useful when
+    """Run B. a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
     Parameters
     ----------
@@ -504,6 +504,7 @@ def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, exper
     """
     copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
                                                      EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+    print(os.path.abspath(os.curdir))
     files = os.listdir(copy_agenda_from_agenda_directory)
     rsp_logger.info(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} "
                     f"-> {experiment_agenda_directory}")
@@ -576,7 +577,7 @@ def create_experiment_agenda(experiment_name: str,
                 flatland_seed_value=12 + run_of_this_grid_element,
                 asp_seed_value=parameter_set[9],
                 max_num_cities=parameter_set[4],
-                grid_mode=False,
+                grid_mode=True,
                 max_rail_between_cities=parameter_set[3],
                 max_rail_in_city=parameter_set[2],
                 earliest_malfunction=parameter_set[5],

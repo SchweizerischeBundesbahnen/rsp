@@ -203,9 +203,8 @@ class ASPProblemDescription():
         """Return the solver and return solver-specific solution
         description."""
         asp_solution = flux_helper(self.asp_program,
-                                   bound_all_events=self.tc.max_episode_steps,
                                    asp_objective=self.asp_objective,
-                                   asp_heurisics=self.asp_heuristics,
+                                   asp_heuristics=self.asp_heuristics,
                                    asp_seed_value=self.asp_seed_value,
                                    nb_threads=self.nb_threads,
                                    no_optimize=self.no_optimize,

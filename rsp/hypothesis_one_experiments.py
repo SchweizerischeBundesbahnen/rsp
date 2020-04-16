@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
@@ -12,12 +13,12 @@ from rsp.utils.experiments import run_experiment_agenda
 
 
 def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
-    parameter_ranges = ParameterRanges(agent_range=[2, 50, 30],
-                                       size_range=[30, 50, 10],
-                                       in_city_rail_range=[6, 6, 1],
-                                       out_city_rail_range=[2, 2, 1],
-                                       city_range=[20, 20, 1],
-                                       earliest_malfunction=[20, 20, 1],
+    parameter_ranges = ParameterRanges(agent_range=[2, 2, 1],
+                                       size_range=[18, 18, 1],
+                                       in_city_rail_range=[2, 2, 1],
+                                       out_city_rail_range=[1, 1, 1],
+                                       city_range=[2, 2, 1],
+                                       earliest_malfunction=[5, 5, 1],
                                        malfunction_duration=[20, 20, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
                                        max_window_size_from_earliest=[np.inf, np.inf, 1],
@@ -68,12 +69,11 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             gen_only: bool = False
                             ) -> str:
     """
-    Run full pipeline A - B - C
+    Run full pipeline A.1 -> A.2 - B - C
 
     Parameters
     ----------
     experiment_name
-    parameter_ranges_and_speed_data
     experiment_ids
         filter for experiment ids (data generation)
     qualitative_analysis_experiment_ids
@@ -87,6 +87,9 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     parallel_compute
         degree of parallelization; must not be larger than available cores.
     run_analysis
+    parameter_ranges_and_speed_data
+    parallel_compute
+    gen_only
 
     Returns
     -------
@@ -98,9 +101,33 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     experiment_agenda = create_experiment_agenda(
         experiment_name=experiment_name,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiments_per_grid_element=1
+        experiments_per_grid_element=10
     )
-    # A.2 + B. Experiments: setup, then run
+    # [ A.2 -> B ]* -> C
+    experiment_base_folder_name = hypothesis_one_pipeline_without_setup(
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        experiment_agenda=experiment_agenda,
+        experiment_ids=experiment_ids,
+        parallel_compute=parallel_compute,
+        qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
+        asp_export_experiment_ids=asp_export_experiment_ids,
+        run_analysis=run_analysis,
+        gen_only=gen_only
+    )
+    return experiment_base_folder_name
+
+
+def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
+                                          experiment_ids: Optional[List[int]] = None,
+                                          qualitative_analysis_experiment_ids: Optional[List[int]] = None,
+                                          asp_export_experiment_ids: Optional[List[int]] = None,
+                                          copy_agenda_from_base_directory: Optional[str] = None,
+                                          run_analysis: bool = True,
+                                          parallel_compute: bool = True,
+                                          gen_only: bool = False
+                                          ):
+    """Run pipeline from A.2 -> C."""
+    # [A.2 -> B]* Experiments: setup, then run
     experiment_base_folder_name, _ = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
@@ -141,6 +168,7 @@ def hypothesis_one_gen_schedule():
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         gen_only=True,
+        experiment_ids=None,
         parallel_compute=1
     )
 

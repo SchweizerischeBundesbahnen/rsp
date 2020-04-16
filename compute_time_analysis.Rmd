@@ -7,33 +7,38 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: rsp
+    display_name: Python [conda env:rsp] *
     language: python
-    name: rsp
+    name: conda-env-rsp-py
 ---
 
 ```{python}
 # %autosave 0
-# %matplotlib inline
 # %matplotlib notebook
+# %matplotlib qt4
+# %load_ext autoreload
+# %autoreload 2
 ```
 
 ```{python}
 import pandas as pd
 from IPython.display import Video
 
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.utils.notebook_rendering import plot_computational_times
-from rsp.utils.notebook_rendering import plot_histogram_from_delay_data
-from rsp.utils.notebook_rendering import plot_many_time_resource_diagrams
-from rsp.utils.notebook_rendering import plot_speed_up
-from rsp.utils.notebook_rendering import render_flatland_env
+from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resource_diagrams
+from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
+from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
+from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './rsp/exp_hypothesis_one_2020_03_31T07_11_03/'
+experiment_base_directory = './res/mini_toy_example/'
+# experiment_base_directory = './res/many_agents_example/'
 experiments_of_interest = None
 ```
 
@@ -44,6 +49,39 @@ experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_d
 ```
 
 ```{python}
+import pandas as pd
+data_frame = pd.DataFrame(data=[
+    {
+'experiment_id': r.experiment_id,
+'grid_id': r.grid_id,
+'size': r.size,
+'n_agents': r.n_agents,
+'max_num_cities': r.max_num_cities,
+'max_rail_between_cities': r.max_rail_between_cities,
+'max_rail_in_city': r.max_rail_in_city,
+'time_full': r.time_full,
+'time_full_after_malfunction': r.time_full_after_malfunction,
+'time_delta_after_malfunction': r.time_delta_after_malfunction,
+'costs_full': r.costs_full,
+'costs_full_after_malfunction': r.costs_full_after_malfunction,
+'costs_delta_after_malfunction': r.costs_delta_after_malfunction,
+'nb_resource_conflicts_full': r.nb_resource_conflicts_full,
+'nb_resource_conflicts_full_after_malfunction': r.nb_resource_conflicts_full_after_malfunction,
+'nb_resource_conflicts_delta_after_malfunction': r.nb_resource_conflicts_delta_after_malfunction,
+'speed_up': r.speed_up,
+'factor_resource_conflicts': r.factor_resource_conflicts,
+'path_search_space_schedule': r.path_search_space_schedule,
+'path_search_space_rsp_full': r.path_search_space_rsp_full,
+'path_search_space_rsp_delta': r.path_search_space_rsp_delta,
+'factor_path_search_space': r.factor_path_search_space,
+'size_used': r.size_used
+    }
+    for r in experiment_results_list])
+data_frame.to_csv(f"data.tsv", sep="\t")
+# display(data_frame)
+```
+
+```{python}
 axis_of_interest = 'n_agents'
 columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
 ```
@@ -51,35 +89,59 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_aft
 ### Visualize Compuational time comparison
 
 ```{python}
-plot_computational_times(experiment_data=experiment_data,
-                                  axis_of_interest=axis_of_interest,
-                                  columns_of_interest=columns_of_interest)
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
+
+# for exploration, use:
+# plot_computational_times(experiment_data=experiment_data,
+#                                   axis_of_interest=axis_of_interest,
+#                                   columns_of_interest=columns_of_interest)
 ```
 
-### Visualize Speed Up facotrs for experiments
+### Visualize Speed Up factors for experiments
 
 ```{python}
-plot_speed_up(experiment_data=experiment_data,
-                       axis_of_interest=axis_of_interest)
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_speed_up
+hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
+
+# for exploration, use:
+# plot_speed_up(experiment_data=experiment_data,
+#                        axis_of_interest=axis_of_interest)
 ```
 
 ### Visualize Weg-Zeit-Diagram of specific experiment
 
 ```{python}
-experiment_of_interest = 84
+experiment_of_interest = 0
+```
+
+```{python}
+single_experiment_dataframe = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest].iloc[0]
+single_exp_results = convert_pandas_series_experiment_results_analysis(single_experiment_dataframe)
+choices_full_schedule = single_exp_results.results_full.solver_statistics["solving"]["solvers"]["choices"]
+choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 ```
 
 ```{python}
 experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
        'n_agents', 'max_num_cities', 'max_rail_between_cities',
        'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
-       'time_delta_after_malfunction','nb_resource_conflicts_full',
+       'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
        'nb_resource_conflicts_full_after_malfunction',
-       'nb_resource_conflicts_delta_after_malfunction', 'speed_up']]
+       'nb_resource_conflicts_delta_after_malfunction']]
+experiment_details['choices_full_schedule'] = choices_full_schedule
+experiment_details['choices_full_reschedule'] = choices_full_reschedule
+experiment_details['choices_delta_reschedule'] = choices_delta_reschedule
+
 ```
 
 ```{python}
 display(experiment_details.transpose())
+```
+
+```{python}
+list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full_after_malfunction.solver_result))
 ```
 
 ```{python}
@@ -95,7 +157,7 @@ plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_
 #### Render the current environment
 
 ```{python}
- video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 ```{python}
@@ -106,6 +168,40 @@ Video(video_src_schedule, embed=True)
 Video(video_src_reschedule, embed=True)
 ```
 
+#### Route DAGs for individual agents
+
 ```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_SCHEDULE)
+```
+
+```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+```
+
+```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+```
+
+#### Encounter Graphs
+
+```{python}
+from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
+plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results)
+```
+
+### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?
+
+```{python}
+from rsp.hypothesis_one_data_analysis import visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
+visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(experiment_results_list=experiment_results_list)
+
+```
+
+```{python}
+from rsp.hypothesis_one_data_analysis import visualize_hypotheses_asp
+visualize_hypotheses_asp(experiment_results_list=experiment_results_list)
 
 ```
