@@ -177,4 +177,4 @@ def hypothesis_one_gen_schedule():
 
 
 if __name__ == '__main__':
-    hypothesis_one_gen_schedule()
+    hypothesis_one_main()
