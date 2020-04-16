@@ -61,6 +61,7 @@ class ASPProblemDescription():
     def factory_scheduling(
             tc: ScheduleProblemDescription,
             asp_seed_value: Optional[int] = None,
+            no_optimize: bool = True
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,
@@ -68,7 +69,7 @@ class ASPProblemDescription():
             # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
             asp_seed_value=asp_seed_value,
-            no_optimize=True,
+            no_optimize=no_optimize,
             nb_threads=2  # not deterministic any more!
         )
         asp_problem._build_asp_program(

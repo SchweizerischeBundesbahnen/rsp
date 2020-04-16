@@ -32,7 +32,8 @@ def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, 
             r.solver_statistics["solving"]["solvers"]["choices"],
         f'conflicts_{suffix}':
             r.solver_statistics["solving"]["solvers"]["conflicts"],
-        f'costs_{suffix}': r.solver_statistics["summary"]["costs"][0],
+        # scheduling without optimization has no empty costs array
+        f'costs_{suffix}': r.solver_statistics["summary"]["costs"][0] if len(r.solver_statistics["summary"]["costs"]) > 0 else -1,
         f'user_accu_propagations_{suffix}':
             sum(map(lambda d: d["Propagation(s)"],
                     r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),

@@ -150,10 +150,11 @@ def _asp_helper(encoding_files: List[str],
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")
-    ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
+    ctl_args = [f"-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:
-        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
+        ctl_args.append(f"--seed={asp_seed_value}")
+
     ctl = clingo.Control(ctl_args)
 
     # find optimal model; if not optimizing, find all models!

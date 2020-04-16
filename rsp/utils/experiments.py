@@ -183,7 +183,13 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
                 experiment_agenda_directory=experiment_agenda_directory,
                 experiment_id=experiment_parameters.experiment_id)
     if gen_only:
+        elapsed_time = (time.time() - start_time)
         _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
+        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"]["total"]
+        print(("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%").format(
+            experiment_parameters.experiment_id,
+            elapsed_time, solver_time_full,
+            solver_time_full / elapsed_time * 100))
         return ExperimentResults(
             experiment_parameters=experiment_parameters,
             malfunction=schedule_and_malfunction.experiment_malfunction,
@@ -227,33 +233,35 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if rendering:
         from flatland.utils.rendertools import RenderTool, AgentRenderVariant
         env_renderer.close_window()
-    elapsed_time = (time.time() - start_time)
-    solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
 
     if show_results_without_details:
-        s = ("Running experiment {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}% / ").format(
+        elapsed_time = (time.time() - start_time)
+        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
+        s = ("Running experiment {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
             experiment_parameters.experiment_id,
-            elapsed_time, solver_time_full,
-            solver_time_full / elapsed_time * 100)
-
-        if not gen_only:
-            solver_time_full_after_malfunction = \
-                experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-            solver_time_delta_after_malfunction = \
-                experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-            s += "resched: {:5.3f}s = {:5.2f}% / resched-delta: {:5.3f}s = {:5.2f}% / ".format(
-                solver_time_full_after_malfunction,
-                solver_time_full_after_malfunction / elapsed_time * 100,
-                solver_time_delta_after_malfunction,
-                solver_time_delta_after_malfunction / elapsed_time * 100)
-            elapsed_overhead_time = (
-                    elapsed_time - solver_time_full -
-                    solver_time_full_after_malfunction -
-                    solver_time_delta_after_malfunction)
-            s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
-                elapsed_overhead_time,
-                elapsed_overhead_time / elapsed_time * 100,
-                threading.get_ident())
+            elapsed_time,
+            solver_time_full,
+            solver_time_full / elapsed_time * 100,
+            elapsed_time - solver_time_full,
+            (elapsed_time - solver_time_full) / elapsed_time * 100
+        )
+        solver_time_full_after_malfunction = \
+            experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        solver_time_delta_after_malfunction = \
+            experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        s += "resched: {:5.3f}s = {:5.2f}% / resched-delta: {:5.3f}s = {:5.2f}% / ".format(
+            solver_time_full_after_malfunction,
+            solver_time_full_after_malfunction / elapsed_time * 100,
+            solver_time_delta_after_malfunction,
+            solver_time_delta_after_malfunction / elapsed_time * 100)
+        elapsed_overhead_time = (
+                elapsed_time - solver_time_full -
+                solver_time_full_after_malfunction -
+                solver_time_delta_after_malfunction)
+        s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
+            elapsed_overhead_time,
+            elapsed_overhead_time / elapsed_time * 100,
+            threading.get_ident())
         print(s)
 
         virtual_memory_human_readable()

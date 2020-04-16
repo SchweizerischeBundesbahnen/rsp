@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.logger import rsp_logger
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
@@ -66,7 +67,8 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             experiment_name: str = "exp_hypothesis_one",
                             run_analysis: bool = True,
                             parallel_compute: int = AVAILABLE_CPUS,
-                            gen_only: bool = False
+                            gen_only: bool = False,
+                            experiments_per_grid_element: int = 10
                             ) -> str:
     """
     Run full pipeline A.1 -> A.2 - B - C
@@ -101,7 +103,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
     experiment_agenda = create_experiment_agenda(
         experiment_name=experiment_name,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiments_per_grid_element=10
+        experiments_per_grid_element=experiments_per_grid_element,
     )
     # [ A.2 -> B ]* -> C
     experiment_base_folder_name = hypothesis_one_pipeline_without_setup(
@@ -153,7 +155,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
 
 
 def hypothesis_one_main():
-    parameter_ranges_and_speed_data = get_second_agenda_pipeline_params()
+    parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=list(range(270, 300)),
@@ -164,6 +166,7 @@ def hypothesis_one_main():
 
 
 def hypothesis_one_gen_schedule():
+    rsp_logger.info("HYPOTHESIS_ONE_GEN_SCHEDULE()")
     parameter_ranges_and_speed_data = get_second_agenda_pipeline_params()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,

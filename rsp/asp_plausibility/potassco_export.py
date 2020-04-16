@@ -145,7 +145,7 @@ def _potassco_write_lp_and_sh_for_experiment(
                   f" {file_name_prefix}.lp "
                   f"--seed={results.solver_seed} "
                   f"-c use_decided=1 -t2 --lookahead=no "
-                  f"--opt-mode=opt 0\n"
+                  f"--opt-mode=opt\n"
                   )
     with open(f"{experiment_potassco_directory}/{file_name_prefix}_statistics.txt", "w", newline='\n') as out:
         out.write(f"{results.solver_statistics}")
