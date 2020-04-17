@@ -4,6 +4,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
@@ -248,8 +249,8 @@ class ASPProblemDescription():
 
         # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
         # TODO SIM-322 hard-coded value 1
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), visit(T,V), visit(T,V'), edge(T,V,V').")
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), visit(T,V), visit(T,V'), edge(T,V,V').")
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), route(T,(V,V')).")
+        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), route(T,(V,V')).")
 
         # add trains
         for agent_id, topo in tc.topo_dict.items():
@@ -278,6 +279,7 @@ class ASPProblemDescription():
                                            if not is_dummy_edge else 0))
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,
+                                                                             topo=tc.topo_dict[agent_id],
                                                                              freeze=tc.route_dag_constraints_dict[
                                                                                  agent_id])
 
@@ -297,8 +299,9 @@ class ASPProblemDescription():
         # cleanup
         return _new_asp_program
 
-    def _translate_route_dag_constraints_to_ASP(self,
+    def _translate_route_dag_constraints_to_ASP(self,  # noqa: C901
                                                 agent_id: int,
+                                                topo: nx.DiGraph,
                                                 freeze: RouteDAGConstraints):
         """The model is freezed by translating the ExperimentFreeze into ASP:
 
@@ -325,12 +328,21 @@ class ASPProblemDescription():
         # - no diff-constraints in addition to earliest/latest -> should be added immediately
         # - no route constraints in addition to visit -> should be added immediately
 
-        for trainrun_waypoint in freeze.freeze_visit:
-            vertex = self._sanitize_waypoint(trainrun_waypoint)
+        for waypoint in freeze.freeze_visit:
+            vertex = self._sanitize_waypoint(waypoint)
 
-            # add visit constraint
-            # visit(t1,1).
-            frozen.append(f"visit({train},{vertex}).")
+            # add route constraint for pairs of edges in freeze_visit
+            # route(t1,(1,2)).
+            done = False
+            for predecessor in topo.predecessors(waypoint):
+                if predecessor in freeze.freeze_visit:
+                    frozen.append(f"route({train},({self._sanitize_waypoint(predecessor)},{vertex})).")
+                    done = True
+            for successor in topo.successors(waypoint):
+                if successor in freeze.freeze_visit:
+                    frozen.append(f"route({train},({vertex},{self._sanitize_waypoint(successor)})).")
+                    done = True
+            assert done
 
         for waypoint, scheduled_at in freeze.freeze_latest.items():
             vertex = self._sanitize_waypoint(waypoint)
@@ -350,8 +362,15 @@ class ASPProblemDescription():
 
         for waypoint in freeze.freeze_banned:
             vertex = self._sanitize_waypoint(waypoint)
-            #  vertex must not be visited
-            # visit(t1,1).
-            frozen.append(f":- visit({train},{vertex}).")
+            #  edges containing edge must not taken
+            # route(t1,(1,4)).
+            if vertex in topo.nodes():
+                # TODO SIM-460 cleanup! why some in and some removed?
+                for predecessor in topo.predecessors(waypoint):
+                    if predecessor in freeze.freeze_visit:
+                        frozen.append(f":- route({train},({self._sanitize_waypoint(predecessor)},{vertex})).")
+                for successor in topo.successors(waypoint):
+                    if successor in freeze.freeze_visit:
+                        frozen.append(f":- route({train},({vertex},{self._sanitize_waypoint(successor)})).")
 
         return frozen
