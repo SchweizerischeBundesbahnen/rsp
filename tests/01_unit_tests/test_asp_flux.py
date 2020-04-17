@@ -38,13 +38,13 @@ def test_mutual_exclusion():
             models, statistics, _, _, _ = _asp_helper([instance_in, encoding_in])
 
     # we do not optimize, we get two models!
-    assert len(models) == 2
-    print(models)
-    expected_dl1 = set(['dl((t1,4),8)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),6)'])
-    expected_dl2 = set(['dl((t1,4),2)', 'dl((t2,4),0)', 'dl((t2,1),1)', 'dl((t1,1),0)'])
-    for actual in models:
-        assert actual.issuperset(expected_dl1) or actual.issuperset(expected_dl2), \
-            "actual {} expected to be superset of {} or of {}".format(actual, expected_dl1, expected_dl2)
+    for k, model in enumerate(models):
+        print(f"{k + 1}th model: {list(filter(lambda x: x.startswith('dl('), model))}")
+        print(model)
+    assert len(models) == 1
+    expected_dl = set(['dl((t1,(t1,4)),8)', 'dl((t2,(t2,4)),0)', 'dl((t2,(t2,1)),1)', 'dl((t1,(t1,1)),6)'])
+    actual = models[0]
+    assert actual.issuperset(expected_dl), "actual {} expected to be superset of {} or of {}".format(actual, expected_dl)
 
 
 def test_simple_rail_asp_one_agent():
