@@ -194,8 +194,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
                          static_rail_env: RailEnv,
                          asp_seed_value: Optional[int] = None,
                          rendering: bool = False,
-                         debug: bool = False,
-                         no_optimize: bool = True
+                         debug: bool = False
                          ) -> SchedulingExperimentResult:
     """Solves the Full Scheduling Problem for static rail env (i.e. without
     malfunctions).
@@ -219,8 +218,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     # --------------------------------------------------------------------------------------
     schedule_problem = ASPProblemDescription.factory_scheduling(
         tc=schedule_problem_description,
-        asp_seed_value=asp_seed_value,
-        no_optimize=no_optimize
+        asp_seed_value=asp_seed_value
     )
 
     schedule_result, schedule_solution = solve_problem(

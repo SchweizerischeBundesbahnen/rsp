@@ -357,7 +357,7 @@ def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(expected_act
 
 def _extract_controller_from_train_runs(env: RailEnv,
                                         k: int = 10) -> ControllerFromTrainruns:
-    problem = ASPProblemDescription.factory_scheduling(schedule_problem_description_from_rail_env(env=env, k=k), no_optimize=False)
+    problem = ASPProblemDescription.factory_scheduling(schedule_problem_description_from_rail_env(env=env, k=k))
 
     start_solver = time.time()
     solution = problem.solve()

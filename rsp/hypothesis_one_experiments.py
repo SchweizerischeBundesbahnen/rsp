@@ -155,7 +155,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
 
 
 def hypothesis_one_main():
-    parameter_ranges_and_speed_data = get_first_agenda_pipeline_params()
+    parameter_ranges_and_speed_data = get_second_agenda_pipeline_params()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=list(range(270, 300)),
