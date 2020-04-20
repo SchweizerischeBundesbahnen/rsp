@@ -214,7 +214,8 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
         malfunction: Optional[ExperimentMalfunction] = None,
 ):
     """Does the route_dag_constraints reflect the force freeze, route DAG and
-    malfunctions correctly?
+    malfunctions correctly? Are the constraints consistent?
+
     0. assert all referenced waypoints are in topo
     1. if waypoint is banned -> must not have earliest/latest/visit
     2. if waypoint is not banned --> must have earliest and latest s.t. earliest <= latest

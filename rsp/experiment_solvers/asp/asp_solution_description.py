@@ -8,6 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.asp.asp_helper import FluxHelperResult
+from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
@@ -23,6 +24,97 @@ class ASPSolutionDescription():
         self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
         self._action_plan = None
         self.tc: ScheduleProblemDescription = tc
+
+    def verify_correctness(self):  # noqa: C901
+        """Verify that solution is consistent."""
+
+        trainrun_dict = {}
+
+        for agent_id in self.tc.topo_dict:
+            var_prefix = "dl((t{},".format(agent_id)
+            agent_facts = filter(lambda s: s.startswith(str(var_prefix)), self.answer_set)
+            source_waypoints = list(get_sources_for_topo(self.tc.topo_dict[agent_id]))
+            sink_waypoints = list(get_sinks_for_topo(self.tc.topo_dict[agent_id]))
+            route_dag_constraints = self.tc.route_dag_constraints_dict[agent_id]
+
+            minimum_running_time = self.tc.minimum_travel_time_dict[agent_id]
+            topo = self.tc.topo_dict[agent_id]
+
+            # filter out dl entries that are zero and not relevant to us
+            trainrun_waypoints = list(map(self.__class__._parse_dl_fact, agent_facts))
+            trainrun_waypoints.sort(key=lambda p: p.scheduled_at)
+            trainrun_dict[agent_id] = trainrun_waypoints
+            waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in trainrun_waypoints}
+            schedule = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in trainrun_waypoints}
+
+            # 1. verify consistency of solution: there is a single path satisfying minimum_run_time
+
+            # 1.1 verify trainrun is *strictly* increasing
+            for wp_1, wp_2 in zip(trainrun_waypoints, trainrun_waypoints[1:]):
+                assert wp_2.scheduled_at > wp_1.scheduled_at, \
+                    f"(1.1) [{agent_id}] times are not strictly increasing: {wp_1} {wp_2}"
+
+            # 1.2 verify trainrun goes from a source to a sink
+            assert trainrun_waypoints[0].waypoint in source_waypoints, \
+                f"(1.2) [{agent_id}] unexpected source: {trainrun_waypoints[0].waypoint} not in {source_waypoints}"
+            assert trainrun_waypoints[-1].waypoint in sink_waypoints, \
+                f"(1.2) [{agent_id}] unexpected sink: {trainrun_waypoints[-1].waypoint} not in {sink_waypoints}"
+
+            # 1.3 verify that the dummy sections (first and last) have time 1
+            assert trainrun_waypoints[1].scheduled_at - trainrun_waypoints[0].scheduled_at == 1, \
+                f"(1.3) [{agent_id}] dummy section at source should take exactly 1: " \
+                f"found {trainrun_waypoints[0].scheduled_at} - {trainrun_waypoints[1].scheduled_at}"
+            assert trainrun_waypoints[-1].scheduled_at - trainrun_waypoints[-2].scheduled_at == 1, \
+                f"(1.3) [{agent_id}] dummy section at sink should take exactly 1: " \
+                f"found {trainrun_waypoints[-2].scheduled_at} - {trainrun_waypoints[-1].scheduled_at}"
+
+            # 1.4 verify minimimum_running_time is respected for all but first and last segment
+            for wp_1, wp_2 in zip(trainrun_waypoints[1:], trainrun_waypoints[2:-1]):
+                assert wp_2.scheduled_at - wp_1.scheduled_at >= minimum_running_time, \
+                    f"(1.4) [{agent_id}] minimum running time not respected: " \
+                    f"found {wp_1} - {wp_2}, but minimum_running_time={minimum_running_time}"
+
+            # 1.5 verify that trainrun satisfies topology
+            for wp_1, wp_2 in zip(trainrun_waypoints, trainrun_waypoints[1:]):
+                assert (wp_1.waypoint, wp_2.waypoint) in topo.edges, \
+                    f"(1.5) [{agent_id}] no edge for {wp_1} - {wp_2}"
+
+            # 1.6 verify path has no cycles
+            assert len(set(trainrun_waypoints)) == len(trainrun_waypoints), \
+                f"(1.6) [{agent_id}] cycle"
+
+            # 2. verify solution satisfies constraints:
+            for waypoint in route_dag_constraints.freeze_visit:
+                assert waypoint in waypoints, \
+                    f"(2) [{agent_id}] freeze_visit violated: " \
+                    f"{waypoint} must be visited"
+            for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+                if waypoint in schedule:
+                    assert schedule[waypoint] >= earliest, \
+                        f"(2) [{agent_id}] freeze_earliest violated: " \
+                        f"{waypoint} must be not be visited before {earliest}, found {schedule[waypoint]}"
+            for waypoint, latest in route_dag_constraints.freeze_latest.items():
+                if waypoint in schedule:
+                    assert schedule[waypoint] <= latest, \
+                        f"(2) [{agent_id}] freeze_latest violated: " \
+                        f"{waypoint} must be not be visited after {latest}, found {schedule[waypoint]}"
+            for waypoint in route_dag_constraints.freeze_banned:
+                assert waypoint not in waypoints, \
+                    f"(2) [{agent_id}] freeze_banned violated: " \
+                    f"{waypoint} must be not be visited"
+
+        # 3. verify mututal exclusion and release time
+        resource_occupations = {}
+        for agent_id, trainrun in trainrun_dict.items():
+            for wp1, wp2 in zip(trainrun, trainrun[1:]):
+                resource = wp1.waypoint.position
+                # TODO SIM-129 release time 1 hard-coded
+                for time in range(wp1.scheduled_at, wp2.scheduled_at + 1):
+                    occupation = (resource, time)
+                    if occupation in resource_occupations:
+                        assert agent_id == resource_occupations[occupation], \
+                            f"(3) conflicting resource occuptions {occupation} for {agent_id} and {resource_occupations[occupation]}"
+                    resource_occupations[occupation] = agent_id
 
     def get_trainruns_dict(self) -> TrainrunDict:
         """Get train runs for all agents: waypoints and entry times."""
@@ -82,7 +174,7 @@ class ASPSolutionDescription():
         # remove the transition from the target waypoint to the dummy
         assert path[-1].waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET, \
             f"{path[-1]}"
-        # TODO SIM-3222 hard-coded assumption that last segment is 1
+        # TODO SIM-322 hard-coded assumption that last segment is 1
         assert path[-1].scheduled_at - path[-2].scheduled_at == 1, f"{path[-2:]}"
         path = path[:-1]
         return path

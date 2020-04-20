@@ -336,16 +336,12 @@ class ASPProblemDescription():
 
             # add route constraint for pairs of edges in freeze_visit
             # route(t1,(1,2)).
-            done = False
             for predecessor in topo.predecessors(waypoint):
                 if predecessor in freeze.freeze_visit:
                     frozen.append(f"route({train},({self._sanitize_waypoint(predecessor)},{vertex})).")
-                    done = True
             for successor in topo.successors(waypoint):
                 if successor in freeze.freeze_visit:
                     frozen.append(f"route({train},({vertex},{self._sanitize_waypoint(successor)})).")
-                    done = True
-            assert done
 
         for waypoint, scheduled_at in freeze.freeze_latest.items():
             vertex = self._sanitize_waypoint(waypoint)
