@@ -36,3 +36,18 @@ python rsp/asp_plausibility/potassco_solution_checker  --experiment_data_folder_
 ```
 
 The correcntess checker is implemented here: `rsp/experiment_solvers/asp/asp_solution_description.py#verify_correctness_helper()`
+
+### Pre-commit hook
+In order to run pre-commit hooks when you run `git commit` on the command line
+```
+conda activate rsp
+conda install -c conda-forge pre-commit
+pre-commit install
+
+# test the pre-commit
+pre-commit run --all
+```
+The pre-commit is only run on the files changed.
+
+Details:
+* [ pre-commit.  A framework for managing and maintaining multi-language pre-commit hooks.](https://pre-commit.com/)
