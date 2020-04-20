@@ -25,23 +25,27 @@ class ASPSolutionDescription():
         self._action_plan = None
         self.tc: ScheduleProblemDescription = tc
 
-    def verify_correctness(self):  # noqa: C901
+    def verify_correctness(self):
+        self.__class__.verify_correctness_helper(self.tc, self.answer_set)
+
+    @staticmethod  # noqa: C901
+    def verify_correctness_helper(tc: ScheduleProblemDescription, answer_set: Set[str]):
         """Verify that solution is consistent."""
 
         trainrun_dict = {}
 
-        for agent_id in self.tc.topo_dict:
+        for agent_id in tc.topo_dict:
             var_prefix = "dl((t{},".format(agent_id)
-            agent_facts = filter(lambda s: s.startswith(str(var_prefix)), self.answer_set)
-            source_waypoints = list(get_sources_for_topo(self.tc.topo_dict[agent_id]))
-            sink_waypoints = list(get_sinks_for_topo(self.tc.topo_dict[agent_id]))
-            route_dag_constraints = self.tc.route_dag_constraints_dict[agent_id]
+            agent_facts = filter(lambda s: s.startswith(str(var_prefix)), answer_set)
+            source_waypoints = list(get_sources_for_topo(tc.topo_dict[agent_id]))
+            sink_waypoints = list(get_sinks_for_topo(tc.topo_dict[agent_id]))
+            route_dag_constraints = tc.route_dag_constraints_dict[agent_id]
 
-            minimum_running_time = self.tc.minimum_travel_time_dict[agent_id]
-            topo = self.tc.topo_dict[agent_id]
+            minimum_running_time = tc.minimum_travel_time_dict[agent_id]
+            topo = tc.topo_dict[agent_id]
 
             # filter out dl entries that are zero and not relevant to us
-            trainrun_waypoints = list(map(self.__class__._parse_dl_fact, agent_facts))
+            trainrun_waypoints = list(map(ASPSolutionDescription._parse_dl_fact, agent_facts))
             trainrun_waypoints.sort(key=lambda p: p.scheduled_at)
             trainrun_dict[agent_id] = trainrun_waypoints
             waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in trainrun_waypoints}
