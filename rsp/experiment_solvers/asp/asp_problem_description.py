@@ -256,6 +256,7 @@ class ASPProblemDescription():
         for agent_id, topo in tc.topo_dict.items():
             sources = get_sources_for_topo(topo)
             sinks = get_sinks_for_topo(topo)
+            freeze = tc.route_dag_constraints_dict[agent_id]
 
             self._implement_train(agent_id=agent_id,
                                   start_vertices=sources,
@@ -267,21 +268,23 @@ class ASPProblemDescription():
                 is_dummy_edge = (
                         entry_waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or exit_waypoint.direction ==
                         MAGIC_DIRECTION_FOR_SOURCE_TARGET)
-                self._implement_route_section(
-                    agent_id=agent_id,
-                    entry_waypoint=entry_waypoint,
-                    exit_waypoint=exit_waypoint,
-                    resource_id=entry_waypoint.position,
-                    minimum_travel_time=(1
-                                         if is_dummy_edge
-                                         else tc.minimum_travel_time_dict[agent_id]),
-                    route_section_penalty=(tc.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0)
-                                           if not is_dummy_edge else 0))
+                # do not add edge to the ASP model if one of the two vertices is banned!
+                if entry_waypoint not in freeze.freeze_banned and exit_waypoint not in freeze.freeze_banned:
+                    self._implement_route_section(
+                        agent_id=agent_id,
+                        entry_waypoint=entry_waypoint,
+                        exit_waypoint=exit_waypoint,
+                        resource_id=entry_waypoint.position,
+                        minimum_travel_time=(1
+                                             if is_dummy_edge
+                                             else tc.minimum_travel_time_dict[agent_id]),
+                        route_section_penalty=(tc.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0)
+                                               if not is_dummy_edge else 0))
 
-            _new_asp_program += self._translate_route_dag_constraints_to_ASP(agent_id=agent_id,
-                                                                             topo=tc.topo_dict[agent_id],
-                                                                             freeze=tc.route_dag_constraints_dict[
-                                                                                 agent_id])
+            _new_asp_program += self._translate_route_dag_constraints_to_ASP(
+                agent_id=agent_id,
+                topo=tc.topo_dict[agent_id],
+                freeze=freeze)
 
         if add_minimumrunnigtime_per_agent:
             for agent_id in self.tc.minimum_travel_time_dict:
@@ -360,17 +363,6 @@ class ASPProblemDescription():
             # e(t1,1,2).
             frozen.append(f"e({train},{vertex},{time}).")
 
-        for waypoint in freeze.freeze_banned:
-            vertex = self._sanitize_waypoint(waypoint)
-            #  edges containing edge must not taken
-            # route(t1,(1,4)).
-            if vertex in topo.nodes():
-                # TODO SIM-460 cleanup! why some in and some removed?
-                for predecessor in topo.predecessors(waypoint):
-                    if predecessor in freeze.freeze_visit:
-                        frozen.append(f":- route({train},({self._sanitize_waypoint(predecessor)},{vertex})).")
-                for successor in topo.successors(waypoint):
-                    if successor in freeze.freeze_visit:
-                        frozen.append(f":- route({train},({vertex},{self._sanitize_waypoint(successor)})).")
+        # N.B. we do not add freeze_banned, see above `_build_asp_program`
 
         return frozen
