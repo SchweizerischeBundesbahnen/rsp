@@ -1,0 +1,3 @@
+[submodule "flatland_evaluations_pipeline"]
+	path = flatland_evaluations_pipeline
+	url = git@gitlab.aicrowd.com:adrian_egli/flatland_evaluations_pipeline.git

@@ -72,6 +72,15 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
         }
+        stage('show public ssh token') {
+            steps {
+                script {
+                    sh """
+cat ~/.ssh/*.pub
+"""
+                }
+            }
+        }
         stage('test') {
             when {
                 allOf {
