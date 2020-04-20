@@ -22,10 +22,9 @@ from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_sch
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
-from rsp.route_dag.generators.route_dag_generator_utils import verify_route_dag_constraints_for_agent
+from rsp.route_dag.generators.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.route_dag.route_dag import topo_from_agent_paths
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
@@ -199,8 +198,11 @@ def test_rescheduling_no_bottleneck():
     freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
 
     for agent_id, _ in freeze_dict.items():
-        verify_route_dag_constraints_for_agent(agent_id, freeze_dict[agent_id],
-                                               topo_from_agent_paths(agents_paths_dict[agent_id]))
+        verify_consistency_of_route_dag_constraints_for_agent(
+            agent_id=agent_id,
+            route_dag_constraints=freeze_dict[agent_id],
+            topo=topo_dict[agent_id]
+        )
 
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
 
@@ -466,9 +468,9 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():
-        verify_route_dag_constraints_for_agent(agent_id=agent_id,
-                                               route_dag_constraints=freeze_dict[agent_id],
-                                               topo=tc_reschedule_problem.topo_dict[agent_id])
+        verify_consistency_of_route_dag_constraints_for_agent(agent_id=agent_id,
+                                                              route_dag_constraints=freeze_dict[agent_id],
+                                                              topo=tc_reschedule_problem.topo_dict[agent_id])
 
     ASPProblemDescription.factory_rescheduling(
         tc=tc_reschedule_problem
