@@ -211,7 +211,6 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     if asp_export_experiment_ids:
         potassco_export(experiment_potassco_directory=experiment_potassco_directory,
                         experiment_results_list=experiment_results_list,
-                        experiment_data_directory=experiment_data_directory,
                         asp_export_experiment_ids=asp_export_experiment_ids)
 
 

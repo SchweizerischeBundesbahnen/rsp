@@ -162,9 +162,18 @@ def _potassco_write_lp_and_sh_for_experiment(
 
 def main(experiment_base_directory: str,
          experiment_ids: List[int],
-         export_schedule_full: bool = False,
-         export_reschedule_full_after_malfunction: bool = True,
-         export_reschedule_delta_after_malfunction: bool = False, ):
+         problem: str):
+    export_schedule_full: bool = False
+    export_reschedule_full_after_malfunction: bool = False
+    export_reschedule_delta_after_malfunction: bool = False
+    if problem == "full":
+        export_schedule_full = True
+    elif problem == 'full_after_malfunction':
+        export_reschedule_full_after_malfunction = True
+    elif problem == 'delta_after_malfunction':
+        export_reschedule_delta_after_malfunction = True
+    else:
+        raise ValueError(f"unkonwn problem={problem}")
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
     experiment_results_list = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_directory, experiment_ids=experiment_ids)
@@ -187,23 +196,5 @@ if __name__ == '__main__':
                         choices=['full_after_malfunction', 'full', 'delta_after_malfunction'],
                         help='which problem to check',
                         nargs=1)
-    parser.add_argument('--debug', action="store_true")
     args = parser.parse_args()
-
-    problem = args.problem[0]
-    export_schedule_full: bool = False
-    export_reschedule_full_after_malfunction: bool = False
-    export_reschedule_delta_after_malfunction: bool = False
-    if problem == "full":
-        export_schedule_full = True
-    elif problem == 'full_after_malfunction':
-        export_reschedule_full_after_malfunction = True
-    elif problem == 'delta_after_malfunction':
-        export_reschedule_delta_after_malfunction = True
-    else:
-        raise ValueError(f"unkonwn problem={problem}")
-
-    main(experiment_base_directory=args.experiment_base_directory[0], experiment_ids=[args.experiment_id[0]],
-         export_schedule_full=export_schedule_full,
-         export_reschedule_full_after_malfunction=export_reschedule_full_after_malfunction,
-         export_reschedule_delta_after_malfunction=export_reschedule_delta_after_malfunction)
+    main(experiment_base_directory=args.experiment_base_directory[0], experiment_ids=[args.experiment_id[0]], problem=args.problem[0])
