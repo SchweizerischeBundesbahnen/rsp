@@ -79,7 +79,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
 # https://stackoverflow.com/questions/13363553/git-error-host-key-verification-failed-when-connecting-to-remote-repository
 cat ~/.ssh/*.pub
 ssh-keyscan -H gitlab.aicrowd.com >> ~/.ssh/known_hosts
-git submodule update --init --recursive
+#git submodule update --init --recursive
 find .
 """
                 }
