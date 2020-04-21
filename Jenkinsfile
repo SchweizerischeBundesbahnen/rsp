@@ -77,6 +77,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 script {
                     sh """
 cat ~/.ssh/*.pub
+ssh-keyscan -H gitlab.aicrowd.com >> ~/.ssh/known_hosts
 git submodule update --init --recursive
 find .
 """
