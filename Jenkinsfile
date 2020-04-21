@@ -77,6 +77,8 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 script {
                     sh """
 cat ~/.ssh/*.pub
+git submodule update --init --recursive
+find .
 """
                 }
             }
