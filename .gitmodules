@@ -1,0 +1,3 @@
+[submodule "flatland_ckua"]
+	path = flatland_ckua
+	url = git@github.com:SchweizerischeBundesbahnen/flatland_ckua.git

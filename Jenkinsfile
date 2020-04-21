@@ -72,15 +72,11 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
         }
-        stage('show public ssh token') {
+        stage('init git submodules') {
             steps {
                 script {
                     sh """
-# https://stackoverflow.com/questions/13363553/git-error-host-key-verification-failed-when-connecting-to-remote-repository
-cat ~/.ssh/*.pub
-ssh-keyscan -H gitlab.aicrowd.com >> ~/.ssh/known_hosts
-#git submodule update --init --recursive
-find .
+git submodule update --init --recursive
 """
                 }
             }

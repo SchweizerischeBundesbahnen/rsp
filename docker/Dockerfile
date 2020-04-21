@@ -4,7 +4,6 @@ LABEL description="rsp jupyter workspace"
 
 USER root
 
-RUN ls -al ~/.ssh && cat ~/.ssh/*.pub
 
 # install miniconda
 RUN set -e && \
