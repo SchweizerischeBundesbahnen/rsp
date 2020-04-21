@@ -7,6 +7,7 @@ from flatland.core.env_observation_builder import DummyObservationBuilder
 from flatland.core.env_observation_builder import ObservationBuilder
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_generators import sparse_rail_generator
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import sparse_schedule_generator
@@ -21,24 +22,25 @@ from rsp.utils.flatland_replay_utils import replay
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def generate_schedule(  # noqa:C901
+def ckua_generate_schedule(  # noqa:C901
         env: RailEnv,
         random_seed: int,
-        do_rendering: bool = False,
-        do_rendering_first: bool = False,
-        do_rendering_final: bool = False,
-        max_steps: int = np.inf):
+        rendering: bool = False,
+        show: bool = False,
+        max_steps: int = np.inf) -> TrainrunDict:
     steps = 0
     total_reward = 0
-    total_done = 0
-    time_start = time.time()
 
     # setup the env
-    observation, info = env.reset(random_seed=random_seed)
+    observation, info = env.reset(False, False, False, random_seed=random_seed)
 
     # Setup the controller (solver)
     flatland_controller = CkUaController()
     flatland_controller.setup(env)
+
+    do_rendering = rendering
+    do_rendering_final = rendering
+    do_rendering_first = rendering
 
     if do_rendering or do_rendering_final or do_rendering_final:
         env_renderer = RenderTool(env=env,
@@ -59,37 +61,31 @@ def generate_schedule(  # noqa:C901
             schedule[0] = {}
             for agent in env.agents:
                 schedule[steps][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
+            print(f"[{steps}] {schedule[steps]}")
 
         action = flatland_controller.controller(env, observation, info, env.get_num_agents())
+        time.sleep(1)
 
         schedule[steps + 1] = {}
         for agent in env.agents:
             schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
+        print(f"[{steps + 1}] {schedule[steps + 1]}")
         observation, all_rewards, done, _ = env.step(action)
 
         if do_rendering or (do_rendering_first and steps == 0):
             # Environment step which returns the observations for all agents, their corresponding
             # reward and whether their are done
-            env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
+            env_renderer.render_env(show=show, show_observations=False, show_predictions=False)
 
         steps += 1
         total_reward += sum(list(all_rewards.values()))
         if done['__all__']:
             for agent in env.agents:
                 schedule[steps][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
+            print(f"[{steps}] {schedule[steps]}")
             if not ((env._max_episode_steps is not None) and (
                     env._elapsed_steps >= env._max_episode_steps)):
-                total_done = env.get_num_agents()
-            break
-        total_done = sum(list(done.values()))
-
-    print("\rStep: [{:3}/{:3}][{:4.1f}]%\ttime: {:4.5f}s\treward: {:4.5f}\tdone: [{:3}/{:3}][{:4.1f}]%".format(
-        steps,
-        max_steps,
-        100.0 * steps / max_steps,
-        time.time() - time_start,
-        total_reward,
-        total_done, env.get_num_agents(), 100.0 * total_done / env.get_num_agents()), end="")
+                break
 
     if do_rendering_final:
         # Environment step which returns the observations for all agents, their corresponding
@@ -97,8 +93,6 @@ def generate_schedule(  # noqa:C901
         env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
     if do_rendering or do_rendering_first or do_rendering_final:
         env_renderer.gl.close_window()
-
-    sim_time = time.time() - time_start
 
     print(schedule)
     resource_occupations = {}
@@ -114,37 +108,19 @@ def generate_schedule(  # noqa:C901
                     assert agent_id == resource_occupations[occupation], \
                         f"conflicting resource occuptions {occupation} for agents {agent_id} and {resource_occupations[occupation]}"
                 resource_occupations[occupation] = agent_id
-    trainrun_dict = {agent.handle: [] for agent in env.agents}
-    for agent in env.agents:
-        agent_id = agent.handle
 
-        curr_pos = None
-        for time_step in schedule:
+    initial_positions = {agent.handle: agent.initial_position for agent in env.agents}
+    initial_directions = {agent.handle: agent.initial_direction for agent in env.agents}
+    targets = {agent.handle: agent.target for agent in env.agents}
 
-            next_waypoint = schedule[time_step][agent_id]
-            if next_waypoint.position is not None:
-                if next_waypoint.position != curr_pos:
-                    if curr_pos is None:
-                        assert time_step >= 1
-                        assert next_waypoint.position == agent.initial_position
-                        assert next_waypoint.direction == agent.initial_direction
-                        trainrun_dict[agent_id].append(
-                            TrainrunWaypoint(waypoint=Waypoint(
-                                position=next_waypoint.position,
-                                direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET),
-                                scheduled_at=time_step - 1))
-                    if next_waypoint.position is not None:
-                        trainrun_dict[agent_id].append(TrainrunWaypoint(waypoint=next_waypoint, scheduled_at=time_step))
-            if next_waypoint.position is None and curr_pos is not None:
-                trainrun_dict[agent_id].append(
-                    TrainrunWaypoint(
-                        waypoint=Waypoint(
-                            position=agent.target, direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET
-                        ),
-                        scheduled_at=time_step))
-                assert abs(curr_pos[0] - agent.target[0]) + abs(curr_pos[1] - agent.target[1]) == 1, f"{curr_pos} - {agent.target}"
-            curr_pos = next_waypoint.position
+    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule, targets)
     print(_pp.pformat(trainrun_dict))
+    verify_trainrun_dict(env, random_seed, trainrun_dict)
+
+    return trainrun_dict
+
+
+def verify_trainrun_dict(env, random_seed, trainrun_dict):
     env.reset(random_seed=random_seed)
     controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
         trainrun_dict=trainrun_dict,
@@ -158,7 +134,39 @@ def generate_schedule(  # noqa:C901
         show=True,
         solver_name="CkUaController")
 
-    return total_reward, steps, total_done, sim_time
+
+def _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule, targets):
+    trainrun_dict = {agent.handle: [] for agent in env.agents}
+    for agent_id in trainrun_dict:
+
+        curr_pos = None
+        for time_step in schedule:
+
+            next_waypoint = schedule[time_step][agent_id]
+            if next_waypoint.position is not None:
+                if next_waypoint.position != curr_pos:
+                    if curr_pos is None:
+                        assert time_step >= 1
+                        assert next_waypoint.position == initial_positions[agent_id]
+                        assert next_waypoint.direction == initial_directions[agent_id]
+                        trainrun_dict[agent_id].append(
+                            TrainrunWaypoint(waypoint=Waypoint(
+                                position=next_waypoint.position,
+                                direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET),
+                                scheduled_at=time_step - 1))
+                    if next_waypoint.position is not None:
+                        trainrun_dict[agent_id].append(TrainrunWaypoint(waypoint=next_waypoint, scheduled_at=time_step))
+            if next_waypoint.position is None and curr_pos is not None:
+                trainrun_dict[agent_id].append(
+                    TrainrunWaypoint(
+                        waypoint=Waypoint(
+                            position=targets[agent_id], direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET
+                        ),
+                        scheduled_at=time_step))
+                assert abs(curr_pos[0] - targets[agent_id][0]) + abs(
+                    curr_pos[1] - targets[agent_id][1]) == 1, f"agent {agent_id}: curr_pos={curr_pos} - target={targets[agent_id]}"
+            curr_pos = next_waypoint.position
+    return trainrun_dict
 
 
 def dummy_rail_env(observation_builder: ObservationBuilder, number_of_agents: int = 100, random_seed: int = 14) -> RailEnv:
@@ -187,17 +195,18 @@ def dummy_rail_env(observation_builder: ObservationBuilder, number_of_agents: in
 
 
 def main():
-    generate_schedule(
+    ckua_generate_schedule(
         env=dummy_rail_env(observation_builder=DummyObservationBuilder()),
-        random_seed=94)
+        random_seed=94,
+        rendering=True
+    )
 
 
 if __name__ == '__main__':
     main()
 
-# TODO SIM-443 release time: ASP or controller?
-# TODO SIM-443 release time in FLATland for replay or set position in FLATland instead?
 # TODO SIM-443 integration schedule generation
+# TODO SIM-443 release time in FLATland for replay or set position in FLATland instead? --> check
 # TODO SIM-443 refactor ckua_schedule_generator.py
-# TODO general: actually, as long as we can use this schedule generation, our problems are not big enough!
+# TODO general: actually, as long as we can use this schedule generation, our problems are not big enough??!!
 # TODO SIM-443: understand the scheudling heuristic better

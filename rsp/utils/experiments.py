@@ -49,9 +49,13 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
+from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
+from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
+from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -322,12 +326,44 @@ def gen_schedule_and_malfunction(
     Returns
     -------
     """
-    tc_schedule_problem, schedule_result = solver.gen_schedule(
-        static_rail_env=static_rail_env,
-        experiment_parameters=experiment_parameters,
-        verbose=verbose,
-        debug=debug
-    )
+    SWITCH_CKUA = True
+    if SWITCH_CKUA:
+        tc_schedule_problem = schedule_problem_description_from_rail_env(
+            env=static_rail_env,
+            k=experiment_parameters.number_of_shortest_paths_per_agent
+        )
+        trainrun_dict = ckua_generate_schedule(
+            env=static_rail_env,
+            random_seed=experiment_parameters.flatland_seed_value,
+            rendering=True,
+            show=True
+        )
+        verify_trainruns_dict(
+            env=static_rail_env,
+            trainrun_dict=trainrun_dict,
+            expected_route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict
+        )
+        schedule_result = SchedulingExperimentResult(
+            total_reward=-np.inf,
+            solve_time=-np.inf,
+            optimization_costs=-np.inf,
+            build_problem_time=-np.inf,
+            nb_conflicts=-np.inf,
+            trainruns_dict=trainrun_dict,
+            route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict,
+            solver_statistics=None,
+            solver_result=None,
+            solver_configuration=None,
+            solver_seed=None,
+            solver_program=None
+        )
+    else:
+        tc_schedule_problem, schedule_result = solver.gen_schedule(
+            static_rail_env=static_rail_env,
+            experiment_parameters=experiment_parameters,
+            verbose=verbose,
+            debug=debug
+        )
     malfunction = gen_malfunction(
         malfunction_env_reset=malfunction_env_reset,
         malfunction_rail_env=malfunction_rail_env,

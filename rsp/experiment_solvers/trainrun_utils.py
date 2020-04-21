@@ -26,7 +26,7 @@ def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_di
 
 
 def verify_trainruns_dict(env: RailEnv,
-                          trainruns_dict: TrainrunDict,
+                          trainrun_dict: TrainrunDict,
                           expected_malfunction: Optional[ExperimentMalfunction] = None,
                           expected_route_dag_constraints: Optional[RouteDAGConstraintsDict] = None
                           ):
@@ -43,7 +43,7 @@ def verify_trainruns_dict(env: RailEnv,
     Parameters
     ----------
     env
-    trainruns_dict
+    trainrun_dict
     expected_malfunction
     expected_route_dag_constraints
 
@@ -51,24 +51,24 @@ def verify_trainruns_dict(env: RailEnv,
     -------
     """
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
-    _verify_trainruns_1_path_consistency(env, trainruns_dict)
+    _verify_trainruns_1_path_consistency(env, trainrun_dict)
 
     # 2. verify mutual exclusion
-    _verify_trainruns_2_mutual_exclusion(trainruns_dict)
+    _verify_trainruns_2_mutual_exclusion(trainrun_dict)
 
     # 3. check that the paths lead from the desired start and goal
-    _verify_trainruns_3_source_target(env, trainruns_dict)
+    _verify_trainruns_3_source_target(env, trainrun_dict)
 
     # 4. check that the transitions are valid FLATland transitions according to the grid
-    _verify_trainruns_4_consistency_with_flatland_moves(env, trainruns_dict)
+    _verify_trainruns_4_consistency_with_flatland_moves(env, trainrun_dict)
 
     # 5. verify expected malfunction
     if expected_malfunction:
-        _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict)
+        _verify_trainruns_5_malfunction(env, expected_malfunction, trainrun_dict)
 
     # 6. verify freezes are respected
     if expected_route_dag_constraints:
-        _verify_trainruns_6_freeze(expected_route_dag_constraints, trainruns_dict)
+        _verify_trainruns_6_freeze(expected_route_dag_constraints, trainrun_dict)
 
 
 def _verify_trainruns_5_malfunction(env, expected_malfunction, trainruns_dict):
