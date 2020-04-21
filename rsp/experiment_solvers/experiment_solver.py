@@ -2,8 +2,8 @@ import pprint
 import warnings
 from typing import Callable
 from typing import Optional
+from typing import Tuple
 
-from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
@@ -20,8 +20,6 @@ from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
-from rsp.utils.flatland_replay_utils import replay
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 
@@ -29,19 +27,16 @@ class ASPExperimentSolver():
     """Implements `ASPExperimentSolver` for ASP."""
     _pp = pprint.PrettyPrinter(indent=4)
 
-    def gen_schedule_and_malfunction(self,
-                                     static_rail_env: RailEnv,
-                                     malfunction_rail_env: RailEnv,
-                                     malfunction_env_reset,
-                                     experiment_parameters: ExperimentParameters,
-                                     disable_verification_by_replay: bool = False,
-                                     verbose: bool = False,
-                                     debug: bool = False,
-                                     rendering: bool = False
-                                     ) -> ScheduleAndMalfunction:
-        """A.2.
+    def gen_schedule(self,
+                     static_rail_env: RailEnv,
+                     experiment_parameters: ExperimentParameters,
+                     verbose: bool = False,
+                     debug: bool = False,
+                     rendering: bool = False
+                     ) -> Tuple[ScheduleProblemDescription, SchedulingExperimentResult]:
+        """A.2.2.
 
-        Experiment Setup
+        Create Schedule.
         """
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
@@ -53,32 +48,9 @@ class ASPExperimentSolver():
                                                static_rail_env=static_rail_env,
                                                debug=debug)
 
-        schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
-
         if verbose:
-            print(f"  **** schedule_solution={schedule_trainruns}")
-
-        # --------------------------------------------------------------------------------------
-        # 1. Generate malfuntion
-        # --------------------------------------------------------------------------------------
-        malfunction_env_reset()
-        controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
-            trainrun_dict=schedule_trainruns,
-            env=malfunction_rail_env)
-        malfunction_env_reset()
-        malfunction = replay(
-            controller_from_train_runs=controller_from_train_runs,
-            env=malfunction_rail_env,
-            stop_on_malfunction=True,
-            solver_name="ASP")
-        malfunction_env_reset()
-        # replay may return None (if the given malfunction does not happen during the agents time in the grid
-        if malfunction is None:
-            raise Exception("Could not produce a malfunction")
-
-        if verbose:
-            print(f"  **** malfunction={malfunction}")
-        return ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
+            print(f"  **** schedule_solution={schedule_result.trainruns_dict}")
+        return tc_schedule_problem, schedule_result
 
     def _run_experiment_from_environment(
             self,

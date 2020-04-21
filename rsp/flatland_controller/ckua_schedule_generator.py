@@ -149,7 +149,7 @@ def generate_schedule(  # noqa:C901
     controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
         trainrun_dict=trainrun_dict,
         env=env)
-    # TODO hard replay or implement release time in FLATland:
+    # TODO SIM-443 hard replay or implement release time in FLATland:
     #     expected_flatland_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict), # noqa: E800
     replay(
         controller_from_train_runs=controller_from_train_runs,
@@ -196,7 +196,8 @@ if __name__ == '__main__':
     main()
 
 # TODO SIM-443 release time: ASP or controller?
+# TODO SIM-443 release time in FLATland for replay or set position in FLATland instead?
 # TODO SIM-443 integration schedule generation
-# TODO SIM-443 cleanup code
-# TODO SIM-443 ssh key continuous integration
+# TODO SIM-443 refactor ckua_schedule_generator.py
 # TODO general: actually, as long as we can use this schedule generation, our problems are not big enough!
+# TODO SIM-443: understand the scheudling heuristic better

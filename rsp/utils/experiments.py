@@ -36,13 +36,16 @@ import threading
 import time
 import traceback
 from functools import partial
+from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Tuple
 
 import numpy as np
 import tqdm as tqdm
+from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
@@ -61,6 +64,8 @@ from rsp.utils.experiment_env_generators import create_flatland_environment_with
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
+from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
+from rsp.utils.flatland_replay_utils import replay
 from rsp.utils.psutil_helpers import current_process_stats_human_readable
 from rsp.utils.psutil_helpers import virtual_memory_human_readable
 from rsp.utils.tee import reset_tee
@@ -282,16 +287,93 @@ def create_schedule_and_malfunction(
     def malfunction_env_reset():
         malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
 
-    # Run experiments
-    schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+    return gen_schedule_and_malfunction(
+        experiment_parameters=experiment_parameters,
         static_rail_env=static_rail_env,
         malfunction_rail_env=malfunction_rail_env,
         malfunction_env_reset=malfunction_env_reset,
+        solver=solver,
+        verbose=verbose,
+        debug=debug)
+
+
+def gen_schedule_and_malfunction(
+        experiment_parameters: ExperimentParameters,
+        static_rail_env: RailEnv,
+        malfunction_rail_env: RailEnv,
+        malfunction_env_reset: Callable,
+        solver: ASPExperimentSolver,
+        verbose: bool = False,
+        debug: bool = False
+
+):
+    """A.2 Create schedule and malfunction from experiment parameters.
+
+    Parameters
+    ----------
+    experiment_parameters
+    static_rail_env
+    malfunction_rail_env
+    malfunction_env_reset
+    solver
+    verbose
+    debug
+
+    Returns
+    -------
+    """
+    tc_schedule_problem, schedule_result = solver.gen_schedule(
+        static_rail_env=static_rail_env,
         experiment_parameters=experiment_parameters,
         verbose=verbose,
         debug=debug
     )
+    malfunction = gen_malfunction(
+        malfunction_env_reset=malfunction_env_reset,
+        malfunction_rail_env=malfunction_rail_env,
+        schedule_trainruns=schedule_result.trainruns_dict,
+        verbose=verbose)
+    schedule_and_malfunction = ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
     return malfunction_rail_env, schedule_and_malfunction
+
+
+def gen_malfunction(malfunction_rail_env: RailEnv,
+                    malfunction_env_reset,
+                    schedule_trainruns: TrainrunDict,
+                    verbose: bool = False
+                    ):
+    """A.2.2. Create malfunction.
+
+    Parameters
+    ----------
+    malfunction_rail_env
+    malfunction_env_reset
+    schedule_trainruns
+    verbose
+
+    Returns
+    -------
+    """
+    # --------------------------------------------------------------------------------------
+    # 1. Generate malfuntion
+    # --------------------------------------------------------------------------------------
+    malfunction_env_reset()
+    controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
+        trainrun_dict=schedule_trainruns,
+        env=malfunction_rail_env)
+    malfunction_env_reset()
+    malfunction = replay(
+        controller_from_train_runs=controller_from_train_runs,
+        env=malfunction_rail_env,
+        stop_on_malfunction=True,
+        solver_name="ASP")
+    malfunction_env_reset()
+    # replay may return None (if the given malfunction does not happen during the agents time in the grid
+    if malfunction is None:
+        raise Exception("Could not produce a malfunction")
+    if verbose:
+        print(f"  **** malfunction={malfunction}")
+    return malfunction
 
 
 def _write_sha_txt(folder_name: str):
