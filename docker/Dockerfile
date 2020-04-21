@@ -4,6 +4,8 @@ LABEL description="rsp jupyter workspace"
 
 USER root
 
+RUN ls -al ~/.ssh && cat ~/.ssh/*.pub
+
 # install miniconda
 RUN set -e && \
     set -x && \
@@ -19,7 +21,6 @@ RUN set -e && \
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev
 
-RUN ls -al ~/.ssh
 
 # setup conda env
 ADD rsp_environment.yml /tmp/rsp_environment.yml
