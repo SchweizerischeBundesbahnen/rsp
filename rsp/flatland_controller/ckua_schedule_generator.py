@@ -1,5 +1,5 @@
 import pprint
-import time
+from time import perf_counter
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
@@ -27,9 +27,10 @@ def ckua_generate_schedule(  # noqa:C901
         random_seed: int,
         rendering: bool = False,
         show: bool = False,
-        max_steps: int = np.inf) -> TrainrunDict:
+        max_steps: int = np.inf) -> [TrainrunDict, int]:
     steps = 0
-    total_reward = 0
+
+    start_time = perf_counter()
 
     # setup the env
     observation, info = env.reset(False, False, False, random_seed=random_seed)
@@ -64,7 +65,6 @@ def ckua_generate_schedule(  # noqa:C901
             print(f"[{steps}] {schedule[steps]}")
 
         action = flatland_controller.controller(env, observation, info, env.get_num_agents())
-        time.sleep(1)
 
         schedule[steps + 1] = {}
         for agent in env.agents:
@@ -78,11 +78,11 @@ def ckua_generate_schedule(  # noqa:C901
             env_renderer.render_env(show=show, show_observations=False, show_predictions=False)
 
         steps += 1
-        total_reward += sum(list(all_rewards.values()))
         if done['__all__']:
+            schedule[steps + 1] = {}
             for agent in env.agents:
-                schedule[steps][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
-            print(f"[{steps}] {schedule[steps]}")
+                schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
+            print(f"[{steps + 1}] {schedule[steps]}")
             if not ((env._max_episode_steps is not None) and (
                     env._elapsed_steps >= env._max_episode_steps)):
                 break
@@ -93,6 +93,7 @@ def ckua_generate_schedule(  # noqa:C901
         env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
     if do_rendering or do_rendering_first or do_rendering_final:
         env_renderer.gl.close_window()
+    elapsed_time = perf_counter() - start_time
 
     print(schedule)
     resource_occupations = {}
@@ -117,7 +118,7 @@ def ckua_generate_schedule(  # noqa:C901
     print(_pp.pformat(trainrun_dict))
     verify_trainrun_dict(env, random_seed, trainrun_dict)
 
-    return trainrun_dict
+    return trainrun_dict, elapsed_time
 
 
 def verify_trainrun_dict(env, random_seed, trainrun_dict):
@@ -195,6 +196,7 @@ def dummy_rail_env(observation_builder: ObservationBuilder, number_of_agents: in
 
 
 def main():
+    # TODO SIM-443 refactor as run-through test
     ckua_generate_schedule(
         env=dummy_rail_env(observation_builder=DummyObservationBuilder()),
         random_seed=94,
@@ -205,8 +207,6 @@ def main():
 if __name__ == '__main__':
     main()
 
-# TODO SIM-443 integration schedule generation
 # TODO SIM-443 release time in FLATland for replay or set position in FLATland instead? --> check
-# TODO SIM-443 refactor ckua_schedule_generator.py
-# TODO general: actually, as long as we can use this schedule generation, our problems are not big enough??!!
-# TODO SIM-443: understand the scheudling heuristic better
+# TODO SIM-443 refactor ckua_schedule_generator.py and switch
+# TODO SIM-443: understand the scheduling heuristic better

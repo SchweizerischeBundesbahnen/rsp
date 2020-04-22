@@ -93,7 +93,11 @@ git submodule update --init --recursive
                         ENVIRONMENT_YAML: 'rsp_environment.yml',
                         JENKINS_CLOSURE: {
                             sh """
+pre-commit run --all
 python -m tox . --recreate -v
+
+python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
 """
                         }
                 )
@@ -187,6 +191,10 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 GIT_COMMIT
             } --data '{ "state": "success", "target_url": "'${BUILD_URL}'", "description": "The build has succeeded!", "context": "continuous-integration/jenkins" }'
 """
+        }
+        always {
+            archiveArtifacts artifacts: 'rsp_*.png', onlyIfSuccessful: true, allowEmptyArchive: true
+            cleanWs()
         }
     }
 }

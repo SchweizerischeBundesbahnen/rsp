@@ -326,13 +326,14 @@ def gen_schedule_and_malfunction(
     Returns
     -------
     """
+    # TODO SIM-443 pull switch out
     SWITCH_CKUA = True
     if SWITCH_CKUA:
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
             k=experiment_parameters.number_of_shortest_paths_per_agent
         )
-        trainrun_dict = ckua_generate_schedule(
+        trainrun_dict, elapsed_time = ckua_generate_schedule(
             env=static_rail_env,
             random_seed=experiment_parameters.flatland_seed_value,
             rendering=True,
@@ -351,10 +352,16 @@ def gen_schedule_and_malfunction(
             nb_conflicts=-np.inf,
             trainruns_dict=trainrun_dict,
             route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict,
-            solver_statistics=None,
-            solver_result=None,
-            solver_configuration=None,
-            solver_seed=None,
+            solver_statistics={
+                "summary": {
+                    "times": {
+                        "total": elapsed_time
+                    }
+                }
+            },
+            solver_result={},
+            solver_configuration={},
+            solver_seed=experiment_parameters.asp_seed_value,
             solver_program=None
         )
     else:
