@@ -81,6 +81,37 @@ git submodule update --init --recursive
                 }
             }
         }
+                stage('pre-commit and pydeps') {
+                    when {
+                        allOf {
+                            // if the build was triggered manually with deploy=true, skip testing
+                            expression { !params.deploy }
+                        }
+                    }
+                    steps {
+                        tox_conda_wrapper(
+                                ENVIRONMENT_YAML: 'rsp_environment.yml',
+                                JENKINS_CLOSURE: {
+                                    sh """
+
+        # set up shell for conda
+        conda init bash
+        source ~/.bashrc
+
+        # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
+        conda env create --file rsp_environment.yml --force
+        conda activate rsp
+
+        # run pre-commit without pylint (we want to run pylint later with coverage)
+        pre-commit install
+        pre-commit run --all
+        python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+        python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
+        """
+                                }
+                        )
+                    }
+                }
         stage('test') {
             when {
                 allOf {
@@ -93,12 +124,7 @@ git submodule update --init --recursive
                         ENVIRONMENT_YAML: 'rsp_environment.yml',
                         JENKINS_CLOSURE: {
                             sh """
-# TODO SIM-443 cleanup
-#pre-commit run --all
 python -m tox . --recreate -v
-
-python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
-python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
 """
                         }
                 )
