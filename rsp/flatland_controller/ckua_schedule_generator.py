@@ -11,8 +11,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import sparse_schedule_generator
-from flatland.utils.rendertools import AgentRenderVariant
-from flatland.utils.rendertools import RenderTool
+
 
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
@@ -44,6 +43,8 @@ def ckua_generate_schedule(  # noqa:C901
     do_rendering_first = rendering
 
     if do_rendering or do_rendering_final or do_rendering_final:
+        from flatland.utils.rendertools import AgentRenderVariant
+        from flatland.utils.rendertools import RenderTool
         env_renderer = RenderTool(env=env,
                                   gl="PILSVG",
                                   agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS,
