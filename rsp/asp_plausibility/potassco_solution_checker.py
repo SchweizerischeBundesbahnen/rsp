@@ -15,7 +15,7 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem: str, deb
     problem
     debug
     """
-    # filter
+    # We filter on a single experiment_id, so there should be only one one element in the list.
     experiment_results = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_folder_name,
         experiment_ids=[experiment_id]
@@ -24,7 +24,7 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem: str, deb
     tc = experiment_results._asdict()[f"problem_{problem}"]
     print(problem)
     if problem == "full":
-        schedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
+        schedule_problem: ASPProblemDescription = ASPProblemDescription.factory_scheduling(
             tc=tc,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
