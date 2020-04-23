@@ -1,0 +1,24 @@
+# Default values for helm-config.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+
+# test projects:
+#   - maximum cpu usage per Pod is 4,
+#   - maximum memory usage per Pod is 32Gi,
+#   - maximum cpu usage per Container is 4,
+#   - maximum memory usage per Container is 32Gi.
+
+resources:
+  requests:
+    cpu: 2
+    memory: 4Gi
+  limits: # Maximum
+    cpu: 4
+    memory: 32Gi
+    nvidia.com/gpu: 0

@@ -1,31 +1,31 @@
 % train t1 runs 1 -> 4
 train(t1).
-edge(t1,1,4).
-start(t1,1).
-end(t1,4).
-e(t1,1,0),
-l(t1,4,6).
-e(t1,4,0),
-l(t1,4,6).
-m((1,4),2).
-w(t1,(1,4),0).
+edge(t1,(t1,1),(t1,4)).
+start(t1,(t1,1)).
+end(t1,(t1,4)).
+e(t1,(t1,1),0).
+l(t1,(t1,1),10).
+e(t1,(t1,4),0).
+l(t1,(t1,4),10).
+m(((t1,1),(t1,4)),2).
+w(t1,((t1,1),(t1,4)),0).
 
 
 % train t2 runs opposite 4 -> 1
 train(t2).
-edge(t2,4,1).
-start(t2,4).
-end(t2,1).
-e(t2,1,0).
-l(t2,1,6).
-e(t2,4,0).
-l(t2,4,6).
-m((4,1),1).
-w(t2,(4,1),0).
+edge(t2,(t2,4),(t2,1)).
+start(t2,(t2,4)).
+end(t2,(t2,1)).
+e(t2,(t2,1),0).
+l(t2,(t2,1),6).
+e(t2,(t2,4),0).
+l(t2,(t2,4),6).
+m(((t2,4),(t2,1)),1).
+w(t2,((t2,4),(t2,1)),0).
 
 % common resource r1 without release time 1
-resource(r,(1,4)).
-resource(r,(4,1)).
+resource(r,((t1,1),(t1,4))).
+resource(r,((t2,4),(t2,1))).
 b(r,5).
 
 

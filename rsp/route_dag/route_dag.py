@@ -18,7 +18,7 @@ AgentPaths = List[List[Waypoint]]
 AgentsPathsDict = Dict[int, AgentPaths]
 
 RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
-    ('freeze_visit', List[TrainrunWaypoint]),
+    ('freeze_visit', List[Waypoint]),
     ('freeze_earliest', Dict[Waypoint, int]),
     ('freeze_latest', Dict[Waypoint, int]),
     ('freeze_banned', List[Waypoint])
@@ -127,8 +127,12 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     """
     topo = nx.DiGraph()
     for path in agent_paths:
+        topo_path = nx.DiGraph()
         for wp1, wp2 in zip(path, path[1:]):
             topo.add_edge(wp1, wp2)
+            topo_path.add_edge(wp1, wp2)
+            assert len(list(nx.simple_cycles(topo_path))) == 0, f"cycle in shortest path"
+    assert len(list(nx.simple_cycles(topo))) == 0, f"cycle in re-combination of shortest paths"
     return topo
 
 
