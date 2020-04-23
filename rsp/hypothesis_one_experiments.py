@@ -158,10 +158,9 @@ def hypothesis_one_main():
     parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        qualitative_analysis_experiment_ids=list(range(270, 300)),
-        asp_export_experiment_ids=list(range(270, 300)),
-        copy_agenda_from_base_directory=None,  # regenerate schedules
-        parallel_compute=1
+        qualitative_analysis_experiment_ids=[],
+        asp_export_experiment_ids=[],
+        copy_agenda_from_base_directory="../rsp-data/many_agent_example",
     )
 
 
