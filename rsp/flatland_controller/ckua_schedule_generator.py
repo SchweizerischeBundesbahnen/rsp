@@ -58,10 +58,12 @@ def ckua_generate_schedule(  # noqa:C901
 
     schedule = {}
 
-    flatland_controller.controller(env, observation, info, env.get_num_agents())
-    for agent in env.agents:
-        selected_way = flatland_controller.dispatcher.controllers[agent.handle].selected_way
-        a = 5
+    # TODO SIM-443 extract without stepping
+    if False:
+        flatland_controller.controller(env, observation, info, env.get_num_agents())
+        for agent in env.agents:
+            selected_way = flatland_controller.dispatcher.controllers[agent.handle].selected_way
+            print(selected_way)
 
     while steps < max_steps:
         print(steps)
@@ -69,14 +71,14 @@ def ckua_generate_schedule(  # noqa:C901
             schedule[0] = {}
             for agent in env.agents:
                 schedule[steps][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
-            # print(f"[{steps}] {schedule[steps]}")
+            print(f"[{steps}] {schedule[steps]}")
 
         action = flatland_controller.controller(env, observation, info, env.get_num_agents())
 
         schedule[steps + 1] = {}
         for agent in env.agents:
             schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
-        # print(f"[{steps + 1}] {schedule[steps + 1]}")
+        print(f"[{steps + 1}] {schedule[steps + 1]}")
         observation, all_rewards, done, _ = env.step(action)
 
         if do_rendering or (do_rendering_first and steps == 0):
@@ -89,7 +91,7 @@ def ckua_generate_schedule(  # noqa:C901
             schedule[steps + 1] = {}
             for agent in env.agents:
                 schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
-            # print(f"[{steps + 1}] {schedule[steps]}")
+            print(f"[{steps + 1}] {schedule[steps]}")
             if not ((env._max_episode_steps is not None) and (
                     env._elapsed_steps >= env._max_episode_steps)):
                 break
@@ -128,7 +130,7 @@ def ckua_generate_schedule(  # noqa:C901
     return trainrun_dict, elapsed_time
 
 
-def verify_trainrun_dict(env, random_seed, trainrun_dict):
+def verify_trainrun_dict(env, random_seed, trainrun_dict, rendering, show):
     env.reset(random_seed=random_seed)
     controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
         trainrun_dict=trainrun_dict,
@@ -138,8 +140,8 @@ def verify_trainrun_dict(env, random_seed, trainrun_dict):
     replay(
         controller_from_train_runs=controller_from_train_runs,
         env=env,
-        rendering=True,
-        show=True,
+        rendering=rendering,
+        show=show,
         solver_name="CkUaController")
 
 
@@ -148,8 +150,8 @@ def _extract_trainrun_dict_from_flatland_positions(env, initial_directions, init
     for agent_id in trainrun_dict:
 
         curr_pos = None
+        curr_dir = None
         for time_step in schedule:
-
             next_waypoint = schedule[time_step][agent_id]
             if next_waypoint.position is not None:
                 if next_waypoint.position != curr_pos:
@@ -168,12 +170,19 @@ def _extract_trainrun_dict_from_flatland_positions(env, initial_directions, init
                 trainrun_dict[agent_id].append(
                     TrainrunWaypoint(
                         waypoint=Waypoint(
-                            position=targets[agent_id], direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET
+                            position=targets[agent_id], direction=curr_dir
                         ),
                         scheduled_at=time_step))
+                trainrun_dict[agent_id].append(
+                    TrainrunWaypoint(
+                        waypoint=Waypoint(
+                            position=targets[agent_id], direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET
+                        ),
+                        scheduled_at=time_step + 1))
                 assert abs(curr_pos[0] - targets[agent_id][0]) + abs(
                     curr_pos[1] - targets[agent_id][1]) == 1, f"agent {agent_id}: curr_pos={curr_pos} - target={targets[agent_id]}"
             curr_pos = next_waypoint.position
+            curr_dir = next_waypoint.direction
     return trainrun_dict
 
 

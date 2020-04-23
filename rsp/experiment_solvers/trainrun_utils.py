@@ -194,7 +194,10 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
                 # TODO SIM-322 hard-coded assumption
                 if previous_trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or \
                         trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET:
-                    assert trainrun_waypoint.scheduled_at - previous_trainrun_waypoint.scheduled_at == 1
+                    assert trainrun_waypoint.scheduled_at - previous_trainrun_waypoint.scheduled_at == 1,\
+                        f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
+                        f"from {previous_trainrun_waypoint} " + \
+                        f"is a dummy segment that should need exactly one time step."
                 else:
                     assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell, \
                         f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \

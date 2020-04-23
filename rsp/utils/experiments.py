@@ -48,6 +48,7 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
+from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
@@ -336,8 +337,8 @@ def gen_schedule_and_malfunction(
         trainrun_dict, elapsed_time = ckua_generate_schedule(
             env=static_rail_env,
             random_seed=experiment_parameters.flatland_seed_value,
-            rendering=True,
-            show=True
+            rendering=False,
+            show=False
         )
         verify_trainruns_dict(
             env=static_rail_env,
@@ -352,13 +353,7 @@ def gen_schedule_and_malfunction(
             nb_conflicts=-np.inf,
             trainruns_dict=trainrun_dict,
             route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict,
-            solver_statistics={
-                "summary": {
-                    "times": {
-                        "total": elapsed_time
-                    }
-                }
-            },
+            solver_statistics=fake_solver_statistics(elapsed_time),
             solver_result={},
             solver_configuration={},
             solver_seed=experiment_parameters.asp_seed_value,
