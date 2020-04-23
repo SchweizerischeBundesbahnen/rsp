@@ -12,7 +12,6 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import sparse_schedule_generator
 
-
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
