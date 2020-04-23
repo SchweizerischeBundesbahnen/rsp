@@ -13,7 +13,7 @@ from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import run_experiment_agenda
 
 
-def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
+def get_agenda_pipeline_params_001_simple_setting() -> ParameterRangesAndSpeedData:
     parameter_ranges = ParameterRanges(agent_range=[2, 2, 1],
                                        size_range=[18, 18, 1],
                                        in_city_rail_range=[2, 2, 1],
@@ -36,7 +36,7 @@ def get_first_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
     return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 
-def get_second_agenda_pipeline_params() -> ParameterRangesAndSpeedData:
+def get_agenda_pipeline_params_002_a_bit_more_advanced() -> ParameterRangesAndSpeedData:
     parameter_ranges = ParameterRanges(agent_range=[50, 200, 12],
                                        size_range=[40, 40, 1],
                                        in_city_rail_range=[3, 3, 1],
@@ -155,7 +155,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
 
 
 def hypothesis_one_main():
-    parameter_ranges_and_speed_data = get_second_agenda_pipeline_params()
+    parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=list(range(270, 300)),
@@ -167,7 +167,7 @@ def hypothesis_one_main():
 
 def hypothesis_one_gen_schedule():
     rsp_logger.info("HYPOTHESIS_ONE_GEN_SCHEDULE()")
-    parameter_ranges_and_speed_data = get_second_agenda_pipeline_params()
+    parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         gen_only=True,
