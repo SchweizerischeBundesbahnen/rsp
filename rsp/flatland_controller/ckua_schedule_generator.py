@@ -1,16 +1,22 @@
 import pprint
 from time import perf_counter
+from typing import Dict
+from typing import List
+from typing import Tuple
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.core.env_observation_builder import DummyObservationBuilder
 from flatland.core.env_observation_builder import ObservationBuilder
+from flatland.envs.agent_utils import RailAgentStatus
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_generators import sparse_rail_generator
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from flatland.envs.schedule_generators import sparse_schedule_generator
+from libs.cell_graph import CellGraph
+from libs.cell_graph_agent import AgentWayStep
 
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
@@ -18,6 +24,10 @@ from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and
 from rsp.utils.flatland_replay_utils import replay
 
 _pp = pprint.PrettyPrinter(indent=4)
+
+CurentFLATlandPositions = Dict[int, Waypoint]
+AgentFLATlandPositions = Dict[int, Waypoint]
+FLATlandPositionsPerTimeStep = Dict[int, CurentFLATlandPositions]
 
 
 def ckua_generate_schedule(  # noqa:C901
@@ -56,23 +66,37 @@ def ckua_generate_schedule(  # noqa:C901
     if max_steps == np.inf:
         max_steps = env._max_episode_steps
 
-    schedule = {}
+    schedule: FLATlandPositionsPerTimeStep = {}
 
     # TODO SIM-443 extract without stepping
     if False:
         flatland_controller.controller(env, observation, info, env.get_num_agents())
-        for agent in env.agents:
-            selected_way = flatland_controller.dispatcher.controllers[agent.handle].selected_way
-            print(selected_way)
+
+        # gather all positions for all agents
+        positions = {
+            agent.handle: _extract_agent_positions_from_selected_ckua_way(
+                selected_way=flatland_controller.dispatcher.controllers[agent.handle].selected_way,
+                cell_graph=flatland_controller.dispatcher.graph)
+            for agent in env.agents
+        }
+
+        # change columns: first indexed by time_step and then by agent_id
+        max_steps = max([max(list(positions[agent.handle].keys())) for agent in env.agents])
+        schedule = {i: {agent.handle: {}
+                        for agent in env.agents}
+                    for i in range(max_steps + 1)}
+        for agent_id, positions in positions.items():
+            for time_step, waypoint in positions:
+                schedule[time_step][agent_id] = waypoint
 
     while steps < max_steps:
-        print(steps)
         if steps == 0:
             schedule[0] = {}
             for agent in env.agents:
                 schedule[steps][agent.handle] = Waypoint(position=agent.position,
-                                                         direction=agent.direction)  # , agent.speed_data['position_fraction'])
-            print(f"[{steps}] {schedule[steps]}")
+                                                         direction=agent.direction)
+            if False:
+                print(f"[{steps}] {schedule[steps]}")
 
         action = flatland_controller.controller(env, observation, info, env.get_num_agents())
 
@@ -80,8 +104,13 @@ def ckua_generate_schedule(  # noqa:C901
         for agent in env.agents:
             schedule[steps + 1][agent.handle] = Waypoint(position=agent.position,
                                                          direction=agent.direction)  # , agent.speed_data['position_fraction'])
-        print(f"[{steps + 1}] {schedule[steps + 1]}")
+        if False:
+            print(f"[{steps + 1}] {schedule[steps + 1]}")
         observation, all_rewards, done, _ = env.step(action)
+
+        if False:
+            ready_to_depart_ = [agent.status for agent in env.agents if agent.status == RailAgentStatus.READY_TO_DEPART]
+            print(len(ready_to_depart_))
 
         if do_rendering or (do_rendering_first and steps == 0):
             # Environment step which returns the observations for all agents, their corresponding
@@ -94,7 +123,8 @@ def ckua_generate_schedule(  # noqa:C901
             for agent in env.agents:
                 schedule[steps + 1][agent.handle] = Waypoint(position=agent.position,
                                                              direction=agent.direction)  # , agent.speed_data['position_fraction'])
-            print(f"[{steps + 1}] {schedule[steps]}")
+            if False:
+                print(f"[{steps + 1}] {schedule[steps]}")
             if not ((env._max_episode_steps is not None) and (
                     env._elapsed_steps >= env._max_episode_steps)):
                 break
@@ -106,15 +136,13 @@ def ckua_generate_schedule(  # noqa:C901
     if do_rendering or do_rendering_first or do_rendering_final:
         env_renderer.gl.close_window()
     elapsed_time = perf_counter() - start_time
-
-    print(schedule)
     resource_occupations = {}
     for time_step, waypoint_dict in schedule.items():
         for agent_id, waypoint in waypoint_dict.items():
             resource = waypoint.position
             if resource is None:
                 continue
-            # TODO release time
+            # TODO SIM-443 global switch release time
             for tt in [time_step, time_step + 1]:
                 occupation = (resource, tt)
                 if occupation in resource_occupations:
@@ -163,7 +191,22 @@ def verify_trainrun_dict(env: RailEnv,
         solver_name="CkUaController")
 
 
-def _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule, targets):
+def _extract_agent_positions_from_selected_ckua_way(selected_way: List[AgentWayStep], cell_graph: CellGraph) -> AgentFLATlandPositions:
+    positions: AgentFLATlandPositions = {}
+    for agent_way_step in selected_way:
+        position = cell_graph.position_from_vertexid(agent_way_step.vertex_idx)
+        direction = agent_way_step.direction
+        departure_time = agent_way_step.departure_time
+        positions[departure_time] = Waypoint(position=position, direction=direction)
+    return positions
+
+
+def _extract_trainrun_dict_from_flatland_positions(
+        env: RailEnv,
+        initial_directions: Dict[int, int],
+        initial_positions: Dict[int, Tuple[int, int]],
+        schedule: FLATlandPositionsPerTimeStep,
+        targets: Dict[int, Tuple[int, int]]) -> TrainrunDict:
     trainrun_dict = {agent.handle: [] for agent in env.agents}
     for agent_id in trainrun_dict:
 
