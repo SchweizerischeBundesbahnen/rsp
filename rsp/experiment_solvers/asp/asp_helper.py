@@ -147,8 +147,10 @@ def _asp_helper(encoding_files: List[str],
     verbose
         prints a lot to debug
     """
-    verbose=True
-    debug=True
+    # TODO SIM-366
+    verbose = True
+    debug = True
+    print(f"no_optimize={no_optimize}")
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)

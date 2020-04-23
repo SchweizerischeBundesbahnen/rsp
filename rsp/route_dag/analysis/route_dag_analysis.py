@@ -36,15 +36,15 @@ FLATLAND_OFFSET_PATTERN = {
 
 def visualize_route_dag_constraints_simple_wrapper(
         schedule_problem_description: ScheduleProblemDescription,
-        trainrun_dict: TrainrunDict,
         experiment_malfunction: ExperimentMalfunction,
         agent_id: int,
+        trainrun_dict: Optional[TrainrunDict] = None,
         file_name: Optional[str] = None,
 ):
     visualize_route_dag_constraints_simple(
         topo=schedule_problem_description.topo_dict[agent_id],
         f=schedule_problem_description.route_dag_constraints_dict[agent_id],
-        train_run=trainrun_dict[agent_id],
+        train_run=trainrun_dict[agent_id] if trainrun_dict is not None else None,
         title=f"agent {agent_id}, malfunction={experiment_malfunction}",
         file_name=file_name
     )

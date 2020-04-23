@@ -11,9 +11,6 @@ from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.analysis_tools import plot_weg_zeit_diagramm_3d
-from rsp.utils.analysis_tools import save_weg_zeit_diagramm_2d
-from rsp.utils.analysis_tools import visualize_agent_density
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResultsAnalysis
@@ -25,9 +22,7 @@ from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 def visualize_experiment(experiment_parameters: ExperimentParameters,
                          experiment_results_analysis: ExperimentResultsAnalysis,
                          experiment_analysis_directory: str = None,
-                         analysis_2d: bool = False,
                          route_dag: bool = True,
-                         analysis_3d: bool = False,
                          flatland_rendering: bool = False,
                          convert_to_mpeg: bool = True):
     """Render the experiment the DAGs and the FLATland png/mpeg in the
@@ -151,20 +146,14 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
             )
 
     # Generate aggregated visualization
-    replay_and_verify_trainruns(data_folder=rendering_folder,
-                                experiment_id=experiment_results_analysis.experiment_id,
-                                expected_malfunction=experiment_results_analysis.malfunction,
-                                rendering=flatland_rendering,
-                                rail_env=malfunction_rail_env,
-                                trainruns=train_runs_full_after_malfunction,
-                                convert_to_mpeg=convert_to_mpeg)
-
-    if analysis_2d:
-        save_weg_zeit_diagramm_2d(experiment_data=experiment_results_analysis, output_folder=metric_folder)
-        visualize_agent_density(experiment_results_analysis, output_folder=metric_folder)
-
-    if analysis_3d:
-        plot_weg_zeit_diagramm_3d(experiment_results_analysis)
+    if flatland_rendering:
+        replay_and_verify_trainruns(data_folder=rendering_folder,
+                                    experiment_id=experiment_results_analysis.experiment_id,
+                                    expected_malfunction=experiment_results_analysis.malfunction,
+                                    rendering=flatland_rendering,
+                                    rail_env=malfunction_rail_env,
+                                    trainruns=train_runs_full_after_malfunction,
+                                    convert_to_mpeg=convert_to_mpeg)
 
 
 def _make_title(agent_id: str,

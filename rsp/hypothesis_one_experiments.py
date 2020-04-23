@@ -147,7 +147,6 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
         hypothesis_one_data_analysis(
             experiment_base_directory=experiment_base_folder_name,
             analysis_2d=True,
-            analysis_3d=False,
             qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
             asp_export_experiment_ids=asp_export_experiment_ids
         )

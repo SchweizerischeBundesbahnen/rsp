@@ -11,6 +11,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
@@ -123,6 +124,18 @@ class ASPExperimentSolver():
             weight_route_change=experiment_parameters.weight_route_change,
             weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
+
+        # TODO SIM-366
+        if False:
+            for agent_id in schedule_trainruns:
+                visualize_route_dag_constraints_simple_wrapper(
+                    schedule_problem_description=full_reschedule_problem,
+                    trainrun_dict=None,
+                    experiment_malfunction=malfunction,
+                    agent_id=agent_id,
+                    file_name=f"agent_{agent_id}.pdf",
+                )
+
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction_for_verification=malfunction,
             malfunction_env_reset=malfunction_env_reset,
