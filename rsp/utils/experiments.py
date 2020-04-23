@@ -326,7 +326,7 @@ def gen_schedule_and_malfunction(
     Returns
     -------
     """
-    # TODO SIM-443 pull switch out
+    # TODO SIM-443 pull out switch out
     SWITCH_CKUA = True
     if SWITCH_CKUA:
         tc_schedule_problem = schedule_problem_description_from_rail_env(

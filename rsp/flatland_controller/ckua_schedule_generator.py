@@ -57,19 +57,26 @@ def ckua_generate_schedule(  # noqa:C901
         max_steps = env._max_episode_steps
 
     schedule = {}
+
+    flatland_controller.controller(env, observation, info, env.get_num_agents())
+    for agent in env.agents:
+        selected_way = flatland_controller.dispatcher.controllers[agent.handle].selected_way
+        a = 5
+
     while steps < max_steps:
+        print(steps)
         if steps == 0:
             schedule[0] = {}
             for agent in env.agents:
                 schedule[steps][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
-            print(f"[{steps}] {schedule[steps]}")
+            # print(f"[{steps}] {schedule[steps]}")
 
         action = flatland_controller.controller(env, observation, info, env.get_num_agents())
 
         schedule[steps + 1] = {}
         for agent in env.agents:
             schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
-        print(f"[{steps + 1}] {schedule[steps + 1]}")
+        # print(f"[{steps + 1}] {schedule[steps + 1]}")
         observation, all_rewards, done, _ = env.step(action)
 
         if do_rendering or (do_rendering_first and steps == 0):
@@ -82,7 +89,7 @@ def ckua_generate_schedule(  # noqa:C901
             schedule[steps + 1] = {}
             for agent in env.agents:
                 schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
-            print(f"[{steps + 1}] {schedule[steps]}")
+            # print(f"[{steps + 1}] {schedule[steps]}")
             if not ((env._max_episode_steps is not None) and (
                     env._elapsed_steps >= env._max_episode_steps)):
                 break
@@ -117,7 +124,7 @@ def ckua_generate_schedule(  # noqa:C901
     trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule, targets)
     print(_pp.pformat(trainrun_dict))
     verify_trainrun_dict(env, random_seed, trainrun_dict)
-
+    print(f"elapsed = {elapsed_time}")
     return trainrun_dict, elapsed_time
 
 
@@ -200,7 +207,7 @@ def main():
     ckua_generate_schedule(
         env=dummy_rail_env(observation_builder=DummyObservationBuilder()),
         random_seed=94,
-        rendering=True
+        rendering=False
     )
 
 
@@ -209,4 +216,4 @@ if __name__ == '__main__':
 
 # TODO SIM-443 release time in FLATland for replay or set position in FLATland instead? --> check
 # TODO SIM-443 refactor ckua_schedule_generator.py and switch
-# TODO SIM-443: understand the scheduling heuristic better
+# TODO SIM-443: understand the scheduling heuristic better: do we need to step through or do agents have a full path from the beginning?
