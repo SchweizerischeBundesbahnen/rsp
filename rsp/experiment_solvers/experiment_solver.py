@@ -133,7 +133,7 @@ class ASPExperimentSolver():
                     trainrun_dict=None,
                     experiment_malfunction=malfunction,
                     agent_id=agent_id,
-                    file_name=f"agent_{agent_id}.pdf",
+                    file_name=f"rescheduling_neu_agent_{agent_id}.pdf",
                 )
 
         full_reschedule_result = asp_reschedule_wrapper(

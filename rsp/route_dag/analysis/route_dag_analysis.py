@@ -52,7 +52,7 @@ def visualize_route_dag_constraints_simple_wrapper(
 
 def visualize_route_dag_constraints_simple(
         topo: nx.DiGraph,
-        f: RouteDAGConstraints,
+        f: Optional[RouteDAGConstraints] = None,
         train_run: Optional[Trainrun] = None,
         file_name: Optional[str] = None,
         title: Optional[str] = None,
@@ -116,7 +116,7 @@ def visualize_route_dag_constraints_simple(
 
     plt_labels = {
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
-            f"{_get_label_for_constraint_for_waypoint(wp, f)}\n"
+            f"{_get_label_for_constraint_for_waypoint(wp, f) if f is not None else ''}\n"
             f"{str(schedule[wp]) if schedule and wp in schedule else ''}"
         for wp in
         all_waypoints}

@@ -11,6 +11,8 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.analysis.route_dag_cycle_analysis import _visualize_cycles_in_route_graph
+
 MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
 
 TopoDict = Dict[int, nx.DiGraph]
@@ -131,8 +133,12 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
         for wp1, wp2 in zip(path, path[1:]):
             topo.add_edge(wp1, wp2)
             topo_path.add_edge(wp1, wp2)
-            assert len(list(nx.simple_cycles(topo_path))) == 0, f"cycle in shortest path"
-    assert len(list(nx.simple_cycles(topo))) == 0, f"cycle in re-combination of shortest paths"
+        topo_path_cycles = list(nx.simple_cycles(topo_path))
+        assert len(topo_path_cycles) == 0, f"cycle in shortest path"
+    cycles = list(nx.simple_cycles(topo))
+    if len(cycles) > 0:
+        _visualize_cycles_in_route_graph(agent_paths, cycles, topo)
+    assert len(cycles) == 0, f"cycle in re-combination of shortest paths, {cycles}"
     return topo
 
 

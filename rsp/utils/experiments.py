@@ -50,6 +50,8 @@ from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -123,8 +125,9 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
     """
     schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
                                                       f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
+
     with open(schedule_and_malfunction_file_name, 'rb') as handle:
-        file_data: ExperimentAgenda = pickle.load(handle)
+        file_data: ScheduleAndMalfunction = pickle.load(handle)
         return file_data
 
 
@@ -170,6 +173,32 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)
         _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+
+        # TODO SIM-366
+        if False:
+            results_before: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
+                experiment_data_folder_name=experiment_base_directory + "/data",
+                experiment_ids=[experiment_parameters.experiment_id]
+            )[0]
+            problem_full_after_malfunction: ScheduleProblemDescription = results_before.problem_full_after_malfunction
+            for agent_id in problem_full_after_malfunction.route_dag_constraints_dict:
+                visualize_route_dag_constraints_simple_wrapper(
+                    schedule_problem_description=problem_full_after_malfunction.schedule_problem_description,
+                    trainrun_dict=None,
+                    experiment_malfunction=problem_full_after_malfunction.experiment_malfunction,
+                    agent_id=agent_id,
+                    file_name=f"reschedule_alt_agent_{agent_id}.pdf"
+                )
+
+            for agent_id in schedule_and_malfunction.schedule_experiment_result.trainruns_dict:
+                visualize_route_dag_constraints_simple_wrapper(
+                    schedule_problem_description=schedule_and_malfunction.schedule_problem_description,
+                    trainrun_dict=None,
+                    experiment_malfunction=schedule_and_malfunction.experiment_malfunction,
+                    agent_id=agent_id,
+                    file_name=f"schedule_alt_agent_{agent_id}.pdf"
+                )
+
     else:
         malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
             debug=debug,

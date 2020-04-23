@@ -41,7 +41,7 @@ This generates a folder `../rsp-data/many_agent_example/potassco`:
 ../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction_configuration.txt <-- from the run
 ../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction_result.txt
 ../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction_statistics.txt
-../rsp-data/many_agent_example/potassco/encoding/*.lp                                            <-- referenced in .sh above 
+../rsp-data/many_agent_example/potassco/encoding/*.lp                                            <-- referenced in .sh above
 
 ```
 
