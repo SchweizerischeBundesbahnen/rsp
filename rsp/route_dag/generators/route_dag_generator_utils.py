@@ -10,6 +10,8 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.utils.data_types import ExperimentMalfunction
 
@@ -208,20 +210,28 @@ def get_delayed_trainrun_waypoint_after_malfunction(
     return trainrun[-1]
 
 
-def verify_route_dag_constraints_for_agent(
+def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
         agent_id: int,
         route_dag_constraints: RouteDAGConstraints,
         topo: nx.DiGraph,
         force_freeze: Optional[List[TrainrunWaypoint]] = None,
         malfunction: Optional[ExperimentMalfunction] = None,
-        scheduled_trainrun: Optional[Trainrun] = None
 ):
     """Does the route_dag_constraints reflect the force freeze, route DAG and
-    malfunctions correctly?
+    malfunctions correctly? Are the constraints consistent?
+
+    0. assert all referenced waypoints are in topo
+    1. if waypoint is banned -> must not have earliest/latest/visit
+    2. if waypoint is not banned --> must have earliest and latest s.t. earliest <= latest
+    3. verify that force is implemented correctly
+    3.1 if trainrun_waypoint is in force_freeze -> assert that earliest == trainrun_waypoint.scheduled_at == latest
+    3.2 if trainrun_waypoint is in force_freeze -> assert that trainrun_waypoint.waypoint in freeze_visit
+    3.3 if trainrun_waypoint is in force_freeze -> assert that trainrun_waypoint.waypoint not in freeze_banned
+    4. verify that all points up to malfunction are forced to be visited
+    5. verify that every node in freeze_visit has predecessor and successor not banned
 
     Parameters
     ----------
-    scheduled_trainrun
     route_dag_constraints
         the experiment freeze to be verified.
     topo
@@ -230,17 +240,30 @@ def verify_route_dag_constraints_for_agent(
         the trainrun waypoints that must as given (consistency is not checked!)
     malfunction
         if it's the agent in malfunction, the experiment freeze should put a visit and earliest constraint
-    scheduled_trainrun
-        verify that this whole train run is part of the solution space.
-        With malfunctions, caller must ensure that only relevant part is passed to be verified!
 
     Returns
     -------
     """
 
     all_waypoints = topo.nodes
+    agent_sink = list(get_sinks_for_topo(topo))[0]
+    agent_source = list(get_sources_for_topo(topo))[0]
+
+    # 0. assert all referenced waypoints are in topo
+    for waypoint in route_dag_constraints.freeze_banned:
+        assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} banned, but not in topo"
+    for waypoint in route_dag_constraints.freeze_earliest:
+        assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} has earliest, but not in topo"
+    for waypoint in route_dag_constraints.freeze_latest:
+        assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} has latest, but not in topo"
+    for waypoint in route_dag_constraints.freeze_visit:
+        assert waypoint in all_waypoints
+    if force_freeze is not None:
+        for trainrun_waypoint in force_freeze:
+            assert trainrun_waypoint.waypoint in all_waypoints
+
     for waypoint in all_waypoints:
-        # if waypoint is banned -> must not earliest/latest/visit
+        # 1. if waypoint is banned -> must not have earliest/latest/visit
         if waypoint in route_dag_constraints.freeze_banned:
             assert waypoint not in route_dag_constraints.freeze_earliest, \
                 f"agent {agent_id}: {waypoint} banned, should have no earliest"
@@ -248,8 +271,10 @@ def verify_route_dag_constraints_for_agent(
                 f"agent {agent_id}: {waypoint} banned, should have no latest"
             assert waypoint not in route_dag_constraints.freeze_visit, \
                 f"agent {agent_id}: {waypoint} banned, should have no visit"
+            assert waypoint not in route_dag_constraints.freeze_visit, \
+                f"agent {agent_id}: {waypoint} banned, should have no visit"
         else:
-            # waypoint must have earliest and latest s.t. earliest <= latest
+            # 2. if waypoint is not banned --> must have earliest and latest s.t. earliest <= latest
             assert waypoint in route_dag_constraints.freeze_earliest, \
                 f"agent {agent_id} has no earliest for {waypoint}"
             assert waypoint in route_dag_constraints.freeze_latest, \
@@ -258,9 +283,10 @@ def verify_route_dag_constraints_for_agent(
                 f"agent {agent_id} at {waypoint}: earliest should be less or equal to latest, " + \
                 f"found {route_dag_constraints.freeze_earliest[waypoint]} <= {route_dag_constraints.freeze_latest[waypoint]}"
 
-    # verify that force is implemented correctly
+    # 3. verify that force is implemented correctly
     if force_freeze:
         for trainrun_waypoint in force_freeze:
+            # 3.1 if trainrun_waypoint is in force_freeze -> assert that earliest == trainrun_waypoint.scheduled_at == latest
             assert route_dag_constraints.freeze_latest[trainrun_waypoint.waypoint] == trainrun_waypoint.scheduled_at, \
                 f"agent {agent_id}: should have latest requirement " \
                 f"for {trainrun_waypoint.waypoint} at {trainrun_waypoint.scheduled_at} - " \
@@ -269,14 +295,16 @@ def verify_route_dag_constraints_for_agent(
                 f"agent {agent_id}: should have earliest requirement " \
                 f"for {trainrun_waypoint.waypoint} at {trainrun_waypoint.scheduled_at} - " \
                 f"found {route_dag_constraints.freeze_earliest[trainrun_waypoint.waypoint]}"
+            # 3.2 if trainrun_waypoint is in force_freeze -> assert that trainrun_waypoint.waypoint in freeze_visit
             assert trainrun_waypoint.waypoint in route_dag_constraints.freeze_visit, \
                 f"agent {agent_id}: should have visit requirement " \
                 f"for {trainrun_waypoint.waypoint}"
+            # 3.3 if trainrun_waypoint is in force_freeze -> assert that trainrun_waypoint.waypoint not in freeze_banned
             assert trainrun_waypoint.waypoint not in route_dag_constraints.freeze_banned, \
                 f"agent {agent_id}: should have no banned requirement " \
                 f"for {trainrun_waypoint.waypoint}"
 
-    # verify that all points up to malfunction are forced to be visited
+    # 4. verify that all points up to malfunction are forced to be visited
     if malfunction:
         for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
             # everything before malfunction must be the same
@@ -287,29 +315,58 @@ def verify_route_dag_constraints_for_agent(
                 assert earliest >= malfunction.time_step + malfunction.malfunction_duration, \
                     f"{agent_id} {malfunction}. found earliest={earliest} for {waypoint}"
 
-    # verify that scheduled train run is in the solution space
-    if scheduled_trainrun:
-        scheduled_dict = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                          for trainrun_waypoint in scheduled_trainrun}
-        for waypoint, scheduled_at in scheduled_dict.items():
-            assert waypoint not in route_dag_constraints.freeze_banned, \
-                f"agent {agent_id}: the known solution has " \
-                f"schedule {waypoint} at {scheduled_at} - " \
-                f"but banned constraint"
-            assert waypoint in route_dag_constraints.freeze_earliest, \
-                f"agent {agent_id}: the known solution has " \
-                f"schedule {waypoint} at {scheduled_at} - " \
-                f"but no earliest constraint"
-            assert scheduled_at >= route_dag_constraints.freeze_earliest[waypoint], \
-                f"agent {agent_id}: the known solution has " \
-                f"schedule {waypoint} at {scheduled_at} - " \
-                f"but found earliest {route_dag_constraints.freeze_latest[waypoint]}"
-            assert waypoint in route_dag_constraints.freeze_latest, \
-                f"agent {agent_id}: the known solution has " \
-                f"schedule {waypoint} at {scheduled_at} - " \
-                f"but no latest constraint"
-            assert scheduled_at <= route_dag_constraints.freeze_latest[waypoint], \
-                f"agent {agent_id}: the known solution has " \
-                f"schedule {waypoint} at {scheduled_at} - " \
-                f"but found latest {route_dag_constraints.freeze_latest[waypoint]}"
-            assert waypoint not in route_dag_constraints.freeze_banned
+    # 5. verify that every node in freeze_visit has predecessor and successor not banned
+    for waypoint in route_dag_constraints.freeze_visit:
+        if waypoint != agent_source:
+            done = False
+            for predecessor in topo.predecessors(waypoint):
+                if predecessor not in route_dag_constraints.freeze_banned:
+                    done = True
+            assert done, f"waypoint {waypoint} must be visited and not source, but no predecessor that is not banned"
+        done = False
+        if waypoint != agent_sink:
+            for successor in topo.successors(waypoint):
+                if successor not in route_dag_constraints.freeze_banned:
+                    done = True
+            assert done, f"waypoint {waypoint} must be visited, but no successor that is not banned"
+
+
+def verify_trainrun_satisfies_route_dag_constraints(agent_id, route_dag_constraints, scheduled_trainrun):
+    """Does the route_dag_constraints reflect the force freeze, route DAG and
+    malfunctions correctly?
+
+    Parameters
+    ----------
+    route_dag_constraints
+        the experiment freeze to be verified.
+    scheduled_trainrun
+        verify that this whole train run is part of the solution space.
+        With malfunctions, caller must ensure that only relevant part is passed to be verified!
+    """
+
+    scheduled_dict = {
+        trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+        for trainrun_waypoint in scheduled_trainrun
+    }
+    for waypoint, scheduled_at in scheduled_dict.items():
+        assert waypoint not in route_dag_constraints.freeze_banned, \
+            f"agent {agent_id}: the known solution has " \
+            f"schedule {waypoint} at {scheduled_at} - " \
+            f"but banned constraint"
+        assert waypoint in route_dag_constraints.freeze_earliest, \
+            f"agent {agent_id}: the known solution has " \
+            f"schedule {waypoint} at {scheduled_at} - " \
+            f"but no earliest constraint"
+        assert scheduled_at >= route_dag_constraints.freeze_earliest[waypoint], \
+            f"agent {agent_id}: the known solution has " \
+            f"schedule {waypoint} at {scheduled_at} - " \
+            f"but found earliest {route_dag_constraints.freeze_latest[waypoint]}"
+        assert waypoint in route_dag_constraints.freeze_latest, \
+            f"agent {agent_id}: the known solution has " \
+            f"schedule {waypoint} at {scheduled_at} - " \
+            f"but no latest constraint"
+        assert scheduled_at <= route_dag_constraints.freeze_latest[waypoint], \
+            f"agent {agent_id}: the known solution has " \
+            f"schedule {waypoint} at {scheduled_at} - " \
+            f"but found latest {route_dag_constraints.freeze_latest[waypoint]}"
+        assert waypoint not in route_dag_constraints.freeze_banned

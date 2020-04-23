@@ -13,7 +13,8 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.route_dag.generators.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
-from rsp.route_dag.generators.route_dag_generator_utils import verify_route_dag_constraints_for_agent
+from rsp.route_dag.generators.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
+from rsp.route_dag.generators.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import RouteSectionPenaltiesDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
@@ -77,12 +78,16 @@ def generic_schedule_problem_description_for_rescheduling(
     )
     # TODO SIM-324 pull out verification
     for agent_id in spd.route_dag_constraints_dict:
-        verify_route_dag_constraints_for_agent(
+        verify_consistency_of_route_dag_constraints_for_agent(
             agent_id=agent_id,
             topo=topo_dict[agent_id],
             route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
             force_freeze=force_freeze[agent_id],
             malfunction=malfunction if malfunction.agent_id == agent_id else None,
+        )
+        verify_trainrun_satisfies_route_dag_constraints(
+            agent_id=agent_id,
+            route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
             scheduled_trainrun=list(
                 filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
                        schedule_trainruns[agent_id]))
