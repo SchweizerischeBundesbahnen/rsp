@@ -470,7 +470,8 @@ def test_run_full_pipeline():
                                              asp_seed_value=[94, 94, 1],
                                              weight_route_change=[60, 60, 1],
                                              weight_lateness_seconds=[1, 1, 1], ),
-            speed_data={1: 1.0})
+            speed_data={1: 1.0}),
+        experiment_ids=[4]
     )
     # cleanup
     delete_experiment_folder(experiment_folder_name)

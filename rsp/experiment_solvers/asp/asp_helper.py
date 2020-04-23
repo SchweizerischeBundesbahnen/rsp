@@ -65,6 +65,7 @@ def flux_helper(
         asp_heuristics: List[ASPHeuristics] = None,
         asp_seed_value: int = 94,
         nb_threads: int = 2,
+        no_optimize: bool = False,
         verbose: bool = False,
         debug: bool = False
 ) -> FluxHelperResult:
@@ -73,16 +74,20 @@ def flux_helper(
     Parameters
     ----------
 
+
     asp_data
         data part
     asp_objective
         which asp objective should be applied if any
-    debug
-    verbose
+
     nb_threads
     asp_seed_value
     asp_heuristics
         which heuristics to apply?
+    no_optimize
+        do not optimize
+    debug
+    verbose
 
     Returns
     -------
@@ -103,7 +108,7 @@ def flux_helper(
                 continue
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
                 paths.append(heuristic_routes_path)
-    if asp_objective:
+    if asp_objective and not no_optimize:
         with path('res.asp.encodings', f'{asp_objective.value}.lp') as objetive_path:
             paths.append(objetive_path)
         if asp_objective in [ASPObjective.MINIMIZE_DELAY, ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED]:
@@ -116,7 +121,8 @@ def flux_helper(
         asp_seed_value=asp_seed_value,
         nb_threads=nb_threads,
         verbose=verbose,
-        debug=debug
+        debug=debug,
+        no_optimize=no_optimize
     )
 
     return flux_result
@@ -128,6 +134,7 @@ def _asp_helper(encoding_files: List[str],
                 verbose: bool = False,
                 debug: bool = False,
                 nb_threads: int = 2,
+                no_optimize: bool = False,
                 asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
 
@@ -147,10 +154,11 @@ def _asp_helper(encoding_files: List[str],
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")
-    ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
+    ctl_args = [f"-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:
-        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
+        ctl_args.append(f"--seed={asp_seed_value}")
+
     ctl = clingo.Control(ctl_args)
 
     # find optimal model; if not optimizing, find all models!
@@ -174,7 +182,7 @@ def _asp_helper(encoding_files: List[str],
     if verbose:
         print("Grounding took {}s".format(time.time() - grounding_start_time))
 
-    all_answers = _asp_loop(ctl, dl, verbose, debug)
+    all_answers = _asp_loop(ctl=ctl, dl=dl, no_optimize=no_optimize, verbose=verbose, debug=debug)
     statistics: Dict = ctl.statistics
 
     if verbose:
@@ -188,7 +196,21 @@ def _asp_helper(encoding_files: List[str],
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
-def _asp_loop(ctl, dl, verbose, debug):
+def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: bool = False):
+    """Loop over models coming from the ASP solve call until optimal one found
+    and return the first optimal.
+
+    Parameters
+    ----------
+    ctl
+    dl
+    no_optimize
+    verbose
+    debug
+
+    Returns
+    -------
+    """
     all_answers = []
     min_cost = np.inf
     with ctl.solve(yield_=True, on_statistics=dl.on_statistics) as handle:
@@ -211,15 +233,18 @@ def _asp_loop(ctl, dl, verbose, debug):
                 if debug:
                     print(v)
             all_answers.append(frozenset(sol))
+            if no_optimize:
+                break
     return all_answers
 
 
-def _print_stats(statistics):
-    print("=================================================================================")
-    print("= FULL STATISTICS                                                               =")
-    print("=================================================================================")
-    print(json.dumps(statistics, sort_keys=True, indent=4, separators=(',', ': ')))
-    print("")
+def _print_stats(statistics, print_full_statistics: bool = False):
+    if print_full_statistics:
+        print("=================================================================================")
+        print("= FULL STATISTICS                                                               =")
+        print("=================================================================================")
+        print(json.dumps(statistics, sort_keys=True, indent=4, separators=(',', ': ')))
+        print("")
     print("=================================================================================")
     print("= SUMMARY                                                                       =")
     print("=================================================================================")

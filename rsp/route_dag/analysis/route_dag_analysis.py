@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
 from rsp.logger import VERBOSE
 from rsp.route_dag.route_dag import RouteDagEdge
@@ -36,7 +36,7 @@ FLATLAND_OFFSET_PATTERN = {
 
 def visualize_route_dag_constraints_simple_wrapper(
         schedule_problem_description: ScheduleProblemDescription,
-        schedule_experiment_result: SchedulingExperimentResult,
+        trainrun_dict: TrainrunDict,
         experiment_malfunction: ExperimentMalfunction,
         agent_id: int,
         file_name: Optional[str] = None,
@@ -44,7 +44,7 @@ def visualize_route_dag_constraints_simple_wrapper(
     visualize_route_dag_constraints_simple(
         topo=schedule_problem_description.topo_dict[agent_id],
         f=schedule_problem_description.route_dag_constraints_dict[agent_id],
-        train_run=schedule_experiment_result.trainruns_dict[agent_id],
+        train_run=trainrun_dict[agent_id],
         title=f"agent {agent_id}, malfunction={experiment_malfunction}",
         file_name=file_name
     )
@@ -53,7 +53,7 @@ def visualize_route_dag_constraints_simple_wrapper(
 def visualize_route_dag_constraints_simple(
         topo: nx.DiGraph,
         f: RouteDAGConstraints,
-        train_run: Trainrun,
+        train_run: Optional[Trainrun] = None,
         file_name: Optional[str] = None,
         title: Optional[str] = None,
         scale: int = 4,
@@ -77,10 +77,12 @@ def visualize_route_dag_constraints_simple(
     # nx directed graph
     all_waypoints: List[Waypoint] = list(topo.nodes)
 
-    schedule = {
-        trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-        for trainrun_waypoint in train_run
-    }
+    schedule = None
+    if train_run:
+        schedule = {
+            trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+            for trainrun_waypoint in train_run
+        }
 
     # figsize
     flatland_positions = np.array([waypoint.position for waypoint in all_waypoints])
@@ -115,7 +117,7 @@ def visualize_route_dag_constraints_simple(
     plt_labels = {
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
             f"{_get_label_for_constraint_for_waypoint(wp, f)}\n"
-            f"{str(schedule[wp]) if wp in schedule else ''}"
+            f"{str(schedule[wp]) if schedule and wp in schedule else ''}"
         for wp in
         all_waypoints}
 

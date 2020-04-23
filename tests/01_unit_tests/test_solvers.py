@@ -133,7 +133,7 @@ def test_simple_rail_asp_two_agents_with_loop():
 
         ]]
 
-    _simple_rail_wo_agents_with_loop(ASPProblemDescription, [expected_action_plan, other_expected_action_plan])
+    _simple_rail_wo_agents_with_loop([expected_action_plan, other_expected_action_plan])
 
 
 def test_simple_rail_asp_two_agents_with_loop_multi_speed(rendering=True):
@@ -267,7 +267,7 @@ def _simple_rail_two_agents_without_loop(expected_action_plans):
     _verify(controller, env, expected_action_plans)
 
 
-def _simple_rail_wo_agents_with_loop(problem_description, expected_action_plans, ):
+def _simple_rail_wo_agents_with_loop(expected_action_plans, ):
     rail, rail_map = make_simple_rail()
     env = RailEnv(width=rail_map.shape[1],
                   height=rail_map.shape[0],
@@ -357,7 +357,7 @@ def _simple_rail_wo_agents_with_loop_multi_speed_alternative_routes(expected_act
 
 def _extract_controller_from_train_runs(env: RailEnv,
                                         k: int = 10) -> ControllerFromTrainruns:
-    problem = ASPProblemDescription.factory_scheduling(schedule_problem_description_from_rail_env(env=env, k=k))
+    problem = ASPProblemDescription.factory_scheduling(schedule_problem_description_from_rail_env(env=env, k=k), no_optimize=False)
 
     start_solver = time.time()
     solution = problem.solve()

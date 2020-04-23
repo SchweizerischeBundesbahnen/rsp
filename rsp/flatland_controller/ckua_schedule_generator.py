@@ -70,14 +70,16 @@ def ckua_generate_schedule(  # noqa:C901
         if steps == 0:
             schedule[0] = {}
             for agent in env.agents:
-                schedule[steps][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
+                schedule[steps][agent.handle] = Waypoint(position=agent.position,
+                                                         direction=agent.direction)  # , agent.speed_data['position_fraction'])
             print(f"[{steps}] {schedule[steps]}")
 
         action = flatland_controller.controller(env, observation, info, env.get_num_agents())
 
         schedule[steps + 1] = {}
         for agent in env.agents:
-            schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
+            schedule[steps + 1][agent.handle] = Waypoint(position=agent.position,
+                                                         direction=agent.direction)  # , agent.speed_data['position_fraction'])
         print(f"[{steps + 1}] {schedule[steps + 1]}")
         observation, all_rewards, done, _ = env.step(action)
 
@@ -90,7 +92,8 @@ def ckua_generate_schedule(  # noqa:C901
         if done['__all__']:
             schedule[steps + 1] = {}
             for agent in env.agents:
-                schedule[steps + 1][agent.handle] = Waypoint(position=agent.position, direction=agent.direction)  # , agent.speed_data['position_fraction'])
+                schedule[steps + 1][agent.handle] = Waypoint(position=agent.position,
+                                                             direction=agent.direction)  # , agent.speed_data['position_fraction'])
             print(f"[{steps + 1}] {schedule[steps]}")
             if not ((env._max_episode_steps is not None) and (
                     env._elapsed_steps >= env._max_episode_steps)):
@@ -123,14 +126,29 @@ def ckua_generate_schedule(  # noqa:C901
     initial_directions = {agent.handle: agent.initial_direction for agent in env.agents}
     targets = {agent.handle: agent.target for agent in env.agents}
 
-    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule, targets)
+    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule,
+                                                                   targets)
     print(_pp.pformat(trainrun_dict))
     verify_trainrun_dict(env, random_seed, trainrun_dict)
     print(f"elapsed = {elapsed_time}")
     return trainrun_dict, elapsed_time
 
 
-def verify_trainrun_dict(env, random_seed, trainrun_dict, rendering, show):
+def verify_trainrun_dict(env: RailEnv,
+                         random_seed: int,
+                         trainrun_dict: TrainrunDict,
+                         rendering: bool = False,
+                         show: bool = False):
+    """
+
+    Parameters
+    ----------
+    env
+    random_seed
+    trainrun_dict
+    rendering
+    show
+    """
     env.reset(random_seed=random_seed)
     controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
         trainrun_dict=trainrun_dict,
@@ -180,13 +198,15 @@ def _extract_trainrun_dict_from_flatland_positions(env, initial_directions, init
                         ),
                         scheduled_at=time_step + 1))
                 assert abs(curr_pos[0] - targets[agent_id][0]) + abs(
-                    curr_pos[1] - targets[agent_id][1]) == 1, f"agent {agent_id}: curr_pos={curr_pos} - target={targets[agent_id]}"
+                    curr_pos[1] - targets[agent_id][
+                        1]) == 1, f"agent {agent_id}: curr_pos={curr_pos} - target={targets[agent_id]}"
             curr_pos = next_waypoint.position
             curr_dir = next_waypoint.direction
     return trainrun_dict
 
 
-def dummy_rail_env(observation_builder: ObservationBuilder, number_of_agents: int = 100, random_seed: int = 14) -> RailEnv:
+def dummy_rail_env(observation_builder: ObservationBuilder, number_of_agents: int = 100,
+                   random_seed: int = 14) -> RailEnv:
     # Different agent types (trains) with different speeds.
     speed_ration_map = {1.: 0.5,  # Fast passenger train
                         1. / 2.: 0.3,  # Slow passenger train

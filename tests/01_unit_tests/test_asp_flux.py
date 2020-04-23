@@ -188,5 +188,5 @@ def test_minimize_delay_rescheduling():
         print(lates)
         dls = list(filter(lambda x: x.startswith("dl"), actual))
         print(dls)
-        assert expected.issubset(actual) or second_expected.issubset(actual), "actual {}, expected {} or {}".format(
-            actual, expected, second_expected)
+        assert expected.issubset(actual) or second_expected.issubset(actual), "actual {}, expected {} or {} (dls {})".format(
+            actual, expected, second_expected, dls)
