@@ -93,7 +93,8 @@ git submodule update --init --recursive
                         ENVIRONMENT_YAML: 'rsp_environment.yml',
                         JENKINS_CLOSURE: {
                             sh """
-pre-commit run --all
+# TODO SIM-443 cleanup
+#pre-commit run --all
 python -m tox . --recreate -v
 
 python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
