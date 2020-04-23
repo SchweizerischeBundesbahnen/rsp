@@ -1,3 +1,5 @@
+"""Export."""
+import argparse
 import os
 from shutil import copyfile
 from typing import Callable
@@ -34,7 +36,7 @@ def potassco_export(experiment_potassco_directory: str,
     export_reschedule_full_after_malfunction
     export_reschedule_delta_after_malfunction
     """
-
+    print(f"potassco export to {experiment_potassco_directory}")
     check_create_folder(experiment_potassco_directory)
 
     # filter
@@ -147,7 +149,8 @@ def _potassco_write_lp_and_sh_for_experiment(
                   f" {file_name_prefix}.lp "
                   f"--seed={results.solver_seed} "
                   f"-c use_decided=1 -t2 --lookahead=no "
-                  f"--opt-mode=opt 0\n"
+                  f"--opt-mode=opt "
+                  f"--models=0\n"
                   )
     with open(f"{experiment_potassco_directory}/{file_name_prefix}_statistics.txt", "w", newline='\n') as out:
         out.write(f"{results.solver_statistics}")
@@ -157,15 +160,41 @@ def _potassco_write_lp_and_sh_for_experiment(
         out.write(f"{results.solver_result}")
 
 
-def main(experiment_base_directory: str, experiments_of_interest: List[int]):
+def main(experiment_base_directory: str,
+         experiment_ids: List[int],
+         problem: str):
+    export_schedule_full: bool = False
+    export_reschedule_full_after_malfunction: bool = False
+    export_reschedule_delta_after_malfunction: bool = False
+    if problem == "full":
+        export_schedule_full = True
+    elif problem == 'full_after_malfunction':
+        export_reschedule_full_after_malfunction = True
+    elif problem == 'delta_after_malfunction':
+        export_reschedule_delta_after_malfunction = True
+    else:
+        raise ValueError(f"unkonwn problem={problem}")
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
     experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-        experiment_data_folder_name=experiment_data_directory, experiment_ids=experiments_of_interest)
+        experiment_data_folder_name=experiment_data_directory, experiment_ids=experiment_ids)
     potassco_export(
         experiment_potassco_directory=f'{experiment_base_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}',
-        experiment_results_list=experiment_results_list, asp_export_experiment_ids=experiments_of_interest)
+        experiment_results_list=experiment_results_list, asp_export_experiment_ids=experiment_ids,
+        export_schedule_full=export_schedule_full,
+        export_reschedule_full_after_malfunction=export_reschedule_full_after_malfunction,
+        export_reschedule_delta_after_malfunction=export_reschedule_delta_after_malfunction
+    )
 
 
 if __name__ == '__main__':
-    main(experiment_base_directory='./res/mini_toy_example/', experiments_of_interest=[2])
-    main(experiment_base_directory='./res/many_agents_example/', experiments_of_interest=[2])
+    # sample call:
+    # python rsp/asp_plausibility/potassco_export.py --experiment_base_directory=res/mini_toy_example --experiment_id=0 --problem=full_after_malfunction
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--experiment_base_directory', type=str, nargs=1, help='./res/mini_toy_example')
+    parser.add_argument('--experiment_id', type=int, nargs=1, help='0,1,2,3...')
+    parser.add_argument('--problem', type=str,
+                        choices=['full_after_malfunction', 'full', 'delta_after_malfunction'],
+                        help='which problem to check',
+                        nargs=1)
+    args = parser.parse_args()
+    main(experiment_base_directory=args.experiment_base_directory[0], experiment_ids=[args.experiment_id[0]], problem=args.problem[0])

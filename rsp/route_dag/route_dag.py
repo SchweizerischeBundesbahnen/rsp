@@ -18,7 +18,7 @@ AgentPaths = List[List[Waypoint]]
 AgentsPathsDict = Dict[int, AgentPaths]
 
 RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
-    ('freeze_visit', List[TrainrunWaypoint]),
+    ('freeze_visit', List[Waypoint]),
     ('freeze_earliest', Dict[Waypoint, int]),
     ('freeze_latest', Dict[Waypoint, int]),
     ('freeze_banned', List[Waypoint])

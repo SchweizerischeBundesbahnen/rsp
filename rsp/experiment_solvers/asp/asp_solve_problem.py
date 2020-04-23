@@ -54,6 +54,7 @@ def solve_problem(
     solution: ASPSolutionDescription = problem.solve()
     assert solution.is_solved()
 
+    solution.verify_correctness()
     trainruns_dict: TrainrunDict = solution.get_trainruns_dict()
 
     if debug:
