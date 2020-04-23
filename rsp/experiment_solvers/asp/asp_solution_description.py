@@ -185,7 +185,7 @@ class ASPSolutionDescription():
 
     def get_objective_value(self) -> float:
         costs_ = self.asp_solution.stats['summary']['costs']
-        return costs_[0] if len(costs_) == 1 else None
+        return costs_[0] if len(costs_) == 1 else -1
 
     def get_solve_time(self) -> float:
         """only solve time of the solver."""

@@ -74,16 +74,20 @@ def flux_helper(
     Parameters
     ----------
 
+
     asp_data
         data part
     asp_objective
         which asp objective should be applied if any
-    debug
-    verbose
+
     nb_threads
     asp_seed_value
     asp_heuristics
         which heuristics to apply?
+    no_optimize
+        do not optimize
+    debug
+    verbose
 
     Returns
     -------
@@ -178,7 +182,7 @@ def _asp_helper(encoding_files: List[str],
     if verbose:
         print("Grounding took {}s".format(time.time() - grounding_start_time))
 
-    all_answers = _asp_loop(ctl, dl, verbose, debug, no_optimize=no_optimize)
+    all_answers = _asp_loop(ctl=ctl, dl=dl, no_optimize=no_optimize, verbose=verbose, debug=debug)
     statistics: Dict = ctl.statistics
 
     if verbose:
@@ -192,7 +196,21 @@ def _asp_helper(encoding_files: List[str],
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
-def _asp_loop(ctl, dl, verbose, debug, no_optimize: bool = False):
+def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: bool = False):
+    """Loop over models coming from the ASP solve call until optimal one found
+    and return the first optimal.
+
+    Parameters
+    ----------
+    ctl
+    dl
+    no_optimize
+    verbose
+    debug
+
+    Returns
+    -------
+    """
     all_answers = []
     min_cost = np.inf
     with ctl.solve(yield_=True, on_statistics=dl.on_statistics) as handle:
