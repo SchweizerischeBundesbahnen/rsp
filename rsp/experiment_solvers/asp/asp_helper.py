@@ -147,6 +147,8 @@ def _asp_helper(encoding_files: List[str],
     verbose
         prints a lot to debug
     """
+    verbose=True
+    debug=True
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)

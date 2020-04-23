@@ -280,17 +280,4 @@ def asp_reschedule_wrapper(
         print("###reschedule")
         print(_pp.pformat(full_reschedule_result.trainruns_dict))
 
-    # TODO SIM-355 fix bug and improve logging in parallel mode
-    try:
-        malfunction_env_reset()
-        replay_and_verify_trainruns(rail_env=malfunction_rail_env_for_verification,
-                                    trainruns=asp_solution.get_trainruns_dict(),
-                                    rendering=rendering,
-                                    expected_malfunction=malfunction_for_verification
-                                    )
-    except AssertionError as e:
-        warnings.warn(str(e))
-    finally:
-        malfunction_env_reset()
-
     return full_reschedule_result
