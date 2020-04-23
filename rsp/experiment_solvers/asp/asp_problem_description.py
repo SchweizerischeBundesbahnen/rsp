@@ -48,7 +48,6 @@ class ASPProblemDescription():
             # TODO SIM-167 switch on heuristics
             asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
             asp_seed_value=asp_seed_value
-
         )
         asp_problem._build_asp_program(
             tc=tc,
@@ -59,7 +58,7 @@ class ASPProblemDescription():
     @staticmethod
     def factory_scheduling(
             tc: ScheduleProblemDescription,
-            asp_seed_value: Optional[int] = None,
+            asp_seed_value: Optional[int] = None
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,

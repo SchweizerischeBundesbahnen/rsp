@@ -194,7 +194,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
                          static_rail_env: RailEnv,
                          asp_seed_value: Optional[int] = None,
                          rendering: bool = False,
-                         debug: bool = False,
+                         debug: bool = False
                          ) -> SchedulingExperimentResult:
     """Solves the Full Scheduling Problem for static rail env (i.e. without
     malfunctions).

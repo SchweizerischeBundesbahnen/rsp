@@ -45,6 +45,7 @@ import tqdm as tqdm
 from flatland.envs.rail_env import RailEnv
 from pandas import DataFrame
 
+from rsp.experiment_solvers.asp.asp_helper import _print_stats
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.logger import rsp_logger
@@ -127,13 +128,14 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
         return file_data
 
 
-def run_experiment(solver: ASPExperimentSolver,
+def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
                    experiment_parameters: ExperimentParameters,
                    experiment_base_directory: str,
                    show_results_without_details: bool = True,
                    rendering: bool = False,
                    verbose: bool = False,
-                   debug: bool = False
+                   debug: bool = False,
+                   gen_only: bool = False,
                    ) -> ExperimentResults:
     """
     Run a single experiment with a given solver and ExperimentParameters
@@ -180,6 +182,24 @@ def run_experiment(solver: ASPExperimentSolver,
                 schedule_and_malfunction=schedule_and_malfunction,
                 experiment_agenda_directory=experiment_agenda_directory,
                 experiment_id=experiment_parameters.experiment_id)
+    if gen_only:
+        elapsed_time = (time.time() - start_time)
+        _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
+        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"]["total"]
+        print(("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%").format(
+            experiment_parameters.experiment_id,
+            elapsed_time, solver_time_full,
+            solver_time_full / elapsed_time * 100))
+        return ExperimentResults(
+            experiment_parameters=experiment_parameters,
+            malfunction=schedule_and_malfunction.experiment_malfunction,
+            problem_full=schedule_and_malfunction.schedule_problem_description,
+            problem_full_after_malfunction=None,
+            problem_delta_after_malfunction=None,
+            results_full=schedule_and_malfunction.schedule_experiment_result,
+            results_full_after_malfunction=None,
+            results_delta_after_malfunction=None
+        )
 
     if rendering:
         from flatland.utils.rendertools import RenderTool, AgentRenderVariant
@@ -213,33 +233,37 @@ def run_experiment(solver: ASPExperimentSolver,
     if rendering:
         from flatland.utils.rendertools import RenderTool, AgentRenderVariant
         env_renderer.close_window()
-    elapsed_time = (time.time() - start_time)
-    solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-    solver_time_full_after_malfunction = \
-        experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    solver_time_delta_after_malfunction = \
-        experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    elapsed_overhead_time = (
-            elapsed_time - solver_time_full -
-            solver_time_full_after_malfunction -
-            solver_time_delta_after_malfunction)
+
     if show_results_without_details:
-        print(("Running experiment {}: took {:5.3f}s "
-               "(sched: {:5.3f}s = {:5.2f}% / "
-               "resched: {:5.3f}s = {:5.2f}% / "
-               "resched-delta: {:5.3f}s = {:5.2f}% / "
-               "remaining: {:5.3f}s = {:5.2f}%)  in thread {}")
-              .format(experiment_parameters.experiment_id,
-                      elapsed_time,
-                      solver_time_full,
-                      solver_time_full / elapsed_time * 100,
-                      solver_time_full_after_malfunction,
-                      solver_time_full_after_malfunction / elapsed_time * 100,
-                      solver_time_delta_after_malfunction,
-                      solver_time_delta_after_malfunction / elapsed_time * 100,
-                      elapsed_overhead_time,
-                      elapsed_overhead_time / elapsed_time * 100,
-                      threading.get_ident()))
+        elapsed_time = (time.time() - start_time)
+        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
+        s = ("Running experiment {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
+            experiment_parameters.experiment_id,
+            elapsed_time,
+            solver_time_full,
+            solver_time_full / elapsed_time * 100,
+            elapsed_time - solver_time_full,
+            (elapsed_time - solver_time_full) / elapsed_time * 100
+        )
+        solver_time_full_after_malfunction = \
+            experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        solver_time_delta_after_malfunction = \
+            experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        s += "resched: {:5.3f}s = {:5.2f}% / resched-delta: {:5.3f}s = {:5.2f}% / ".format(
+            solver_time_full_after_malfunction,
+            solver_time_full_after_malfunction / elapsed_time * 100,
+            solver_time_delta_after_malfunction,
+            solver_time_delta_after_malfunction / elapsed_time * 100)
+        elapsed_overhead_time = (
+                elapsed_time - solver_time_full -
+                solver_time_full_after_malfunction -
+                solver_time_delta_after_malfunction)
+        s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
+            elapsed_overhead_time,
+            elapsed_overhead_time / elapsed_time * 100,
+            threading.get_ident())
+        print(s)
+
         virtual_memory_human_readable()
         current_process_stats_human_readable()
 
@@ -315,7 +339,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                 verbose: bool,
                                 show_results_without_details: bool,
                                 experiment_base_directory: str,
-                                rendering: bool = False):
+                                rendering: bool = False,
+                                gen_only: bool = False):
     """B. Run and save one experiment from experiment parameters.
     Parameters
     ----------
@@ -325,6 +350,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     show_results_without_details
     experiment_base_directory
     rendering
+    gen_only
     """
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
@@ -343,7 +369,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                                                rendering=rendering,
                                                                verbose=verbose,
                                                                experiment_base_directory=experiment_base_directory,
-                                                               show_results_without_details=show_results_without_details)
+                                                               show_results_without_details=show_results_without_details,
+                                                               gen_only=gen_only)
         save_experiment_results_to_file(experiment_results, filename)
         return experiment_results
     except Exception as e:
@@ -360,7 +387,9 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: int = AVAILABLE_CPUS,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
-                          verbose: bool = False) -> (str, str):
+                          verbose: bool = False,
+                          gen_only: bool = False
+                          ) -> (str, str):
     """Run B. a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
     Parameters
@@ -424,7 +453,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         solver=solver,
         verbose=verbose,
         show_results_without_details=show_results_without_details,
-        experiment_base_directory=experiment_base_directory
+        experiment_base_directory=experiment_base_directory,
+        gen_only=gen_only
     )
 
     for _ in tqdm.tqdm(

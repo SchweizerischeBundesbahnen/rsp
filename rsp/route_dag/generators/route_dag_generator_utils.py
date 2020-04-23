@@ -197,9 +197,13 @@ def get_delayed_trainrun_waypoint_after_malfunction(
     for trainrun_waypoint in trainrun:
         if trainrun_waypoint.scheduled_at > malfunction.time_step:
             if agent_id == malfunction.agent_id:
+                end_of_malfunction_time_step = malfunction.time_step + malfunction.malfunction_duration
+                elapsed_at_malfunction_start = malfunction.time_step - previous_scheduled
+                remaining_minimum_travel_time = max(minimum_travel_time - elapsed_at_malfunction_start, 0)
+                earliest = end_of_malfunction_time_step + remaining_minimum_travel_time
                 return TrainrunWaypoint(
                     waypoint=trainrun_waypoint.waypoint,
-                    scheduled_at=previous_scheduled + malfunction.malfunction_duration + minimum_travel_time)
+                    scheduled_at=earliest)
             else:
                 return trainrun_waypoint
         previous_scheduled = trainrun_waypoint.scheduled_at

@@ -147,10 +147,11 @@ def _asp_helper(encoding_files: List[str],
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")
-    ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
+    ctl_args = [f"-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:
-        ctl_args = [f"--seed={asp_seed_value}", "-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
+        ctl_args.append(f"--seed={asp_seed_value}")
+
     ctl = clingo.Control(ctl_args)
 
     # find optimal model; if not optimizing, find all models!
@@ -214,12 +215,13 @@ def _asp_loop(ctl, dl, verbose, debug):
     return all_answers
 
 
-def _print_stats(statistics):
-    print("=================================================================================")
-    print("= FULL STATISTICS                                                               =")
-    print("=================================================================================")
-    print(json.dumps(statistics, sort_keys=True, indent=4, separators=(',', ': ')))
-    print("")
+def _print_stats(statistics, print_full_statistics: bool = False):
+    if print_full_statistics:
+        print("=================================================================================")
+        print("= FULL STATISTICS                                                               =")
+        print("=================================================================================")
+        print(json.dumps(statistics, sort_keys=True, indent=4, separators=(',', ': ')))
+        print("")
     print("=================================================================================")
     print("= SUMMARY                                                                       =")
     print("=================================================================================")
