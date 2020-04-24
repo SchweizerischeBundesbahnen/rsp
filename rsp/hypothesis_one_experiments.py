@@ -10,6 +10,7 @@ from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import run_experiment_agenda
 
 
@@ -164,11 +165,13 @@ def hypothesis_one_main():
     )
 
 
-def hypothesis_one_rerun():
+def hypothesis_one_rerun(copy_agenda_from_base_directory: str):
+    experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
     hypothesis_one_pipeline_without_setup(
+        experiment_agenda=experiment_agenda,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
-        copy_agenda_from_base_directory="./res/many_agents_example",
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
         parallel_compute=1,
         experiment_ids=[0]
     )
@@ -186,4 +189,4 @@ def hypothesis_one_gen_schedule():
 
 
 if __name__ == '__main__':
-    hypothesis_one_main()
+    hypothesis_one_rerun("./res/many_agents_example")

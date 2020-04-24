@@ -129,6 +129,9 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     """
     topo = nx.DiGraph()
     for path in agent_paths:
+        if len(path) != len(set(path)):
+            print("skipping loopy path")
+            continue
         topo_path = nx.DiGraph()
         for wp1, wp2 in zip(path, path[1:]):
             topo.add_edge(wp1, wp2)

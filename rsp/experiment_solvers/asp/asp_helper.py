@@ -148,8 +148,6 @@ def _asp_helper(encoding_files: List[str],
         prints a lot to debug
     """
     # TODO SIM-366
-    verbose = True
-    debug = True
     print(f"no_optimize={no_optimize}")
 
     # Info Max Ostrovski 2019-11-20: die import dl Variante
