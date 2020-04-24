@@ -104,8 +104,7 @@ git submodule update --init --recursive
 
         # run pre-commit without pylint (we want to run pylint later with coverage)
         pre-commit install
-# TODO SIM-443 cleanup
-#        pre-commit run --all
+        pre-commit run --all
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
         """
@@ -131,50 +130,49 @@ python -m tox . --recreate -v
                 )
             }
         }
-        // TODO SIM-443 temporarily commented out because of certificate problem cloning submodule in OpenShift
-//        // build docker image on every commit with the commit hash as its version so it is unique (modulo re-building)
-//        stage("Build Docker Image") {
-//            when {
-//                allOf {
-//                    // if the build was triggered manually with deploy=true, skip image building
-//                    expression { !params.deploy }
-//                }
-//            }
-//            steps {
-//                script {
-//                    echo """cloud_buildDockerImage()"""
-//                    echo """GIT_COMMIT=${env.GIT_COMMIT}"""
-//                    cloud_buildDockerImage(
-//                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-//                            ocApp: env.BASE_IMAGE_NAME,
-//                            ocAppVersion: env.GIT_COMMIT,
-//                            // we must be able to access rsp_environment.yml from within docker root!
-//                            // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
-//                            dockerDir: '.',
-//                            dockerfilePath: 'docker/Dockerfile'
-//                    )
-//                }
-//            }
-//        }
-//        // if we're on master, tag the docker image with the new semantic version
-//        stage("Tag Docker Image if on master") {
-//            when {
-//                allOf {
-//                    expression { BRANCH_NAME == 'master' }
-//                    expression { !params.deploy }
-//                }
-//            }
-//            steps {
-//                script {
-//                    cloud_tagDockerImage(
-//                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-//                            ocApp: env.BASE_IMAGE_NAME,
-//                            tag: env.GIT_COMMIT,
-//                            targetTag: "latest"
-//                    )
-//                }
-//            }
-//        }
+        // build docker image on every commit with the commit hash as its version so it is unique (modulo re-building)
+        stage("Build Docker Image") {
+            when {
+                allOf {
+                    // if the build was triggered manually with deploy=true, skip image building
+                    expression { !params.deploy }
+                }
+            }
+            steps {
+                script {
+                    echo """cloud_buildDockerImage()"""
+                    echo """GIT_COMMIT=${env.GIT_COMMIT}"""
+                    cloud_buildDockerImage(
+                            artifactoryProject: env.ARTIFACTORY_PROJECT,
+                            ocApp: env.BASE_IMAGE_NAME,
+                            ocAppVersion: env.GIT_COMMIT,
+                            // we must be able to access rsp_environment.yml from within docker root!
+                            // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
+                            dockerDir: '.',
+                            dockerfilePath: 'docker/Dockerfile'
+                    )
+                }
+            }
+        }
+        // if we're on master, tag the docker image with the new semantic version
+        stage("Tag Docker Image if on master") {
+            when {
+                allOf {
+                    expression { BRANCH_NAME == 'master' }
+                    expression { !params.deploy }
+                }
+            }
+            steps {
+                script {
+                    cloud_tagDockerImage(
+                            artifactoryProject: env.ARTIFACTORY_PROJECT,
+                            ocApp: env.BASE_IMAGE_NAME,
+                            tag: env.GIT_COMMIT,
+                            targetTag: "latest"
+                    )
+                }
+            }
+        }
         stage("Run Jupyter Workspace") {
             when {
                 allOf {
