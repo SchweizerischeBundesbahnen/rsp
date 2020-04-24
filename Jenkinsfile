@@ -104,7 +104,8 @@ git submodule update --init --recursive
 
         # run pre-commit without pylint (we want to run pylint later with coverage)
         pre-commit install
-        pre-commit run --all --verbose
+        SKIP=docformatter pre-commit run --all --verbose
+
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
         """
