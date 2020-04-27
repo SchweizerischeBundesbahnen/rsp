@@ -156,9 +156,6 @@ def ckua_generate_schedule(  # noqa:C901
 
     trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule,
                                                                    targets)
-    print(_pp.pformat(trainrun_dict))
-    verify_trainrun_dict(env, random_seed, trainrun_dict)
-    print(f"elapsed = {elapsed_time}")
     return trainrun_dict, elapsed_time
 
 
@@ -181,7 +178,7 @@ def verify_trainrun_dict(env: RailEnv,
     controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
         trainrun_dict=trainrun_dict,
         env=env)
-    # TODO SIM-443 hard replay or implement release time in FLATland:
+    # TODO SIM-443 the replay doeshard replay or implement release time in FLATland:
     #     expected_flatland_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict), # noqa: E800
     replay(
         controller_from_train_runs=controller_from_train_runs,
@@ -285,7 +282,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# TODO SIM-443 release time in FLATland for replay or set position in FLATland instead? --> check
-# TODO SIM-443 refactor ckua_schedule_generator.py and switch
-# TODO SIM-443: understand the scheduling heuristic better: do we need to step through or do agents have a full path from the beginning?
