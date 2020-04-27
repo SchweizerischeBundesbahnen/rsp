@@ -161,8 +161,7 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     start_time = time.time()
 
     if show_results_without_details:
-        print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
-        _pp.pprint(experiment_parameters)
+        rsp_logger.info("*** experiment parameters for experiment {}\n {}".format(experiment_parameters.experiment_id, _pp.pformat(experiment_parameters)))
 
     # A.2: load or re-generate?
     # we want to be able to reuse the same schedule and malfunction to be able to compare
@@ -267,27 +266,21 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
 
     if show_results_without_details:
         elapsed_time = (time.time() - start_time)
-        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
-        s = ("Running experiment {}: took {:5.3f}s ({}--{}) (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
+        s = ("Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta:  {} / ").format(
             experiment_parameters.experiment_id,
             elapsed_time,
             start_datetime_str,
             end_datetime_str,
-            solver_time_full,
-            solver_time_full / elapsed_time * 100,
-            elapsed_time - solver_time_full,
-            (elapsed_time - solver_time_full) / elapsed_time * 100
+            _get_details_string(elapsed_time=elapsed_time, statistics=experiment_results.results_full.solver_statistics),
+            _get_details_string(elapsed_time=elapsed_time, statistics=experiment_results.results_full_after_malfunction.solver_statistics),
+            _get_details_string(elapsed_time=elapsed_time, statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
         )
+        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         solver_time_full_after_malfunction = \
             experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
         solver_time_delta_after_malfunction = \
             experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        s += "resched: {:5.3f}s = {:5.2f}% / resched-delta: {:5.3f}s = {:5.2f}% / ".format(
-            solver_time_full_after_malfunction,
-            solver_time_full_after_malfunction / elapsed_time * 100,
-            solver_time_delta_after_malfunction,
-            solver_time_delta_after_malfunction / elapsed_time * 100)
         elapsed_overhead_time = (
                 elapsed_time - solver_time_full -
                 solver_time_full_after_malfunction -
@@ -304,6 +297,17 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     # TODO SIM-324 pull out validation steps
     plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
+
+
+def _get_details_string(elapsed_time, statistics):
+    return "{:5.3f}s = {:5.2f}%  ({:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s)".format(
+        statistics["summary"]["times"]["total"],
+        statistics["summary"]["times"]["total"] / elapsed_time * 100,
+        statistics["summary"]["times"]["total"],
+        statistics["summary"]["times"]["solve"],
+        statistics["summary"]["times"]["sat"],
+        statistics["summary"]["times"]["unsat"],
+    )
 
 
 def create_schedule_and_malfunction(
@@ -363,7 +367,7 @@ def _write_sha_txt(folder_name: str):
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha
     out_file = os.path.join(folder_name, 'sha.txt')
-    print(f"writing {sha} to {out_file}")
+    rsp_logger.info(f"writing {sha} to {out_file}")
     with open(out_file, 'w') as out:
         out.write(sha)
 
@@ -480,7 +484,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     # N.B. even with parallelization degree 1, we want to run each experiment in a new process
     #      in order to get around https://github.com/potassco/clingo/issues/203
     pool = multiprocessing.Pool(processes=run_experiments_parallel, maxtasksperchild=1)
-    print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
+    rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     run_and_save_one_experiment_partial = partial(
