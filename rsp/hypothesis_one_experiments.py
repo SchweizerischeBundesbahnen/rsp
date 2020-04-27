@@ -172,8 +172,7 @@ def hypothesis_one_rerun(copy_agenda_from_base_directory: str):
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        parallel_compute=1,
-        experiment_ids=[0]
+        parallel_compute=1
     )
 
 

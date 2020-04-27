@@ -44,6 +44,8 @@ class ASPExperimentSolver():
 
         Experiment Setup
         """
+        # TODO SIM-366
+        print("gen_schedule_and_malfunction")
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
             k=experiment_parameters.number_of_shortest_paths_per_agent
@@ -111,6 +113,8 @@ class ASPExperimentSolver():
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
+        # TODO SIM-366
+        print("2. reschedule full")
         full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
             malfunction=malfunction,
             schedule_trainruns=schedule_trainruns,
@@ -155,6 +159,8 @@ class ASPExperimentSolver():
         # --------------------------------------------------------------------------------------
         # 3. Re-Schedule Delta
         # --------------------------------------------------------------------------------------
+        # TODO SIM-366
+        print("3. reschedule full")
         delta_reschedule_problem = perfect_oracle(
             full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
             malfunction=malfunction,
@@ -226,7 +232,8 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     SchedulingExperimentResult
         the problem description and the results
     """
-
+    # TODO SIM-366
+    print("schedule_wrapper")
     # --------------------------------------------------------------------------------------
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
@@ -268,7 +275,8 @@ def asp_reschedule_wrapper(
     -------
     SchedulingExperimentResult
     """
-
+    # TODO SIM-366
+    print("reschedule_wrapper")
     # --------------------------------------------------------------------------------------
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------

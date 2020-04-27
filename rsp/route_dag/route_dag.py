@@ -129,7 +129,8 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     """
     topo = nx.DiGraph()
     for path in agent_paths:
-        if len(path) != len(set(path)):
+        cells = [wp.position for wp in path]
+        if len(path) != len(set(cells)):
             print("skipping loopy path")
             continue
         topo_path = nx.DiGraph()
