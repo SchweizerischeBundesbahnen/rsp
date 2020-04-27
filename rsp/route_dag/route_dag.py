@@ -116,7 +116,8 @@ def get_sources_for_topo(topo: nx.DiGraph) -> Iterator[Waypoint]:
 
 
 def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
-    """Extract  the agent's topology.
+    """Extract  the agent's topology. Skip agent paths that make the graph
+    acyclic. Every single path is acyclic by construction.
 
     Parameters
     ----------
@@ -127,22 +128,31 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     nx.DiGraph
         topology
     """
+
+    # TODO SIM-366 cleanup
     topo = nx.DiGraph()
     for path in agent_paths:
-        cells = [wp.position for wp in path]
-        if len(path) != len(set(cells)):
-            print("skipping loopy path")
-            continue
         topo_path = nx.DiGraph()
+
+        # tentatively add edges only to copy
+        topo_copy = topo.copy()
         for wp1, wp2 in zip(path, path[1:]):
-            topo.add_edge(wp1, wp2)
+            topo_copy.add_edge(wp1, wp2)
             topo_path.add_edge(wp1, wp2)
         topo_path_cycles = list(nx.simple_cycles(topo_path))
         assert len(topo_path_cycles) == 0, f"cycle in shortest path"
+
+        # if the copy has no cycles, take the copy.
+        cycles = list(nx.simple_cycles(topo_copy))
+        if len(cycles) == 0:
+            topo = topo_copy
+
     cycles = list(nx.simple_cycles(topo))
+
     if len(cycles) > 0:
         _visualize_cycles_in_route_graph(agent_paths, cycles, topo)
     assert len(cycles) == 0, f"cycle in re-combination of shortest paths, {cycles}"
+    assert len(get_paths_in_route_dag(topo)) > 0, "no path after removing loopy paths"
     return topo
 
 

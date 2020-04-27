@@ -126,7 +126,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
                                           asp_export_experiment_ids: Optional[List[int]] = None,
                                           copy_agenda_from_base_directory: Optional[str] = None,
                                           run_analysis: bool = True,
-                                          parallel_compute: bool = True,
+                                          parallel_compute: int = AVAILABLE_CPUS,
                                           gen_only: bool = False
                                           ):
     """Run pipeline from A.2 -> C."""
@@ -165,14 +165,26 @@ def hypothesis_one_main():
     )
 
 
-def hypothesis_one_rerun(copy_agenda_from_base_directory: str):
+def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory: str):
     experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        parallel_compute=1
+        parallel_compute=1,
+        experiment_ids=list(range(10))
+    )
+
+
+def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: str):
+    experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
+    hypothesis_one_pipeline_without_setup(
+        experiment_agenda=experiment_agenda,
+        qualitative_analysis_experiment_ids=[],
+        asp_export_experiment_ids=[],
+        parallel_compute=1,
+        experiment_ids=list(range(10))
     )
 
 
@@ -188,4 +200,4 @@ def hypothesis_one_gen_schedule():
 
 
 if __name__ == '__main__':
-    hypothesis_one_rerun("./res/many_agents_example")
+    hypothesis_one_rerun_without_regen_schedule("./res/many_agents_example")

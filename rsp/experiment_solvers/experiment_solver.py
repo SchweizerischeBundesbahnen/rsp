@@ -5,6 +5,7 @@ from typing import Optional
 
 from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
@@ -15,6 +16,7 @@ from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constr
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.route_dag import apply_weight_route_change
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
@@ -110,18 +112,38 @@ class ASPExperimentSolver():
 
         schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
+        # / try to re-use schedule and malfunction, but try to reduce the topology so it has no cycles.
+        # For the time being, we want to re-use our schedules because generating them takes too long currently.
+        # TODO SIM-366
+        agents_paths_dict = {
+            # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
+            i: get_k_shortest_paths(malfunction_rail_env,
+                                    agent.initial_position,
+                                    agent.initial_direction,
+                                    agent.target,
+                                    experiment_parameters.number_of_shortest_paths_per_agent) for i, agent in enumerate(malfunction_rail_env.agents)
+        }
+
+        dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
+        for agent_id, schedule in schedule_trainruns.items():
+            for tr_wp in schedule:
+                assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed"
+        print("all scheduled waypoints still in ")
+        # \
+
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
         # TODO SIM-366
         print("2. reschedule full")
+        reduced_topo_dict = tc_schedule_problem.topo_dict
         full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
             malfunction=malfunction,
             schedule_trainruns=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
             latest_arrival=malfunction_rail_env._max_episode_steps,
             max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-            topo_dict=tc_schedule_problem.topo_dict
+            topo_dict=reduced_topo_dict
         )
         full_reschedule_problem = apply_weight_route_change(
             schedule_problem=full_reschedule_problem,
@@ -165,7 +187,7 @@ class ASPExperimentSolver():
             full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
             malfunction=malfunction,
             max_episode_steps=tc_schedule_problem.max_episode_steps,
-            schedule_topo_dict=tc_schedule_problem.topo_dict,
+            schedule_topo_dict=reduced_topo_dict,
             schedule_trainrun_dict=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
             max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
