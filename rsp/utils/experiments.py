@@ -167,9 +167,11 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     # we want to be able to reuse the same schedule and malfunction to be able to compare
     # identical re-scheduling problems between runs and to debug them
     # if the data already exists, load it and do not re-generate it
-    if experiment_agenda_directory is not None and exists_schedule_and_malfunction(
-            experiment_agenda_directory=experiment_agenda_directory,
-            experiment_id=experiment_parameters.experiment_id):
+    if experiment_agenda_directory is not None:
+        if not exists_schedule_and_malfunction(
+                experiment_agenda_directory=experiment_agenda_directory,
+                experiment_id=experiment_parameters.experiment_id):
+            raise ValueError(f"no schedule_and_malfunction found for {experiment_parameters.experiment_id} in {experiment_agenda_directory} --> skipping.")
         schedule_and_malfunction = load_schedule_and_malfunction(
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)
