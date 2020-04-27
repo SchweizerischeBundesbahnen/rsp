@@ -178,7 +178,7 @@ def _verify_trainruns_2_mutual_exclusion(trainruns_dict):
         positions = {trainrun_waypoint.waypoint.position for trainrun_waypoint in
                      agent_positions_per_time_step[time_step].values()}
         assert len(positions) == len(agent_positions_per_time_step[time_step]), \
-            f"at {time_step}, conflicting positions: {agent_positions_per_time_step[time_step]}"
+            f"at {time_step}, conflicting positions: \n {agent_positions_per_time_step[time_step]} \n {positions}"
 
 
 def _verify_trainruns_1_path_consistency(env, trainruns_dict):

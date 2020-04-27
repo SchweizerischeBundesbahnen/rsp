@@ -18,6 +18,7 @@ from flatland.envs.schedule_generators import sparse_schedule_generator
 from libs.cell_graph import CellGraph
 from libs.cell_graph_agent import AgentWayStep
 
+from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
@@ -70,26 +71,56 @@ def ckua_generate_schedule(  # noqa:C901
 
     # TODO SIM-443 extract without stepping
     if False:
-        flatland_controller.controller(env, observation, info, env.get_num_agents())
+        print("(A) without FLATland interaction")
+        start_time = perf_counter()
+        flatland_controller.setup(env)
 
-        # gather all positions for all agents
-        positions = {
-            agent.handle: _extract_agent_positions_from_selected_ckua_way(
-                selected_way=flatland_controller.dispatcher.controllers[agent.handle].selected_way,
-                cell_graph=flatland_controller.dispatcher.graph)
-            for agent in env.agents
-        }
+        # flatland_controller.controller(env, observation, info, env.get_num_agents())
+        while steps < max_steps:
+            # print(steps)
+            # TODO SIM-443 call only those agent controllers that need to be called
+            flatland_controller.dispatcher.step(steps)
+            for agent in env.agents:
+                if len(flatland_controller.dispatcher.controllers[agent.handle].selected_way) == 0:
+                    flatland_controller.dispatcher.controllers[agent.handle].act(agent, steps)
+
+            has_selected_way = [len(flatland_controller.dispatcher.controllers[agent.handle].selected_way) > 0 for agent in env.agents]
+            if np.alltrue(has_selected_way):
+                break
+            print(f"{steps} done {sum(has_selected_way)}/{len(env.agents)}")
+            steps += 1
+        print(f"done after {steps}")
+
+        # selected_ways = {agent.handle: flatland_controller.dispatcher.controllers[agent.handle].selected_way for agent in env.agents}
+        #
+        # # gather all positions for all agents
+        # positions = {
+        #     agent.handle: _extract_agent_positions_from_selected_ckua_way(
+        #         selected_way=flatland_controller.dispatcher.controllers[agent.handle].selected_way,
+        #         cell_graph=flatland_controller.dispatcher.graph)
+        #     for agent in env.agents
+        # }
 
         # change columns: first indexed by time_step and then by agent_id
-        max_steps = max([max(list(positions[agent.handle].keys())) for agent in env.agents])
-        schedule = {i: {agent.handle: {}
-                        for agent in env.agents}
-                    for i in range(max_steps + 1)}
-        for agent_id, positions in positions.items():
-            for time_step, waypoint in positions:
-                schedule[time_step][agent_id] = waypoint
+        # time_steps = [list(positions[agent.handle].keys()) for agent in env.agents]
+        # maxes = [max(list(positions[agent.handle].keys())) for agent in env.agents]
+        # max_steps = max(maxes)
+        # schedule = {i: {agent.handle: {}
+        #                 for agent in env.agents}
+        #             for i in range(max_steps + 1)}
+        # for agent_id, positions in positions.items():
+        #     for time_step, waypoint in positions:
+        #         schedule[time_step][agent_id] = waypoint
 
+        print(f"took {perf_counter() - start_time:5.2f}")
+    print("(B) with FLATland interaction")
+    start_time = perf_counter()
+    env.reset(False, False, False, random_seed=random_seed)
+    steps = 0
+    flatland_controller = CkUaController()
+    flatland_controller.setup(env)
     while steps < max_steps:
+        # print(steps)
         if steps == 0:
             schedule[0] = {}
             for agent in env.agents:
@@ -116,9 +147,11 @@ def ckua_generate_schedule(  # noqa:C901
             # Environment step which returns the observations for all agents, their corresponding
             # reward and whether their are done
             env_renderer.render_env(show=show, show_observations=False, show_predictions=False)
-
+        has_selected_way = [len(flatland_controller.dispatcher.controllers[agent.handle].selected_way) > 0 for agent in env.agents]
+        # print(f"{steps} done {sum(has_selected_way)}/{len(env.agents)}")
         steps += 1
         if done['__all__']:
+            print(f"done after {steps}")
             schedule[steps + 1] = {}
             for agent in env.agents:
                 schedule[steps + 1][agent.handle] = Waypoint(position=agent.position,
@@ -128,7 +161,9 @@ def ckua_generate_schedule(  # noqa:C901
             if not ((env._max_episode_steps is not None) and (
                     env._elapsed_steps >= env._max_episode_steps)):
                 break
-
+    print(f"took {perf_counter() - start_time:5.2f}")
+    has_selected_way = [len(flatland_controller.dispatcher.controllers[agent.handle].selected_way) > 0 for agent in env.agents]
+    assert np.alltrue(has_selected_way)
     if do_rendering_final:
         # Environment step which returns the observations for all agents, their corresponding
         # reward and whether their are done
@@ -156,14 +191,18 @@ def ckua_generate_schedule(  # noqa:C901
 
     trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule,
                                                                    targets)
+    # TODO why does this not work?
+    if False:
+        verify_trainruns_dict(env=env, trainrun_dict=trainrun_dict)
+    print("verification done")
     return trainrun_dict, elapsed_time
 
 
-def verify_trainrun_dict(env: RailEnv,
-                         random_seed: int,
-                         trainrun_dict: TrainrunDict,
-                         rendering: bool = False,
-                         show: bool = False):
+def verify_trainrun_dict_ckua(env: RailEnv,
+                              random_seed: int,
+                              trainrun_dict: TrainrunDict,
+                              rendering: bool = False,
+                              show: bool = False):
     """
 
     Parameters
