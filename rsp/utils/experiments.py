@@ -155,9 +155,11 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     check_create_folder(experiment_agenda_directory)
 
+    start_datetime_str = datetime.now().strftime("%H:%M:%S")
     if show_results_without_details:
-        print("Running experiment {} under pid {}".format(experiment_parameters.experiment_id, os.getpid()))
+        print("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(), start_datetime_str))
     start_time = time.time()
+
     if show_results_without_details:
         print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
         _pp.pprint(experiment_parameters)
@@ -266,9 +268,12 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if show_results_without_details:
         elapsed_time = (time.time() - start_time)
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-        s = ("Running experiment {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
+        end_datetime_str = datetime.now().strftime("%H:%M:%S")
+        s = ("Running experiment: took {:5.3f}s ({}--{}) (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
             experiment_parameters.experiment_id,
             elapsed_time,
+            start_datetime_str,
+            end_datetime_str,
             solver_time_full,
             solver_time_full / elapsed_time * 100,
             elapsed_time - solver_time_full,
@@ -403,7 +408,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         save_experiment_results_to_file(experiment_results, filename)
         return experiment_results
     except Exception as e:
-        print("XXX failed " + filename + " " + str(e))
+        end_datetime_str = datetime.now().strftime("%H:%M:%S")
+        print("XXX failed (" + end_datetime_str + ") " + filename + " " + str(e))
         traceback.print_exc(file=sys.stdout)
     finally:
         # remove tees

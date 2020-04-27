@@ -131,6 +131,7 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
 
     # TODO SIM-366 cleanup
     topo = nx.DiGraph()
+    skip_count = 0
     for path in agent_paths:
         topo_path = nx.DiGraph()
 
@@ -146,6 +147,10 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
         cycles = list(nx.simple_cycles(topo_copy))
         if len(cycles) == 0:
             topo = topo_copy
+        else:
+            skip_count+=1
+    if skip_count > 0:
+        print("skipped "+ skip_count + " paths of " + len(agent_paths))
 
     cycles = list(nx.simple_cycles(topo))
 
