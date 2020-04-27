@@ -269,7 +269,7 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
         elapsed_time = (time.time() - start_time)
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
-        s = ("Running experiment: took {:5.3f}s ({}--{}) (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
+        s = ("Running experiment {}: took {:5.3f}s ({}--{}) (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
             experiment_parameters.experiment_id,
             elapsed_time,
             start_datetime_str,
