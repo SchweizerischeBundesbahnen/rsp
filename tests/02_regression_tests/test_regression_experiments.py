@@ -24,6 +24,7 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import gen_schedule_and_malfunction
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import run_experiment
@@ -508,18 +509,21 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
-        schedule_and_malfunction_scaled: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+        schedule_and_malfunction_scaled: ScheduleAndMalfunction = gen_schedule_and_malfunction(
             static_rail_env=static_rail_env,
             malfunction_rail_env=malfunction_rail_env,
             malfunction_env_reset=malfunction_env_reset,
-            experiment_parameters=experiment_parameters_scaled
+            experiment_parameters=experiment_parameters_scaled,
+            solver=solver
         )
-        schedule_and_malfunction: ScheduleAndMalfunction = solver.gen_schedule_and_malfunction(
+        schedule_and_malfunction: ScheduleAndMalfunction = gen_schedule_and_malfunction(
             static_rail_env=static_rail_env,
             malfunction_rail_env=malfunction_rail_env,
             malfunction_env_reset=malfunction_env_reset,
-            experiment_parameters=experiment_parameters
+            experiment_parameters=experiment_parameters,
+            solver=solver
         )
+
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction_scaled,
                                       experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
                                       experiment_id=0

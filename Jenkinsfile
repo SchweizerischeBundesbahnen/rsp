@@ -72,6 +72,47 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
         }
+        stage('init git submodules') {
+            steps {
+                script {
+                    sh """
+git submodule update --init --recursive
+"""
+                }
+            }
+        }
+                stage('pre-commit and pydeps') {
+                    when {
+                        allOf {
+                            // if the build was triggered manually with deploy=true, skip testing
+                            expression { !params.deploy }
+                        }
+                    }
+                    steps {
+                        tox_conda_wrapper(
+                                ENVIRONMENT_YAML: 'rsp_environment.yml',
+                                JENKINS_CLOSURE: {
+                                    sh """
+
+        # set up shell for conda
+        conda init bash
+        source ~/.bashrc
+
+        # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
+        conda env create --file rsp_environment.yml --force
+        conda activate rsp
+
+        # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
+        pre-commit install
+        SKIP=docformatter pre-commit run --all --verbose
+
+        python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+        python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
+        """
+                                }
+                        )
+                    }
+                }
         stage('test') {
             when {
                 allOf {
@@ -178,6 +219,10 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 GIT_COMMIT
             } --data '{ "state": "success", "target_url": "'${BUILD_URL}'", "description": "The build has succeeded!", "context": "continuous-integration/jenkins" }'
 """
+        }
+        always {
+            archiveArtifacts artifacts: 'rsp_*.png', onlyIfSuccessful: true, allowEmptyArchive: true
+            cleanWs()
         }
     }
 }
