@@ -191,12 +191,18 @@ def _asp_helper(encoding_files: List[str],
         _print_stats(statistics)
 
     # SIM-429 assert that our models are tight (sccs==0)
-    assert statistics["problem"]["lp"]["sccs"] == 0, f'not tight statistics["problem"]["lp"]["sccs"]={statistics["problem"]["lp"]["sccs"]}'
+    assert statistics["problem"]["lp"][
+               "sccs"] == 0, f'not tight statistics["problem"]["lp"]["sccs"]={statistics["problem"]["lp"]["sccs"]}'
 
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
-def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: bool = False, timeout: int = 20 * 60):  # noqa: C901
+def _asp_loop(ctl: clingo.Control,  # noqa: C901
+              dl: theory.Theory,
+              no_optimize: bool = False,
+              verbose: bool = False,
+              debug: bool = False,
+              timeout: int = 20 * 60):
     """Loop over models coming from the ASP solve call until optimal one found
     and return the first optimal.
 
@@ -207,6 +213,8 @@ def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: 
     no_optimize
     verbose
     debug
+    timeout
+        interrupt the solver after this time. Solving only, does not cover grounding.
 
     Returns
     -------
@@ -216,7 +224,7 @@ def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: 
     timer = None
 
     def on_model(model):
-        nonlocal all_answers, min_cost, timer, timeout, ctl
+        nonlocal all_answers, min_cost, timer
         if len(model.cost) > 0:
             cost = model.cost[0]
             if cost < min_cost:
@@ -236,19 +244,25 @@ def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: 
                 print(v)
         all_answers.append(frozenset(sol))
         timer.cancel()
-        timer = Timer(interval=timeout, function=ctl.interrupt)
+        timer = Timer(interval=timer.interval, function=timer.interrupt)
         timer.start()
         if no_optimize:
             return False
 
     interrupted = False
+
+    def interrupt():
+        nonlocal ctl, interrupted
+        interrupted = True
+        ctl.interrupt()
+
     with ctl.solve(async_=True, on_statistics=dl.on_statistics, on_model=on_model) as handle:
         # the timeout given to handle.wait() seems not to work with clingo-dl -> use timer instead
         # TODO check with Potsdam why handle.wait() does not work as expected: https://potassco.org/clingo/python-api/5.4/
-        timer = Timer(interval=timeout, function=ctl.interrupt)
+        timer = Timer(interval=timeout, function=interrupt)
         timer.start()
-        while not handle.wait(timeout):
-            interrupted = handle.get().interrupted
+        while not handle.wait():
+            pass
     if len(all_answers) == 0:
         _print_stats(statistics=ctl.statistics)
         raise ValueError(f"ASP solver: No solution found. Interrupted={interrupted}")
