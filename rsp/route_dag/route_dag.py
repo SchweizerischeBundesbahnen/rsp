@@ -148,9 +148,9 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
         if len(cycles) == 0:
             topo = topo_copy
         else:
-            skip_count+=1
+            skip_count += 1
     if skip_count > 0:
-        print("skipped "+ skip_count + " paths of " + len(agent_paths))
+        print("skipped " + skip_count + " paths of " + len(agent_paths))
 
     cycles = list(nx.simple_cycles(topo))
 

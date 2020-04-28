@@ -23,14 +23,14 @@ def human_readable_size(size, significant_places=3):
     return f"{size:.{significant_places}f}{unit}"
 
 
-def virtual_memory_human_readable():
+def virtual_memory_human_readable() -> str:
     """Print virtual memory stats in a human readable format."""
     svmem = psutil.virtual_memory()
-    print(f"total={human_readable_size(svmem.total)},"
-          f"available={human_readable_size(svmem.available)},"
-          f"percent={svmem.percent}%,"
-          f"used={human_readable_size(svmem.used)},"
-          f"free={human_readable_size(svmem.free)}")
+    return (f"total={human_readable_size(svmem.total)},"
+            f"available={human_readable_size(svmem.available)},"
+            f"percent={svmem.percent}%,"
+            f"used={human_readable_size(svmem.used)},"
+            f"free={human_readable_size(svmem.free)}")
 
 
 def current_process_stats_human_readable():
@@ -59,7 +59,7 @@ def gc_collect(l: str):
     """
 
     print(f"{l} before gc.collect: {len(gc.get_objects())}")
-    current_process_stats_human_readable()
+    print(current_process_stats_human_readable())
     c = gc.collect()
     print(f"{l} after gc.collect ({c}): {len(gc.get_objects())}")
-    current_process_stats_human_readable()
+    print(current_process_stats_human_readable())

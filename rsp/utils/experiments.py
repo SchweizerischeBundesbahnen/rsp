@@ -157,11 +157,13 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
 
     start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
     if show_results_without_details:
-        print("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(), start_datetime_str))
+        print("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(),
+                                                                start_datetime_str))
     start_time = time.time()
 
     if show_results_without_details:
-        rsp_logger.info("*** experiment parameters for experiment {}\n {}".format(experiment_parameters.experiment_id, _pp.pformat(experiment_parameters)))
+        rsp_logger.info("*** experiment parameters for experiment {}\n {}".format(experiment_parameters.experiment_id,
+                                                                                  _pp.pformat(experiment_parameters)))
 
     # A.2: load or re-generate?
     # we want to be able to reuse the same schedule and malfunction to be able to compare
@@ -171,7 +173,8 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
         if not exists_schedule_and_malfunction(
                 experiment_agenda_directory=experiment_agenda_directory,
                 experiment_id=experiment_parameters.experiment_id):
-            raise ValueError(f"no schedule_and_malfunction found for {experiment_parameters.experiment_id} in {experiment_agenda_directory} --> skipping.")
+            raise ValueError(
+                f"no schedule_and_malfunction found for {experiment_parameters.experiment_id} in {experiment_agenda_directory} --> skipping.")
         schedule_and_malfunction = load_schedule_and_malfunction(
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)
@@ -217,7 +220,8 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if gen_only:
         elapsed_time = (time.time() - start_time)
         _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
-        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"]["total"]
+        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"][
+            "total"]
         print(("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%").format(
             experiment_parameters.experiment_id,
             elapsed_time, solver_time_full,
@@ -269,14 +273,18 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if show_results_without_details:
         elapsed_time = (time.time() - start_time)
         end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
-        s = ("Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta:  {} / ").format(
+        s = (
+            "Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta:  {} / ").format(
             experiment_parameters.experiment_id,
             elapsed_time,
             start_datetime_str,
             end_datetime_str,
-            _get_details_string(elapsed_time=elapsed_time, statistics=experiment_results.results_full.solver_statistics),
-            _get_details_string(elapsed_time=elapsed_time, statistics=experiment_results.results_full_after_malfunction.solver_statistics),
-            _get_details_string(elapsed_time=elapsed_time, statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
+            _get_details_string(elapsed_time=elapsed_time,
+                                statistics=experiment_results.results_full.solver_statistics),
+            _get_details_string(elapsed_time=elapsed_time,
+                                statistics=experiment_results.results_full_after_malfunction.solver_statistics),
+            _get_details_string(elapsed_time=elapsed_time,
+                                statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
         )
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         solver_time_full_after_malfunction = \
@@ -293,8 +301,8 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             threading.get_ident())
         print(s)
 
-        virtual_memory_human_readable()
-        current_process_stats_human_readable()
+        rsp_logger.info(virtual_memory_human_readable())
+        rsp_logger.info(current_process_stats_human_readable())
 
     # TODO SIM-324 pull out validation steps
     plausibility_check_experiment_results(experiment_results=experiment_results)
