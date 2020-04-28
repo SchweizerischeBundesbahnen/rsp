@@ -31,6 +31,36 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solver_seed', int),
                                          ('solver_program', Optional[List[str]])
                                          ])
+
+
+def fake_solver_statistics(elapsed_time):
+    return {
+        "summary": {
+            "times": {
+                "total": elapsed_time,
+                "solve": elapsed_time,
+            },
+            "costs": [-1]
+        },
+        "solving": {
+            "solvers": {
+                "choices": -1,
+                "conflicts": -1,
+            }
+        },
+        "user_accu": {
+            "DifferenceLogic": {
+                "Thread": []
+            }
+        },
+        "user_step": {
+            "DifferenceLogic": {
+                "Thread": []
+            }
+        }
+    }
+
+
 if COMPATIBILITY_MODE:
     SchedulingExperimentResult.__new__.__defaults__ = (None,) * len(SchedulingExperimentResult._fields)
 else:

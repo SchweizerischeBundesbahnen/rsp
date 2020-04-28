@@ -4,6 +4,7 @@ LABEL description="rsp jupyter workspace"
 
 USER root
 
+
 # install miniconda
 RUN set -e && \
     set -x && \
