@@ -100,10 +100,15 @@ class ASPExperimentSolver():
 
         Parameters
         ----------
-        static_rail_env: RailEnv
-            Rail environment without any malfunction
+        schedule_and_malfunction
         malfunction_rail_env: RailEnv
             Rail environment with one single malfunction
+        malfunction_env_reset
+        experiment_parameters
+        verbose
+        debug
+        rendering
+        visualize_route_dag_constraing
 
         Returns
         -------

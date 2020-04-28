@@ -10,6 +10,7 @@ from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import exists_schedule_and_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import run_experiment_agenda
 
@@ -155,6 +156,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
 
 
 def hypothesis_one_main():
+    rsp_logger.info(f"RUN FULL (WITH SCHEDULE GENERATION)")
     parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
@@ -166,17 +168,30 @@ def hypothesis_one_main():
 
 
 def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory: str):
-    experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
+    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
+    experiment_agenda_directory = copy_agenda_from_base_directory + "/agenda"
+    experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
+
+    experiment_ids = [
+        experiment.experiment_id
+        for experiment in experiment_agenda.experiments
+        if exists_schedule_and_malfunction(
+            experiment_agenda_directory=experiment_agenda_directory,
+            experiment_id=experiment.experiment_id)
+    ]
+
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        parallel_compute=1
+        parallel_compute=1,
+        experiment_ids=experiment_ids
     )
 
 
 def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: str):
+    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITH REGEN SCHEDULE")
     experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
@@ -188,7 +203,7 @@ def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: st
 
 
 def hypothesis_one_gen_schedule():
-    rsp_logger.info("HYPOTHESIS_ONE_GEN_SCHEDULE()")
+    rsp_logger.info("GEN SCHEDULE ONLY")
     parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
