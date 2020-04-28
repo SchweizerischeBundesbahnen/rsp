@@ -172,8 +172,9 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     start_time = time.time()
 
     if show_results_without_details:
-        rsp_logger.info("*** experiment parameters for experiment {}\n {}".format(experiment_parameters.experiment_id,
-                                                                                  _pp.pformat(experiment_parameters)))
+        rsp_logger.info("*** experiment parameters for experiment {}. {}"
+                        .format(experiment_parameters.experiment_id,
+                                _pp.pformat(experiment_parameters)))
 
     # A.2: load or re-generate?
     # we want to be able to reuse the same schedule and malfunction to be able to compare
@@ -318,7 +319,7 @@ def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: 
         )
 
 
-def _get_asp_solver_details_from_statistics(elapsed_time: int, statistics: Dict):
+def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dict):
     return "{:5.3f}s = {:5.2f}%  ({:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s)".format(
         statistics["summary"]["times"]["total"],
         statistics["summary"]["times"]["total"] / elapsed_time * 100,
@@ -519,6 +520,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     rendering
     gen_only
     """
+    rsp_logger.info(f"start {current_experiment_parameters.experiment_id}")
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     # tee stdout to thread-specific log file
@@ -528,7 +530,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     )
     try:
 
-        check_create_folder(experiment_data_directory)
+        check_create_folder(current_experiment_parameters.experiment_id)
 
         filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
         experiment_results: ExperimentResults = run_experiment(solver=solver,
@@ -539,20 +541,22 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                                                show_results_without_details=show_results_without_details,
                                                                gen_only=gen_only)
         save_experiment_results_to_file(experiment_results, filename)
-        return experiment_results
+        return None
     except Exception as e:
         end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
         print("XXX failed (" + end_datetime_str + ") " + filename + " " + str(e))
         traceback.print_exc(file=sys.stdout)
+        return None
     finally:
         # remove tees
         reset_tee(*tee_orig)
+        rsp_logger.info(f"end {current_experiment_parameters.experiment_id}")
 
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           experiment_ids: Optional[List[int]] = None,
                           copy_agenda_from_base_directory: Optional[str] = None,
-                          run_experiments_parallel: int = AVAILABLE_CPUS,
+                          run_experiments_parallel: int = AVAILABLE_CPUS // 2,
                           show_results_without_details: bool = True,
                           rendering: bool = False,
                           verbose: bool = False,
@@ -587,6 +591,9 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     check_create_folder(experiment_data_directory)
     check_create_folder(experiment_agenda_directory)
 
+    if run_experiments_parallel <= 1:
+        rsp_logger.warn("Using only one process in pool might cause pool to stall sometimes. Use more than one process in pool?")
+
     # tee stdout to log file
     tee_orig = tee_stdout_stderr_to_file(
         stdout_log_file=os.path.join(experiment_data_directory, "log.txt"),
@@ -612,7 +619,9 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
     # N.B. even with parallelization degree 1, we want to run each experiment in a new process
     #      in order to get around https://github.com/potassco/clingo/issues/203
-    pool = multiprocessing.Pool(processes=run_experiments_parallel, maxtasksperchild=1)
+    pool = multiprocessing.Pool(
+        processes=run_experiments_parallel,
+        maxtasksperchild=1)
     rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
@@ -631,7 +640,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                 experiment_agenda.experiments
             ),
             total=len(experiment_agenda.experiments)):
-        pass
+        rsp_logger.info('running jobs:', pool._pool)
+
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     _print_log_files_from_experiment_data_directory(experiment_data_directory)

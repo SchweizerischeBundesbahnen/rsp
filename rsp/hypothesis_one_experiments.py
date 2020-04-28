@@ -68,7 +68,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             copy_agenda_from_base_directory: Optional[str] = None,
                             experiment_name: str = "exp_hypothesis_one",
                             run_analysis: bool = True,
-                            parallel_compute: int = AVAILABLE_CPUS,
+                            parallel_compute: int = AVAILABLE_CPUS // 2,
                             gen_only: bool = False,
                             experiments_per_grid_element: int = 10
                             ) -> str:
@@ -127,7 +127,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
                                           asp_export_experiment_ids: Optional[List[int]] = None,
                                           copy_agenda_from_base_directory: Optional[str] = None,
                                           run_analysis: bool = True,
-                                          parallel_compute: int = AVAILABLE_CPUS,
+                                          parallel_compute: int = AVAILABLE_CPUS // 2,
                                           gen_only: bool = False
                                           ):
     """Run pipeline from A.2 -> C."""
@@ -162,7 +162,7 @@ def hypothesis_one_main():
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
-        parallel_compute=1
+        parallel_compute=AVAILABLE_CPUS // 2
     )
 
 
@@ -178,13 +178,12 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment.experiment_id)
     ]
-
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        parallel_compute=1,
+        parallel_compute=AVAILABLE_CPUS // 2,
         experiment_ids=experiment_ids
     )
 
