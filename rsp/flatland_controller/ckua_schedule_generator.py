@@ -6,15 +6,11 @@ from typing import Tuple
 
 import numpy as np
 from flatland.action_plan.action_plan import ControllerFromTrainruns
-from flatland.core.env_observation_builder import DummyObservationBuilder
-from flatland.core.env_observation_builder import ObservationBuilder
 from flatland.envs.agent_utils import RailAgentStatus
 from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_generators import sparse_rail_generator
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from flatland.envs.schedule_generators import sparse_schedule_generator
 from libs.cell_graph import CellGraph
 from libs.cell_graph_agent import AgentWayStep
 
@@ -119,6 +115,7 @@ def ckua_generate_schedule(  # noqa:C901
     steps = 0
     flatland_controller = CkUaController()
     flatland_controller.setup(env)
+    actions_per_step = {}
     while steps < max_steps:
         # print(steps)
         if steps == 0:
@@ -130,6 +127,7 @@ def ckua_generate_schedule(  # noqa:C901
                 print(f"[{steps}] {schedule[steps]}")
 
         action = flatland_controller.controller(env, observation, info, env.get_num_agents())
+        actions_per_step[steps] = action
 
         schedule[steps + 1] = {}
         for agent in env.agents:
@@ -162,6 +160,20 @@ def ckua_generate_schedule(  # noqa:C901
                     env._elapsed_steps >= env._max_episode_steps)):
                 break
     print(f"took {perf_counter() - start_time:5.2f}")
+    for time_step, actions in actions_per_step.items():
+        for agent_id, action in actions.items():
+            actions[agent_id] = int(action)
+    # import pickle
+    # with open(f"tests/01_unit_tests/data/ckua/actions_per_time_step.pkl", "wb") as out:
+    #     pickle.dump(actions_per_step, out, protocol=pickle.HIGHEST_PROTOCOL)
+    # print("actions_per_step")
+    # # print(_pp.pformat(actions_per_step))
+    # print(actions_per_step)
+    # print("schedule")
+    # with open(f"tests/01_unit_tests/data/ckua/schedule.pkl", "wb") as out:
+    #     pickle.dump(schedule, out, protocol=pickle.HIGHEST_PROTOCOL)
+    # print(_pp.pformat(schedule))
+
     has_selected_way = [len(flatland_controller.dispatcher.controllers[agent.handle].selected_way) > 0 for agent in env.agents]
     assert np.alltrue(has_selected_way)
     if do_rendering_final:
@@ -192,8 +204,8 @@ def ckua_generate_schedule(  # noqa:C901
     trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule,
                                                                    targets)
     # TODO why does this not work?
-    if False:
-        verify_trainruns_dict(env=env, trainrun_dict=trainrun_dict)
+    env.reset(False, False, False, random_seed=random_seed)
+    verify_trainruns_dict(env=env, trainrun_dict=trainrun_dict)
     print("verification done")
     return trainrun_dict, elapsed_time
 
@@ -282,42 +294,3 @@ def _extract_trainrun_dict_from_flatland_positions(
             curr_pos = next_waypoint.position
             curr_dir = next_waypoint.direction
     return trainrun_dict
-
-
-def dummy_rail_env(observation_builder: ObservationBuilder, number_of_agents: int = 100,
-                   random_seed: int = 14) -> RailEnv:
-    # Different agent types (trains) with different speeds.
-    speed_ration_map = {1.: 0.5,  # Fast passenger train
-                        1. / 2.: 0.3,  # Slow passenger train
-                        1. / 4.: 0.2}  # Slow freight train
-
-    env = RailEnv(width=100,
-                  height=60,
-                  rail_generator=sparse_rail_generator(max_num_cities=20,
-                                                       # Number of cities in map (where train stations are)
-                                                       seed=random_seed,  # Random seed
-                                                       grid_mode=False,
-                                                       max_rails_between_cities=2,
-                                                       max_rails_in_city=8,
-                                                       ),
-                  schedule_generator=sparse_schedule_generator(speed_ration_map),
-                  number_of_agents=number_of_agents,
-                  obs_builder_object=observation_builder,
-                  remove_agents_at_target=True,
-                  random_seed=random_seed,
-                  record_steps=True
-                  )
-    return env
-
-
-def main():
-    # TODO SIM-443 refactor as run-through test
-    ckua_generate_schedule(
-        env=dummy_rail_env(observation_builder=DummyObservationBuilder()),
-        random_seed=94,
-        rendering=False
-    )
-
-
-if __name__ == '__main__':
-    main()
