@@ -576,11 +576,11 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
 
         if len(trainrun_difference) > 0:
             traces_influenced_agents.append(trainrun_difference)
-            plotting_information_traces.append([True for i in range(len(time_resource_matrix_b[idx]))])
+            plotting_information_traces.append([True for i in range(len(time_resource_matrix_a[idx]))])
             nr_influenced_agents += 1
         else:
             traces_influenced_agents.append([(None, None)])
-            plotting_information_traces.append([False for i in range(len(time_resource_matrix_b[idx]))])
+            plotting_information_traces.append([False for i in range(len(time_resource_matrix_a[idx]))])
 
     return traces_influenced_agents, plotting_information_traces, nr_influenced_agents
 
