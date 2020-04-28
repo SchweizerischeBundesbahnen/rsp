@@ -640,7 +640,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                 experiment_agenda.experiments
             ),
             total=len(experiment_agenda.experiments)):
-        rsp_logger.info('running jobs:', pool._pool)
+        rsp_logger.info(f'running jobs: {pool._pool}')
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
