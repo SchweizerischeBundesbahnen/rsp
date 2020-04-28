@@ -21,6 +21,7 @@ jupyter:
 ```
 
 ```{python}
+sys.path.append("./flatland_ckua")
 import pandas as pd
 from IPython.display import Video
 

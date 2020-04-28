@@ -162,8 +162,7 @@ def hypothesis_one_main():
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
-        parallel_compute=1,
-        experiment_ids=[0]
+        parallel_compute=1
     )
 
 

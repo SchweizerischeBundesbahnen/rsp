@@ -5,7 +5,17 @@ Workflow SBB <-> Potassco.
 
 Installation
 ------------
+Clone with submodules
+```
+git clone --recursive  git@github.com:SchweizerischeBundesbahnen/rsp.git
+```
 
+If you already have a clone and want to update the submodules:
+```
+git submodule update --init --recursive
+```
+
+Conda environment
 ```
 # create conda environment rsp
 conda env create -f rsp_environment.yml
