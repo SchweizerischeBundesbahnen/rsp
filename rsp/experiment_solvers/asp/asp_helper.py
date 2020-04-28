@@ -138,7 +138,6 @@ def _asp_helper(encoding_files: List[str],
                 no_optimize: bool = False,
                 asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
-
     Parameters
     ----------
     encoding_files
@@ -224,30 +223,33 @@ def _asp_loop(ctl: clingo.Control,  # noqa: C901
     timer = None
 
     def on_model(model):
-        nonlocal all_answers, min_cost, timer
-        if len(model.cost) > 0:
-            cost = model.cost[0]
-            if cost < min_cost:
-                if verbose:
-                    print("Optimization: {}".format(cost))
-                min_cost = cost
-                all_answers = []
-        # TODO SIM-121 convert to handable data structures instead of strings!
-        sol = str(model).split(" ")
-        if debug:
-            for v in sol:
-                print(v)
-        for name, value in dl.assignment(model.thread_id):
-            v = f"dl({name},{value})"
-            sol.append(v)
+        try:
+            nonlocal all_answers, min_cost, timer, no_optimize, dl
+            if len(model.cost) > 0:
+                cost = model.cost[0]
+                if cost < min_cost:
+                    if verbose:
+                        print("Optimization: {}".format(cost))
+                    min_cost = cost
+                    all_answers = []
+            # TODO SIM-121 convert to handable data structures instead of strings!
+            sol = str(model).split(" ")
             if debug:
-                print(v)
-        all_answers.append(frozenset(sol))
-        timer.cancel()
-        timer = Timer(interval=timer.interval, function=timer.interrupt)
-        timer.start()
-        if no_optimize:
-            return False
+                for v in sol:
+                    print(v)
+            for name, value in dl.assignment(model.thread_id):
+                v = f"dl({name},{value})"
+                sol.append(v)
+                if debug:
+                    print(v)
+            all_answers.append(frozenset(sol))
+            timer.cancel()
+            timer = Timer(interval=timer.interval, function=timer.function)
+            timer.start()
+            if no_optimize:
+                return False
+        except Exception as e:
+            print(str(e))
 
     interrupted = False
 
