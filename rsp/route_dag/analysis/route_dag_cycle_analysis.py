@@ -12,6 +12,14 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 
 def _visualize_cycles_in_route_graph(agent_paths, cycles, topo):
+    """
+    Visualize the individual paths and the
+    Parameters
+    ----------
+    agent_paths
+    cycles
+    topo
+    """
     for k, cycle in enumerate(cycles):
         visualize_cycle_in_route_dag(
             topo=topo,
@@ -53,11 +61,10 @@ def visualize_cycle_in_route_dag(
 
 ) -> nx.DiGraph:
     """Draws an agent's route graph with constraints into a file.
+
     Parameters
     ----------
     topo
-    f
-        constraints for this agent
     train_run
     file_name
         save graph to this file
@@ -65,6 +72,10 @@ def visualize_cycle_in_route_dag(
         title in the picture
     scale
         scale in or out
+    dummies
+        drawn yellow
+    cycle
+        drawn red
     """
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
 

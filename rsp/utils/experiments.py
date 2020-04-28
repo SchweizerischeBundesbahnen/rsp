@@ -36,6 +36,7 @@ import threading
 import time
 import traceback
 from functools import partial
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -157,8 +158,7 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
 
     start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
     if show_results_without_details:
-        print("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(),
-                                                                start_datetime_str))
+        rsp_logger.info("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(), start_datetime_str))
     start_time = time.time()
 
     if show_results_without_details:
@@ -180,30 +180,9 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             experiment_id=experiment_parameters.experiment_id)
         _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
 
-        # TODO SIM-366
-        if False:
-            results_before: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
-                experiment_data_folder_name=experiment_base_directory + "/data",
-                experiment_ids=[experiment_parameters.experiment_id]
-            )[0]
-            problem_full_after_malfunction: ScheduleProblemDescription = results_before.problem_full_after_malfunction
-            for agent_id in problem_full_after_malfunction.route_dag_constraints_dict:
-                visualize_route_dag_constraints_simple_wrapper(
-                    schedule_problem_description=problem_full_after_malfunction.schedule_problem_description,
-                    trainrun_dict=None,
-                    experiment_malfunction=problem_full_after_malfunction.experiment_malfunction,
-                    agent_id=agent_id,
-                    file_name=f"reschedule_alt_agent_{agent_id}.pdf"
-                )
-
-            for agent_id in schedule_and_malfunction.schedule_experiment_result.trainruns_dict:
-                visualize_route_dag_constraints_simple_wrapper(
-                    schedule_problem_description=schedule_and_malfunction.schedule_problem_description,
-                    trainrun_dict=None,
-                    experiment_malfunction=schedule_and_malfunction.experiment_malfunction,
-                    agent_id=agent_id,
-                    file_name=f"schedule_alt_agent_{agent_id}.pdf"
-                )
+        if debug:
+            _render_route_dags_from_data(experiment_base_directory=experiment_base_directory, experiment_id=experiment_parameters.experiment_id)
+            _visualize_route_dag_constraints_for_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction)
 
     else:
         malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
@@ -220,9 +199,8 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if gen_only:
         elapsed_time = (time.time() - start_time)
         _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
-        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"][
-            "total"]
-        print(("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%").format(
+        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"]["total"]
+        rsp_logger.info("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%".format(
             experiment_parameters.experiment_id,
             elapsed_time, solver_time_full,
             solver_time_full / elapsed_time * 100))
@@ -279,12 +257,9 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             elapsed_time,
             start_datetime_str,
             end_datetime_str,
-            _get_details_string(elapsed_time=elapsed_time,
-                                statistics=experiment_results.results_full.solver_statistics),
-            _get_details_string(elapsed_time=elapsed_time,
-                                statistics=experiment_results.results_full_after_malfunction.solver_statistics),
-            _get_details_string(elapsed_time=elapsed_time,
-                                statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full_after_malfunction.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
         )
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         solver_time_full_after_malfunction = \
@@ -309,7 +284,34 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     return experiment_results
 
 
-def _get_details_string(elapsed_time, statistics):
+def _visualize_route_dag_constraints_for_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction):
+    for agent_id in schedule_and_malfunction.schedule_experiment_result.trainruns_dict:
+        visualize_route_dag_constraints_simple_wrapper(
+            schedule_problem_description=schedule_and_malfunction.schedule_problem_description,
+            trainrun_dict=None,
+            experiment_malfunction=schedule_and_malfunction.experiment_malfunction,
+            agent_id=agent_id,
+            file_name=f"schedule_alt_agent_{agent_id}.pdf"
+        )
+
+
+def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: int):
+    results_before: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name=experiment_base_directory + "/data",
+        experiment_ids=[experiment_id]
+    )[0]
+    problem_full_after_malfunction: ScheduleProblemDescription = results_before.problem_full_after_malfunction
+    for agent_id in problem_full_after_malfunction.route_dag_constraints_dict:
+        visualize_route_dag_constraints_simple_wrapper(
+            schedule_problem_description=problem_full_after_malfunction.schedule_problem_description,
+            trainrun_dict=None,
+            experiment_malfunction=problem_full_after_malfunction.experiment_malfunction,
+            agent_id=agent_id,
+            file_name=f"reschedule_alt_agent_{agent_id}.pdf"
+        )
+
+
+def _get_asp_solver_details_from_statistics(elapsed_time: int, statistics: Dict):
     return "{:5.3f}s = {:5.2f}%  ({:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s)".format(
         statistics["summary"]["times"]["total"],
         statistics["summary"]["times"]["total"] / elapsed_time * 100,
