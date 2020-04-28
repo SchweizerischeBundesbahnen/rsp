@@ -11,6 +11,7 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.route_dag_cycle_analysis import _visualize_cycles_in_route_graph
 
 MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
@@ -129,17 +130,18 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
         topology
     """
 
-    # TODO SIM-366 cleanup
     topo = nx.DiGraph()
     skip_count = 0
     for path in agent_paths:
         topo_path = nx.DiGraph()
 
-        # tentatively add edges only to copy
+        # add edges only to a copy
         topo_copy = topo.copy()
         for wp1, wp2 in zip(path, path[1:]):
             topo_copy.add_edge(wp1, wp2)
             topo_path.add_edge(wp1, wp2)
+
+        # the path must have no cycles
         topo_path_cycles = list(nx.simple_cycles(topo_path))
         assert len(topo_path_cycles) == 0, f"cycle in shortest path"
 
@@ -148,9 +150,9 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
         if len(cycles) == 0:
             topo = topo_copy
         else:
-            skip_count+=1
+            skip_count += 1
     if skip_count > 0:
-        print("skipped "+ skip_count + " paths of " + len(agent_paths))
+        rsp_logger.info(f"skipped {skip_count}  paths of {len(agent_paths)}")
 
     cycles = list(nx.simple_cycles(topo))
 

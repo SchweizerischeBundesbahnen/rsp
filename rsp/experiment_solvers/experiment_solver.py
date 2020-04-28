@@ -12,6 +12,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
@@ -46,8 +47,7 @@ class ASPExperimentSolver():
 
         Experiment Setup
         """
-        # TODO SIM-366
-        print("gen_schedule_and_malfunction")
+        rsp_logger.info("gen_schedule_and_malfunction")
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
             k=experiment_parameters.number_of_shortest_paths_per_agent
@@ -93,7 +93,8 @@ class ASPExperimentSolver():
             experiment_parameters: ExperimentParameters,
             verbose: bool = False,
             debug: bool = False,
-            rendering: bool = False
+            rendering: bool = False,
+            visualize_route_dag_constraing: bool = False
     ) -> ExperimentResults:
         """B2. Runs the experiment.
 
@@ -112,9 +113,8 @@ class ASPExperimentSolver():
 
         schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
-        # / try to re-use schedule and malfunction, but try to reduce the topology so it has no cycles.
+        # / SIM-366 temporary hack: when re-using schedule and malfunction,  try to reduce the topology so it has no cycles.
         # For the time being, we want to re-use our schedules because generating them takes too long currently.
-        # TODO SIM-366
         agents_paths_dict = {
             # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
             i: get_k_shortest_paths(malfunction_rail_env,
@@ -123,19 +123,17 @@ class ASPExperimentSolver():
                                     agent.target,
                                     experiment_parameters.number_of_shortest_paths_per_agent) for i, agent in enumerate(malfunction_rail_env.agents)
         }
-
         dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
         for agent_id, schedule in schedule_trainruns.items():
             for tr_wp in schedule:
                 assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed"
-        print("all scheduled waypoints still in ")
+        rsp_logger.info("all scheduled waypoints still in ")
         # \
 
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
-        # TODO SIM-366
-        print("2. reschedule full")
+        rsp_logger.info("2. reschedule full")
         reduced_topo_dict = tc_schedule_problem.topo_dict
         full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
             malfunction=malfunction,
@@ -151,8 +149,8 @@ class ASPExperimentSolver():
             weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
 
-        # TODO SIM-366
-        if False:
+        # activate visualize_route_dag_constraing for debugging
+        if visualize_route_dag_constraing:
             for agent_id in schedule_trainruns:
                 visualize_route_dag_constraints_simple_wrapper(
                     schedule_problem_description=full_reschedule_problem,
@@ -181,8 +179,7 @@ class ASPExperimentSolver():
         # --------------------------------------------------------------------------------------
         # 3. Re-Schedule Delta
         # --------------------------------------------------------------------------------------
-        # TODO SIM-366
-        print("3. reschedule full")
+        rsp_logger.info("3. reschedule full")
         delta_reschedule_problem = perfect_oracle(
             full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
             malfunction=malfunction,
@@ -254,8 +251,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     SchedulingExperimentResult
         the problem description and the results
     """
-    # TODO SIM-366
-    print("schedule_wrapper")
+    rsp_logger.info("schedule_wrapper")
     # --------------------------------------------------------------------------------------
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
@@ -297,8 +293,7 @@ def asp_reschedule_wrapper(
     -------
     SchedulingExperimentResult
     """
-    # TODO SIM-366
-    print("reschedule_wrapper")
+    rsp_logger.info("reschedule_wrapper")
     # --------------------------------------------------------------------------------------
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
