@@ -530,7 +530,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     )
     try:
 
-        check_create_folder(current_experiment_parameters.experiment_id)
+        check_create_folder(experiment_data_directory)
 
         filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
         experiment_results: ExperimentResults = run_experiment(solver=solver,
