@@ -253,8 +253,8 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
 
     # Compute the difference between schedules and return traces for plotting
     traces_influenced_agents, plotting_information_traces, nr_influenced_agents = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_schedule.trajectories,
-        time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
+        time_resource_matrix_a=time_resource_reschedule_delta.trajectories,
+        time_resource_matrix_b=time_resource_schedule.trajectories)
 
     # Printing situation overview
     print(
