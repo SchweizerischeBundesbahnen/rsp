@@ -1,6 +1,7 @@
 import json
 import time
 from enum import Enum
+from threading import Timer
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -195,7 +196,7 @@ def _asp_helper(encoding_files: List[str],
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
-def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: bool = False):
+def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: bool = False, timeout: int = 20 * 60):  # noqa: C901
     """Loop over models coming from the ASP solve call until optimal one found
     and return the first optimal.
 
@@ -212,28 +213,45 @@ def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: 
     """
     all_answers = []
     min_cost = np.inf
-    with ctl.solve(yield_=True, on_statistics=dl.on_statistics) as handle:
-        for model in handle:
-            if len(model.cost) > 0:
-                cost = model.cost[0]
-                if cost < min_cost:
-                    if verbose:
-                        print("Optimization: {}".format(cost))
-                    min_cost = cost
-                    all_answers = []
-            # TODO SIM-121 convert to handable data structures instead of strings!
-            sol = str(model).split(" ")
+    timer = None
+
+    def on_model(model):
+        nonlocal all_answers, min_cost, timer, timeout, ctl
+        if len(model.cost) > 0:
+            cost = model.cost[0]
+            if cost < min_cost:
+                if verbose:
+                    print("Optimization: {}".format(cost))
+                min_cost = cost
+                all_answers = []
+        # TODO SIM-121 convert to handable data structures instead of strings!
+        sol = str(model).split(" ")
+        if debug:
+            for v in sol:
+                print(v)
+        for name, value in dl.assignment(model.thread_id):
+            v = f"dl({name},{value})"
+            sol.append(v)
             if debug:
-                for v in sol:
-                    print(v)
-            for name, value in dl.assignment(model.thread_id):
-                v = f"dl({name},{value})"
-                sol.append(v)
-                if debug:
-                    print(v)
-            all_answers.append(frozenset(sol))
-            if no_optimize:
-                break
+                print(v)
+        all_answers.append(frozenset(sol))
+        timer.cancel()
+        timer = Timer(interval=timeout, function=ctl.interrupt)
+        timer.start()
+        if no_optimize:
+            return False
+
+    interrupted = False
+    with ctl.solve(async_=True, on_statistics=dl.on_statistics, on_model=on_model) as handle:
+        # the timeout given to handle.wait() seems not to work with clingo-dl -> use timer instead
+        # TODO check with Potsdam why handle.wait() does not work as expected: https://potassco.org/clingo/python-api/5.4/
+        timer = Timer(interval=timeout, function=ctl.interrupt)
+        timer.start()
+        while not handle.wait(timeout):
+            interrupted = handle.get().interrupted
+    if len(all_answers) == 0:
+        _print_stats(statistics=ctl.statistics)
+        raise ValueError(f"ASP solver: No solution found. Interrupted={interrupted}")
     return all_answers
 
 
