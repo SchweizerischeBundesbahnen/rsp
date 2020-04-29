@@ -79,16 +79,21 @@ def plot_encounter_graphs_for_experiment_result(
         pos: Optional[dict] = None,
         highlighted_nodes: Optional[dict] = None,
         encounter_graph_folder: Optional[str] = None):
+    print("plot_encounter_graphs_for_experiment_result")
     trainrun_dict_full = experiment_result.solution_full
     trainrun_dict_full_after_malfunction = experiment_result.solution_full_after_malfunction
     train_schedule_dict_full = convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict_full)
     train_schedule_dict_full_after_malfunction = convert_trainrundict_to_entering_positions_for_all_timesteps(
         trainrun_dict_full_after_malfunction)
     distance_matrix_full, additional_info = compute_undirected_distance_matrix(trainrun_dict_full,
-                                                                               train_schedule_dict_full)
+                                                                               experiment_result.problem_full,
+                                                                               train_schedule_dict_full,
+                                                                               )
     distance_matrix_full_after_malfunction, additional_info_after_malfunction = compute_undirected_distance_matrix(
         trainrun_dict_full_after_malfunction,
-        train_schedule_dict_full_after_malfunction)
+        experiment_result.problem_full_after_malfunction,
+        train_schedule_dict_full_after_malfunction,
+    )
     distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)
 
     titles = {
