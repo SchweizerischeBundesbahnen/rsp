@@ -609,8 +609,8 @@ def resource_time_2d(schedule: TrainrunDict,
     # Sort according to malfunctioning agent
     if sorting is None:
         sorting = dict()
+        index = 0
         if malfunction_agent_id >= 0:
-            index = 0
             for waypoint in schedule[malfunction_agent_id]:
                 position = coordinate_to_position(width, [waypoint.waypoint.position])[0]
                 if position not in sorting:
