@@ -12,7 +12,6 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.logger import rsp_logger
-from rsp.route_dag.analysis.route_dag_cycle_analysis import _visualize_cycles_in_route_graph
 
 MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
 
@@ -156,8 +155,6 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
 
     cycles = list(nx.simple_cycles(topo))
 
-    if len(cycles) > 0:
-        _visualize_cycles_in_route_graph(agent_paths, cycles, topo)
     assert len(cycles) == 0, f"cycle in re-combination of shortest paths, {cycles}"
     assert len(get_paths_in_route_dag(topo)) > 0, "no path after removing loopy paths"
     return topo

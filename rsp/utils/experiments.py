@@ -555,7 +555,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           experiment_ids: Optional[List[int]] = None,
                           copy_agenda_from_base_directory: Optional[str] = None,
-                          run_experiments_parallel: int = AVAILABLE_CPUS // 2,
+                          run_experiments_parallel: int = AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
                           show_results_without_details: bool = True,
                           rendering: bool = False,
                           verbose: bool = False,
