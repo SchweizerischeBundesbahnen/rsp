@@ -166,10 +166,13 @@ def hypothesis_one_main():
     )
 
 
-def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory: str):
+def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory: str, nb_runs: int = 1):
     rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
     experiment_agenda_directory = copy_agenda_from_base_directory + "/agenda"
     experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
+
+    experiment_agenda = ExperimentAgenda(experiment_name=experiment_agenda.experiment_name,
+                                         experiments=experiment_agenda.experiments * nb_runs)
 
     experiment_ids = [
         experiment.experiment_id
@@ -207,7 +210,8 @@ def hypothesis_one_gen_schedule():
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         gen_only=True,
         experiment_ids=None,
-        parallel_compute=1
+        parallel_compute=1,
+        nb_runs=5
     )
 
 

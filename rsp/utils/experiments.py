@@ -520,7 +520,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     rendering
     gen_only
     """
-    rsp_logger.info(f"start {current_experiment_parameters.experiment_id}")
+    rsp_logger.info(f"start experiment {current_experiment_parameters.experiment_id}")
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     # tee stdout to thread-specific log file
@@ -541,15 +541,15 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                                                show_results_without_details=show_results_without_details,
                                                                gen_only=gen_only)
         save_experiment_results_to_file(experiment_results, filename)
-        return None
+        return os.getpid()
     except Exception as e:
         rsp_logger.error("XXX failed " + filename + " " + str(e))
         traceback.print_exc(file=sys.stderr)
-        return None
+        return os.getpid()
     finally:
         # remove tees
         reset_tee(*tee_orig)
-        rsp_logger.info(f"end {current_experiment_parameters.experiment_id}")
+        rsp_logger.info(f"end experiment {current_experiment_parameters.experiment_id}")
 
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
@@ -633,13 +633,15 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         gen_only=gen_only
     )
 
-    for _ in tqdm.tqdm(
+    for pid_done in tqdm.tqdm(
             pool.imap_unordered(
                 run_and_save_one_experiment_partial,
                 experiment_agenda.experiments
             ),
             total=len(experiment_agenda.experiments)):
-        rsp_logger.info(f'running jobs: {pool._pool}')
+        # unsafe use of inner API
+        procs = [f"{str(proc)}={proc.pid}" for proc in pool._pool]
+        rsp_logger.info(f'pid {pid_done} done. Pool: {procs}')
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
@@ -895,7 +897,8 @@ def create_experiment_folder_name(experiment_name: str) -> str:
 
 
 def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
-    filename = "experiment_{:04d}.pkl".format(experiment_id)
+    datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+    filename = "experiment_{:04d}_{}.pkl".format(experiment_id, datetime_string)
     return os.path.join(experiment_folder_name, filename)
 
 
