@@ -211,9 +211,8 @@ def hypothesis_one_gen_schedule():
         gen_only=True,
         experiment_ids=None,
         parallel_compute=1,
-        nb_runs=5
     )
 
 
 if __name__ == '__main__':
-    hypothesis_one_rerun_without_regen_schedule("./res/many_agents_example")
+    hypothesis_one_rerun_without_regen_schedule("./res/many_agents_example", nb_runs=5)
