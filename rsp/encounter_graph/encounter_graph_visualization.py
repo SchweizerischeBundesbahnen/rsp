@@ -15,7 +15,8 @@ from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_pos
 def _plot_encounter_graph_undirected(
         distance_matrix: np.ndarray,
         title: str, file_name: Optional[str],
-        pos: dict = None, ):
+        pos: dict = None,
+        highlights: dict = None):
     """This method plots the encounter graph and the heatmap of the distance
     matrix into one file.
 
@@ -30,8 +31,9 @@ def _plot_encounter_graph_undirected(
     -------
     """
     dt = [('weight', float)]
-    distance_matrix_as_weight = np.matrix(distance_matrix, dtype=dt)
-    graph = nx.from_numpy_matrix(distance_matrix_as_weight)
+    distance_matrix_as_weight = np.copy(distance_matrix)
+    distance_matrix_as_weight.dtype = dt
+    graph = nx.from_numpy_array(distance_matrix_as_weight)
 
     # position of nodes
     if pos is None:
@@ -39,12 +41,19 @@ def _plot_encounter_graph_undirected(
         # https://networkx.github.io/documentation/stable/reference/generated/networkx.drawing.layout.spring_layout.html
         pos = nx.spring_layout(graph, seed=42)
 
+    # Color the nodes
+    node_color = ['b' for i in range(graph.number_of_nodes())]
+    if highlights is not None:
+        for node_idx in highlights:
+            if highlights[node_idx]:
+                node_color[node_idx] = 'r'
+
     fig = plt.figure(figsize=(18, 12), dpi=80)
     fig.suptitle(title, fontsize=16)
     plt.subplot(121)
 
     # draw nodes
-    nx.draw_networkx_nodes(graph, pos)
+    nx.draw_networkx_nodes(graph, pos, node_color=node_color)
 
     # draw edges with corresponding weights
     for edge in graph.edges(data=True):
@@ -68,6 +77,7 @@ def _plot_encounter_graph_undirected(
 def plot_encounter_graphs_for_experiment_result(
         experiment_result: ExperimentResultsAnalysis,
         pos: Optional[dict] = None,
+        highlighted_nodes: Optional[dict] = None,
         encounter_graph_folder: Optional[str] = None):
     trainrun_dict_full = experiment_result.solution_full
     trainrun_dict_full_after_malfunction = experiment_result.solution_full_after_malfunction
@@ -110,5 +120,6 @@ def plot_encounter_graphs_for_experiment_result(
             distance_matrix=distance_matrices[schedule_problem_to_visualize],
             title=titles[schedule_problem_to_visualize],
             file_name=(file_names[schedule_problem_to_visualize] if encounter_graph_folder is not None else None),
-            pos=pos
+            pos=pos,
+            highlights=highlighted_nodes
         )

@@ -301,7 +301,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
         plot_time_resource_data(time_resource_data=traces_influenced_agents, title='Changed Agents',
                                 ranges=ranges, additional_data=additional_data)
 
-    return
+    return changed_agents_list
 
 
 def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
