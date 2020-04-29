@@ -28,6 +28,7 @@ import datetime
 import multiprocessing
 import os
 import pickle
+import platform
 import pprint
 import re
 import shutil
@@ -621,7 +622,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     pool = multiprocessing.Pool(
         processes=run_experiments_parallel,
         maxtasksperchild=1)
-    rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
+    rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     run_and_save_one_experiment_partial = partial(
