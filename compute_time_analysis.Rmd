@@ -21,6 +21,7 @@ jupyter:
 ```
 
 ```{python}
+import sys
 sys.path.append("./flatland_ckua")
 import pandas as pd
 from IPython.display import Video
@@ -75,7 +76,14 @@ data_frame = pd.DataFrame(data=[
 'path_search_space_rsp_full': r.path_search_space_rsp_full,
 'path_search_space_rsp_delta': r.path_search_space_rsp_delta,
 'factor_path_search_space': r.factor_path_search_space,
-'size_used': r.size_used
+'size_used': r.size_used,
+'solver_conflicts_full': r.results_full.solver_statistics["solving"]["solvers"]["conflicts"],
+'solver_choices_full': r.results_full.solver_statistics["solving"]["solvers"]["choices"],
+'solver_conflicts_full_after_malfunction': r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"],
+'solver_choices_full_after_malfunction': r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"],
+'solver_conflicts_delta_after_malfunction': r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"],
+'solver_choices_delta_after_malfunction': r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"],
+
     }
     for r in experiment_results_list])
 data_frame.to_csv(f"data.tsv", sep="\t")

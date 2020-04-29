@@ -543,9 +543,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         save_experiment_results_to_file(experiment_results, filename)
         return None
     except Exception as e:
-        end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
-        print("XXX failed (" + end_datetime_str + ") " + filename + " " + str(e))
-        traceback.print_exc(file=sys.stdout)
+        rsp_logger.error("XXX failed " + filename + " " + str(e))
+        traceback.print_exc(file=sys.stderr)
         return None
     finally:
         # remove tees
