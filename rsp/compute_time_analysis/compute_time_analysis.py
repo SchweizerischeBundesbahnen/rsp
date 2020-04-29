@@ -236,20 +236,20 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     total_delay = sum(lateness_delta_after_malfunction.values())
 
     # Get full schedule Time-resource-Data
-    time_resource_schedule: TimeResourceTrajectories = resource_time_2d(schedule=schedule,
-                                                                        width=width,
-                                                                        malfunction_agent_id=malfunction_agent,
-                                                                        sorting=None)
+    time_resource_schedule, ressource_sorting = resource_time_2d(schedule=schedule,
+                                                                 width=width,
+                                                                 malfunction_agent_id=malfunction_agent,
+                                                                 sorting=None)
     # Get full reschedule Time-resource-Data
-    time_resource_reschedule_full: TimeResourceTrajectories = resource_time_2d(schedule=reschedule_full,
-                                                                               width=width,
-                                                                               malfunction_agent_id=malfunction_agent,
-                                                                               sorting=None)
+    time_resource_reschedule_full, _ = resource_time_2d(schedule=reschedule_full,
+                                                        width=width,
+                                                        malfunction_agent_id=malfunction_agent,
+                                                        sorting=ressource_sorting)
     # Get delta reschedule Time-resource-Data
-    time_resource_reschedule_delta: TimeResourceTrajectories = resource_time_2d(schedule=reschedule_delta,
-                                                                                width=width,
-                                                                                malfunction_agent_id=malfunction_agent,
-                                                                                sorting=None)
+    time_resource_reschedule_delta, _ = resource_time_2d(schedule=reschedule_delta,
+                                                         width=width,
+                                                         malfunction_agent_id=malfunction_agent,
+                                                         sorting=ressource_sorting)
 
     # Compute the difference between schedules and return traces for plotting
     traces_influenced_agents, changed_agents_list, nr_influenced_agents = _get_difference_in_time_space(
@@ -284,7 +284,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     # Plot Reschedule Delta with additional data
     additional_data = dict()
     changed_agents_traces = _map_variable_to_trainruns(variable=changed_agents_list,
-                                                   trainruns=time_resource_reschedule_delta.trajectories)
+                                                       trainruns=time_resource_reschedule_delta.trajectories)
     additional_data.update({'Changed': changed_agents_traces})
     delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
                                                    trainruns=time_resource_reschedule_delta.trajectories)
@@ -389,26 +389,19 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
     lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=np.arange(len(lateness_full_values)),
-                         y=lateness_full_values, name='Full Reschedule',
-                         hovertemplate='<b>Agent ID</b>: %{x}<br>' +
-                                       '<b>Delay</b>: %{y}<br>'
-                         ))
-    fig.add_trace(go.Bar(x=np.arange(len(lateness_delta_values)),
-                         y=lateness_delta_values, name='Delta Reschedule',
-                         hovertemplate='<b>Agent ID</b>: %{x}<br>' +
-                                       '<b>Delay</b>: %{y}<br>'
-                         ))
+    fig.add_trace(go.Histogram(x=lateness_full_values, name='Full Reschedule'
+                               ))
+    fig.add_trace(go.Histogram(x=lateness_delta_values, name='Delta Reschedule'
+                               ))
 
-    fig.update_layout(barmode='group')
+    # fig.update_layout(barmode='group')
     fig.update_layout(title_text="Delay per Agent")
     fig.update_layout(
         xaxis=dict(
             tickmode='array',
             tickvals=np.arange(len(lateness_full_values)),
         ))
-    fig.update_xaxes(title="Agents ID")
-    fig.update_yaxes(title="Delay [s]")
+    fig.update_xaxes(title="Delay [s]")
     fig.show()
 
 
@@ -578,11 +571,11 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
 
         if len(trainrun_difference) > 0:
             traces_influenced_agents.append(trainrun_difference)
-            additional_information.update((idx,True))
+            additional_information.update({idx: True})
             nr_influenced_agents += 1
         else:
             traces_influenced_agents.append([(None, None)])
-            additional_information.append((idx,False))
+            additional_information.update({idx: False})
 
     return traces_influenced_agents, additional_information, nr_influenced_agents
 
@@ -613,6 +606,8 @@ def resource_time_2d(schedule: TrainrunDict,
     """
     all_train_time_paths = []
     max_time = 0
+
+    # Sort according to malfunctioning agent
     if sorting is None:
         sorting = dict()
         if malfunction_agent_id >= 0:
@@ -622,6 +617,9 @@ def resource_time_2d(schedule: TrainrunDict,
                 if position not in sorting:
                     sorting.update({position: index})
                     index += 1
+    else:
+        index = int(len(sorting) + 1)
+
     for train_run in schedule:
         train_time_path = []
         pre_waypoint = schedule[train_run][0]
@@ -642,4 +640,4 @@ def resource_time_2d(schedule: TrainrunDict,
     time_ressource_data = TimeResourceTrajectories(trajectories=all_train_time_paths,
                                                    max_resource_id=index - 1,
                                                    max_time=max_time)
-    return time_ressource_data
+    return time_ressource_data, sorting
