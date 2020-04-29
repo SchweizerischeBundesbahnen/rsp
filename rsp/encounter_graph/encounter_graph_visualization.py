@@ -15,9 +15,7 @@ from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_pos
 def _plot_encounter_graph_undirected(
         distance_matrix: np.ndarray,
         title: str, file_name: Optional[str],
-        pos: dict = None,
-
-):
+        pos: dict = None, ):
     """This method plots the encounter graph and the heatmap of the distance
     matrix into one file.
 

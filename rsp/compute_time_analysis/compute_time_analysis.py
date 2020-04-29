@@ -252,7 +252,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
                                                                                 sorting=None)
 
     # Compute the difference between schedules and return traces for plotting
-    traces_influenced_agents, plotting_information_traces, nr_influenced_agents = _get_difference_in_time_space(
+    traces_influenced_agents, changed_agents_list, nr_influenced_agents = _get_difference_in_time_space(
         time_resource_matrix_a=time_resource_reschedule_delta.trajectories,
         time_resource_matrix_b=time_resource_schedule.trajectories)
 
@@ -283,7 +283,9 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
 
     # Plot Reschedule Delta with additional data
     additional_data = dict()
-    additional_data.update({'Changed': plotting_information_traces})
+    changed_agents_traces = _map_variable_to_trainruns(variable=changed_agents_list,
+                                                   trainruns=time_resource_reschedule_delta.trajectories)
+    additional_data.update({'Changed': changed_agents_traces})
     delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
                                                    trainruns=time_resource_reschedule_delta.trajectories)
     additional_data.update({'Delay': delay_information})
@@ -563,7 +565,7 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
     """
     # Detect changes to original schedule
     traces_influenced_agents = []
-    plotting_information_traces = []
+    additional_information = dict()
     nr_influenced_agents = 0
     for idx, trainrun in enumerate(time_resource_matrix_a):
         trainrun_difference = []
@@ -576,13 +578,13 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
 
         if len(trainrun_difference) > 0:
             traces_influenced_agents.append(trainrun_difference)
-            plotting_information_traces.append([True for i in range(len(time_resource_matrix_a[idx]))])
+            additional_information.update((idx,True))
             nr_influenced_agents += 1
         else:
             traces_influenced_agents.append([(None, None)])
-            plotting_information_traces.append([False for i in range(len(time_resource_matrix_a[idx]))])
+            additional_information.append((idx,False))
 
-    return traces_influenced_agents, plotting_information_traces, nr_influenced_agents
+    return traces_influenced_agents, additional_information, nr_influenced_agents
 
 
 def resource_time_2d(schedule: TrainrunDict,
