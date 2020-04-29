@@ -393,13 +393,9 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
                                ))
     fig.add_trace(go.Histogram(x=lateness_delta_values, name='Delta Reschedule'
                                ))
-
-    fig.update_layout(title_text="Delay per Agent")
-    fig.update_layout(
-        xaxis=dict(
-            tickmode='array',
-            tickvals=np.arange(len(lateness_full_values)),
-        ))
+    fig.update_layout(barmode='overlay')
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Delay distributions")
     fig.update_xaxes(title="Delay [s]")
     fig.show()
 
