@@ -427,9 +427,12 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     topo = problem_schedule.topo_dict[agent_id]
 
     config = {
-        ScheduleProblemEnum.PROBLEM_SCHEDULE: [problem_schedule, f'Schedule RouteDAG for agent {agent_id}'],
-        ScheduleProblemEnum.PROBLEM_RSP_FULL: [problem_rsp_full, f'Full Reschedule RouteDAG for agent {agent_id}'],
-        ScheduleProblemEnum.PROBLEM_RSP_DELTA: [problem_rsp_delta, f'Delta Reschedule RouteDAG for agent {agent_id}'],
+        ScheduleProblemEnum.PROBLEM_SCHEDULE: [
+            problem_schedule, f'Schedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}'],
+        ScheduleProblemEnum.PROBLEM_RSP_FULL: [
+            problem_rsp_full, f'Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}'],
+        ScheduleProblemEnum.PROBLEM_RSP_DELTA: [
+            problem_rsp_delta, f'Delta Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}'],
     }
 
     problem_to_visualize, title = config[suffix_of_constraints_to_visualize]
