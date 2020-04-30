@@ -33,6 +33,7 @@ from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -145,21 +146,16 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
 
 def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  analysis_2d: bool = False,
-                                 analysis_3d: bool = False,
-                                 qualitative_analysis_experiment_ids: List[int] = None,
                                  asp_export_experiment_ids: List[int] = None,
-                                 flatland_rendering: bool = True
+                                 qualitative_analysis_experiment_ids: List[int] = None,
                                  ):
     """
 
     Parameters
     ----------
     analysis_2d
-    analysis_3d
-    qualitative_analysis_experiment_ids
     asp_export_experiment_ids
     experiment_base_directory
-    flatland_rendering
     """
 
     # Import the desired experiment results
@@ -207,6 +203,18 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
             experiment_results_list=experiment_results_list,
             output_folder=f'{experiment_analysis_directory}/plausi'
         )
+
+    if qualitative_analysis_experiment_ids:
+        for experiment_result in experiment_results_list:
+            if experiment_result.experiment_id not in qualitative_analysis_experiment_ids:
+                continue
+            visualize_experiment(
+                experiment_parameters=experiment_result.experiment_parameters,
+                experiment_results_analysis=experiment_result,
+                experiment_analysis_directory=experiment_analysis_directory,
+                # TODO SIM-443
+                flatland_rendering=False
+            )
 
     if asp_export_experiment_ids:
         potassco_export(experiment_potassco_directory=experiment_potassco_directory,
@@ -279,7 +287,5 @@ if __name__ == '__main__':
     hypothesis_one_data_analysis(
         experiment_base_directory='./rsp/exp_hypothesis_one_2020_03_21T12_57_55',
         analysis_2d=True,
-        analysis_3d=False,
-        qualitative_analysis_experiment_ids=None,
         asp_export_experiment_ids=[270, 275, 280, 285, 290, 295]
     )

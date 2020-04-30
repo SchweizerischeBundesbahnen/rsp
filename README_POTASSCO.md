@@ -5,7 +5,17 @@ Workflow SBB <-> Potassco.
 
 Installation
 ------------
+Clone with submodules
+```
+git clone --recursive  git@github.com:SchweizerischeBundesbahnen/rsp.git
+```
 
+If you already have a clone and want to update the submodules:
+```
+git submodule update --init --recursive
+```
+
+Conda environment
 ```
 # create conda environment rsp
 conda env create -f rsp_environment.yml
@@ -32,10 +42,23 @@ cd $WORKSPACE_FOLDER/rsp
 export PYTHONPATH=$PWD:$PYTHONPATH
 python rsp/asp_plausibility/potassco_export.py --experiment_base_directory=../rsp-data/many_agent_example --experiment_id=0 --problem=full_after_malfunction
 ```
+This generates a folder `../rsp-data/many_agent_example/potassco`:
+
+```
+../rsp-data/many_agent_example/potassco/
+../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction.lp                <-- facts
+../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction.sh                <-- clingo-dl call for this example with encoding from ../rsp-data/many_agent_example/potassco/encoding/*.lp
+../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction_configuration.txt <-- from the run
+../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction_result.txt
+../rsp-data/many_agent_example/potassco/0000_reschedule_full_after_malfunction_statistics.txt
+../rsp-data/many_agent_example/potassco/encoding/*.lp                                            <-- referenced in .sh above
+
+```
+
 
 Modifiy encoding
 ----------------
-Modify `res/asp/encodings/*.lp`
+Modify `res/asp/encodings/*.lp`. Or copy from ` ../rsp-data/many_agent_example/potassco/encoding/*.lp` after modification.
 
 
 Check correctness

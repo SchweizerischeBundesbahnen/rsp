@@ -84,7 +84,7 @@ class ASPSolutionDescription():
                     f"(1.5) [{agent_id}] no edge for {wp_1} - {wp_2}"
 
             # 1.6 verify path has no cycles
-            assert len(set(trainrun_waypoints)) == len(trainrun_waypoints), \
+            assert len(set(waypoints)) == len(waypoints), \
                 f"(1.6) [{agent_id}] cycle"
 
             # 2. verify solution satisfies constraints:

@@ -11,6 +11,8 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.logger import rsp_logger
+
 MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
 
 TopoDict = Dict[int, nx.DiGraph]
@@ -114,7 +116,8 @@ def get_sources_for_topo(topo: nx.DiGraph) -> Iterator[Waypoint]:
 
 
 def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
-    """Extract  the agent's topology.
+    """Extract  the agent's topology. Skip agent paths that make the graph
+    acyclic. Every single path is acyclic by construction.
 
     Parameters
     ----------
@@ -125,14 +128,35 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     nx.DiGraph
         topology
     """
+
     topo = nx.DiGraph()
+    skip_count = 0
     for path in agent_paths:
         topo_path = nx.DiGraph()
+
+        # add edges only to a copy
+        topo_copy = topo.copy()
         for wp1, wp2 in zip(path, path[1:]):
-            topo.add_edge(wp1, wp2)
+            topo_copy.add_edge(wp1, wp2)
             topo_path.add_edge(wp1, wp2)
-            assert len(list(nx.simple_cycles(topo_path))) == 0, f"cycle in shortest path"
-    assert len(list(nx.simple_cycles(topo))) == 0, f"cycle in re-combination of shortest paths"
+
+        # the path must have no cycles
+        topo_path_cycles = list(nx.simple_cycles(topo_path))
+        assert len(topo_path_cycles) == 0, f"cycle in shortest path"
+
+        # if the copy has no cycles, take the copy.
+        cycles = list(nx.simple_cycles(topo_copy))
+        if len(cycles) == 0:
+            topo = topo_copy
+        else:
+            skip_count += 1
+    if skip_count > 0:
+        rsp_logger.info(f"skipped {skip_count}  paths of {len(agent_paths)}")
+
+    cycles = list(nx.simple_cycles(topo))
+
+    assert len(cycles) == 0, f"cycle in re-combination of shortest paths, {cycles}"
+    assert len(get_paths_in_route_dag(topo)) > 0, "no path after removing loopy paths"
     return topo
 
 

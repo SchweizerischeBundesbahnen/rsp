@@ -10,6 +10,8 @@ from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import exists_schedule_and_malfunction
+from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import run_experiment_agenda
 
 
@@ -66,7 +68,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             copy_agenda_from_base_directory: Optional[str] = None,
                             experiment_name: str = "exp_hypothesis_one",
                             run_analysis: bool = True,
-                            parallel_compute: int = AVAILABLE_CPUS,
+                            parallel_compute: int = AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
                             gen_only: bool = False,
                             experiments_per_grid_element: int = 10
                             ) -> str:
@@ -125,7 +127,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
                                           asp_export_experiment_ids: Optional[List[int]] = None,
                                           copy_agenda_from_base_directory: Optional[str] = None,
                                           run_analysis: bool = True,
-                                          parallel_compute: bool = True,
+                                          parallel_compute: int = AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
                                           gen_only: bool = False
                                           ):
     """Run pipeline from A.2 -> C."""
@@ -147,7 +149,6 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
         hypothesis_one_data_analysis(
             experiment_base_directory=experiment_base_folder_name,
             analysis_2d=True,
-            analysis_3d=False,
             qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
             asp_export_experiment_ids=asp_export_experiment_ids
         )
@@ -155,26 +156,63 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
 
 
 def hypothesis_one_main():
+    rsp_logger.info(f"RUN FULL (WITH SCHEDULE GENERATION)")
     parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        qualitative_analysis_experiment_ids=list(range(270, 300)),
-        asp_export_experiment_ids=list(range(270, 300)),
-        copy_agenda_from_base_directory=None,  # regenerate schedules
-        parallel_compute=1
+        qualitative_analysis_experiment_ids=[],
+        asp_export_experiment_ids=[],
+        parallel_compute=AVAILABLE_CPUS // 2  # take only half of avilable cpus so the machine stays responsive
+    )
+
+
+def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory: str, nb_runs: int = 1):
+    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
+    experiment_agenda_directory = copy_agenda_from_base_directory + "/agenda"
+    experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
+
+    experiment_agenda = ExperimentAgenda(experiment_name=experiment_agenda.experiment_name,
+                                         experiments=experiment_agenda.experiments * nb_runs)
+
+    experiment_ids = [
+        experiment.experiment_id
+        for experiment in experiment_agenda.experiments
+        if exists_schedule_and_malfunction(
+            experiment_agenda_directory=experiment_agenda_directory,
+            experiment_id=experiment.experiment_id)
+    ]
+    hypothesis_one_pipeline_without_setup(
+        experiment_agenda=experiment_agenda,
+        qualitative_analysis_experiment_ids=[],
+        asp_export_experiment_ids=[],
+        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        parallel_compute=AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
+        experiment_ids=experiment_ids
+    )
+
+
+def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: str):
+    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITH REGEN SCHEDULE")
+    experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
+    hypothesis_one_pipeline_without_setup(
+        experiment_agenda=experiment_agenda,
+        qualitative_analysis_experiment_ids=[],
+        asp_export_experiment_ids=[],
+        parallel_compute=1,
+        experiment_ids=list(range(10))
     )
 
 
 def hypothesis_one_gen_schedule():
-    rsp_logger.info("HYPOTHESIS_ONE_GEN_SCHEDULE()")
+    rsp_logger.info("GEN SCHEDULE ONLY")
     parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         gen_only=True,
         experiment_ids=None,
-        parallel_compute=1
+        parallel_compute=1,
     )
 
 
 if __name__ == '__main__':
-    hypothesis_one_main()
+    hypothesis_one_rerun_without_regen_schedule("./res/many_agents_example", nb_runs=5)
