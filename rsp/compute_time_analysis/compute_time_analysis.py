@@ -140,8 +140,8 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
                              hovertext=experiment_data['experiment_id'],
                              hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
                                            '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
-                                           '<b>Grid Size:</b> %{customdata[2]}<br>' +
-                                           '<b>Speed Up:</b> %{customdata[3]:.2f}<br>' +
+                                           '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                           '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
     fig.update_layout(boxmode='group')
