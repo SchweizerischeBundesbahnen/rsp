@@ -69,14 +69,20 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
 
 def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
-                                       train_schedule_dict: TrainScheduleDict) -> (np.ndarray, Dict):
+                                       train_schedule_dict: TrainScheduleDict,
+                                       metric_function=None) -> (np.ndarray,
+                                                                 Dict):
     """This method computes the distance matrix for a complete TrainrunDict ->
     each distance between each pair of trains is computed.
 
     Parameters
     ----------
     trainrun_dict
+        Dictionary containing all the trainruns
     train_schedule_dict
+        Dictionary containing the schedules (Visited times and cells of all trains
+    metric_function
+        Metric function to be used to compute the distance matrix
 
     Returns
     -------
@@ -86,6 +92,8 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
         a dictionary with additional info like the time step at which the minimal distance happened and the location of
         the trains
     """
+    if metric_function is None:
+        metric_function = undirected_distance_between_trains
     number_of_trains = len(trainrun_dict)
     distance_matrix = np.zeros((number_of_trains, number_of_trains))
 
@@ -95,7 +103,7 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
             if column > row:
                 train_run_row = trainrun_dict.get(row)
                 train_run_column = trainrun_dict.get(column)
-                undirected_distance = undirected_distance_between_trains(
+                undirected_distance = metric_function(
                     train_schedule_row, train_run_row,
                     train_schedule_column, train_run_column)
                 distance_matrix[row, column] = undirected_distance.inverted_distance
