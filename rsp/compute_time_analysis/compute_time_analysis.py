@@ -134,12 +134,14 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
                              y=experiment_data[column],
                              name=column, pointpos=-1,
                              boxpoints='all',
-                             customdata=np.dstack((experiment_data['size'], experiment_data['speed_up']))[0],
+                             customdata=np.dstack((experiment_data['n_agents'],
+                                                   experiment_data['size'],
+                                                   experiment_data['speed_up']))[0],
                              hovertext=experiment_data['experiment_id'],
                              hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
-                                           '<b>Nr. Agents</b>: %{x}<br>' +
-                                           '<b>Grid Size:</b> %{customdata[0]}<br>' +
-                                           '<b>Speed Up:</b> %{customdata[1]:.2f}<br>' +
+                                           '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                           '<b>Grid Size:</b> %{customdata[2]}<br>' +
+                                           '<b>Speed Up:</b> %{customdata[3]:.2f}<br>' +
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
     fig.update_layout(boxmode='group')
@@ -181,22 +183,24 @@ def plot_speed_up(
                          y=experiment_data['speed_up'],
                          pointpos=-1,
                          boxpoints='all',
-                         customdata=np.dstack((experiment_data['size'], experiment_data['time_full'],
+                         customdata=np.dstack((experiment_data['n_agents'],
+                                               experiment_data['size'],
+                                               experiment_data['time_full'],
                                                experiment_data['time_full_after_malfunction'],
                                                experiment_data['time_delta_after_malfunction']))[0],
                          hovertext=experiment_data['experiment_id'],
                          hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
-                                       '<b>Nr. Agents</b>: %{x}<br>' +
-                                       '<b>Grid Size:</b> %{customdata[0]}<br>' +
-                                       '<b>Full Time:</b> %{customdata[1]:.2f}s<br>' +
-                                       '<b>Full Time after:</b> %{customdata[2]:.2f}s<br>' +
-                                       '<b>Full Delta after:</b> %{customdata[3]:.2f}s<br>' +
+                                       '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                       '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                       '<b>Full Time:</b> %{customdata[2]:.2f}s<br>' +
+                                       '<b>Full Time after:</b> %{customdata[3]:.2f}s<br>' +
+                                       '<b>Full Delta after:</b> %{customdata[4]:.2f}s<br>' +
                                        '<b>Experiment id:</b>%{hovertext}',
                          marker=dict(size=3, color='blue')))
 
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"Speed Up Factors {axis_of_interest}")
-    fig.update_xaxes(title="Agents[#]")
+    fig.update_xaxes(title=axis_of_interest)
     fig.update_yaxes(title="Speed Up Factor")
     if output_folder is None:
         fig.show()

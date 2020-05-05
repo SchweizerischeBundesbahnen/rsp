@@ -135,4 +135,4 @@ def plot_encounter_graphs_for_experiment_result(
             highlights=highlighted_nodes
         )
 
-    return (distance_matrix_full,distance_matrix_full_after_malfunction,distance_matrix_diff)
+    return (distance_matrix_full, distance_matrix_full_after_malfunction, distance_matrix_diff)
