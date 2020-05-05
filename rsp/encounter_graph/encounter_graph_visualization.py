@@ -101,17 +101,7 @@ def plot_encounter_graphs_for_experiment_result(
         trainrun_dict_full_after_malfunction,
         train_schedule_dict_full_after_malfunction, metric_function=metric_function)
     distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)
-    change_matrix = np.copy(distance_matrix_diff)
-    change_matrix.dtype = [('weight', float)]
-    change_graph = nx.from_numpy_array(change_matrix)
-    degree_weighted = change_graph.degree(weight='weight')
-    degree = change_graph.degree()
-    print(degree)
-    print(degree_weighted)
-    predicted_agents = []
-    for idx, node in enumerate(degree):
-        if node[1] >= 3 and degree_weighted[idx] >= 1:
-            predicted_agents.append(node[0])
+
     titles = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: "encounter graph initial schedule (S0)",
         ScheduleProblemEnum.PROBLEM_RSP_FULL: "encounter graph re-schedule full after malfunction (S)",
@@ -145,4 +135,4 @@ def plot_encounter_graphs_for_experiment_result(
             highlights=highlighted_nodes
         )
 
-    return predicted_agents
+    return (distance_matrix_full,distance_matrix_full_after_malfunction,distance_matrix_diff)
