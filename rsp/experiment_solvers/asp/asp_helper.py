@@ -1,6 +1,7 @@
 import json
 import time
 from enum import Enum
+from threading import Timer
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -137,7 +138,6 @@ def _asp_helper(encoding_files: List[str],
                 no_optimize: bool = False,
                 asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
-
     Parameters
     ----------
     encoding_files
@@ -147,7 +147,6 @@ def _asp_helper(encoding_files: List[str],
     verbose
         prints a lot to debug
     """
-
     # Info Max Ostrovski 2019-11-20: die import dl Variante
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)
     # bezieht sich auf eine sehr alte clingo[DL] version. Im Rahmen einer einheitlichen API für alle clingo Erweiterungen
@@ -191,12 +190,18 @@ def _asp_helper(encoding_files: List[str],
         _print_stats(statistics)
 
     # SIM-429 assert that our models are tight (sccs==0)
-    assert statistics["problem"]["lp"]["sccs"] == 0, f'not tight statistics["problem"]["lp"]["sccs"]={statistics["problem"]["lp"]["sccs"]}'
+    assert statistics["problem"]["lp"][
+               "sccs"] == 0, f'not tight statistics["problem"]["lp"]["sccs"]={statistics["problem"]["lp"]["sccs"]}'
 
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
-def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: bool = False):
+def _asp_loop(ctl: clingo.Control,  # noqa: C901
+              dl: theory.Theory,
+              no_optimize: bool = False,
+              verbose: bool = False,
+              debug: bool = False,
+              timeout: int = 20 * 60):
     """Loop over models coming from the ASP solve call until optimal one found
     and return the first optimal.
 
@@ -207,14 +212,19 @@ def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: 
     no_optimize
     verbose
     debug
+    timeout
+        interrupt the solver after this time. Solving only, does not cover grounding.
 
     Returns
     -------
     """
     all_answers = []
     min_cost = np.inf
-    with ctl.solve(yield_=True, on_statistics=dl.on_statistics) as handle:
-        for model in handle:
+    timer = None
+
+    def on_model(model):
+        try:
+            nonlocal all_answers, min_cost, timer, no_optimize, dl
             if len(model.cost) > 0:
                 cost = model.cost[0]
                 if cost < min_cost:
@@ -233,8 +243,31 @@ def _asp_loop(ctl, dl, no_optimize: bool = False, verbose: bool = False, debug: 
                 if debug:
                     print(v)
             all_answers.append(frozenset(sol))
+            timer.cancel()
+            timer = Timer(interval=timer.interval, function=timer.function)
+            timer.start()
             if no_optimize:
-                break
+                return False
+        except Exception as e:
+            print(str(e))
+
+    interrupted = False
+
+    def interrupt():
+        nonlocal ctl, interrupted
+        interrupted = True
+        ctl.interrupt()
+
+    with ctl.solve(async_=True, on_statistics=dl.on_statistics, on_model=on_model) as handle:
+        # the timeout given to handle.wait() seems not to work with clingo-dl -> use timer instead
+        # TODO check with Potsdam why handle.wait() does not work as expected: https://potassco.org/clingo/python-api/5.4/
+        timer = Timer(interval=timeout, function=interrupt)
+        timer.start()
+        while not handle.wait():
+            pass
+    if len(all_answers) == 0:
+        _print_stats(statistics=ctl.statistics)
+        raise ValueError(f"ASP solver: No solution found. Interrupted={interrupted}")
     return all_answers
 
 

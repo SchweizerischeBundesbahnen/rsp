@@ -405,10 +405,10 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
                    suffix_of_constraints_to_visualize: ScheduleProblemEnum,
                    save: bool = False
                    ):
-    train_runs_input: TrainrunDict = experiment_results_analysis.solution_full
+    train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
     train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
-    train_run_input: Trainrun = train_runs_input[agent_id]
+    train_run_full: Trainrun = train_runs_full[agent_id]
     train_run_full_after_malfunction: Trainrun = train_runs_full_after_malfunction[agent_id]
     train_run_delta_after_malfunction: Trainrun = train_runs_delta_after_malfunction[agent_id]
     problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
@@ -417,19 +417,29 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     topo = problem_schedule.topo_dict[agent_id]
 
     config = {
-        ScheduleProblemEnum.PROBLEM_SCHEDULE: [problem_schedule, f'Schedule RouteDAG for agent {agent_id}'],
-        ScheduleProblemEnum.PROBLEM_RSP_FULL: [problem_rsp_full, f'Full Reschedule RouteDAG for agent {agent_id}'],
-        ScheduleProblemEnum.PROBLEM_RSP_DELTA: [problem_rsp_delta, f'Delta Reschedule RouteDAG for agent {agent_id}'],
+        ScheduleProblemEnum.PROBLEM_SCHEDULE: [
+            problem_schedule,
+            f'Schedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
+            train_run_full],
+        ScheduleProblemEnum.PROBLEM_RSP_FULL: [
+            problem_rsp_full,
+            f'Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
+            train_run_full_after_malfunction],
+        ScheduleProblemEnum.PROBLEM_RSP_DELTA: [
+            problem_rsp_delta,
+            f'Delta Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
+            train_run_delta_after_malfunction],
     }
 
-    problem_to_visualize, title = config[suffix_of_constraints_to_visualize]
+    problem_to_visualize, title, trainrun_to_visualize = config[suffix_of_constraints_to_visualize]
 
     visualize_route_dag_constraints(
         topo=topo,
-        train_run_input=train_run_input,
+        train_run_full=train_run_full,
         train_run_full_after_malfunction=train_run_full_after_malfunction,
         train_run_delta_after_malfunction=train_run_delta_after_malfunction,
-        f=problem_to_visualize.route_dag_constraints_dict[agent_id],
+        constraints_to_visualize=problem_to_visualize.route_dag_constraints_dict[agent_id],
+        trainrun_to_visualize=trainrun_to_visualize,
         vertex_eff_lateness={},
         edge_eff_route_penalties={},
         route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],

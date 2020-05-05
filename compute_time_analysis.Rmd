@@ -39,9 +39,10 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
+
 experiment_base_directory = './res/exp_hypothesis_one_2020_03_31T07_11_03/'
-# experiment_base_directory = './res/many_agents_example/'
-experiments_of_interest = [79,99] #
+
+experiments_of_interest = None
 ```
 
 ```{python}
@@ -76,7 +77,14 @@ data_frame = pd.DataFrame(data=[
 'path_search_space_rsp_full': r.path_search_space_rsp_full,
 'path_search_space_rsp_delta': r.path_search_space_rsp_delta,
 'factor_path_search_space': r.factor_path_search_space,
-'size_used': r.size_used
+'size_used': r.size_used,
+'solver_conflicts_full': r.results_full.solver_statistics["solving"]["solvers"]["conflicts"],
+'solver_choices_full': r.results_full.solver_statistics["solving"]["solvers"]["choices"],
+'solver_conflicts_full_after_malfunction': r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"],
+'solver_choices_full_after_malfunction': r.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"],
+'solver_conflicts_delta_after_malfunction': r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["conflicts"],
+'solver_choices_delta_after_malfunction': r.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"],
+
     }
     for r in experiment_results_list])
 data_frame.to_csv(f"data.tsv", sep="\t")
@@ -109,6 +117,19 @@ hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
 # for exploration, use:
 # plot_speed_up(experiment_data=experiment_data,
 #                        axis_of_interest=axis_of_interest)
+```
+
+## Find interesting experiments with route alternatives in Delta
+
+```{python}
+for experiment in experiment_results_list:
+#     print(experiment.experiment_id)
+    for agent_id, topo in experiment.problem_delta_after_malfunction.topo_dict.items():
+         for node, in_degree in topo.in_degree:
+                if in_degree > 1 and agent_id != experiment.malfunction.agent_id:
+                     print(f"experiment_id={experiment.experiment_id}, agent_id={agent_id}, node={node}, in_degree={in_degree}")
+
+
 ```
 
 ### Visualize Weg-Zeit-Diagram of specific experiment
@@ -173,18 +194,22 @@ Video(video_src_reschedule, embed=True)
 #### Route DAGs for individual agents
 
 ```{python}
-# %matplotlib inline
-plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_SCHEDULE)
+agent_of_interest = 30
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+```
+
+```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```
 
 #### Encounter Graphs

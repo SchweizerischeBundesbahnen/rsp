@@ -11,9 +11,6 @@ from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
 from rsp.route_dag.route_dag import get_paths_in_route_dag
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.utils.analysis_tools import plot_weg_zeit_diagramm_3d
-from rsp.utils.analysis_tools import save_weg_zeit_diagramm_2d
-from rsp.utils.analysis_tools import visualize_agent_density
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResultsAnalysis
@@ -25,9 +22,7 @@ from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 def visualize_experiment(experiment_parameters: ExperimentParameters,
                          experiment_results_analysis: ExperimentResultsAnalysis,
                          experiment_analysis_directory: str = None,
-                         analysis_2d: bool = False,
                          route_dag: bool = True,
-                         analysis_3d: bool = False,
                          flatland_rendering: bool = False,
                          convert_to_mpeg: bool = True):
     """Render the experiment the DAGs and the FLATland png/mpeg in the
@@ -48,7 +43,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
     """
 
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-    train_runs_input: TrainrunDict = experiment_results_analysis.solution_full
+    train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
     train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
 
@@ -85,15 +80,12 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
             topo = problem_schedule.topo_dict[agent_id]
             train_run_full_after_malfunction = train_runs_full_after_malfunction[agent_id]
             train_run_delta_after_malfunction = train_runs_delta_after_malfunction[agent_id]
-            train_run_input: Trainrun = train_runs_input[agent_id]
+            train_run_full: Trainrun = train_runs_full[agent_id]
 
             # schedule input
             visualize_route_dag_constraints(
-                topo=topo,
-                train_run_input=train_run_input,
-                train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
-                f=problem_schedule.route_dag_constraints_dict[agent_id],
+                constraints_to_visualize=problem_schedule.route_dag_constraints_dict[agent_id],
+                trainrun_to_visualize=train_run_full,
                 vertex_eff_lateness={},
                 edge_eff_route_penalties={},
                 route_section_penalties=problem_schedule.route_section_penalties[agent_id],
@@ -102,15 +94,17 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                                   k=experiment_parameters.number_of_shortest_paths_per_agent),
                 file_name=(os.path.join(route_dag_folder,
                                         f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf")
-                           if experiment_analysis_directory is not None else None)
+                           if experiment_analysis_directory is not None else None),
+
+                topo=topo,
+                train_run_full=train_run_full,
+                train_run_full_after_malfunction=train_run_full_after_malfunction,
+                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             )
             # delta after malfunction
             visualize_route_dag_constraints(
-                topo=topo,
-                train_run_input=train_runs_input[agent_id],
-                train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
-                f=problem_rsp_delta.route_dag_constraints_dict[agent_id],
+                constraints_to_visualize=problem_rsp_delta.route_dag_constraints_dict[agent_id],
+                trainrun_to_visualize=train_run_delta_after_malfunction,
                 vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
                 edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[
                     agent_id],
@@ -125,15 +119,18 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                         agent_id]),
                 file_name=(os.path.join(route_dag_folder,
                                         f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.pdf")
-                           if experiment_analysis_directory is not None else None)
+                           if experiment_analysis_directory is not None else None),
+
+                topo=topo,
+                train_run_full=train_runs_full[agent_id],
+                train_run_full_after_malfunction=train_run_full_after_malfunction,
+                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+
             )
             # full rescheduling
             visualize_route_dag_constraints(
-                topo=topo,
-                train_run_input=train_runs_input[agent_id],
-                train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
-                f=problem_rsp_full.route_dag_constraints_dict[agent_id],
+                constraints_to_visualize=problem_rsp_full.route_dag_constraints_dict[agent_id],
+                trainrun_to_visualize=train_run_full_after_malfunction,
                 vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_full_after_malfunction[agent_id],
                 edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_full_after_malfunction[
                     agent_id],
@@ -147,24 +144,23 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                     eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),
                 file_name=(os.path.join(route_dag_folder,
                                         f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.pdf")
-                           if experiment_analysis_directory is not None else None)
+                           if experiment_analysis_directory is not None else None),
+
+                topo=topo,
+                train_run_full=train_runs_full[agent_id],
+                train_run_full_after_malfunction=train_run_full_after_malfunction,
+                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
             )
 
     # Generate aggregated visualization
-    replay_and_verify_trainruns(data_folder=rendering_folder,
-                                experiment_id=experiment_results_analysis.experiment_id,
-                                expected_malfunction=experiment_results_analysis.malfunction,
-                                rendering=flatland_rendering,
-                                rail_env=malfunction_rail_env,
-                                trainruns=train_runs_full_after_malfunction,
-                                convert_to_mpeg=convert_to_mpeg)
-
-    if analysis_2d:
-        save_weg_zeit_diagramm_2d(experiment_data=experiment_results_analysis, output_folder=metric_folder)
-        visualize_agent_density(experiment_results_analysis, output_folder=metric_folder)
-
-    if analysis_3d:
-        plot_weg_zeit_diagramm_3d(experiment_results_analysis)
+    if flatland_rendering:
+        replay_and_verify_trainruns(data_folder=rendering_folder,
+                                    experiment_id=experiment_results_analysis.experiment_id,
+                                    expected_malfunction=experiment_results_analysis.malfunction,
+                                    rendering=flatland_rendering,
+                                    rail_env=malfunction_rail_env,
+                                    trainruns=train_runs_full_after_malfunction,
+                                    convert_to_mpeg=convert_to_mpeg)
 
 
 def _make_title(agent_id: str,
