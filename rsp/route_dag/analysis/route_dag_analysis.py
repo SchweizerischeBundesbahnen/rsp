@@ -152,20 +152,27 @@ def visualize_route_dag_constraints(
     ----------
     topo
     constraints_to_visualize
-        constraints for this agent
+        constraints for this agent to visualize, draws nodes in different corresponding to their constraints
+    trainrun_to_visualize
+        trainrun for this agents, used for visualizing a trainrun in red and for visualizing delay (different to earliest from constraints_to_visualize)
     file_name
         save graph to this file
     title
         title in the picture
     scale
         scale in or out
-    trainrun_to_visualize
     route_section_penalties
+        route penalty is displayed in edge label
     edge_eff_route_penalties
+        route penalty is displayed in edge label
     vertex_eff_lateness
+        lateness is displayed in node labels
     train_run_full
+        used in labels for S0
     train_run_full_after_malfunction
+        used in labels for S
     train_run_delta_after_malfunction
+        used in labels for S'
     """
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
 
