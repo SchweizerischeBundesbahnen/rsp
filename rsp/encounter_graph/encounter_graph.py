@@ -1,6 +1,7 @@
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
@@ -59,10 +60,7 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule,
 
     # if the time window of the two trains do not overlap -> no relationship between trains
     if train_0_end_time < train_1_start_time or train_1_end_time < train_0_start_time:
-        return UndirectedEncounterGraphDistance(inverted_distance=0,
-                                                time_of_min=0,
-                                                train_0_position_at_min=0,
-                                                train_1_position_at_min=0)
+        return UndirectedEncounterGraphDistance(proximity=0)
 
     # some timesteps overlap -> find out which ones
     start_time_step = max(train_0_start_time, train_1_start_time)
@@ -82,12 +80,8 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule,
 
     # first heuristic -> get the smallest distance
     dist_between_trains = np.min(distances_in_time_window)
-    index_min_dist = np.argmin(distances_in_time_window)
 
-    distance = UndirectedEncounterGraphDistance(inverted_distance=(1. / dist_between_trains),
-                                                time_of_min=(start_time_step + index_min_dist),
-                                                train_0_position_at_min=train_0_positions[int(index_min_dist)],
-                                                train_1_position_at_min=train_1_positions[int(index_min_dist)])
+    distance = UndirectedEncounterGraphDistance(proximity=(1. / dist_between_trains))
 
     return distance
 
@@ -113,20 +107,8 @@ def undirected_distance_between_trains_sum_of_time_window_overlaps(
     UndirectedEncounterGraphDistance
         contains the data related to the undirected encounter graph distance
     """
-    train_0_start_time = train_run_0[0].scheduled_at
-    train_0_end_time = train_run_0[-1].scheduled_at
-    train_1_start_time = train_run_1[0].scheduled_at
-    train_1_end_time = train_run_1[-1].scheduled_at
 
-    # if the time window of the two trains do not overlap -> no relationship between trains
-    if train_0_end_time < train_1_start_time or train_1_end_time < train_0_start_time:
-        return UndirectedEncounterGraphDistance(inverted_distance=0,
-                                                time_of_min=0,
-                                                train_0_position_at_min=0,
-                                                train_1_position_at_min=0)
-
-    # get positions in time window
-    # TODO wann kann waypoint None sein?
+    # TODO wann kann waypoint None sein? Bug?
     train_0_positions = [waypoint.position for i, waypoint in train_schedule_0.items()
                          if waypoint is not None]
     train_1_positions = [waypoint.position for i, waypoint in train_schedule_1.items()
@@ -164,21 +146,12 @@ def undirected_distance_between_trains_sum_of_time_window_overlaps(
     if debug:
         print(f"overlap_starts={overlap_starts}")
     if len(overlap_starts) == 0:
-        return UndirectedEncounterGraphDistance(inverted_distance=0,
-                                                time_of_min=0,
-                                                train_0_position_at_min=0,
-                                                train_1_position_at_min=0)
+        return UndirectedEncounterGraphDistance(proximity=0)
 
     # heuristic: sum of time window overlaps of resources in schedule
-    index_min_dist = np.min(overlap_starts)
     proximity_between_trains = np.sum(overlap_lengths)
 
-    # TODO what about time_of_min?
-    start_time_step = max(train_0_start_time, train_1_start_time)
-    distance = UndirectedEncounterGraphDistance(inverted_distance=proximity_between_trains,
-                                                time_of_min=(start_time_step + index_min_dist),
-                                                train_0_position_at_min=train_0_positions[min(int(index_min_dist), len(train_0_positions) - 1)],
-                                                train_1_position_at_min=train_1_positions[min(int(index_min_dist), len(train_1_positions) - 1)])
+    distance = UndirectedEncounterGraphDistance(proximity=proximity_between_trains)
 
     if debug:
         print(f"proximity_between_trains={proximity_between_trains}")
@@ -186,17 +159,37 @@ def undirected_distance_between_trains_sum_of_time_window_overlaps(
     return distance
 
 
-def _extract_earliest_latest_dict(constraints_0, train_0_positions):
-    train_earliest = {wp: np.inf for wp in train_0_positions}
-    train_latest = {wp: -np.inf for wp in train_0_positions}
-    for wp, scheduled_at in constraints_0.freeze_earliest.items():
+def _extract_earliest_latest_dict(constraints, train_positions, max_window_size_from_earliest: int = 30):
+    """For all cells, extract earliest and latest from constraints.
+
+    - If there are multiple vertices, take the min for earliest and the max for latest
+    - Set latest to at most earliest + max_window_size_from_earliest
+    # TODO why is this necessary? Is this because of aggregation over multiple vertices of the same cell or because of the agenda?
+
+    Parameters
+    ----------
+    constraints
+    train_positions
+    max_window_size_from_earliest
+
+    Returns
+    -------
+    """
+    train_earliest = {wp: np.inf for wp in train_positions}
+    train_latest = {wp: -np.inf for wp in train_positions}
+    for wp, scheduled_at in constraints.freeze_earliest.items():
         cell = wp.position
         if cell in train_earliest:
             train_earliest[cell] = min(train_earliest[cell], scheduled_at)
-    for wp, scheduled_at in constraints_0.freeze_latest.items():
+    for wp, scheduled_at in constraints.freeze_latest.items():
         cell = wp.position
         if cell in train_latest:
             train_latest[cell] = max(train_latest[cell], scheduled_at)
+    assert set(train_latest.keys()) == set(train_earliest.keys())
+    # TODO this does not seem to work well:
+    if False:
+        for cell, earliest in train_earliest.items():
+            train_latest[cell] = min(earliest + max_window_size_from_earliest, train_latest[cell])
     return train_earliest, train_latest
 
 
@@ -236,6 +229,7 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
                                        schedule_problem_description: ScheduleProblemDescription,
                                        train_schedule_dict: TrainScheduleDict,
                                        metric_function: MetricFunction = None,
+                                       debug_pair: Tuple[int, int] = None
                                        ) -> (np.ndarray, Dict):
     """This method computes the distance matrix for a complete TrainrunDict ->
     each distance between each pair of trains is computed.
@@ -267,12 +261,12 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
             if column > row:
                 train_run_row = trainrun_dict.get(row)
                 train_run_column = trainrun_dict.get(column)
-
-                # TODO remove debugging code
-                debug = False
-                if row == 15 and column == 44:
-                    print(f"{row} - {column}")
-                    debug = True
+                _debug = False
+                if debug_pair is not None:
+                    debug_row, debug_column = debug_pair
+                    if row == debug_row and column == _debug:
+                        print(f"{row} - {column}")
+                        _debug = True
                 undirected_distance: UndirectedEncounterGraphDistance = metric_function(
                     train_schedule_0=train_schedule_row,
                     train_run_0=train_run_row,
@@ -280,39 +274,60 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
                     train_schedule_1=train_schedule_column,
                     train_run_1=train_run_column,
                     constraints_1=schedule_problem_description.route_dag_constraints_dict[column],
-                    debug=debug
+                    debug=_debug
                 )
-                proximity_matrix[row, column] = undirected_distance.inverted_distance
-                proximity_matrix[column, row] = undirected_distance.inverted_distance
-                if debug:
-                    print("test")
-                    print(undirected_distance.inverted_distance)
+                proximity_matrix[row, column] = undirected_distance.proximity
+                proximity_matrix[column, row] = undirected_distance.proximity
 
     trains = train_schedule_dict.keys()
-    # TODO fix transitive closure?
+    # TODO how to fix transitive closure: train 1 and train 2 are close, train 2 and train 3 are close, does this propagate to the proximity of 1 and 3?
+    #  Is this directed?
     if False:
         _transitive_closure_distance_matrix(proximity_matrix, trains)
-    distance_matrix, additional_info = _convert_proximity_matrix_to_distance_matrix(proximity_matrix=proximity_matrix, trains=trains)
-    return distance_matrix, additional_info
+    distance_matrix = _convert_proximity_matrix_to_normalized_distance_matrix(proximity_matrix=proximity_matrix, trains=trains)
+    return distance_matrix
 
 
-def _convert_proximity_matrix_to_distance_matrix(proximity_matrix: np.ndarray, trains: List[int]):
-    additional_info = {}
+def _convert_proximity_matrix_to_normalized_distance_matrix(proximity_matrix: np.ndarray, trains: List[int], separation_factor: float = 100.0):
+    """
+
+    Parameters
+    ----------
+    proximity_matrix
+        non-negative symmetric proximities
+    trains
+    separation_factor:
+        upon normalization, the maximum finite distance is set to 1/separation_factor, whereas infinite distance (no proximity) is set to 1.0
+
+    Returns
+    -------
+
+    """
     distance_matrix = proximity_matrix.copy()
+    max_distance = 0
+    # 1. take inverse of finite proximities in range [0.0,np.inf) and to distances in range [0.0,np.inf] and keep track of maximum non-infinite distance
+    # TODO do we need train as parameters? could we use array dimensions instead?
     for row in trains:
         for column in trains:
             if column > row:
                 proximity = proximity_matrix[row, column]
                 if proximity == 0.0:
-                    ALMOST_INFINTITY = 999999999999999
-                    distance_matrix[row, column] = ALMOST_INFINTITY
-                    distance_matrix[column, row] = ALMOST_INFINTITY
+                    distance_matrix[row, column] = np.inf
+                    distance_matrix[column, row] = np.inf
                 else:
                     distance = 1.0 / proximity
                     distance_matrix[row, column] = distance
                     distance_matrix[column, row] = distance
-                additional_info[(row, column)] = proximity
-    return distance_matrix, additional_info
+                    max_distance = max(max_distance, distance)
+    # 2. normalize distance_matrix to range [0.0,1.0] by use of max_distance
+    distance_matrix /= (max_distance * separation_factor)
+    for row in trains:
+        for column in trains:
+            if column > row:
+                if distance_matrix[row, column] == np.inf:
+                    distance_matrix[row, column] = 1.0
+                    distance_matrix[column, row] = 1.0
+    return distance_matrix
 
 
 def _transitive_closure_distance_matrix(proximity_matrix: np.ndarray, trains: List[int]):
