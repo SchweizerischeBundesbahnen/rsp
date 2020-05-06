@@ -32,8 +32,13 @@ def _plot_encounter_graph_undirected(
     """
     dt = [('weight', float)]
     distance_matrix_as_weight = np.copy(distance_matrix)
+    # work-around: force full matrix, else zero weight edges are not added to the graph
+    threshold = 0.00000000001
+    distance_matrix_as_weight += threshold
     distance_matrix_as_weight.dtype = dt
-    graph = nx.from_numpy_array(distance_matrix_as_weight)
+
+    graph = nx.from_numpy_array(distance_matrix_as_weight, parallel_edges=True)
+    print(f"nb edges={len(graph.edges)}, nodes={graph.number_of_nodes()}, expected nb of edges={graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2}")
 
     # position of nodes
     if pos is None:
@@ -42,7 +47,7 @@ def _plot_encounter_graph_undirected(
         pos = nx.spring_layout(graph, seed=42)
 
     # Color the nodes
-    node_color = ['b' for i in range(graph.number_of_nodes())]
+    node_color = ['lightblue' for i in range(graph.number_of_nodes())]
     if highlights is not None:
         for node_idx in highlights:
             if highlights[node_idx]:
@@ -56,8 +61,10 @@ def _plot_encounter_graph_undirected(
     nx.draw_networkx_nodes(graph, pos, node_color=node_color)
 
     # draw edges with corresponding weights
-    for edge in graph.edges(data=True):
-        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
+    for edge_with_data in graph.edges(data=True):
+        edge_weight = edge_with_data[2]['weight']
+        edge = edge_with_data[:2]
+        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge_weight * 5.)
 
     # draw labels
     nx.draw_networkx_labels(graph, pos, font_size=10, font_family='sans-serif')
@@ -82,12 +89,17 @@ def plot_encounter_graphs_for_experiment_result(
         metric_function: Optional = None):
     """
 
-    :param experiment_result:
-    :param pos:
-    :param highlighted_nodes:
-    :param encounter_graph_folder:
-    :param metric_function:
-    :return:
+    Parameters
+    ----------
+    experiment_result
+    pos
+    highlighted_nodes
+    encounter_graph_folder
+    metric_function
+
+    Returns
+    -------
+
     """
     print("plot_encounter_graphs_for_experiment_result")
     trainrun_dict_full = experiment_result.solution_full
@@ -95,16 +107,26 @@ def plot_encounter_graphs_for_experiment_result(
     train_schedule_dict_full = convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict_full)
     train_schedule_dict_full_after_malfunction = convert_trainrundict_to_entering_positions_for_all_timesteps(
         trainrun_dict_full_after_malfunction)
-    distance_matrix_full, additional_info = compute_undirected_distance_matrix(trainrun_dict_full,
-                                                                               experiment_result.problem_full,
-                                                                               train_schedule_dict_full,
-                                                                               metric_function=metric_function)
-    distance_matrix_full_after_malfunction, additional_info_after_malfunction = compute_undirected_distance_matrix(
-        trainrun_dict_full_after_malfunction,
-        experiment_result.problem_full_after_malfunction,
-        train_schedule_dict_full_after_malfunction,
+    print("schedule: compute_undirected_distance_matrix")
+    distance_matrix_full, _ = compute_undirected_distance_matrix(
+        trainrun_dict=trainrun_dict_full,
+        schedule_problem_description=experiment_result.problem_full,
+        train_schedule_dict=train_schedule_dict_full,
         metric_function=metric_function)
+    print(distance_matrix_full)
+    print(distance_matrix_full[15, 44])
+    print("re-schedule: compute_undirected_distance_matrix")
+
+    distance_matrix_full_after_malfunction, _ = compute_undirected_distance_matrix(
+        trainrun_dict=trainrun_dict_full_after_malfunction,
+        schedule_problem_description=experiment_result.problem_full_after_malfunction,
+        train_schedule_dict=train_schedule_dict_full_after_malfunction,
+        metric_function=metric_function)
+    print(distance_matrix_full_after_malfunction)
+    print(distance_matrix_full_after_malfunction[15, 44])
     distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)
+    print(distance_matrix_diff)
+    print(distance_matrix_diff[15, 44])
 
     titles = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: "encounter graph initial schedule (S0)",

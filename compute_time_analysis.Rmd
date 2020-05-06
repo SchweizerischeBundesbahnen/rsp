@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python [conda env:.conda-rsp] *
+    display_name: Python [conda env:rsp] *
     language: python
-    name: conda-env-.conda-rsp-py
+    name: conda-env-rsp-py
 ---
 
 ```{python}
@@ -174,17 +174,17 @@ Video(video_src_reschedule, embed=True)
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_SCHEDULE)
+plot_route_dag(single_exp_results,44, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+plot_route_dag(single_exp_results,44, ScheduleProblemEnum.PROBLEM_RSP_FULL)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,0, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+plot_route_dag(single_exp_results,44, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```
 
 #### Encounter Graphs
@@ -223,7 +223,13 @@ def undirected_temporal_distance_between_trains(train_schedule_0, train_run_0,tr
 
 ```{python}
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
-(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,metric_function=undirected_temporal_distance_between_trains)
+from rsp.encounter_graph.encounter_graph import undirected_distance_between_trains_sum_of_time_window_overlaps
+(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,metric_function=undirected_distance_between_trains_sum_of_time_window_overlaps)
+
+```
+
+```{python}
+display(1.0/distance_matrix_malfunction[15,44])
 ```
 
 ### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?

@@ -1,5 +1,6 @@
 from typing import List
 
+from rsp.encounter_graph.encounter_graph import undirected_distance_between_trains_sum_of_time_window_overlaps
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -37,9 +38,12 @@ def hypothesis_two_encounter_graph_undirected(experiment_base_directory: str,
         experiment_result = experiment_results_list[i]
 
         plot_encounter_graphs_for_experiment_result(experiment_result=experiment_result,
-                                                    encounter_graph_folder=encounter_graph_folder)
+                                                    encounter_graph_folder=encounter_graph_folder,
+                                                    metric_function=undirected_distance_between_trains_sum_of_time_window_overlaps
+                                                    )
 
 
 if __name__ == '__main__':
-    hypothesis_two_encounter_graph_undirected(experiment_base_directory='./res/exp_hypothesis_one_2020_03_31T07_11_03',
-                                              experiment_ids=[79])
+    hypothesis_two_encounter_graph_undirected(
+        experiment_base_directory='./res/exp_hypothesis_one_2020_03_31T07_11_03',
+        experiment_ids=[79])
