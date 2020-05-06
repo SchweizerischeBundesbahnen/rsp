@@ -41,15 +41,31 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```{python}
 # experiment_base_directory = './res/mini_toy_example/'
 # experiment_base_directory = './res/many_agents_example/'
-experiment_base_directory = './res/exp_hypothesis_one_2020_03_31T07_11_03/'
+experiment_base_directory = './exp_hypothesis_one_2020_04_29T18_27_14/'
 
 experiments_of_interest = None
 ```
 
 ```{python}
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_directory,experiment_ids=experiments_of_interest)
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory,
+    experiment_ids=experiments_of_interest,
+    nonify_problem_and_results=True
+)
 experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+```
+
+```{python}
+experiments_base_directory_comparison = './res/many_agents_example_old/'
+experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=f'{experiments_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
+    experiment_ids=experiments_of_interest,
+    nonify_problem_and_results=True
+)
+experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
+
+display(experiment_data_comparison)
 ```
 
 ```{python}
@@ -101,7 +117,12 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_aft
 
 ```{python}
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
+# display(experiment_data.dtypes)
+
+experiment_data_merged = pd.concat([experiment_data, experiment_data_comparison])
+hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data_merged)
+
+
 
 # for exploration, use:
 # plot_computational_times(experiment_data=experiment_data,

@@ -922,15 +922,21 @@ def save_experiment_results_to_file(experiment_results: List, file_name: str):
 
 
 def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name: str,
-                                                        experiment_ids: List[int] = None) -> \
+                                                        experiment_ids: List[int] = None,
+                                                        nonify_problem_and_results: bool = False
+                                                        ) -> \
         List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
     Parameters
     ----------
+
     experiment_data_folder_name: str
         Folder name of experiment where all experiment files are stored
     experiment_ids
         List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
+    nonify_problem_and_results
+        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
+        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     Returns
     -------
     DataFrame containing the loaded experiment results
@@ -951,10 +957,9 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
         exp_id = get_experiment_id_from_filename(file_name)
         if experiment_ids is not None and exp_id not in experiment_ids:
             continue
-
         with open(file_name, 'rb') as handle:
-            file_data = pickle.load(handle)
-            experiment_results_list.append(expand_experiment_results_for_analysis(file_data))
+            file_data: ExperimentResults = pickle.load(handle)
+            experiment_results_list.append(expand_experiment_results_for_analysis(file_data, nonify_problem_and_results=nonify_problem_and_results))
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
