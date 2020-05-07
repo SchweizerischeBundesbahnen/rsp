@@ -9,7 +9,7 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
-from rsp.flatland_integration.flatland_conversion import _extract_trainrun_dict_from_flatland_positions
+from rsp.flatland_integration.flatland_conversion import extract_trainrun_dict_from_flatland_positions
 from rsp.flatland_integration.flatland_conversion import FLATlandPositionsPerTimeStep
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -188,8 +188,8 @@ def ckua_generate_schedule(  # noqa:C901
     initial_directions = {agent.handle: agent.initial_direction for agent in env.agents}
     targets = {agent.handle: agent.target for agent in env.agents}
 
-    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(initial_directions, initial_positions, schedule,
-                                                                   targets)
+    trainrun_dict = extract_trainrun_dict_from_flatland_positions(initial_directions, initial_positions, schedule,
+                                                                  targets)
     # TODO why does this not work?
     env.reset(False, False, False, random_seed=random_seed)
     verify_trainruns_dict(env=env, trainrun_dict=trainrun_dict)

@@ -76,8 +76,7 @@ def convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict: Tra
     return train_schedule_dict
 
 
-# TODO SIM-434 simplify! write unit tests!
-def _extract_trainrun_dict_from_flatland_positions(
+def extract_trainrun_dict_from_flatland_positions(
         initial_directions: Dict[int, int],
         initial_positions: Dict[int, Tuple[int, int]],
         schedule: FLATlandPositionsPerTimeStep,
