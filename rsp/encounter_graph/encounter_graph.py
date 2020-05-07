@@ -68,6 +68,40 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
     return distance
 
 
+def undirected_temporal_distance_between_trains(train_schedule_0, train_run_0, train_schedule_1, train_run_1):
+    """Compute the summed distance in time between two trains on shared
+    ressources.
+
+    Parameters
+    ----------
+    train_schedule_0
+    train_run_0
+    train_schedule_1
+    train_run_1
+
+    Returns
+    -------
+    UndirectedEncounterGraphDistance
+    contains the data related to the undirected encounter graph distance
+    """
+    time_distance = np.inf
+    number_of_overlaps = 0
+    for time_0, waypoint_0 in train_schedule_0.items():
+        for time_1, waypoint_1 in train_schedule_1.items():
+            if waypoint_0 is not None and waypoint_1 is not None:
+                if waypoint_0.position == waypoint_1.position:
+                    tmp_dist = np.abs(time_1 - time_0)
+                    if tmp_dist <= time_distance:
+                        time_distance = tmp_dist
+
+    distance = UndirectedEncounterGraphDistance(inverted_distance=(1. / time_distance),
+                                                time_of_min=(time_0),
+                                                train_0_position_at_min=train_schedule_0[time_0],
+                                                train_1_position_at_min=train_schedule_1[time_1])
+
+    return distance
+
+
 def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
                                        train_schedule_dict: TrainScheduleDict,
                                        metric_function=None) -> (np.ndarray,
