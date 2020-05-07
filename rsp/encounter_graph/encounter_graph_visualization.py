@@ -61,19 +61,14 @@ def _plot_encounter_graph_undirected(
     nx.draw_networkx_nodes(graph, pos, node_color=node_color)
 
     # draw edges with corresponding weights
-    higlighted_edge = []
     for edge in graph.edges(data=True):
         if fixed_positions is not None:
             if fixed_positions.get(edge[0]) is not None or fixed_positions.get(edge[1]) is not None:
-                higlighted_edge.append(edge)
+                nx.draw_networkx_edges(graph, pos, edgelist=[edge], edge_color='r', width=edge[2]['weight'] * 5.)
             else:
-                nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
+                nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5., alpha=0.25)
         else:
             nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
-
-    # Highlight the edges and draw them on top
-    for edge in higlighted_edge:
-        nx.draw_networkx_edges(graph, pos, edgelist=[edge], edge_color='r', width=edge[2]['weight'] * 5.)
 
     # draw labels
     nx.draw_networkx_labels(graph, pos, font_size=10, font_family='sans-serif')
