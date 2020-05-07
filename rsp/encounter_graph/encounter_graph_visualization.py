@@ -16,7 +16,8 @@ def _plot_encounter_graph_undirected(
         distance_matrix: np.ndarray,
         title: str, file_name: Optional[str],
         pos: dict = None,
-        highlights: dict = None):
+        highlights: dict = None,
+        fixed_positions: Optional[dict] = None):
     """This method plots the encounter graph and the heatmap of the distance
     matrix into one file.
 
@@ -33,13 +34,17 @@ def _plot_encounter_graph_undirected(
     dt = [('weight', float)]
     distance_matrix_as_weight = np.copy(distance_matrix)
     distance_matrix_as_weight.dtype = dt
-    graph = nx.from_numpy_array(distance_matrix_as_weight)
+    graph = nx.from_numpy_matrix(distance_matrix_as_weight)
 
     # position of nodes
     if pos is None:
         # Position nodes using Fruchterman-Reingold force-directed algorithm
         # https://networkx.github.io/documentation/stable/reference/generated/networkx.drawing.layout.spring_layout.html
-        pos = nx.spring_layout(graph, seed=42)
+        if fixed_positions is not None:
+            fixed_nodes = fixed_positions.keys()
+            pos = nx.spring_layout(graph, seed=42, pos=fixed_positions, fixed=fixed_nodes)
+        else:
+            pos = nx.spring_layout(graph, seed=42)
 
     # Color the nodes
     node_color = ['b' for i in range(graph.number_of_nodes())]
@@ -56,8 +61,19 @@ def _plot_encounter_graph_undirected(
     nx.draw_networkx_nodes(graph, pos, node_color=node_color)
 
     # draw edges with corresponding weights
+    higlighted_edge = []
     for edge in graph.edges(data=True):
-        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
+        if fixed_positions is not None:
+            if fixed_positions.get(edge[0]) is not None or fixed_positions.get(edge[1]) is not None:
+                higlighted_edge.append(edge)
+            else:
+                nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
+        else:
+            nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
+
+    # Highlight the edges and draw them on top
+    for edge in higlighted_edge:
+        nx.draw_networkx_edges(graph, pos, edgelist=[edge], edge_color='r', width=edge[2]['weight'] * 5.)
 
     # draw labels
     nx.draw_networkx_labels(graph, pos, font_size=10, font_family='sans-serif')
@@ -79,7 +95,8 @@ def plot_encounter_graphs_for_experiment_result(
         pos: Optional[dict] = None,
         highlighted_nodes: Optional[dict] = None,
         encounter_graph_folder: Optional[str] = None,
-        metric_function: Optional = None):
+        metric_function: Optional = None,
+        fixed_positions: Optional[dict] = None):
     """
 
     :param experiment_result:
@@ -127,12 +144,13 @@ def plot_encounter_graphs_for_experiment_result(
         ScheduleProblemEnum.PROBLEM_RSP_DELTA
     ]
     for schedule_problem_to_visualize in schedule_problems_to_visualize:
-        _plot_encounter_graph_undirected(
+        _ = _plot_encounter_graph_undirected(
             distance_matrix=distance_matrices[schedule_problem_to_visualize],
             title=titles[schedule_problem_to_visualize],
             file_name=(file_names[schedule_problem_to_visualize] if encounter_graph_folder is not None else None),
             pos=pos,
-            highlights=highlighted_nodes
+            highlights=highlighted_nodes,
+            fixed_positions=fixed_positions
         )
 
     return (distance_matrix_full, distance_matrix_full_after_malfunction, distance_matrix_diff)
