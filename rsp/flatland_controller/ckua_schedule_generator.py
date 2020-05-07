@@ -8,6 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_simple
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.flatland_integration.flatland_conversion import extract_trainrun_dict_from_flatland_positions
 from rsp.flatland_integration.flatland_conversion import FLATlandPositionsPerTimeStep
@@ -24,7 +25,6 @@ def ckua_generate_schedule(  # noqa:C901
         rendering: bool = False,
         show: bool = False,
         max_steps: int = np.inf) -> [TrainrunDict, int]:
-
     # setup the env
     observation, info = env.reset(False, False, False, random_seed=random_seed)
 
@@ -54,7 +54,7 @@ def ckua_generate_schedule(  # noqa:C901
         print("(A) without FLATland interaction")
         start_time = perf_counter()
         flatland_controller.setup(env)
-        steps=0
+        steps = 0
         # flatland_controller.controller(env, observation, info, env.get_num_agents())
         while steps < max_steps:
             # TODO SIM-443 call only those agent controllers that need to be called
@@ -187,11 +187,16 @@ def ckua_generate_schedule(  # noqa:C901
     initial_positions = {agent.handle: agent.initial_position for agent in env.agents}
     initial_directions = {agent.handle: agent.initial_direction for agent in env.agents}
     targets = {agent.handle: agent.target for agent in env.agents}
-
+    minimum_runningtime_dict = {agent.handle: int(1 // env.agents[agent.handle].speed_data['speed']) for agent in env.agents}
     trainrun_dict = extract_trainrun_dict_from_flatland_positions(initial_directions, initial_positions, schedule,
                                                                   targets)
     # TODO why does this not work?
     env.reset(False, False, False, random_seed=random_seed)
     verify_trainrun_dict(env=env, trainrun_dict=trainrun_dict)
+    verify_trainrun_dict_simple(trainrun_dict=trainrun_dict,
+                                initial_positions=initial_positions,
+                                initial_directions=initial_directions,
+                                targets=targets,
+                                minimum_runningtime_dict=minimum_runningtime_dict)
     print("verification done")
     return trainrun_dict, elapsed_time
