@@ -12,6 +12,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.flatland_integration.flatland_replay_utils import replay_and_verify_trainruns
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
@@ -24,7 +25,6 @@ from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 
 class ASPExperimentSolver():

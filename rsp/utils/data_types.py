@@ -151,8 +151,23 @@ if COMPATIBILITY_MODE:
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
+# TrainrunDict: for each agent, a list of time steps with new position (only entry times into a new position)
+
+# for each time step, the current position
 TrainSchedule = Dict[int, Waypoint]
+
+#  for each agent and time step, the current position (not considering release times)
 TrainScheduleDict = Dict[int, TrainSchedule]
+
+# key: agent.handle, value: Waypoint (position and direction)
+CurentFLATlandPositions = Dict[int, Waypoint]
+
+# key: time_step, value: Waypoint (position and direction)
+# N.B. position and direction are taken at before this step() is executed in FLATland!
+AgentFLATlandPositions = Dict[int, Waypoint]
+
+# key: time_step, value: dict[agent.handle]->Waypoint (position and direction)
+FLATlandPositionsPerTimeStep = Dict[int, CurentFLATlandPositions]
 
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,

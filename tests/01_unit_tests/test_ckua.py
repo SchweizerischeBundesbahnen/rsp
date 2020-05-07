@@ -7,7 +7,7 @@ from flatland.envs.rail_generators import sparse_rail_generator
 from flatland.envs.schedule_generators import sparse_schedule_generator
 
 from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
-from rsp.flatland_controller.ckua_schedule_generator import _extract_trainrun_dict_from_flatland_positions
+from rsp.flatland_integration.flatland_conversion import _extract_trainrun_dict_from_flatland_positions
 
 
 def dummy_rail_env(observation_builder: ObservationBuilder,
@@ -54,7 +54,7 @@ def test_ckua_conversion():
     initial_directions = {agent.handle: agent.initial_direction for agent in env.agents}
     targets = {agent.handle: agent.target for agent in env.agents}
 
-    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule,
+    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(initial_directions, initial_positions, schedule,
                                                                    targets)
 
     verify_trainruns_dict(env=env, trainrun_dict=trainrun_dict)

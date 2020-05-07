@@ -1,30 +1,19 @@
 import pprint
 from time import perf_counter
-from typing import Dict
-from typing import List
-from typing import Tuple
 
 import numpy as np
-from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.agent_utils import RailAgentStatus
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from libs.cell_graph import CellGraph
-from libs.cell_graph_agent import AgentWayStep
 
 from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
-from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
-from rsp.utils.flatland_replay_utils import replay
+from rsp.flatland_integration.flatland_conversion import _extract_trainrun_dict_from_flatland_positions
+from rsp.flatland_integration.flatland_conversion import FLATlandPositionsPerTimeStep
 
 _pp = pprint.PrettyPrinter(indent=4)
 
-CurentFLATlandPositions = Dict[int, Waypoint]
-AgentFLATlandPositions = Dict[int, Waypoint]
-FLATlandPositionsPerTimeStep = Dict[int, CurentFLATlandPositions]
 
 # TODO SIM-434 remove noqa
 # flake8: noqa
@@ -35,9 +24,6 @@ def ckua_generate_schedule(  # noqa:C901
         rendering: bool = False,
         show: bool = False,
         max_steps: int = np.inf) -> [TrainrunDict, int]:
-    steps = 0
-
-    start_time = perf_counter()
 
     # setup the env
     observation, info = env.reset(False, False, False, random_seed=random_seed)
@@ -68,7 +54,7 @@ def ckua_generate_schedule(  # noqa:C901
         print("(A) without FLATland interaction")
         start_time = perf_counter()
         flatland_controller.setup(env)
-
+        steps=0
         # flatland_controller.controller(env, observation, info, env.get_num_agents())
         while steps < max_steps:
             # TODO SIM-443 call only those agent controllers that need to be called
@@ -107,6 +93,7 @@ def ckua_generate_schedule(  # noqa:C901
 
         print(f"took {perf_counter() - start_time:5.2f}")
     print("(B) with FLATland interaction")
+
     start_time = perf_counter()
     env.reset(False, False, False, random_seed=random_seed)
     steps = 0
@@ -133,6 +120,10 @@ def ckua_generate_schedule(  # noqa:C901
         if False:
             print(f"[{steps + 1}] {schedule[steps + 1]}")
         observation, all_rewards, done, _ = env.step(action)
+        if steps > 200 and steps < 240:
+            print(f"before step {steps + 1}")
+            for agent in env.agents:
+                print(f" [{steps + 1}] agent [{agent.handle}] position={agent.position} direction={agent.direction} speed_data={agent.speed_data}")
 
         if False:
             ready_to_depart_ = [agent.status for agent in env.agents if agent.status == RailAgentStatus.READY_TO_DEPART]
@@ -197,100 +188,10 @@ def ckua_generate_schedule(  # noqa:C901
     initial_directions = {agent.handle: agent.initial_direction for agent in env.agents}
     targets = {agent.handle: agent.target for agent in env.agents}
 
-    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(env, initial_directions, initial_positions, schedule,
+    trainrun_dict = _extract_trainrun_dict_from_flatland_positions(initial_directions, initial_positions, schedule,
                                                                    targets)
     # TODO why does this not work?
     env.reset(False, False, False, random_seed=random_seed)
     verify_trainruns_dict(env=env, trainrun_dict=trainrun_dict)
     print("verification done")
     return trainrun_dict, elapsed_time
-
-
-# TODO SIM-434: is this a qualitative (by eye) or quantitative (by number) verification? Is this now mixed up?
-def verify_trainrun_dict_ckua(env: RailEnv,
-                              random_seed: int,
-                              trainrun_dict: TrainrunDict,
-                              rendering: bool = False,
-                              show: bool = False):
-    """
-
-    Parameters
-    ----------
-    env
-    random_seed
-    trainrun_dict
-    rendering: bool
-        render?
-    show: bool
-        show window for `rendering` or not?
-    """
-    env.reset(random_seed=random_seed)
-    controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
-        trainrun_dict=trainrun_dict,
-        env=env)
-    # TODO SIM-443 the replay doeshard replay or implement release time in FLATland:
-    #     expected_flatland_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict), # noqa: E800
-    replay(
-        controller_from_train_runs=controller_from_train_runs,
-        env=env,
-        rendering=rendering,
-        show=show,
-        solver_name="CkUaController")
-
-
-def _extract_agent_positions_from_selected_ckua_way(selected_way: List[AgentWayStep], cell_graph: CellGraph) -> AgentFLATlandPositions:
-    positions: AgentFLATlandPositions = {}
-    for agent_way_step in selected_way:
-        position = cell_graph.position_from_vertexid(agent_way_step.vertex_idx)
-        direction = agent_way_step.direction
-        departure_time = agent_way_step.departure_time
-        positions[departure_time] = Waypoint(position=position, direction=direction)
-    return positions
-
-
-# TODO SIM-434 simplify!
-def _extract_trainrun_dict_from_flatland_positions(
-        env: RailEnv,
-        initial_directions: Dict[int, int],
-        initial_positions: Dict[int, Tuple[int, int]],
-        schedule: FLATlandPositionsPerTimeStep,
-        targets: Dict[int, Tuple[int, int]]) -> TrainrunDict:
-    trainrun_dict = {agent.handle: [] for agent in env.agents}
-    for agent_id in trainrun_dict:
-
-        curr_pos = None
-        curr_dir = None
-        for time_step in schedule:
-            next_waypoint = schedule[time_step][agent_id]
-            if next_waypoint.position is not None:
-                if next_waypoint.position != curr_pos:
-                    if curr_pos is None:
-                        assert time_step >= 1
-                        assert next_waypoint.position == initial_positions[agent_id]
-                        assert next_waypoint.direction == initial_directions[agent_id]
-                        trainrun_dict[agent_id].append(
-                            TrainrunWaypoint(waypoint=Waypoint(
-                                position=next_waypoint.position,
-                                direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET),
-                                scheduled_at=time_step - 1))
-                    if next_waypoint.position is not None:
-                        trainrun_dict[agent_id].append(TrainrunWaypoint(waypoint=next_waypoint, scheduled_at=time_step))
-            if next_waypoint.position is None and curr_pos is not None:
-                trainrun_dict[agent_id].append(
-                    TrainrunWaypoint(
-                        waypoint=Waypoint(
-                            position=targets[agent_id], direction=curr_dir
-                        ),
-                        scheduled_at=time_step))
-                trainrun_dict[agent_id].append(
-                    TrainrunWaypoint(
-                        waypoint=Waypoint(
-                            position=targets[agent_id], direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET
-                        ),
-                        scheduled_at=time_step + 1))
-                assert abs(curr_pos[0] - targets[agent_id][0]) + abs(
-                    curr_pos[1] - targets[agent_id][
-                        1]) == 1, f"agent {agent_id}: curr_pos={curr_pos} - target={targets[agent_id]}"
-            curr_pos = next_waypoint.position
-            curr_dir = next_waypoint.direction
-    return trainrun_dict

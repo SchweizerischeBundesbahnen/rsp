@@ -7,9 +7,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from rsp.encounter_graph.encounter_graph import compute_undirected_distance_matrix
+from rsp.flatland_integration.flatland_conversion import convert_trainrundict_to_entering_positions_for_all_timesteps
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_positions_for_all_timesteps
 
 
 def _plot_encounter_graph_undirected(

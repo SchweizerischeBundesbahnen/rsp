@@ -13,77 +13,12 @@ from flatland.envs.rail_env import RailEnvActions
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 
+from rsp.flatland_integration.flatland_conversion import convert_trainrundict_to_positions_after_flatland_timestep
 from rsp.utils.data_types import ExperimentMalfunction
-from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
 from rsp.utils.file_utils import check_create_folder
 
 _pp = pprint.PrettyPrinter(indent=4)
-
-
-def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
-    """
-    Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and agent time step.
-    The positions are the new positions the agents ent
-    Parameters
-    ----------
-    trainrun_dict: TrainrunDict
-        for each agent, a list of time steps with new position
-
-    Returns
-    -------
-    TrainScheduleDict
-        for each agent and time step, the current position (not considering release times)
-
-    """
-    train_schedule_dict: TrainScheduleDict = {}
-    for agent_id, trainrun in trainrun_dict.items():
-        train_schedule: TrainSchedule = {}
-        train_schedule_dict[agent_id] = train_schedule
-        time_step = 0
-        current_position = None
-        for trainrun_waypoint in trainrun:
-            while time_step < trainrun_waypoint.scheduled_at:
-                train_schedule[time_step] = current_position
-                time_step += 1
-            current_position = trainrun_waypoint.waypoint
-            train_schedule[time_step] = current_position
-    return train_schedule_dict
-
-
-def convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
-    """
-    Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and time step.
-    Parameters
-    ----------
-    trainrun_dict: TrainrunDict
-        for each agent, a list of time steps with new position
-
-    Returns
-    -------
-    TrainScheduleDict
-        for each agent and time step, the current position (not considering release times)
-
-    """
-    train_schedule_dict: TrainScheduleDict = {}
-    for agent_id, trainrun in trainrun_dict.items():
-        train_schedule: TrainSchedule = {}
-        train_schedule_dict[agent_id] = train_schedule
-        time_step = 0
-        current_position = None
-        end_time_step = trainrun[-1].scheduled_at
-        for next_trainrun_waypoint in trainrun[1:]:
-            while time_step + 1 < next_trainrun_waypoint.scheduled_at:
-                train_schedule[time_step] = current_position
-                time_step += 1
-            assert time_step + 1 == next_trainrun_waypoint.scheduled_at
-            if time_step + 1 == end_time_step:
-                train_schedule[time_step] = None
-                break
-            current_position = next_trainrun_waypoint.waypoint
-            train_schedule[time_step] = current_position
-            time_step += 1
-    return train_schedule_dict
 
 
 def replay_and_verify_trainruns(rail_env: RailEnv,
@@ -299,7 +234,7 @@ def replay(env: RailEnv,  # noqa: C901
     total_reward = 0
     time_step = 0
     if rendering:
-        from rsp.utils.flatland_replay_utils import init_renderer_for_env
+        from rsp.flatland_integration.flatland_replay_utils import init_renderer_for_env
         renderer = init_renderer_for_env(env, rendering)
     while not env.dones['__all__'] and time_step <= env._max_episode_steps:
         fail = False
@@ -348,7 +283,7 @@ def replay(env: RailEnv,  # noqa: C901
                     return ExperimentMalfunction(time_step, agent.handle, agent.malfunction_data['malfunction'] + 1)
 
         if rendering:
-            from rsp.utils.flatland_replay_utils import render_env
+            from rsp.flatland_integration.flatland_replay_utils import render_env
             render_env(renderer,
                        test_id=loop_index,
                        solver_name=solver_name,
@@ -361,7 +296,7 @@ def replay(env: RailEnv,  # noqa: C901
             break
         time_step += 1
     if rendering:
-        from rsp.utils.flatland_replay_utils import cleanup_renderer_for_env
+        from rsp.flatland_integration.flatland_replay_utils import cleanup_renderer_for_env
         try:
             cleanup_renderer_for_env(renderer)
         except AttributeError as e:

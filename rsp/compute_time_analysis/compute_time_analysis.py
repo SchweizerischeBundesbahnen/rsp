@@ -13,6 +13,7 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
+from rsp.flatland_integration.flatland_replay_utils import replay_and_verify_trainruns
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
@@ -22,7 +23,6 @@ from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',

@@ -154,6 +154,7 @@ def _verify_trainruns_2_mutual_exclusion(trainruns_dict):
     for agent_id, trainrun_sparse in trainruns_dict.items():
 
         previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
+        # TODO extract the "ausrollen"
         for trainrun_waypoint in trainrun_sparse:
             if previous_trainrun_waypoint is not None:
                 while trainrun_waypoint.scheduled_at > previous_trainrun_waypoint.scheduled_at + 1:
@@ -177,8 +178,11 @@ def _verify_trainruns_2_mutual_exclusion(trainruns_dict):
     for time_step in agent_positions_per_time_step:
         positions = {trainrun_waypoint.waypoint.position for trainrun_waypoint in
                      agent_positions_per_time_step[time_step].values()}
+        positions_list = [trainrun_waypoint.waypoint.position for trainrun_waypoint in
+                          agent_positions_per_time_step[time_step].values()]
         assert len(positions) == len(agent_positions_per_time_step[time_step]), \
-            f"at {time_step}, conflicting positions: \n {agent_positions_per_time_step[time_step]} \n {positions}"
+            f"at {time_step}, conflicting positions ({len(positions)} {positions_list} vs. {len(agent_positions_per_time_step[time_step])}): \n" + \
+            f"{agent_positions_per_time_step[time_step]} \n {positions}"
 
 
 def _verify_trainruns_1_path_consistency(env, trainruns_dict):
@@ -194,7 +198,7 @@ def _verify_trainruns_1_path_consistency(env, trainruns_dict):
                 # TODO SIM-322 hard-coded assumption
                 if previous_trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or \
                         trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET:
-                    assert trainrun_waypoint.scheduled_at - previous_trainrun_waypoint.scheduled_at == 1,\
+                    assert trainrun_waypoint.scheduled_at - previous_trainrun_waypoint.scheduled_at == 1, \
                         f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
                         f"from {previous_trainrun_waypoint} " + \
                         f"is a dummy segment that should need exactly one time step."
