@@ -85,7 +85,6 @@ def undirected_temporal_distance_between_trains(train_schedule_0, train_run_0, t
     contains the data related to the undirected encounter graph distance
     """
     time_distance = np.inf
-    number_of_overlaps = 0
     for time_0, waypoint_0 in train_schedule_0.items():
         for time_1, waypoint_1 in train_schedule_1.items():
             if waypoint_0 is not None and waypoint_1 is not None:
