@@ -154,9 +154,7 @@ def test_regression_experiment_agenda(regen: bool = False):
     hypothesis_one_data_analysis(
         experiment_base_directory=experiment_folder_name,
         analysis_2d=True,
-        analysis_3d=False,
         qualitative_analysis_experiment_ids=[0],
-        flatland_rendering=False
     )
 
     # load results

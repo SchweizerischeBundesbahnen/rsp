@@ -34,11 +34,8 @@ def dummy_rail_env(observation_builder: ObservationBuilder,
     return env
 
 
-
 def test_ckua_generate_schedule():
     ckua_generate_schedule(
         env=dummy_rail_env(observation_builder=DummyObservationBuilder()),
-        random_seed=94,
-        # rendering=True,
-        # show=True
+        random_seed=94
     )

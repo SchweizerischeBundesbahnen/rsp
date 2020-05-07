@@ -26,6 +26,8 @@ CurentFLATlandPositions = Dict[int, Waypoint]
 AgentFLATlandPositions = Dict[int, Waypoint]
 FLATlandPositionsPerTimeStep = Dict[int, CurentFLATlandPositions]
 
+# TODO SIM-434 remove noqa
+# flake8: noqa
 
 def ckua_generate_schedule(  # noqa:C901
         env: RailEnv,
@@ -44,11 +46,7 @@ def ckua_generate_schedule(  # noqa:C901
     flatland_controller = CkUaController()
     flatland_controller.setup(env)
 
-    do_rendering = rendering
-    do_rendering_final = rendering
-    do_rendering_first = rendering
-
-    if do_rendering or do_rendering_final or do_rendering_final:
+    if rendering:
         from flatland.utils.rendertools import AgentRenderVariant
         from flatland.utils.rendertools import RenderTool
         env_renderer = RenderTool(env=env,
@@ -73,7 +71,6 @@ def ckua_generate_schedule(  # noqa:C901
 
         # flatland_controller.controller(env, observation, info, env.get_num_agents())
         while steps < max_steps:
-            # print(steps)
             # TODO SIM-443 call only those agent controllers that need to be called
             flatland_controller.dispatcher.step(steps)
             for agent in env.agents:
@@ -141,7 +138,7 @@ def ckua_generate_schedule(  # noqa:C901
             ready_to_depart_ = [agent.status for agent in env.agents if agent.status == RailAgentStatus.READY_TO_DEPART]
             print(len(ready_to_depart_))
 
-        if do_rendering or (do_rendering_first and steps == 0):
+        if rendering:
             # Environment step which returns the observations for all agents, their corresponding
             # reward and whether their are done
             env_renderer.render_env(show=show, show_observations=False, show_predictions=False)
@@ -160,7 +157,7 @@ def ckua_generate_schedule(  # noqa:C901
                     env._elapsed_steps >= env._max_episode_steps)):
                 break
     print(f"took {perf_counter() - start_time:5.2f}")
-    for time_step, actions in actions_per_step.items():
+    for _, actions in actions_per_step.items():
         for agent_id, action in actions.items():
             actions[agent_id] = int(action)
     # import pickle
@@ -176,11 +173,10 @@ def ckua_generate_schedule(  # noqa:C901
 
     has_selected_way = [len(flatland_controller.dispatcher.controllers[agent.handle].selected_way) > 0 for agent in env.agents]
     assert np.alltrue(has_selected_way)
-    if do_rendering_final:
+    if rendering:
         # Environment step which returns the observations for all agents, their corresponding
         # reward and whether their are done
         env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
-    if do_rendering or do_rendering_first or do_rendering_final:
         env_renderer.gl.close_window()
     elapsed_time = perf_counter() - start_time
     resource_occupations = {}
@@ -210,6 +206,7 @@ def ckua_generate_schedule(  # noqa:C901
     return trainrun_dict, elapsed_time
 
 
+# TODO SIM-434: is this a qualitative (by eye) or quantitative (by number) verification? Is this now mixed up?
 def verify_trainrun_dict_ckua(env: RailEnv,
                               random_seed: int,
                               trainrun_dict: TrainrunDict,
@@ -222,8 +219,10 @@ def verify_trainrun_dict_ckua(env: RailEnv,
     env
     random_seed
     trainrun_dict
-    rendering
-    show
+    rendering: bool
+        render?
+    show: bool
+        show window for `rendering` or not?
     """
     env.reset(random_seed=random_seed)
     controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
@@ -249,6 +248,7 @@ def _extract_agent_positions_from_selected_ckua_way(selected_way: List[AgentWayS
     return positions
 
 
+# TODO SIM-434 simplify!
 def _extract_trainrun_dict_from_flatland_positions(
         env: RailEnv,
         initial_directions: Dict[int, int],

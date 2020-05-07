@@ -94,6 +94,7 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
                                 experiment_id: str = '0',
                                 data_folder: Optional[str] = None,
                                 convert_to_mpeg: bool = False,
+                                mpeg_resolution: str = '640x360',
                                 debug: bool = False) -> int:
     """
 
@@ -115,6 +116,8 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         if `rendering=True` and `data_folder` is given, use the pngs/mpegs to files with this identification
     convert_to_mpeg: bool
         if `rendering=True` and `data_folder` is defined, convert the generated pngs to an mpeg
+    mpeg_resolution:
+        resolution to use if mpeg is generated
     debug: bool
         show debug output
 
@@ -153,7 +156,7 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         print("curdir=" + str(os.curdir))
         import ffmpeg
         (ffmpeg
-         .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s='1920x1080')
+         .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s=mpeg_resolution)
          .output(
             f'{image_output_directory}/experiment_{experiment_id}_flatland_data_analysis.mp4',
             crf=15,

@@ -5,15 +5,19 @@ from typing import Optional
 from typing import Tuple
 
 from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.logger import rsp_logger
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.route_dag import apply_weight_route_change
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
@@ -38,6 +42,7 @@ class ASPExperimentSolver():
 
         Create Schedule.
         """
+        rsp_logger.info("gen_schedule_and_malfunction")
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
             k=experiment_parameters.number_of_shortest_paths_per_agent
@@ -60,16 +65,22 @@ class ASPExperimentSolver():
             experiment_parameters: ExperimentParameters,
             verbose: bool = False,
             debug: bool = False,
-            rendering: bool = False
+            rendering: bool = False,
+            visualize_route_dag_constraing: bool = False
     ) -> ExperimentResults:
         """B2. Runs the experiment.
 
         Parameters
         ----------
-        static_rail_env: RailEnv
-            Rail environment without any malfunction
+        schedule_and_malfunction
         malfunction_rail_env: RailEnv
             Rail environment with one single malfunction
+        malfunction_env_reset
+        experiment_parameters
+        verbose
+        debug
+        rendering
+        visualize_route_dag_constraing
 
         Returns
         -------
@@ -79,22 +90,53 @@ class ASPExperimentSolver():
 
         schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
+        # / SIM-366 temporary hack: when re-using schedule and malfunction,  try to reduce the topology so it has no cycles.
+        # For the time being, we want to re-use our schedules because generating them takes too long currently.
+        agents_paths_dict = {
+            # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
+            i: get_k_shortest_paths(malfunction_rail_env,
+                                    agent.initial_position,
+                                    agent.initial_direction,
+                                    agent.target,
+                                    experiment_parameters.number_of_shortest_paths_per_agent) for i, agent in enumerate(malfunction_rail_env.agents)
+        }
+        dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
+        for agent_id, schedule in schedule_trainruns.items():
+            for tr_wp in schedule:
+                assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed"
+        rsp_logger.info("all scheduled waypoints still in ")
+        # \
+
         # --------------------------------------------------------------------------------------
         # 2. Re-schedule Full
         # --------------------------------------------------------------------------------------
+        rsp_logger.info("2. reschedule full")
+        reduced_topo_dict = tc_schedule_problem.topo_dict
         full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
             malfunction=malfunction,
             schedule_trainruns=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
             latest_arrival=malfunction_rail_env._max_episode_steps,
             max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-            topo_dict=tc_schedule_problem.topo_dict
+            topo_dict=reduced_topo_dict
         )
         full_reschedule_problem = apply_weight_route_change(
             schedule_problem=full_reschedule_problem,
             weight_route_change=experiment_parameters.weight_route_change,
             weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
         )
+
+        # activate visualize_route_dag_constraing for debugging
+        if visualize_route_dag_constraing:
+            for agent_id in schedule_trainruns:
+                visualize_route_dag_constraints_simple_wrapper(
+                    schedule_problem_description=full_reschedule_problem,
+                    trainrun_dict=None,
+                    experiment_malfunction=malfunction,
+                    agent_id=agent_id,
+                    file_name=f"rescheduling_neu_agent_{agent_id}.pdf",
+                )
+
         full_reschedule_result = asp_reschedule_wrapper(
             malfunction_for_verification=malfunction,
             malfunction_env_reset=malfunction_env_reset,
@@ -114,11 +156,12 @@ class ASPExperimentSolver():
         # --------------------------------------------------------------------------------------
         # 3. Re-Schedule Delta
         # --------------------------------------------------------------------------------------
+        rsp_logger.info("3. reschedule full")
         delta_reschedule_problem = perfect_oracle(
             full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
             malfunction=malfunction,
             max_episode_steps=tc_schedule_problem.max_episode_steps,
-            schedule_topo_dict=tc_schedule_problem.topo_dict,
+            schedule_topo_dict=reduced_topo_dict,
             schedule_trainrun_dict=schedule_trainruns,
             minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
             max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
@@ -185,7 +228,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     SchedulingExperimentResult
         the problem description and the results
     """
-
+    rsp_logger.info("schedule_wrapper")
     # --------------------------------------------------------------------------------------
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
@@ -227,7 +270,7 @@ def asp_reschedule_wrapper(
     -------
     SchedulingExperimentResult
     """
-
+    rsp_logger.info("reschedule_wrapper")
     # --------------------------------------------------------------------------------------
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
@@ -251,18 +294,5 @@ def asp_reschedule_wrapper(
         print(asp_solution.extract_list_of_active_penalty())
         print("###reschedule")
         print(_pp.pformat(full_reschedule_result.trainruns_dict))
-
-    # TODO SIM-355 fix bug and improve logging in parallel mode
-    try:
-        malfunction_env_reset()
-        replay_and_verify_trainruns(rail_env=malfunction_rail_env_for_verification,
-                                    trainruns=asp_solution.get_trainruns_dict(),
-                                    rendering=rendering,
-                                    expected_malfunction=malfunction_for_verification
-                                    )
-    except AssertionError as e:
-        warnings.warn(str(e))
-    finally:
-        malfunction_env_reset()
 
     return full_reschedule_result

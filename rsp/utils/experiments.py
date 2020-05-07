@@ -28,6 +28,7 @@ import datetime
 import multiprocessing
 import os
 import pickle
+import platform
 import pprint
 import re
 import shutil
@@ -37,6 +38,7 @@ import time
 import traceback
 from functools import partial
 from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -57,7 +59,9 @@ from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
 from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -133,8 +137,9 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
     """
     schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
                                                       f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
+
     with open(schedule_and_malfunction_file_name, 'rb') as handle:
-        file_data: ExperimentAgenda = pickle.load(handle)
+        file_data: ScheduleAndMalfunction = pickle.load(handle)
         return file_data
 
 
@@ -162,12 +167,15 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     check_create_folder(experiment_agenda_directory)
 
+    start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
     if show_results_without_details:
-        print("Running experiment {} under pid {}".format(experiment_parameters.experiment_id, os.getpid()))
+        rsp_logger.info("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(), start_datetime_str))
     start_time = time.time()
+
     if show_results_without_details:
-        print("*** experiment parameters for experiment {}".format(experiment_parameters.experiment_id))
-        _pp.pprint(experiment_parameters)
+        rsp_logger.info("*** experiment parameters for experiment {}. {}"
+                        .format(experiment_parameters.experiment_id,
+                                _pp.pformat(experiment_parameters)))
 
     # A.2: load or re-generate?
     # we want to be able to reuse the same schedule and malfunction to be able to compare
@@ -180,6 +188,11 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)
         _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+
+        if debug:
+            _render_route_dags_from_data(experiment_base_directory=experiment_base_directory, experiment_id=experiment_parameters.experiment_id)
+            _visualize_route_dag_constraints_for_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction)
+
     else:
         malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
             debug=debug,
@@ -196,7 +209,7 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
         elapsed_time = (time.time() - start_time)
         _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
         solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"]["total"]
-        print(("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%").format(
+        rsp_logger.info("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%".format(
             experiment_parameters.experiment_id,
             elapsed_time, solver_time_full,
             solver_time_full / elapsed_time * 100))
@@ -246,24 +259,22 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
 
     if show_results_without_details:
         elapsed_time = (time.time() - start_time)
-        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-        s = ("Running experiment {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%, remaining {:5.3f}s = {:5.2f}%)").format(
+        end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
+        s = (
+            "Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta:  {} / ").format(
             experiment_parameters.experiment_id,
             elapsed_time,
-            solver_time_full,
-            solver_time_full / elapsed_time * 100,
-            elapsed_time - solver_time_full,
-            (elapsed_time - solver_time_full) / elapsed_time * 100
+            start_datetime_str,
+            end_datetime_str,
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full_after_malfunction.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
         )
+        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         solver_time_full_after_malfunction = \
             experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
         solver_time_delta_after_malfunction = \
             experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        s += "resched: {:5.3f}s = {:5.2f}% / resched-delta: {:5.3f}s = {:5.2f}% / ".format(
-            solver_time_full_after_malfunction,
-            solver_time_full_after_malfunction / elapsed_time * 100,
-            solver_time_delta_after_malfunction,
-            solver_time_delta_after_malfunction / elapsed_time * 100)
         elapsed_overhead_time = (
                 elapsed_time - solver_time_full -
                 solver_time_full_after_malfunction -
@@ -274,12 +285,50 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             threading.get_ident())
         print(s)
 
-        virtual_memory_human_readable()
-        current_process_stats_human_readable()
+        rsp_logger.info(virtual_memory_human_readable())
+        rsp_logger.info(current_process_stats_human_readable())
 
     # TODO SIM-324 pull out validation steps
     plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
+
+
+def _visualize_route_dag_constraints_for_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction):
+    for agent_id in schedule_and_malfunction.schedule_experiment_result.trainruns_dict:
+        visualize_route_dag_constraints_simple_wrapper(
+            schedule_problem_description=schedule_and_malfunction.schedule_problem_description,
+            trainrun_dict=None,
+            experiment_malfunction=schedule_and_malfunction.experiment_malfunction,
+            agent_id=agent_id,
+            file_name=f"schedule_alt_agent_{agent_id}.pdf"
+        )
+
+
+def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: int):
+    results_before: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name=experiment_base_directory + "/data",
+        experiment_ids=[experiment_id]
+    )[0]
+    problem_full_after_malfunction: ScheduleProblemDescription = results_before.problem_full_after_malfunction
+    for agent_id in problem_full_after_malfunction.route_dag_constraints_dict:
+        visualize_route_dag_constraints_simple_wrapper(
+            schedule_problem_description=problem_full_after_malfunction.schedule_problem_description,
+            trainrun_dict=None,
+            experiment_malfunction=problem_full_after_malfunction.experiment_malfunction,
+            agent_id=agent_id,
+            file_name=f"reschedule_alt_agent_{agent_id}.pdf"
+        )
+
+
+def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dict):
+    return "{:5.3f}s = {:5.2f}%  ({:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s)".format(
+        statistics["summary"]["times"]["total"],
+        statistics["summary"]["times"]["total"] / elapsed_time * 100,
+        statistics["summary"]["times"]["total"],
+        statistics["summary"]["times"]["solve"],
+        statistics["summary"]["times"]["sat"],
+        statistics["summary"]["times"]["unsat"],
+    )
 
 
 def create_schedule_and_malfunction(
@@ -352,7 +401,7 @@ def gen_schedule_and_malfunction(
     -------
     """
     # TODO SIM-443 pull out switch out
-    SWITCH_CKUA = True
+    SWITCH_CKUA = False
     if SWITCH_CKUA:
         tc_schedule_problem = schedule_problem_description_from_rail_env(
             env=static_rail_env,
@@ -449,7 +498,7 @@ def _write_sha_txt(folder_name: str):
     repo = git.Repo(search_parent_directories=True)
     sha = repo.head.object.hexsha
     out_file = os.path.join(folder_name, 'sha.txt')
-    print(f"writing {sha} to {out_file}")
+    rsp_logger.info(f"writing {sha} to {out_file}")
     with open(out_file, 'w') as out:
         out.write(sha)
 
@@ -472,6 +521,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     rendering
     gen_only
     """
+    rsp_logger.info(f"start experiment {current_experiment_parameters.experiment_id}")
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     # tee stdout to thread-specific log file
@@ -492,19 +542,21 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                                                show_results_without_details=show_results_without_details,
                                                                gen_only=gen_only)
         save_experiment_results_to_file(experiment_results, filename)
-        return experiment_results
+        return os.getpid()
     except Exception as e:
-        print("XXX failed " + filename + " " + str(e))
-        traceback.print_exc(file=sys.stdout)
+        rsp_logger.error("XXX failed " + filename + " " + str(e))
+        traceback.print_exc(file=sys.stderr)
+        return os.getpid()
     finally:
         # remove tees
         reset_tee(*tee_orig)
+        rsp_logger.info(f"end experiment {current_experiment_parameters.experiment_id}")
 
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           experiment_ids: Optional[List[int]] = None,
                           copy_agenda_from_base_directory: Optional[str] = None,
-                          run_experiments_parallel: int = AVAILABLE_CPUS,
+                          run_experiments_parallel: int = AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
                           show_results_without_details: bool = True,
                           rendering: bool = False,
                           verbose: bool = False,
@@ -539,6 +591,9 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     check_create_folder(experiment_data_directory)
     check_create_folder(experiment_agenda_directory)
 
+    if run_experiments_parallel <= 1:
+        rsp_logger.warn("Using only one process in pool might cause pool to stall sometimes. Use more than one process in pool?")
+
     # tee stdout to log file
     tee_orig = tee_stdout_stderr_to_file(
         stdout_log_file=os.path.join(experiment_data_directory, "log.txt"),
@@ -564,8 +619,10 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
     # N.B. even with parallelization degree 1, we want to run each experiment in a new process
     #      in order to get around https://github.com/potassco/clingo/issues/203
-    pool = multiprocessing.Pool(processes=run_experiments_parallel, maxtasksperchild=1)
-    print(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus")
+    pool = multiprocessing.Pool(
+        processes=run_experiments_parallel,
+        maxtasksperchild=1)
+    rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     run_and_save_one_experiment_partial = partial(
@@ -577,13 +634,16 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         gen_only=gen_only
     )
 
-    for _ in tqdm.tqdm(
+    for pid_done in tqdm.tqdm(
             pool.imap_unordered(
                 run_and_save_one_experiment_partial,
                 experiment_agenda.experiments
             ),
             total=len(experiment_agenda.experiments)):
-        pass
+        # unsafe use of inner API
+        procs = [f"{str(proc)}={proc.pid}" for proc in pool._pool]
+        rsp_logger.info(f'pid {pid_done} done. Pool: {procs}')
+
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     _print_log_files_from_experiment_data_directory(experiment_data_directory)
@@ -838,7 +898,8 @@ def create_experiment_folder_name(experiment_name: str) -> str:
 
 
 def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
-    filename = "experiment_{:04d}.pkl".format(experiment_id)
+    datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
+    filename = "experiment_{:04d}_{}.pkl".format(experiment_id, datetime_string)
     return os.path.join(experiment_folder_name, filename)
 
 
