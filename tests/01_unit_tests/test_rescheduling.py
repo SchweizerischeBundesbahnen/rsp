@@ -17,7 +17,7 @@ from numpy.random.mtrand import RandomState
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
-from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
@@ -172,7 +172,7 @@ def test_rescheduling_no_bottleneck():
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    verify_trainruns_dict(static_env, fake_schedule)
+    verify_trainrun_dict(static_env, fake_schedule)
 
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
     k = 10
@@ -423,7 +423,7 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 23), direction=3))]}
-    verify_trainruns_dict(static_env, fake_schedule)
+    verify_trainrun_dict(static_env, fake_schedule)
 
     # we derive the re-schedule problem from the schedule problem
     k = 10

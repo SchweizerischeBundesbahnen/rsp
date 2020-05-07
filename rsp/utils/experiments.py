@@ -55,7 +55,7 @@ from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
-from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
 from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.flatland_integration.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
 from rsp.flatland_integration.flatland_replay_utils import replay
@@ -413,7 +413,7 @@ def gen_schedule_and_malfunction(
             rendering=False,
             show=False
         )
-        verify_trainruns_dict(
+        verify_trainrun_dict(
             env=static_rail_env,
             trainrun_dict=trainrun_dict,
             expected_route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict

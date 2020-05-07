@@ -7,7 +7,7 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.experiment_solvers.trainrun_utils import verify_trainruns_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.flatland_integration.flatland_conversion import extract_trainrun_dict_from_flatland_positions
 from rsp.flatland_integration.flatland_conversion import FLATlandPositionsPerTimeStep
@@ -192,6 +192,6 @@ def ckua_generate_schedule(  # noqa:C901
                                                                   targets)
     # TODO why does this not work?
     env.reset(False, False, False, random_seed=random_seed)
-    verify_trainruns_dict(env=env, trainrun_dict=trainrun_dict)
+    verify_trainrun_dict(env=env, trainrun_dict=trainrun_dict)
     print("verification done")
     return trainrun_dict, elapsed_time
