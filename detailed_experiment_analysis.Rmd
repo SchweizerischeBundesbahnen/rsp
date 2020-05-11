@@ -1,0 +1,166 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.1
+  kernelspec:
+    display_name: Python [conda env:.conda-rsp] *
+    language: python
+    name: conda-env-.conda-rsp-py
+---
+
+```{python}
+# %autosave 0
+# %matplotlib notebook
+# %matplotlib qt4
+# %load_ext autoreload
+# %autoreload 2
+import sys
+sys.path.append("./flatland_ckua")
+import pandas as pd
+from IPython.display import Video
+
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resource_diagrams
+from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
+from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
+from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.route_dag.route_dag import ScheduleProblemEnum
+```
+
+```{python}
+experiment_base_directory = './res/exp_hypothesis_one_2020_03_31T07_11_03/'
+experiment_of_interest = 79
+```
+
+```{python}
+experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory,
+    experiment_ids=[experiment_of_interest],
+    nonify_problem_and_results=False
+)
+experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+```
+
+### Visualize Weg-Zeit-Diagram of specific experiment
+
+```{python}
+single_experiment_dataframe = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest].iloc[0]
+single_exp_results = convert_pandas_series_experiment_results_analysis(single_experiment_dataframe)
+choices_full_schedule = single_exp_results.results_full.solver_statistics["solving"]["solvers"]["choices"]
+choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+```
+
+```{python}
+experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
+       'n_agents', 'max_num_cities', 'max_rail_between_cities',
+       'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
+       'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
+       'nb_resource_conflicts_full_after_malfunction',
+       'nb_resource_conflicts_delta_after_malfunction']]
+experiment_details['choices_full_schedule'] = choices_full_schedule
+experiment_details['choices_full_reschedule'] = choices_full_reschedule
+experiment_details['choices_delta_reschedule'] = choices_delta_reschedule
+
+```
+
+```{python}
+display(experiment_details.transpose())
+```
+
+```{python}
+#list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full_after_malfunction.solver_result))
+```
+
+```{python}
+changed_agents = plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+```
+
+#### Histogram of delay per agent after re-scheduling
+
+```{python}
+plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
+
+#### Render the current environment
+
+```{python}
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+```
+
+```{python}
+Video(video_src_schedule, embed=True)
+```
+
+```{python}
+Video(video_src_reschedule, embed=True)
+```
+
+## Find interesting experiments with route alternatives in Delta
+
+```{python}
+for experiment in experiment_results_list:
+#     print(experiment.experiment_id)
+    for agent_id, topo in experiment.problem_delta_after_malfunction.topo_dict.items():
+         for node, in_degree in topo.in_degree:
+                if in_degree > 1 and agent_id != experiment.malfunction.agent_id:
+                     print(f"experiment_id={experiment.experiment_id}, agent_id={agent_id}, node={node}, in_degree={in_degree}")
+```
+
+#### Route DAGs for individual agents
+
+```{python}
+# %matplotlib inline
+agent_of_interest = 20
+plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
+```
+
+```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+```
+
+```{python}
+# %matplotlib inline
+plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+```
+
+#### Encounter Graphs
+
+```{python}
+from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
+from rsp.encounter_graph.encounter_graph import undirected_temporal_distance_between_trains
+```
+
+```{python}
+fixed_positions = {agent_of_interest:(-100,-100)}
+(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,metric_function=undirected_temporal_distance_between_trains)
+```
+
+```{python}
+fixed_positions = {agent_of_interest:(-100,-100)}
+(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,fixed_positions=fixed_positions )
+```
+
+### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?
+
+```{python}
+from rsp.hypothesis_one_data_analysis import visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
+visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(experiment_results_list=experiment_results_list)
+
+```
+
+```{python}
+from rsp.hypothesis_one_data_analysis import visualize_hypotheses_asp
+visualize_hypotheses_asp(experiment_results_list=experiment_results_list)
+
+```
