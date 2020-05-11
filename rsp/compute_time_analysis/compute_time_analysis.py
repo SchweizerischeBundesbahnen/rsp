@@ -18,6 +18,7 @@ from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import SpaceTimeDifference
 from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -211,7 +212,7 @@ def plot_speed_up(
         fig.write_image(pdf_file)
 
 
-def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff):
+def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff) -> List[int]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -224,6 +225,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
 
     Returns
     -------
+        List of agent ids that changed
     """
     # Extract data
     experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
@@ -552,8 +554,7 @@ def _map_variable_to_trainruns(variable: Dict, trainruns: List[List[Tuple[int, i
     return mapped_data
 
 
-def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b) -> \
-        Tuple[List[List[Tuple[int, int]]], List[List[Tuple[int, int]]], int]:
+def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b) -> SpaceTimeDifference:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
@@ -585,8 +586,10 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
         else:
             traces_influenced_agents.append([(None, None)])
             additional_information.update({idx: False})
-
-    return traces_influenced_agents, additional_information, nr_influenced_agents
+        space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
+                                                    additional_information=additional_information,
+                                                    nr_changed_agents=nr_influenced_agents)
+    return space_time_difference
 
 
 def resource_time_2d(schedule: TrainrunDict,
@@ -615,19 +618,19 @@ def resource_time_2d(schedule: TrainrunDict,
     """
     all_train_time_paths = []
     max_time = 0
+    index = 0
 
     # Sort according to malfunctioning agent
     if sorting is None:
-        sorting = dict()
-        index = 0
+        sorting = {}
         if malfunction_agent_id >= 0:
             for waypoint in schedule[malfunction_agent_id]:
                 position = coordinate_to_position(width, [waypoint.waypoint.position])[0]
                 if position not in sorting:
                     sorting.update({position: index})
                     index += 1
-    else:
-        index = int(len(sorting) + 1)
+
+    index = int(len(sorting) + 1)
 
     for train_run in schedule:
         train_time_path = []

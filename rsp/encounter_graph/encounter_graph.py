@@ -101,10 +101,10 @@ def undirected_temporal_distance_between_trains(train_schedule_0, train_run_0, t
     return distance
 
 
-def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
-                                       train_schedule_dict: TrainScheduleDict,
-                                       metric_function=None) -> (np.ndarray,
-                                                                 Dict):
+def compute_symmetric_distance_matrix(trainrun_dict: TrainrunDict,
+                                      train_schedule_dict: TrainScheduleDict,
+                                      metric_function=None) -> (np.ndarray,
+                                                                Dict):
     """This method computes the distance matrix for a complete TrainrunDict ->
     each distance between each pair of trains is computed.
 
