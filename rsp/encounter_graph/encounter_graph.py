@@ -6,12 +6,12 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
-from rsp.utils.data_types import UndirectedEncounterGraphDistance
+from rsp.utils.data_types import SymmetricEncounterGraphDistance
 
 
 def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_run_0: Trainrun,
                                        train_schedule_1: TrainSchedule,
-                                       train_run_1: Trainrun) -> UndirectedEncounterGraphDistance:
+                                       train_run_1: Trainrun) -> SymmetricEncounterGraphDistance:
     """computes the Euclidian distance between two trains. It computes the
     Euclidian distance at each time step between the position of the two trains
     at this time step.
@@ -25,7 +25,7 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
     Returns
     -------
-    UndirectedEncounterGraphDistance
+    SymmetricEncounterGraphDistance
         contains the data related to the undirected encounter graph distance
     """
     train_0_start_time = train_run_0[0].scheduled_at
@@ -35,10 +35,10 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
 
     # if the time window of the two trains do not overlap -> no relationship between trains
     if train_0_end_time < train_1_start_time or train_1_end_time < train_0_start_time:
-        return UndirectedEncounterGraphDistance(inverted_distance=0,
-                                                time_of_min=0,
-                                                train_0_position_at_min=0,
-                                                train_1_position_at_min=0)
+        return SymmetricEncounterGraphDistance(inverted_distance=0,
+                                               time_of_min=0,
+                                               train_0_position_at_min=0,
+                                               train_1_position_at_min=0)
 
     # some timesteps overlap -> find out which ones
     start_time_step = max(train_0_start_time, train_1_start_time)
@@ -60,15 +60,16 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_ru
     dist_between_trains = np.min(distances_in_time_window)
     index_min_dist = np.argmin(distances_in_time_window)
 
-    distance = UndirectedEncounterGraphDistance(inverted_distance=(1. / dist_between_trains),
-                                                time_of_min=(start_time_step + index_min_dist),
-                                                train_0_position_at_min=train_0_positions[int(index_min_dist)],
-                                                train_1_position_at_min=train_1_positions[int(index_min_dist)])
+    distance = SymmetricEncounterGraphDistance(inverted_distance=(1. / dist_between_trains),
+                                               time_of_min=(start_time_step + index_min_dist),
+                                               train_0_position_at_min=train_0_positions[int(index_min_dist)],
+                                               train_1_position_at_min=train_1_positions[int(index_min_dist)])
 
     return distance
 
 
-def undirected_temporal_distance_between_trains(train_schedule_0, train_run_0, train_schedule_1, train_run_1):
+def symmetric_temporal_distance_between_trains(train_schedule_0, train_run_0, train_schedule_1,
+                                               train_run_1) -> SymmetricEncounterGraphDistance:
     """Compute the summed distance in time between two trains on shared
     ressources.
 
@@ -81,7 +82,7 @@ def undirected_temporal_distance_between_trains(train_schedule_0, train_run_0, t
 
     Returns
     -------
-    UndirectedEncounterGraphDistance
+    SymmetricEncounterGraphDistance
     contains the data related to the undirected encounter graph distance
     """
     time_distance = np.inf
@@ -93,10 +94,10 @@ def undirected_temporal_distance_between_trains(train_schedule_0, train_run_0, t
                     if tmp_dist <= time_distance:
                         time_distance = tmp_dist
 
-    distance = UndirectedEncounterGraphDistance(inverted_distance=(1. / time_distance),
-                                                time_of_min=(time_0),
-                                                train_0_position_at_min=train_schedule_0[time_0],
-                                                train_1_position_at_min=train_schedule_1[time_1])
+    distance = SymmetricEncounterGraphDistance(inverted_distance=(1. / time_distance),
+                                               time_of_min=(time_0),
+                                               train_0_position_at_min=train_schedule_0[time_0],
+                                               train_1_position_at_min=train_schedule_1[time_1])
 
     return distance
 
