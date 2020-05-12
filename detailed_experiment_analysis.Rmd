@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python [conda env:.conda-rsp] *
+    display_name: Python 3
     language: python
-    name: conda-env-.conda-rsp-py
+    name: python3
 ---
 
 ```{python}
@@ -139,7 +139,12 @@ plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM
 ```{python}
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
-from rsp.encounter_graph.encounter_graph import undirected_distance_between_trains_sum_of_time_window_overlaps
+from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_sum_of_time_window_overlaps
+```
+
+```{python}
+fixed_positions=None
+(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,pos=fixed_positions,metric_function=symmetric_temporal_distance_between_trains,debug_pair=[15, 44])
 ```
 
 ```{python}
