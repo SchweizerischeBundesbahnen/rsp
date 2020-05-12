@@ -89,6 +89,7 @@ def verify_trainrun_dict_simple(trainrun_dict: TrainrunDict,
     1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     2. verify mutual exclusion (with hard-coded release time 1)
     3. check that the paths lead from the desired start and goal
+    4. check that the trainrun has no cycle (in waypoints)
 
     Parameters
     ----------
@@ -107,6 +108,13 @@ def verify_trainrun_dict_simple(trainrun_dict: TrainrunDict,
                                       initial_positions=initial_positions,
                                       initial_directions=initial_directions,
                                       targets=targets)
+
+    for agent_id, trainrun in trainrun_dict.items():
+        waypoints = [trainrun_waypoint.waypoint for trainrun_waypoint in trainrun]
+        no_cycle = len(waypoints) == len(set(waypoints))
+        if not no_cycle:
+            a = 5
+        assert no_cycle, f"cycle detected for agent {agent_id} \nduplicates={set([x for x in waypoints if waypoints.count(x) > 1])}\ntrainrun={trainrun}"
 
 
 def _verify_trainruns_5_malfunction(expected_malfunction: ExperimentMalfunction, trainrun_dict: TrainrunDict, minimum_runningtime_dict: Dict[int, int]):
@@ -185,7 +193,7 @@ def _verify_trainruns_3_source_target(trainrun_dict: TrainrunDict,
         # target trainrun waypoint is last before dummy
         final_trainrun_waypoint = trainrun_dict[agent_id][-1]
         assert final_trainrun_waypoint.waypoint.position == targets[agent_id], \
-            f"agent {agent_id} does not end in expected target position, found {final_trainrun_waypoint}"
+            f"agent {agent_id} does not end in expected target position, found {final_trainrun_waypoint}, expected{targets[agent_id]}"
 
 
 def _verify_trainruns_2_mutual_exclusion(trainruns_dict):

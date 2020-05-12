@@ -8,7 +8,7 @@ from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedu
 
 
 def dummy_rail_env(observation_builder: ObservationBuilder,
-                   number_of_agents: int = 100,
+                   number_of_agents: int = 60,
                    random_seed: int = 133) -> RailEnv:
     # Different agent types (trains) with different speeds.
     speed_ration_map = {1.: 0.5,  # Fast passenger train

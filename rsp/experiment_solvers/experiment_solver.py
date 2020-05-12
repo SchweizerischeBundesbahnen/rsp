@@ -94,16 +94,18 @@ class ASPExperimentSolver():
         # For the time being, we want to re-use our schedules because generating them takes too long currently.
         agents_paths_dict = {
             # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
-            i: get_k_shortest_paths(malfunction_rail_env,
-                                    agent.initial_position,
-                                    agent.initial_direction,
-                                    agent.target,
-                                    experiment_parameters.number_of_shortest_paths_per_agent) for i, agent in enumerate(malfunction_rail_env.agents)
+            i: [[trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainruns[i]]] + get_k_shortest_paths(
+                malfunction_rail_env,
+                agent.initial_position,
+                agent.initial_direction,
+                agent.target,
+                experiment_parameters.number_of_shortest_paths_per_agent)
+            for i, agent in enumerate(malfunction_rail_env.agents)
         }
         dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
         for agent_id, schedule in schedule_trainruns.items():
             for tr_wp in schedule:
-                assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed"
+                assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed, not all waypoints from schedule still in topo"
         rsp_logger.info("all scheduled waypoints still in ")
         # \
 

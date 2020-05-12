@@ -8,9 +8,6 @@ library identifier: 'python-helper@master',
                  remote       : 'https://code.sbb.ch/scm/KD_ESTA_BLUEPRINTS/esta-python-helper.git'])
 
 
-// TODO SIM-194 temporary workaround because of https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/pull-requests/378/diff
-@Library(['pipeline-helper@feature/ESTA-3731-bugfix-additionalValues-no-whitespace']) _
-
 pipeline {
     // aws label required, no access to internet from default vias nodes: https://issues.sbb.ch/servicedesk/customer/portal/1/CLEW-895
     agent { label 'aws' }

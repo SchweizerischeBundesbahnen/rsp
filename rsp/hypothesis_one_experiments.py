@@ -155,14 +155,16 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
     return experiment_base_folder_name
 
 
-def hypothesis_one_main():
+def hypothesis_one_main(
+        parallel_compute: bool = AVAILABLE_CPUS // 2  # take only half of avilable cpus so the machine stays responsive
+):
     rsp_logger.info(f"RUN FULL (WITH SCHEDULE GENERATION)")
     parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
-        parallel_compute=AVAILABLE_CPUS // 2  # take only half of avilable cpus so the machine stays responsive
+        parallel_compute=parallel_compute
     )
 
 
@@ -215,4 +217,5 @@ def hypothesis_one_gen_schedule():
 
 
 if __name__ == '__main__':
-    hypothesis_one_rerun_without_regen_schedule("./res/many_agents_example", nb_runs=5)
+    # hypothesis_one_rerun_without_regen_schedule("./res/many_agents_example", nb_runs=5)
+    hypothesis_one_main(parallel_compute=1)
