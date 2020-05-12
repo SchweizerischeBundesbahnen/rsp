@@ -2,7 +2,9 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from rsp.encounter_graph.encounter_graph import undirected_distance_between_trains_sum_of_time_window_overlaps
+from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_dummy_Euclidean
+from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_sum_of_time_window_overlaps
+from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -43,12 +45,17 @@ def hypothesis_two_encounter_graph_undirected(
 
         experiment_result = experiment_results_list[i]
 
-        plot_encounter_graphs_for_experiment_result(
-            experiment_result=experiment_result,
-            encounter_graph_folder=encounter_graph_folder,
-            metric_function=undirected_distance_between_trains_sum_of_time_window_overlaps,
-            debug_pair=debug_pair
-        )
+        for metric_function in [
+            symmetric_distance_between_trains_dummy_Euclidean,
+            symmetric_distance_between_trains_sum_of_time_window_overlaps,
+            symmetric_temporal_distance_between_trains
+        ]:
+            plot_encounter_graphs_for_experiment_result(
+                experiment_result=experiment_result,
+                encounter_graph_folder=encounter_graph_folder,
+                metric_function=metric_function,
+                debug_pair=debug_pair
+            )
 
 
 if __name__ == '__main__':

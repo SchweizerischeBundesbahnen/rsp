@@ -9,9 +9,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.utils.data_types import SymmetricEncounterGraphDistance
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
-from rsp.utils.data_types import UndirectedEncounterGraphDistance
 
 MetricFunction = Callable[[TrainSchedule,
                            Trainrun,
@@ -19,17 +19,17 @@ MetricFunction = Callable[[TrainSchedule,
                            TrainSchedule,
                            Trainrun,
                            RouteDAGConstraints,
-                           bool], UndirectedEncounterGraphDistance]
+                           bool], SymmetricEncounterGraphDistance]
 
 
-def undirected_distance_between_trains(train_schedule_0: TrainSchedule,
-                                       train_run_0: Trainrun,
-                                       constraints_0: RouteDAGConstraints,
-                                       train_schedule_1: TrainSchedule,
-                                       train_run_1: Trainrun,
-                                       constraints_1: RouteDAGConstraints,
-                                       debug: bool = False
-                                       ) -> UndirectedEncounterGraphDistance:
+def symmetric_distance_between_trains_dummy_Euclidean(train_schedule_0: TrainSchedule,
+                                                      train_run_0: Trainrun,
+                                                      constraints_0: RouteDAGConstraints,
+                                                      train_schedule_1: TrainSchedule,
+                                                      train_run_1: Trainrun,
+                                                      constraints_1: RouteDAGConstraints,
+                                                      debug: bool = False
+                                                      ) -> SymmetricEncounterGraphDistance:
     """computes the Euclidian distance between two trains. It computes the
     Euclidian distance at each time step between the position of the two trains
     at this time step.
@@ -50,7 +50,7 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule,
 
     Returns
     -------
-    UndirectedEncounterGraphDistance
+    SymmetricEncounterGraphDistance
         contains the data related to the undirected encounter graph distance
     """
     train_0_start_time = train_run_0[0].scheduled_at
@@ -60,7 +60,7 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule,
 
     # if the time window of the two trains do not overlap -> no relationship between trains
     if train_0_end_time < train_1_start_time or train_1_end_time < train_0_start_time:
-        return UndirectedEncounterGraphDistance(proximity=0)
+        return SymmetricEncounterGraphDistance(proximity=0)
 
     # some timesteps overlap -> find out which ones
     start_time_step = max(train_0_start_time, train_1_start_time)
@@ -81,12 +81,12 @@ def undirected_distance_between_trains(train_schedule_0: TrainSchedule,
     # first heuristic -> get the smallest distance
     dist_between_trains = np.min(distances_in_time_window)
 
-    distance = UndirectedEncounterGraphDistance(proximity=(1. / dist_between_trains))
+    distance = SymmetricEncounterGraphDistance(proximity=(1. / dist_between_trains))
 
     return distance
 
 
-def undirected_distance_between_trains_sum_of_time_window_overlaps(
+def symmetric_distance_between_trains_sum_of_time_window_overlaps(
         train_schedule_0: TrainSchedule,
         train_run_0: Trainrun,
         constraints_0: RouteDAGConstraints,
@@ -94,7 +94,7 @@ def undirected_distance_between_trains_sum_of_time_window_overlaps(
         train_run_1: Trainrun,
         constraints_1: RouteDAGConstraints,
         debug: bool = False
-) -> UndirectedEncounterGraphDistance:
+) -> SymmetricEncounterGraphDistance:
     """Computes the sum of time window overlaps of all common resources.
     Parameters
     ----------
@@ -146,12 +146,12 @@ def undirected_distance_between_trains_sum_of_time_window_overlaps(
     if debug:
         print(f"overlap_starts={overlap_starts}")
     if len(overlap_starts) == 0:
-        return UndirectedEncounterGraphDistance(proximity=0)
+        return SymmetricEncounterGraphDistance(proximity=0)
 
     # heuristic: sum of time window overlaps of resources in schedule
     proximity_between_trains = np.sum(overlap_lengths)
 
-    distance = UndirectedEncounterGraphDistance(proximity=proximity_between_trains)
+    distance = SymmetricEncounterGraphDistance(proximity=proximity_between_trains)
 
     if debug:
         print(f"proximity_between_trains={proximity_between_trains}")
@@ -225,12 +225,51 @@ def overlaps(a, b):
     return min(a[1], b[1]) - max(a[0], b[0])
 
 
-def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
-                                       schedule_problem_description: ScheduleProblemDescription,
-                                       train_schedule_dict: TrainScheduleDict,
-                                       metric_function: MetricFunction = None,
-                                       debug_pair: Tuple[int, int] = None
-                                       ) -> (np.ndarray, Dict):
+def symmetric_temporal_distance_between_trains(train_schedule_0: TrainSchedule,
+                                               train_run_0: Trainrun,
+                                               constraints_0: RouteDAGConstraints,
+                                               train_schedule_1: TrainSchedule,
+                                               train_run_1: Trainrun,
+                                               constraints_1: RouteDAGConstraints,
+                                               debug: bool = False) -> SymmetricEncounterGraphDistance:
+    """Compute the summed distance in time between two trains on shared
+    ressources.
+
+    Parameters
+    ----------
+    train_schedule_0: TrainSchedule,
+    train_run_0: Trainrun,
+    constraints_0: RouteDAGConstraints,
+    train_schedule_1: TrainSchedule,
+    train_run_1: Trainrun,
+    constraints_1: RouteDAGConstraints,
+    debug: bool = False
+
+    Returns
+    -------
+    SymmetricEncounterGraphDistance
+    contains the data related to the undirected encounter graph distance
+    """
+    time_distance = np.inf
+    for time_0, waypoint_0 in train_schedule_0.items():
+        for time_1, waypoint_1 in train_schedule_1.items():
+            if waypoint_0 is not None and waypoint_1 is not None:
+                if waypoint_0.position == waypoint_1.position:
+                    tmp_dist = np.abs(time_1 - time_0)
+                    if tmp_dist <= time_distance:
+                        time_distance = tmp_dist
+
+    distance = SymmetricEncounterGraphDistance(proximity=(1. / time_distance))
+
+    return distance
+
+
+def compute_symmetric_distance_matrix(trainrun_dict: TrainrunDict,
+                                      schedule_problem_description: ScheduleProblemDescription,
+                                      train_schedule_dict: TrainScheduleDict,
+                                      metric_function: MetricFunction = None,
+                                      debug_pair: Tuple[int, int] = None
+                                      ) -> (np.ndarray, Dict):
     """This method computes the distance matrix for a complete TrainrunDict ->
     each distance between each pair of trains is computed.
 
@@ -252,7 +291,7 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
         the trains
     """
     if metric_function is None:
-        metric_function = undirected_distance_between_trains
+        metric_function = symmetric_distance_between_trains_dummy_Euclidean
     number_of_trains = len(trainrun_dict)
     proximity_matrix = np.zeros((number_of_trains, number_of_trains))
 
@@ -267,7 +306,7 @@ def compute_undirected_distance_matrix(trainrun_dict: TrainrunDict,
                     if row == debug_row and column == _debug:
                         print(f"{row} - {column}")
                         _debug = True
-                undirected_distance: UndirectedEncounterGraphDistance = metric_function(
+                undirected_distance: SymmetricEncounterGraphDistance = metric_function(
                     train_schedule_0=train_schedule_row,
                     train_run_0=train_run_row,
                     constraints_0=schedule_problem_description.route_dag_constraints_dict[row],

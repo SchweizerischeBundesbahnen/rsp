@@ -29,7 +29,7 @@ from rsp.route_dag.route_dag import TopoDict
 
 SpeedData = Mapping[float, float]
 
-UndirectedEncounterGraphDistance = NamedTuple('UndirectedEncounterGraphDistance', [
+SymmetricEncounterGraphDistance = NamedTuple('SymmetricEncounterGraphDistance', [
     ('proximity', float)
 ])
 
@@ -50,6 +50,9 @@ ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('parameter_ranges', ParameterRanges),
     ('speed_data', SpeedData)
 ])
+
+SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', List[List[Tuple[int, int]]]),
+                                                           ('additional_information', Dict)])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',
@@ -232,8 +235,25 @@ def expand_experiment_results_list_for_analysis(l: List[ExperimentResults]) -> L
 
 def expand_experiment_results_for_analysis(
         experiment_results: ExperimentResults,
-        debug: bool = False
+        debug: bool = False,
+        nonify_problem_and_results: bool = False
 ) -> ExperimentResultsAnalysis:
+    """
+
+    Parameters
+    ----------
+    experiment_results:
+        experiment_results to expand into to experiment_results_analysis
+        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
+    debug: bool
+    nonify_problem_and_results: bool
+        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
+        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
+
+    Returns
+    -------
+
+    """
     if not isinstance(experiment_results, ExperimentResults):
         experiment_results_as_dict = dict(experiment_results[0])
         experiment_results = ExperimentResults(**experiment_results_as_dict)
@@ -354,7 +374,18 @@ def expand_experiment_results_for_analysis(
             f"[{experiment_id}] sum_route_section_penalties_delta_after_malfunction={sum_route_section_penalties_delta_after_malfunction}")
 
     return ExperimentResultsAnalysis(
-        **experiment_results._asdict(),
+        **dict(
+            experiment_results._asdict(),
+            **({
+                   'problem_full': None,
+                   'problem_full_after_malfunction': None,
+                   'problem_delta_after_malfunction': None,
+                   'results_full': None,
+                   'results_full_after_malfunction': None,
+                   'results_delta_after_malfunction': None,
+               } if nonify_problem_and_results else {})
+
+        ),
         experiment_id=experiment_parameters.experiment_id,
         grid_id=experiment_parameters.grid_id,
         size=experiment_parameters.width,

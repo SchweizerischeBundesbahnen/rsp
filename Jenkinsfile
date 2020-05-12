@@ -8,9 +8,6 @@ library identifier: 'python-helper@master',
                  remote       : 'https://code.sbb.ch/scm/KD_ESTA_BLUEPRINTS/esta-python-helper.git'])
 
 
-// TODO SIM-194 temporary workaround because of https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/pull-requests/378/diff
-@Library(['pipeline-helper@feature/ESTA-3731-bugfix-additionalValues-no-whitespace']) _
-
 pipeline {
     // aws label required, no access to internet from default vias nodes: https://issues.sbb.ch/servicedesk/customer/portal/1/CLEW-895
     agent { label 'aws' }
@@ -81,18 +78,18 @@ git submodule update --init --recursive
                 }
             }
         }
-                stage('pre-commit and pydeps') {
-                    when {
-                        allOf {
-                            // if the build was triggered manually with deploy=true, skip testing
-                            expression { !params.deploy }
-                        }
-                    }
-                    steps {
-                        tox_conda_wrapper(
-                                ENVIRONMENT_YAML: 'rsp_environment.yml',
-                                JENKINS_CLOSURE: {
-                                    sh """
+        stage('pre-commit and pydeps') {
+            when {
+                allOf {
+                    // if the build was triggered manually with deploy=true, skip testing
+                    expression { !params.deploy }
+                }
+            }
+            steps {
+                tox_conda_wrapper(
+                        ENVIRONMENT_YAML: 'rsp_environment.yml',
+                        JENKINS_CLOSURE: {
+                            sh """
 
         # set up shell for conda
         conda init bash
@@ -109,10 +106,10 @@ git submodule update --init --recursive
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
         """
-                                }
-                        )
-                    }
-                }
+                        }
+                )
+            }
+        }
         stage('test') {
             when {
                 allOf {
