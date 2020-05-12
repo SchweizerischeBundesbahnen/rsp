@@ -138,12 +138,12 @@ plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM
 
 ```{python}
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
-from rsp.encounter_graph.encounter_graph import undirected_temporal_distance_between_trains
+from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
 ```
 
 ```{python}
 fixed_positions = {agent_of_interest:(-100,-100)}
-plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,metric_function=undirected_temporal_distance_between_trains)
+plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,metric_function=symmetric_temporal_distance_between_trains)
 ```
 
 ```{python}
@@ -162,5 +162,9 @@ visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_
 ```{python}
 from rsp.hypothesis_one_data_analysis import visualize_hypotheses_asp
 visualize_hypotheses_asp(experiment_results_list=experiment_results_list)
+
+```
+
+```{python}
 
 ```

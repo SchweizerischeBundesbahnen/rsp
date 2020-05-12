@@ -4,9 +4,9 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
+from rsp.utils.data_types import SymmetricEncounterGraphDistance
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
-from rsp.utils.data_types import SymmetricEncounterGraphDistance
 
 
 def undirected_distance_between_trains(train_schedule_0: TrainSchedule, train_run_0: Trainrun,

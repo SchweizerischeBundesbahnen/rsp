@@ -30,12 +30,12 @@ from rsp.route_dag.route_dag import TopoDict
 SpeedData = Mapping[float, float]
 
 SymmetricEncounterGraphDistance = NamedTuple('SymmetricEncounterGraphDistance', [('inverted_distance', float),
-                                                                                  ('time_of_min', int),
-                                                                                  ('train_0_position_at_min',
-                                                                                    Tuple[int, int]),
-                                                                                  ('train_1_position_at_min',
-                                                                                    Tuple[int, int])
-                                                                                  ])
+                                                                                 ('time_of_min', int),
+                                                                                 ('train_0_position_at_min',
+                                                                                  Tuple[int, int]),
+                                                                                 ('train_1_position_at_min',
+                                                                                  Tuple[int, int])
+                                                                                 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('agent_range', List[int]),
