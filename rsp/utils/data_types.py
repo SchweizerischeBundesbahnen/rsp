@@ -56,8 +56,7 @@ ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
 ])
 
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', List[List[Tuple[int, int]]]),
-                                                           ('additional_information', Dict),
-                                                           ('nr_changed_agents', int)])
+                                                           ('additional_information', Dict)])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',

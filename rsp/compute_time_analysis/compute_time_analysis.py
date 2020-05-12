@@ -258,7 +258,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
                                                          sorting=ressource_sorting)
 
     # Compute the difference between schedules and return traces for plotting
-    traces_influenced_agents, changed_agents_list, nr_influenced_agents = _get_difference_in_time_space(
+    traces_influenced_agents, changed_agents_list = _get_difference_in_time_space(
         time_resource_matrix_a=time_resource_reschedule_delta.trajectories,
         time_resource_matrix_b=time_resource_schedule.trajectories)
 
@@ -266,7 +266,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
             malfunction_agent, malfunction_start,
-            malfunction_duration, nr_influenced_agents, total_delay))
+            malfunction_duration, len(traces_influenced_agents), total_delay))
 
     # Plotting the graphs
     ranges = (max(time_resource_schedule.max_resource_id,
@@ -280,10 +280,10 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     plot_time_resource_data(time_resource_data=time_resource_schedule.trajectories, title='Schedule', ranges=ranges)
 
     # Plot Reschedule Full only plot this if there is an actual difference to the delta reschedule
-    _, _, diff_full_delta = _get_difference_in_time_space(
+    traces_rescheduling_diff, _ = _get_difference_in_time_space(
         time_resource_matrix_a=time_resource_reschedule_full.trajectories,
         time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
-    if diff_full_delta > 0:
+    if len(traces_rescheduling_diff) > 0:
         plot_time_resource_data(time_resource_data=time_resource_reschedule_full.trajectories, title='Full Reschedule',
                                 ranges=ranges)
 
@@ -569,7 +569,6 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
     # Detect changes to original schedule
     traces_influenced_agents = []
     additional_information = dict()
-    nr_influenced_agents = 0
     for idx, trainrun in enumerate(time_resource_matrix_a):
         trainrun_difference = []
         for waypoint in trainrun:
@@ -582,20 +581,18 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
         if len(trainrun_difference) > 0:
             traces_influenced_agents.append(trainrun_difference)
             additional_information.update({idx: True})
-            nr_influenced_agents += 1
         else:
             traces_influenced_agents.append([(None, None)])
             additional_information.update({idx: False})
         space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
-                                                    additional_information=additional_information,
-                                                    nr_changed_agents=nr_influenced_agents)
+                                                    additional_information=additional_information)
     return space_time_difference
 
 
 def resource_time_2d(schedule: TrainrunDict,
                      width: int,
                      malfunction_agent_id: Optional[int] = -1,
-                     sorting: Optional[Dict] = None) -> TimeResourceTrajectories:
+                     sorting: Optional[Dict] = None) -> Tuple[TimeResourceTrajectories, Dict]:
     """Method to define the time-space paths of each train in two dimensions.
     Initially we order them by the malfunctioning train.
 
@@ -652,4 +649,4 @@ def resource_time_2d(schedule: TrainrunDict,
     time_ressource_data = TimeResourceTrajectories(trajectories=all_train_time_paths,
                                                    max_resource_id=index - 1,
                                                    max_time=max_time)
-    return time_ressource_data, sorting
+    return (time_ressource_data, sorting)
