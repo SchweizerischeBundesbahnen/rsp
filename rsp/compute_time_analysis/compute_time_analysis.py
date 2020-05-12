@@ -18,6 +18,7 @@ from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import SpaceTimeDifference
 from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -134,12 +135,14 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
                              y=experiment_data[column],
                              name=column, pointpos=-1,
                              boxpoints='all',
-                             customdata=np.dstack((experiment_data['size'], experiment_data['speed_up']))[0],
+                             customdata=np.dstack((experiment_data['n_agents'],
+                                                   experiment_data['size'],
+                                                   experiment_data['speed_up']))[0],
                              hovertext=experiment_data['experiment_id'],
                              hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
-                                           '<b>Nr. Agents</b>: %{x}<br>' +
-                                           '<b>Grid Size:</b> %{customdata[0]}<br>' +
-                                           '<b>Speed Up:</b> %{customdata[1]:.2f}<br>' +
+                                           '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                           '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                           '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
     fig.update_layout(boxmode='group')
@@ -181,22 +184,24 @@ def plot_speed_up(
                          y=experiment_data['speed_up'],
                          pointpos=-1,
                          boxpoints='all',
-                         customdata=np.dstack((experiment_data['size'], experiment_data['time_full'],
+                         customdata=np.dstack((experiment_data['n_agents'],
+                                               experiment_data['size'],
+                                               experiment_data['time_full'],
                                                experiment_data['time_full_after_malfunction'],
                                                experiment_data['time_delta_after_malfunction']))[0],
                          hovertext=experiment_data['experiment_id'],
                          hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
-                                       '<b>Nr. Agents</b>: %{x}<br>' +
-                                       '<b>Grid Size:</b> %{customdata[0]}<br>' +
-                                       '<b>Full Time:</b> %{customdata[1]:.2f}s<br>' +
-                                       '<b>Full Time after:</b> %{customdata[2]:.2f}s<br>' +
-                                       '<b>Full Delta after:</b> %{customdata[3]:.2f}s<br>' +
+                                       '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                       '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                       '<b>Full Time:</b> %{customdata[2]:.2f}s<br>' +
+                                       '<b>Full Time after:</b> %{customdata[3]:.2f}s<br>' +
+                                       '<b>Full Delta after:</b> %{customdata[4]:.2f}s<br>' +
                                        '<b>Experiment id:</b>%{hovertext}',
                          marker=dict(size=3, color='blue')))
 
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"Speed Up Factors {axis_of_interest}")
-    fig.update_xaxes(title="Agents[#]")
+    fig.update_xaxes(title=axis_of_interest)
     fig.update_yaxes(title="Speed Up Factor")
     if output_folder is None:
         fig.show()
@@ -207,7 +212,7 @@ def plot_speed_up(
         fig.write_image(pdf_file)
 
 
-def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff):
+def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff) -> List[int]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -220,6 +225,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
 
     Returns
     -------
+        List of agent ids that changed
     """
     # Extract data
     experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
@@ -236,31 +242,31 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     total_delay = sum(lateness_delta_after_malfunction.values())
 
     # Get full schedule Time-resource-Data
-    time_resource_schedule: TimeResourceTrajectories = resource_time_2d(schedule=schedule,
-                                                                        width=width,
-                                                                        malfunction_agent_id=malfunction_agent,
-                                                                        sorting=None)
+    time_resource_schedule, ressource_sorting = resource_time_2d(schedule=schedule,
+                                                                 width=width,
+                                                                 malfunction_agent_id=malfunction_agent,
+                                                                 sorting=None)
     # Get full reschedule Time-resource-Data
-    time_resource_reschedule_full: TimeResourceTrajectories = resource_time_2d(schedule=reschedule_full,
-                                                                               width=width,
-                                                                               malfunction_agent_id=malfunction_agent,
-                                                                               sorting=None)
+    time_resource_reschedule_full, _ = resource_time_2d(schedule=reschedule_full,
+                                                        width=width,
+                                                        malfunction_agent_id=malfunction_agent,
+                                                        sorting=ressource_sorting)
     # Get delta reschedule Time-resource-Data
-    time_resource_reschedule_delta: TimeResourceTrajectories = resource_time_2d(schedule=reschedule_delta,
-                                                                                width=width,
-                                                                                malfunction_agent_id=malfunction_agent,
-                                                                                sorting=None)
+    time_resource_reschedule_delta, _ = resource_time_2d(schedule=reschedule_delta,
+                                                         width=width,
+                                                         malfunction_agent_id=malfunction_agent,
+                                                         sorting=ressource_sorting)
 
     # Compute the difference between schedules and return traces for plotting
-    traces_influenced_agents, plotting_information_traces, nr_influenced_agents = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_schedule.trajectories,
-        time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
+    traces_influenced_agents, changed_agents_list = _get_difference_in_time_space(
+        time_resource_matrix_a=time_resource_reschedule_delta.trajectories,
+        time_resource_matrix_b=time_resource_schedule.trajectories)
 
     # Printing situation overview
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
             malfunction_agent, malfunction_start,
-            malfunction_duration, nr_influenced_agents, total_delay))
+            malfunction_duration, len(traces_influenced_agents), total_delay))
 
     # Plotting the graphs
     ranges = (max(time_resource_schedule.max_resource_id,
@@ -274,16 +280,18 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     plot_time_resource_data(time_resource_data=time_resource_schedule.trajectories, title='Schedule', ranges=ranges)
 
     # Plot Reschedule Full only plot this if there is an actual difference to the delta reschedule
-    _, _, diff_full_delta = _get_difference_in_time_space(
+    traces_rescheduling_diff, _ = _get_difference_in_time_space(
         time_resource_matrix_a=time_resource_reschedule_full.trajectories,
         time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
-    if diff_full_delta > 0:
+    if len(traces_rescheduling_diff) > 0:
         plot_time_resource_data(time_resource_data=time_resource_reschedule_full.trajectories, title='Full Reschedule',
                                 ranges=ranges)
 
     # Plot Reschedule Delta with additional data
     additional_data = dict()
-    additional_data.update({'Changed': plotting_information_traces})
+    changed_agents_traces = _map_variable_to_trainruns(variable=changed_agents_list,
+                                                       trainruns=time_resource_reschedule_delta.trajectories)
+    additional_data.update({'Changed': changed_agents_traces})
     delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
                                                    trainruns=time_resource_reschedule_delta.trajectories)
     additional_data.update({'Delay': delay_information})
@@ -299,7 +307,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
         plot_time_resource_data(time_resource_data=traces_influenced_agents, title='Changed Agents',
                                 ranges=ranges, additional_data=additional_data)
 
-    return
+    return changed_agents_list
 
 
 def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
@@ -387,26 +395,14 @@ def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
     lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=np.arange(len(lateness_full_values)),
-                         y=lateness_full_values, name='Full Reschedule',
-                         hovertemplate='<b>Agent ID</b>: %{x}<br>' +
-                                       '<b>Delay</b>: %{y}<br>'
-                         ))
-    fig.add_trace(go.Bar(x=np.arange(len(lateness_delta_values)),
-                         y=lateness_delta_values, name='Delta Reschedule',
-                         hovertemplate='<b>Agent ID</b>: %{x}<br>' +
-                                       '<b>Delay</b>: %{y}<br>'
-                         ))
-
-    fig.update_layout(barmode='group')
-    fig.update_layout(title_text="Delay per Agent")
-    fig.update_layout(
-        xaxis=dict(
-            tickmode='array',
-            tickvals=np.arange(len(lateness_full_values)),
-        ))
-    fig.update_xaxes(title="Agents ID")
-    fig.update_yaxes(title="Delay [s]")
+    fig.add_trace(go.Histogram(x=lateness_full_values, name='Full Reschedule'
+                               ))
+    fig.add_trace(go.Histogram(x=lateness_delta_values, name='Delta Reschedule'
+                               ))
+    fig.update_layout(barmode='overlay')
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Delay distributions")
+    fig.update_xaxes(title="Delay [s]")
     fig.show()
 
 
@@ -558,8 +554,7 @@ def _map_variable_to_trainruns(variable: Dict, trainruns: List[List[Tuple[int, i
     return mapped_data
 
 
-def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b) -> \
-        Tuple[List[List[Tuple[int, int]]], List[List[Tuple[int, int]]], int]:
+def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b) -> SpaceTimeDifference:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
@@ -573,8 +568,7 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
     """
     # Detect changes to original schedule
     traces_influenced_agents = []
-    plotting_information_traces = []
-    nr_influenced_agents = 0
+    additional_information = dict()
     for idx, trainrun in enumerate(time_resource_matrix_a):
         trainrun_difference = []
         for waypoint in trainrun:
@@ -586,19 +580,19 @@ def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b
 
         if len(trainrun_difference) > 0:
             traces_influenced_agents.append(trainrun_difference)
-            plotting_information_traces.append([True for i in range(len(time_resource_matrix_b[idx]))])
-            nr_influenced_agents += 1
+            additional_information.update({idx: True})
         else:
             traces_influenced_agents.append([(None, None)])
-            plotting_information_traces.append([False for i in range(len(time_resource_matrix_b[idx]))])
-
-    return traces_influenced_agents, plotting_information_traces, nr_influenced_agents
+            additional_information.update({idx: False})
+        space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
+                                                    additional_information=additional_information)
+    return space_time_difference
 
 
 def resource_time_2d(schedule: TrainrunDict,
                      width: int,
                      malfunction_agent_id: Optional[int] = -1,
-                     sorting: Optional[Dict] = None) -> TimeResourceTrajectories:
+                     sorting: Optional[Dict] = None) -> Tuple[TimeResourceTrajectories, Dict]:
     """Method to define the time-space paths of each train in two dimensions.
     Initially we order them by the malfunctioning train.
 
@@ -621,15 +615,20 @@ def resource_time_2d(schedule: TrainrunDict,
     """
     all_train_time_paths = []
     max_time = 0
+    index = 0
+
+    # Sort according to malfunctioning agent
     if sorting is None:
-        sorting = dict()
+        sorting = {}
         if malfunction_agent_id >= 0:
-            index = 0
             for waypoint in schedule[malfunction_agent_id]:
                 position = coordinate_to_position(width, [waypoint.waypoint.position])[0]
                 if position not in sorting:
                     sorting.update({position: index})
                     index += 1
+
+    index = int(len(sorting) + 1)
+
     for train_run in schedule:
         train_time_path = []
         pre_waypoint = schedule[train_run][0]
@@ -650,4 +649,4 @@ def resource_time_2d(schedule: TrainrunDict,
     time_ressource_data = TimeResourceTrajectories(trajectories=all_train_time_paths,
                                                    max_resource_id=index - 1,
                                                    max_time=max_time)
-    return time_ressource_data
+    return (time_ressource_data, sorting)

@@ -29,13 +29,13 @@ from rsp.route_dag.route_dag import TopoDict
 
 SpeedData = Mapping[float, float]
 
-UndirectedEncounterGraphDistance = NamedTuple('UndirectedEncounterGraphDistance', [('inverted_distance', float),
-                                                                                   ('time_of_min', int),
-                                                                                   ('train_0_position_at_min',
-                                                                                    Tuple[int, int]),
-                                                                                   ('train_1_position_at_min',
-                                                                                    Tuple[int, int])
-                                                                                   ])
+SymmetricEncounterGraphDistance = NamedTuple('SymmetricEncounterGraphDistance', [('inverted_distance', float),
+                                                                                 ('time_of_min', int),
+                                                                                 ('train_0_position_at_min',
+                                                                                  Tuple[int, int]),
+                                                                                 ('train_1_position_at_min',
+                                                                                  Tuple[int, int])
+                                                                                 ])
 
 ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
                                                  ('agent_range', List[int]),
@@ -54,6 +54,9 @@ ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('parameter_ranges', ParameterRanges),
     ('speed_data', SpeedData)
 ])
+
+SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', List[List[Tuple[int, int]]]),
+                                                           ('additional_information', Dict)])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',
