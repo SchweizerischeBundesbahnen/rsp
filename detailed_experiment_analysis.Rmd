@@ -155,9 +155,6 @@ fixed_positions = {agent_of_interest:(-100,-100)}
 ```{python}
 display(distance_matrix_diff[23,24])
 ```
-
-
-
 ### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?
 
 ```{python}
