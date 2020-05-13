@@ -507,33 +507,6 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
     return Path(video_src_schedule), Path(video_src_reschedule)
 
 
-def _map_variable_to_trainruns(variable: Dict, trainruns: List[List[Tuple[int, int]]]) -> List[List[object]]:
-    """Map data to trainruns for plotting as additional information. There must
-    be as many variables in the dict as there are trains in the trainrun list.
-
-    Parameters
-    ----------
-    variable
-        Dictionary containing the variable to be mapped to each individual trainrun
-    trainruns
-        List of all the trainruns to be plotted in time-ressource-diagram
-
-    Returns
-    -------
-    List[List[variable]] that can be used as additional information in plotting time-resource-diagrams
-    """
-    mapped_data = []
-    # Get keys and information to map to trainruns
-    if variable is not None:
-        list_values = [v for v in variable.values()]
-    for idx, trainrun in enumerate(trainruns):
-        trainrun_mapping = []
-        for _ in trainrun:
-            trainrun_mapping.append(list_values[idx])
-        mapped_data.append(trainrun_mapping)
-    return mapped_data
-
-
 def _get_difference_in_time_space(schedule_a, schedule_b) -> TrainScheduleDict:
     """
     Compute the difference between schedules and return in plot ready format

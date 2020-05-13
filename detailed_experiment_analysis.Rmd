@@ -36,8 +36,8 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './res/exp_hypothesis_one_2020_03_31T07_11_03/'
-experiment_of_interest = 79
+experiment_base_directory = './exp_hypothesis_one_2020_05_13T13_44_38/'
+experiment_of_interest = 0
 ```
 
 ```{python}
@@ -82,7 +82,11 @@ display(experiment_details.transpose())
 ```
 
 ```{python}
-changed_agents = plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+changed_agents_traces = plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+```
+
+```{python}
+changed_agents = {a: True for a in [*changed_agents_traces]}
 ```
 
 #### Histogram of delay per agent after re-scheduling
@@ -120,7 +124,7 @@ for experiment in experiment_results_list:
 
 ```{python}
 # %matplotlib inline
-agent_of_interest = 20
+agent_of_interest = 4
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
