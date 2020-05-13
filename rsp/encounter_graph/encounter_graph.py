@@ -8,6 +8,8 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.encounter_graph.utils.overlaps import overlap_interval
+from rsp.encounter_graph.utils.overlaps import overlaps
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import SymmetricEncounterGraphDistance
@@ -201,38 +203,6 @@ def _extract_earliest_latest_dict(
         for cell, earliest in train_earliest.items():
             train_latest[cell] = min(earliest + max_window_size_from_earliest, train_latest[cell])
     return train_earliest, train_latest
-
-
-def overlap_interval(interval1, interval2):
-    """Given [0, 4] and [1, 10] returns [1, 4]"""
-
-    if interval2[0] <= interval1[0] <= interval2[1]:
-        start = interval1[0]
-    elif interval1[0] <= interval2[0] <= interval1[1]:
-        start = interval2[0]
-    else:
-        return None
-
-    if interval2[0] <= interval1[1] <= interval2[1]:
-        end = interval1[1]
-    elif interval1[0] <= interval2[1] <= interval1[1]:
-        end = interval2[1]
-    else:
-        return None
-
-    if start > -np.inf and end < np.inf:
-        return (start, end)
-    return None
-
-
-def overlaps(a, b):
-    """Return the amount of overlap, in bp between a and b.
-
-    If >0, the number of bp of overlap If 0,  they are book-ended. If
-    <0, the distance in bp between them
-    """
-
-    return min(a[1], b[1]) - max(a[0], b[0])
 
 
 def symmetric_temporal_distance_between_trains(train_schedule_0: TrainSchedule,
