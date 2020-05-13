@@ -6,6 +6,7 @@ from typing import Tuple
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
@@ -109,10 +110,10 @@ def symmetric_distance_between_trains_sum_of_time_window_overlaps(
     """
 
     # TODO wann kann waypoint None sein? Bug?
-    train_0_positions = [waypoint.position for i, waypoint in train_schedule_0.items()
-                         if waypoint is not None]
-    train_1_positions = [waypoint.position for i, waypoint in train_schedule_1.items()
-                         if waypoint is not None]
+    train_0_positions: List[Waypoint] = [waypoint.position for i, waypoint in train_schedule_0.items()
+                                         if waypoint is not None]
+    train_1_positions: List[Waypoint] = [waypoint.position for i, waypoint in train_schedule_1.items()
+                                         if waypoint is not None]
 
     train_0_earliest, train_0_latest = _extract_earliest_latest_dict(constraints_0, train_0_positions)
     train_1_earliest, train_1_latest = _extract_earliest_latest_dict(constraints_1, train_1_positions)
@@ -130,7 +131,10 @@ def symmetric_distance_between_trains_sum_of_time_window_overlaps(
 
     # compute distances of positions in time window
     intervals = [((train_0_earliest[cell], train_0_latest[cell]), (train_1_earliest[cell], train_1_latest[cell]))
-                 for cell, earliest_0 in train_0_earliest.items() if cell in train_1_earliest.keys()]
+                 for cell, earliest_0 in train_0_earliest.items()
+                 if cell in train_1_positions and cell in train_0_positions
+
+                 ]
 
     overlap_lengths = [abs(overlaps(*interval)) for interval in intervals]
     if debug:
@@ -139,7 +143,9 @@ def symmetric_distance_between_trains_sum_of_time_window_overlaps(
 
     overlap_intervals = [
         overlap_interval((train_0_earliest[cell], train_0_latest[cell]), (train_1_earliest[cell], train_1_latest[cell]))
-        for cell, earliest_0 in train_0_earliest.items() if cell in train_1_earliest.keys()]
+        for cell, earliest_0 in train_0_earliest.items()
+        if cell in train_1_positions and cell in train_0_positions
+    ]
     if debug:
         print(f"overlap_intervals={overlap_intervals}")
     overlap_starts = [interval[0] for interval in overlap_intervals if interval is not None]
@@ -159,7 +165,11 @@ def symmetric_distance_between_trains_sum_of_time_window_overlaps(
     return distance
 
 
-def _extract_earliest_latest_dict(constraints, train_positions, max_window_size_from_earliest: int = 30):
+def _extract_earliest_latest_dict(
+        constraints: RouteDAGConstraints,
+        train_positions: List[Waypoint],
+        max_window_size_from_earliest: int = 30
+) -> Tuple[Dict[Waypoint, int], Dict[Waypoint, int]]:
     """For all cells, extract earliest and latest from constraints.
 
     - If there are multiple vertices, take the min for earliest and the max for latest
@@ -175,8 +185,8 @@ def _extract_earliest_latest_dict(constraints, train_positions, max_window_size_
     Returns
     -------
     """
-    train_earliest = {wp: np.inf for wp in train_positions}
-    train_latest = {wp: -np.inf for wp in train_positions}
+    train_earliest: Dict[Waypoint, int] = {wp: np.inf for wp in train_positions}
+    train_latest: Dict[Waypoint, int] = {wp: -np.inf for wp in train_positions}
     for wp, scheduled_at in constraints.freeze_earliest.items():
         cell = wp.position
         if cell in train_earliest:
@@ -269,7 +279,7 @@ def compute_symmetric_distance_matrix(trainrun_dict: TrainrunDict,
                                       train_schedule_dict: TrainScheduleDict,
                                       metric_function: MetricFunction = None,
                                       debug_pair: Tuple[int, int] = None
-                                      ) -> (np.ndarray, Dict):
+                                      ) -> np.ndarray:
     """This method computes the distance matrix for a complete TrainrunDict ->
     each distance between each pair of trains is computed.
 
@@ -277,11 +287,14 @@ def compute_symmetric_distance_matrix(trainrun_dict: TrainrunDict,
     ----------
     trainrun_dict
         Dictionary containing all the trainruns
+    schedule_problem_description
+        The schedule problem description for this case.
     train_schedule_dict
         Dictionary containing the schedules (Visited times and cells of all trains
     metric_function
         Metric function to be used to compute the distance matrix
-
+    debug_pair
+        Print debug information when dealing with the pair of agents.
     Returns
     -------
     distance_matrix
@@ -319,15 +332,12 @@ def compute_symmetric_distance_matrix(trainrun_dict: TrainrunDict,
                 proximity_matrix[column, row] = undirected_distance.proximity
 
     trains = train_schedule_dict.keys()
-    # TODO how to fix transitive closure: train 1 and train 2 are close, train 2 and train 3 are close, does this propagate to the proximity of 1 and 3?
-    #  Is this directed?
-    if False:
-        _transitive_closure_distance_matrix(proximity_matrix, trains)
     distance_matrix = _convert_proximity_matrix_to_normalized_distance_matrix(proximity_matrix=proximity_matrix, trains=trains)
     return distance_matrix
 
 
-def _convert_proximity_matrix_to_normalized_distance_matrix(proximity_matrix: np.ndarray, trains: List[int], separation_factor: float = 100.0):
+# TODO do we need this normalization? If yes, refactor, else remove.
+def _convert_proximity_matrix_to_normalized_distance_matrix(proximity_matrix: np.ndarray, trains: List[int], separation_factor: float = 10.0):
     """
 
     Parameters
@@ -346,43 +356,45 @@ def _convert_proximity_matrix_to_normalized_distance_matrix(proximity_matrix: np
     max_distance = 0
     # 1. take inverse of finite proximities in range [0.0,np.inf) and to distances in range [0.0,np.inf] and keep track of maximum non-infinite distance
     # TODO do we need train as parameters? could we use array dimensions instead?
-    for row in trains:
-        for column in trains:
-            if column > row:
-                proximity = proximity_matrix[row, column]
+    for from_train in trains:
+        for to_train in trains:
+            if to_train > from_train:
+                proximity = proximity_matrix[from_train, to_train]
                 if proximity == 0.0:
-                    distance_matrix[row, column] = np.inf
-                    distance_matrix[column, row] = np.inf
+                    distance_matrix[from_train, to_train] = np.inf
+                    distance_matrix[to_train, from_train] = np.inf
                 else:
                     distance = 1.0 / proximity
-                    distance_matrix[row, column] = distance
-                    distance_matrix[column, row] = distance
+                    distance_matrix[from_train, to_train] = distance
+                    distance_matrix[to_train, from_train] = distance
                     max_distance = max(max_distance, distance)
     # 2. normalize distance_matrix to range [0.0,1.0] by use of max_distance
     distance_matrix /= (max_distance * separation_factor)
-    for row in trains:
-        for column in trains:
-            if column > row:
-                if distance_matrix[row, column] == np.inf:
-                    distance_matrix[row, column] = 1.0
-                    distance_matrix[column, row] = 1.0
+    for from_train in trains:
+        for to_train in trains:
+            if to_train > from_train and distance_matrix[from_train, to_train] == np.inf:
+                distance_matrix[from_train, to_train] = 1.0
+                distance_matrix[to_train, from_train] = 1.0
     return distance_matrix
 
 
+# TODO remove or use:
+#     Do we need transitive closure: train 1 and train 2 are close, train 2 and train 3 are close, does this propagate to the proximity of 1 and 3?
+#     Is this directed?
 def _transitive_closure_distance_matrix(proximity_matrix: np.ndarray, trains: List[int]):
     # transitive closure, not optimized
     updated = True
     while updated:
         updated = False
-        for row in trains:
-            for column in trains:
-                if row == column:
+        for from_train in trains:
+            for to_train in trains:
+                if from_train == to_train:
                     continue
                 for intermediate in trains:
-                    if intermediate == row or intermediate == column:
+                    if intermediate == from_train or intermediate == to_train:
                         continue
                     # ist das sinnvoll?
-                    indirect_proximity = proximity_matrix[row, intermediate] + proximity_matrix[intermediate, column]
-                    proximity_sofar = proximity_matrix[row, column]
+                    indirect_proximity = proximity_matrix[from_train, intermediate] + proximity_matrix[intermediate, to_train]
+                    proximity_sofar = proximity_matrix[from_train, to_train]
                     updated = updated or (indirect_proximity > proximity_sofar)
-                    proximity_matrix[row, column] = max(indirect_proximity, proximity_sofar)
+                    proximity_matrix[from_train, to_train] = max(indirect_proximity, proximity_sofar)

@@ -42,7 +42,7 @@ def _plot_encounter_graph_undirected(distance_matrix: np.ndarray,
     distance_matrix_as_weight = np.copy(distance_matrix)
     distance_matrix_as_weight.dtype = dt
 
-    graph = nx.from_numpy_array(distance_matrix_as_weight, parallel_edges=True)
+    graph = nx.from_numpy_array(distance_matrix_as_weight)
     print(f"nb edges={len(graph.edges)}, nodes={graph.number_of_nodes()}, "
           f"expected nb of edges={graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2} "
           "(in diff matrix, <= is ok since the zeros are those without change)")
@@ -99,7 +99,7 @@ def plot_encounter_graphs_for_experiment_result(
         encounter_graph_folder: Optional[str] = None,
         metric_function: Optional = None,
         debug_pair: Optional[Tuple[int, int]] = None
-):
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
 
     Parameters
