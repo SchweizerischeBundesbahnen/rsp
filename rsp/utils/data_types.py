@@ -149,13 +149,22 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
 TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
                                       [('trajectories', List[Tuple[int, int]]), ('max_resource_id', int),
                                        ('max_time', int)])
+
+TrainSchedule = Dict[int, Waypoint]
+TrainScheduleDict = Dict[int, TrainSchedule]
+
+TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
+                                      [('trajectories', TrainScheduleDict), ('max_resource_id', int),
+                                       ('max_time', int)])
+
+PlottingInformation = NamedTuple('PlottingInformation',[('sorting', Dict),('dimensions',Tuple[int,int])])
+
 if COMPATIBILITY_MODE:
     ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
-TrainSchedule = Dict[int, Waypoint]
-TrainScheduleDict = Dict[int, TrainSchedule]
+
 
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,

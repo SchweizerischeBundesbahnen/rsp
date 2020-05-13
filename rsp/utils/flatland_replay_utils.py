@@ -21,7 +21,8 @@ from rsp.utils.file_utils import check_create_folder
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
+def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict,
+                                                                 only_travelled_positions: bool = False) -> TrainScheduleDict:
     """
     Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and agent time step.
     The positions are the new positions the agents ent
@@ -41,6 +42,8 @@ def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: 
         train_schedule: TrainSchedule = {}
         train_schedule_dict[agent_id] = train_schedule
         time_step = 0
+        if only_travelled_positions:
+            time_step = trainrun[0].scheduled_at
         current_position = None
         for trainrun_waypoint in trainrun:
             while time_step < trainrun_waypoint.scheduled_at:
@@ -49,6 +52,8 @@ def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: 
             current_position = trainrun_waypoint.waypoint
             train_schedule[time_step] = current_position
     return train_schedule_dict
+
+
 
 
 def convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict: TrainrunDict) -> TrainScheduleDict:

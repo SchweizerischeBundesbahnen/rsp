@@ -60,6 +60,27 @@ def get_agenda_pipeline_params_002_a_bit_more_advanced() -> ParameterRangesAndSp
                   1. / 4.: 0.25}  # Slow freight train
     return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
+def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
+    parameter_ranges = ParameterRanges(agent_range=[10, 10, 1],
+                                       size_range=[40, 40, 1],
+                                       in_city_rail_range=[2, 2, 1],
+                                       out_city_rail_range=[1, 1, 1],
+                                       city_range=[5, 5, 1],
+                                       earliest_malfunction=[1, 20, 10],
+                                       malfunction_duration=[20, 20, 1],
+                                       number_of_shortest_paths_per_agent=[10, 10, 1],
+                                       max_window_size_from_earliest=[30, 30, 1],
+                                       asp_seed_value=[94, 94, 1],
+                                       # route change is penalized the same as 60 seconds delay
+                                       weight_route_change=[60, 60, 1],
+                                       weight_lateness_seconds=[1, 1, 1]
+                                       )
+    # Define the desired speed profiles
+    speed_data = {1.: 0.25,  # Fast passenger train
+                  1. / 2.: 0.25,  # Fast freight train
+                  1. / 3.: 0.25,  # Slow commuter train
+                  1. / 4.: 0.25}  # Slow freight train
+    return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
                             experiment_ids: Optional[List[int]] = None,
@@ -70,7 +91,7 @@ def hypothesis_one_pipeline(parameter_ranges_and_speed_data: ParameterRangesAndS
                             run_analysis: bool = True,
                             parallel_compute: int = AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
                             gen_only: bool = False,
-                            experiments_per_grid_element: int = 10
+                            experiments_per_grid_element: int = 1
                             ) -> str:
     """
     Run full pipeline A.1 -> A.2 - B - C
@@ -213,6 +234,15 @@ def hypothesis_one_gen_schedule():
         parallel_compute=1,
     )
 
+def hypothesis_one_malfunction_analysis():
+    #rsp_logger.info(f"Testing different malfunctions")
+    parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation()
+    hypothesis_one_pipeline(
+    parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+    qualitative_analysis_experiment_ids=[],
+    asp_export_experiment_ids=[],
+    parallel_compute=int(AVAILABLE_CPUS-2) # take only half of avilable cpus so the machine stays responsive
+)
 
 if __name__ == '__main__':
-    hypothesis_one_rerun_without_regen_schedule("./res/many_agents_example", nb_runs=5)
+    hypothesis_one_malfunction_analysis()

@@ -16,14 +16,16 @@ from pandas import DataFrame
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
+from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis, TrainScheduleDict, TrainSchedule, \
+    PlottingInformation
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import SpaceTimeDifference
 from rsp.utils.data_types import TimeResourceTrajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
+from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns, \
+    convert_trainrundict_to_entering_positions_for_all_timesteps
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -242,87 +244,65 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     total_delay = sum(lateness_delta_after_malfunction.values())
 
     # Get full schedule Time-resource-Data
-    time_resource_schedule, ressource_sorting = resource_time_2d(schedule=schedule,
-                                                                 width=width,
-                                                                 malfunction_agent_id=malfunction_agent,
-                                                                 sorting=None)
+    time_resource_schedule: TrainScheduleDict = \
+        convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True)
     # Get full reschedule Time-resource-Data
-    time_resource_reschedule_full, _ = resource_time_2d(schedule=reschedule_full,
-                                                        width=width,
-                                                        malfunction_agent_id=malfunction_agent,
-                                                        sorting=ressource_sorting)
+    time_resource_reschedule_full: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
+        reschedule_full, only_travelled_positions=True)
     # Get delta reschedule Time-resource-Data
-    time_resource_reschedule_delta, _ = resource_time_2d(schedule=reschedule_delta,
-                                                         width=width,
-                                                         malfunction_agent_id=malfunction_agent,
-                                                         sorting=ressource_sorting)
+    time_resource_reschedule_delta: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
+        reschedule_delta, only_travelled_positions=True)
 
     # Compute the difference between schedules and return traces for plotting
-    traces_influenced_agents, changed_agents_list = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_reschedule_delta.trajectories,
-        time_resource_matrix_b=time_resource_schedule.trajectories)
-
+    changed_agent_traces: TrainScheduleDict = _get_difference_in_time_space(
+        schedule_b=time_resource_reschedule_delta,
+        schedule_a=time_resource_schedule)
     # Printing situation overview
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
             malfunction_agent, malfunction_start,
-            malfunction_duration, len(traces_influenced_agents), total_delay))
+            malfunction_duration, len(changed_agent_traces), total_delay))
 
     # Plotting the graphs
-    ranges = (max(time_resource_schedule.max_resource_id,
-                  time_resource_reschedule_full.max_resource_id,
-                  time_resource_reschedule_delta.max_resource_id),
-              max(time_resource_schedule.max_time,
-                  time_resource_reschedule_full.max_time,
-                  time_resource_reschedule_delta.max_time))
 
     # Plot Schedule
-    plot_time_resource_data(time_resource_data=time_resource_schedule.trajectories, title='Schedule', ranges=ranges)
+    plotting_dimensions = plot_time_resource_data(schedule_data=time_resource_schedule, title='Schedule', width=width)
 
     # Plot Reschedule Full only plot this if there is an actual difference to the delta reschedule
-    traces_rescheduling_diff, _ = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_reschedule_full.trajectories,
-        time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
+    traces_rescheduling_diff: TrainScheduleDict = _get_difference_in_time_space(
+        schedule_a=time_resource_reschedule_full,
+        schedule_b=time_resource_reschedule_delta)
     if len(traces_rescheduling_diff) > 0:
-        plot_time_resource_data(time_resource_data=time_resource_reschedule_full.trajectories, title='Full Reschedule',
-                                ranges=ranges)
+        print(traces_rescheduling_diff)
+        plot_time_resource_data(schedule_data=time_resource_reschedule_full, title='Full Reschedule',
+                                width=width, plotting_parameters=plotting_dimensions)
 
     # Plot Reschedule Delta with additional data
-    additional_data = dict()
-    changed_agents_traces = _map_variable_to_trainruns(variable=changed_agents_list,
-                                                       trainruns=time_resource_reschedule_delta.trajectories)
-    additional_data.update({'Changed': changed_agents_traces})
-    delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
-                                                   trainruns=time_resource_reschedule_delta.trajectories)
-    additional_data.update({'Delay': delay_information})
-    plot_time_resource_data(time_resource_data=time_resource_reschedule_delta.trajectories, title='Delta Reschedule',
-                            ranges=ranges, additional_data=additional_data)
+    plot_time_resource_data(schedule_data=time_resource_reschedule_delta, title='Delta Reschedule',
+                            width=width, plotting_parameters=plotting_dimensions)
 
     # Plot difference
     if with_diff:
-        additional_data = dict()
-        delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
-                                                       trainruns=traces_influenced_agents)
-        additional_data.update({'Delay': delay_information})
-        plot_time_resource_data(time_resource_data=traces_influenced_agents, title='Changed Agents',
-                                ranges=ranges, additional_data=additional_data)
+        plot_time_resource_data(schedule_data=changed_agent_traces, title='Changed Agents',
+                                width=width, plotting_parameters=plotting_dimensions)
 
-    return changed_agents_list
+    return changed_agent_traces
 
 
-def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
-                            additional_data: Dict = None):
+def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width: int,
+                            plotting_parameters: PlottingInformation = None,
+                            additional_data: Dict = None) -> Dict:
     """
     Plot the time-resource-diagram with additional data for each train
     Parameters
     ----------
     title: str
         Title of the plot
-    time_resource_data:
+    schedule_data:
         Data to be shown, contains tuples for all occupied ressources during train run
     additional_data
         Dict containing additional data. Each additional data must have the same dimensins as time_resource_data
-    ranges
+    width
         Ranges of the window to be shown, used for consistent plotting
 
     Returns
@@ -335,44 +315,46 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
     fig = go.Figure(layout=layout)
     # Get keys and information to add to hover data
     hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
-    if additional_data is not None:
-        list_keys = [k for k in additional_data]
-        list_values = [v for v in additional_data.values()]
-        # Build hovertemplate
-        for idx, data_point in enumerate(list_keys):
-            hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
-        for idx, line in enumerate(time_resource_data):
-            x, y = zip(*line)
-            trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scatter(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
-                                         0],
-                                     hovertemplate=hovertemplate
-                                     ))
+    if plotting_parameters is None:
+        sorted_index = 0
+        max_time = 0
+        max_ressource = 0
+        sorting = {}
     else:
-        for idx, line in enumerate(time_resource_data):
-            x, y = zip(*line)
-            trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
+        sorting = plotting_parameters.sorting
+        sorted_index = len(plotting_parameters.sorting) + 1
+        max_ressource = plotting_parameters.dimensions[0]
+        max_time = plotting_parameters.dimensions[1]
 
-            fig.add_trace(go.Scatter(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     hovertemplate=hovertemplate
-                                     ))
-
+    for agent, trace in schedule_data.items():
+        x = []
+        y = []
+        old_ressource = 0
+        for time, waypoint in trace.items():
+            if time > max_time:
+                max_time = time
+            ressource = coordinate_to_position(width, [waypoint.position])
+            if ressource[0] not in sorting:
+                sorting[ressource[0]] = sorted_index
+                sorted_index += 1
+            if sorted_index > max_ressource:
+                max_ressource = sorted_index
+            if old_ressource != ressource:
+                x.append(None)
+                y.append(None)
+            x.append(sorting[ressource[0]])
+            x.append(sorting[ressource[0]])
+            y.append(time)
+            y.append(time+1)
+            old_ressource = ressource
+        fig.add_trace(go.Scatter(x=x, y=y))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
-    fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
-    fig.update_yaxes(title="Time", range=[ranges[1], 0])
+    fig.update_xaxes(title="Sorted resources", range=[0, max_ressource])
+    fig.update_yaxes(title="Time", range=[max_time, 0])
     fig.show()
+    plotting_parameters = PlottingInformation(sorting=sorting, dimensions=(max_ressource, max_time))
+    return plotting_parameters
 
 
 def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
@@ -554,99 +536,27 @@ def _map_variable_to_trainruns(variable: Dict, trainruns: List[List[Tuple[int, i
     return mapped_data
 
 
-def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b) -> SpaceTimeDifference:
+def _get_difference_in_time_space(schedule_a, schedule_b) -> TrainScheduleDict:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
     ----------
-    time_resource_matrix_a
-    time_resource_matrix_b
+    schedule_a
+    schedule_b
 
     Returns
     -------
 
     """
     # Detect changes to original schedule
-    traces_influenced_agents = []
-    additional_information = dict()
-    for idx, trainrun in enumerate(time_resource_matrix_a):
-        trainrun_difference = []
-        for waypoint in trainrun:
-            if waypoint not in time_resource_matrix_b[idx]:
-                if len(trainrun_difference) > 0:
-                    if waypoint[0] != trainrun_difference[-1][0]:
-                        trainrun_difference.append((None, None))
-                trainrun_difference.append(waypoint)
+    traces_influenced_agents: TrainScheduleDict = {}
+
+    for idx in schedule_a:
+        trainrun_difference: TrainSchedule = {}
+        for time_step, waypoint in schedule_a[idx].items():
+            if waypoint not in schedule_b[idx].values():
+                trainrun_difference[time_step] = waypoint
 
         if len(trainrun_difference) > 0:
-            traces_influenced_agents.append(trainrun_difference)
-            additional_information.update({idx: True})
-        else:
-            traces_influenced_agents.append([(None, None)])
-            additional_information.update({idx: False})
-        space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
-                                                    additional_information=additional_information)
-    return space_time_difference
-
-
-def resource_time_2d(schedule: TrainrunDict,
-                     width: int,
-                     malfunction_agent_id: Optional[int] = -1,
-                     sorting: Optional[Dict] = None) -> Tuple[TimeResourceTrajectories, Dict]:
-    """Method to define the time-space paths of each train in two dimensions.
-    Initially we order them by the malfunctioning train.
-
-    Parameters
-    ----------
-    schedule: TrainrunDict
-        Contains all the trainruns
-
-    width: int
-        width of grid, used to number ressources
-
-    malfunction_agent_id: int
-        agent which had malfunctino (used for sorting)
-
-    sorting: List[int]
-        Predefined sorting of ressources, if nothing is defined soring is according to first appearing agent (id:0,...)
-    Returns
-    -------
-    All the train trajectories and the max time and max ressource number for plotting
-    """
-    all_train_time_paths = []
-    max_time = 0
-    index = 0
-
-    # Sort according to malfunctioning agent
-    if sorting is None:
-        sorting = {}
-        if malfunction_agent_id >= 0:
-            for waypoint in schedule[malfunction_agent_id]:
-                position = coordinate_to_position(width, [waypoint.waypoint.position])[0]
-                if position not in sorting:
-                    sorting.update({position: index})
-                    index += 1
-
-    index = int(len(sorting) + 1)
-
-    for train_run in schedule:
-        train_time_path = []
-        pre_waypoint = schedule[train_run][0]
-        for waypoint in schedule[train_run][1:]:
-            pre_time = pre_waypoint.scheduled_at
-            time = waypoint.scheduled_at
-            if time > max_time:
-                max_time = time
-            position = coordinate_to_position(width, [pre_waypoint.waypoint.position])[0]
-            if position not in sorting:
-                sorting.update({position: index})
-                index += 1
-            train_time_path.append((sorting[position], pre_time))
-            train_time_path.append((sorting[position], time))
-            train_time_path.append((None, None))
-            pre_waypoint = waypoint
-        all_train_time_paths.append(train_time_path)
-    time_ressource_data = TimeResourceTrajectories(trajectories=all_train_time_paths,
-                                                   max_resource_id=index - 1,
-                                                   max_time=max_time)
-    return (time_ressource_data, sorting)
+            traces_influenced_agents[idx] = trainrun_difference
+    return traces_influenced_agents
