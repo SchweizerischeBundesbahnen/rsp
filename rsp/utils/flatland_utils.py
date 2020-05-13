@@ -1,15 +1,19 @@
-from typing import Tuple, Optional
+from typing import Optional
+from typing import Tuple
 
-from flatland.envs.agent_utils import EnvAgent, RailAgentStatus
-from flatland.envs.malfunction_generators import MalfunctionGenerator, MalfunctionProcessData, Malfunction
+from flatland.envs.agent_utils import EnvAgent
+from flatland.envs.agent_utils import RailAgentStatus
+from flatland.envs.malfunction_generators import Malfunction
+from flatland.envs.malfunction_generators import MalfunctionGenerator
+from flatland.envs.malfunction_generators import MalfunctionProcessData
 from numpy.random.mtrand import RandomState
 
 
-def single_agent_malfunction_generator(malfunction_time: int, malfunction_duration: int, agent_id: int) -> Tuple[
-    MalfunctionGenerator, MalfunctionProcessData]:
-    """
-    Malfunction generator which guarantees exactly one malfunction during an episode of an ACTIVE agent.
-    The malfunctino occurs at malfunction_time after the start of the agent in the environment.
+def single_agent_malfunction_generator(malfunction_time: int, malfunction_duration: int, agent_id: int) \
+        -> Tuple[MalfunctionGenerator, MalfunctionProcessData]:
+    """Malfunction generator which guarantees exactly one malfunction during an
+    episode of an ACTIVE agent. The malfunctino occurs at malfunction_time
+    after the start of the agent in the environment.
 
     Parameters
     ----------
@@ -58,8 +62,8 @@ def single_agent_malfunction_generator(malfunction_time: int, malfunction_durati
                 malfunction_calls[agent.handle] = 1
 
         # Break an agent that is active at the time of the malfunction
-        if agent.status == RailAgentStatus.ACTIVE and malfunction_calls[
-            agent.handle] >= malfunction_time and agent.handle == agent_id:
+        if agent.status == RailAgentStatus.ACTIVE and \
+                malfunction_calls[agent.handle] >= malfunction_time and agent.handle == agent_id:
             global_nr_malfunctions += 1
             return Malfunction(malfunction_duration)
         else:

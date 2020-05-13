@@ -16,16 +16,16 @@ from pandas import DataFrame
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis, TrainScheduleDict, TrainSchedule, \
-    PlottingInformation
+from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.data_types import SpaceTimeDifference
-from rsp.utils.data_types import TimeResourceTrajectories
+from rsp.utils.data_types import PlottingInformation
+from rsp.utils.data_types import TrainSchedule
+from rsp.utils.data_types import TrainScheduleDict
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns, \
-    convert_trainrundict_to_entering_positions_for_all_timesteps
+from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_positions_for_all_timesteps
+from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -313,8 +313,6 @@ def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width:
         plot_bgcolor='rgba(46,49,49,1)'
     )
     fig = go.Figure(layout=layout)
-    # Get keys and information to add to hover data
-    hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
 
     if plotting_parameters is None:
         sorted_index = 0
@@ -327,7 +325,7 @@ def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width:
         max_ressource = plotting_parameters.dimensions[0]
         max_time = plotting_parameters.dimensions[1]
 
-    for agent, trace in schedule_data.items():
+    for trace in schedule_data.values():
         x = []
         y = []
         old_ressource = 0
@@ -346,7 +344,7 @@ def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width:
             x.append(sorting[ressource[0]])
             x.append(sorting[ressource[0]])
             y.append(time)
-            y.append(time+1)
+            y.append(time + 1)
             old_ressource = ressource
         fig.add_trace(go.Scatter(x=x, y=y))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)

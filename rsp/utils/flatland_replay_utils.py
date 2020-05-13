@@ -54,8 +54,6 @@ def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: 
     return train_schedule_dict
 
 
-
-
 def convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict: TrainrunDict) -> TrainScheduleDict:
     """
     Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and time step.
