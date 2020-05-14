@@ -39,12 +39,12 @@ def get_agenda_pipeline_params_001_simple_setting() -> ParameterRangesAndSpeedDa
 
 
 def get_agenda_pipeline_params_002_a_bit_more_advanced() -> ParameterRangesAndSpeedData:
-    parameter_ranges = ParameterRanges(agent_range=[50, 200, 12],
+    parameter_ranges = ParameterRanges(agent_range=[50, 50, 1],
                                        size_range=[40, 40, 1],
                                        in_city_rail_range=[3, 3, 1],
                                        out_city_rail_range=[2, 2, 1],
                                        city_range=[5, 5, 1],
-                                       earliest_malfunction=[100, 100, 1],
+                                       earliest_malfunction=[10, 10, 1],
                                        malfunction_duration=[20, 20, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
                                        max_window_size_from_earliest=[30, 30, 1],
@@ -67,13 +67,13 @@ def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
                                        in_city_rail_range=[3, 3, 1],
                                        out_city_rail_range=[2, 2, 1],
                                        city_range=[5, 5, 1],
-                                       earliest_malfunction=[10, 10, 1],
+                                       earliest_malfunction=[1, 20, 10],
                                        malfunction_duration=[20, 20, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
                                        max_window_size_from_earliest=[30, 30, 1],
                                        asp_seed_value=[94, 94, 1],
-                                       # route change is penalized the same as 60 seconds delay
-                                       weight_route_change=[1, 1, 1],
+                                       # route change is penalized the same as 1 second delay
+                                       weight_route_change=[30, 30, 1],
                                        weight_lateness_seconds=[1, 1, 1]
                                        )
     # Define the desired speed profiles
@@ -182,7 +182,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
 
 def hypothesis_one_main():
     rsp_logger.info(f"RUN FULL (WITH SCHEDULE GENERATION)")
-    parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
+    parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=[],
@@ -241,7 +241,7 @@ def hypothesis_one_gen_schedule():
 
 def hypothesis_one_malfunction_analysis():
     rsp_logger.info(f"Testing different malfunctions")
-    parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation()
+    parameter_ranges_and_speed_data = get_agenda_pipeline_params_002_a_bit_more_advanced()
     hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         qualitative_analysis_experiment_ids=[],

@@ -73,8 +73,8 @@ def single_agent_malfunction_generator(malfunction_time: int, malfunction_durati
                                              max_number_of_steps_broken)
 
 
-def single_malfunction_generator(earlierst_malfunction: int, malfunction_duration: int) -> Tuple[
-    MalfunctionGenerator, MalfunctionProcessData]:
+def single_malfunction_generator(earlierst_malfunction: int, malfunction_duration: int) \
+        -> Tuple[MalfunctionGenerator, MalfunctionProcessData]:
     """Malfunction generator which guarantees exactly one malfunction during an
     episode of an ACTIVE agent.
 
