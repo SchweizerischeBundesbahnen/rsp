@@ -1,6 +1,7 @@
 import os
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 import networkx as nx
 import numpy as np
@@ -40,7 +41,11 @@ def _plot_encounter_graph_undirected(distance_matrix: np.ndarray,
     dt = [('weight', float)]
     distance_matrix_as_weight = np.copy(distance_matrix)
     distance_matrix_as_weight.dtype = dt
-    graph = nx.from_numpy_matrix(distance_matrix_as_weight)
+
+    graph = nx.from_numpy_array(distance_matrix_as_weight)
+    print(f"nb edges={len(graph.edges)}, nodes={graph.number_of_nodes()}, "
+          f"expected nb of edges={graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2} "
+          "(in diff matrix, <= is ok since the zeros are those without change)")
 
     # position of nodes
     if pos is None:
@@ -52,7 +57,7 @@ def _plot_encounter_graph_undirected(distance_matrix: np.ndarray,
         pos = nx.spring_layout(graph, seed=42, pos=pos, fixed=fixed_nodes)
 
     # Color the nodes
-    node_color = ['b' for i in range(graph.number_of_nodes())]
+    node_color = ['lightblue' for i in range(graph.number_of_nodes())]
     if highlights is not None:
         for node_idx in highlights:
             if highlights[node_idx]:
@@ -66,8 +71,11 @@ def _plot_encounter_graph_undirected(distance_matrix: np.ndarray,
     nx.draw_networkx_nodes(graph, pos, node_color=node_color)
 
     # draw edges with corresponding weights
-    for edge in graph.edges(data=True):
-        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge[2]['weight'] * 5.)
+    for edge_with_data in graph.edges(data=True):
+        edge_weight = edge_with_data[2]['weight']
+        edge = edge_with_data[:2]
+        # TODO could we use colors instead? same as from heatmap below?
+        nx.draw_networkx_edges(graph, pos, edgelist=[edge], width=edge_weight)
 
     # draw labels
     nx.draw_networkx_labels(graph, pos, font_size=10, font_family='sans-serif')
@@ -89,36 +97,57 @@ def plot_encounter_graphs_for_experiment_result(
         pos: Optional[dict] = None,
         highlighted_nodes: Optional[dict] = None,
         encounter_graph_folder: Optional[str] = None,
-        metric_function: Optional = None):
+        metric_function: Optional = None,
+        debug_pair: Optional[Tuple[int, int]] = None
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
 
     Parameters
     ----------
+
     experiment_result
         Experiment Data to be used to generate encountergraphs
-    pos [Optinoal]
+    pos
         Fixed positions for the nodes in the encountergraph
-    highlighted_nodes [Optinoal]
+    highlighted_nodes
         Dict containing nodes that need to be highlighted
-    encounter_graph_folder [Optinoal]
+    encounter_graph_folder
         Folder to store encounter graphs
-    metric_function [Optinoal]
+    metric_function
         Custom metric function to determine distance between nodes
+    debug_pair
     Returns
     -------
     """
+    print("plot_encounter_graphs_for_experiment_result")
     trainrun_dict_full = experiment_result.solution_full
     trainrun_dict_full_after_malfunction = experiment_result.solution_full_after_malfunction
     train_schedule_dict_full = convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict_full)
     train_schedule_dict_full_after_malfunction = convert_trainrundict_to_entering_positions_for_all_timesteps(
         trainrun_dict_full_after_malfunction)
-    distance_matrix_full, additional_info = compute_symmetric_distance_matrix(trainrun_dict_full,
-                                                                              train_schedule_dict_full,
-                                                                              metric_function=metric_function)
-    distance_matrix_full_after_malfunction, additional_info_after_malfunction = compute_symmetric_distance_matrix(
-        trainrun_dict_full_after_malfunction,
-        train_schedule_dict_full_after_malfunction, metric_function=metric_function)
+    print("schedule: compute_undirected_distance_matrix")
+    distance_matrix_full = compute_symmetric_distance_matrix(
+        trainrun_dict=trainrun_dict_full,
+        schedule_problem_description=experiment_result.problem_full,
+        train_schedule_dict=train_schedule_dict_full,
+        metric_function=metric_function)
+    print(distance_matrix_full)
+    if debug_pair is not None:
+        print(distance_matrix_full[debug_pair[0], debug_pair[1]])
+    print("re-schedule: compute_undirected_distance_matrix")
+
+    distance_matrix_full_after_malfunction = compute_symmetric_distance_matrix(
+        trainrun_dict=trainrun_dict_full_after_malfunction,
+        schedule_problem_description=experiment_result.problem_full_after_malfunction,
+        train_schedule_dict=train_schedule_dict_full_after_malfunction,
+        metric_function=metric_function)
+    print(distance_matrix_full_after_malfunction)
+    if debug_pair is not None:
+        print(distance_matrix_full_after_malfunction[debug_pair[0], debug_pair[1]])
     distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)
+    print(distance_matrix_diff)
+    if debug_pair is not None:
+        print(distance_matrix_diff[debug_pair[0], debug_pair[1]])
 
     titles = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: "encounter graph initial schedule (S0)",
@@ -150,4 +179,4 @@ def plot_encounter_graphs_for_experiment_result(
                 file_names[schedule_problem_to_visualize] if encounter_graph_folder is not None else None), pos=pos,
                                                highlights=highlighted_nodes)
 
-    return
+    return distance_matrix_full, distance_matrix_full_after_malfunction, distance_matrix_diff
