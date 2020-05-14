@@ -273,7 +273,6 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
         schedule_a=time_resource_reschedule_full,
         schedule_b=time_resource_reschedule_delta)
     if len(traces_rescheduling_diff) > 0:
-        print(traces_rescheduling_diff)
         plot_time_resource_data(schedule_data=time_resource_reschedule_full, title='Full Reschedule',
                                 width=width, plotting_parameters=plotting_dimensions)
 

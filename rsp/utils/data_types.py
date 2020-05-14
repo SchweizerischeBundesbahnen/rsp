@@ -272,7 +272,7 @@ def expand_experiment_results_for_analysis(
     experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
-    time_full = experiment_results.results_full.solve_time
+    time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
     time_full_after_malfunction = \
         experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
     time_delta_after_malfunction = \
