@@ -255,8 +255,8 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
 
     # Compute the difference between schedules and return traces for plotting
     changed_agent_traces: TrainScheduleDict = _get_difference_in_time_space(
-        schedule_b=time_resource_reschedule_delta,
-        schedule_a=time_resource_schedule)
+        schedule_a=time_resource_reschedule_delta,
+        schedule_b=time_resource_schedule)
     # Printing situation overview
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
@@ -524,8 +524,9 @@ def _get_difference_in_time_space(schedule_a, schedule_b) -> TrainScheduleDict:
     for idx in schedule_a:
         trainrun_difference: TrainSchedule = {}
         for time_step, waypoint in schedule_a[idx].items():
-            if waypoint not in schedule_b[idx].values():
-                trainrun_difference[time_step] = waypoint
+            if time_step in schedule_b[idx]:
+                if waypoint != schedule_b[idx][time_step]:
+                    trainrun_difference[time_step] = waypoint
 
         if len(trainrun_difference) > 0:
             traces_influenced_agents[idx] = trainrun_difference

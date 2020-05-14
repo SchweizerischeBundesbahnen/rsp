@@ -73,7 +73,7 @@ def single_agent_malfunction_generator(malfunction_time: int, malfunction_durati
                                              max_number_of_steps_broken)
 
 
-def single_malfunction_generator(earlierst_malfunction: int, malfunction_duration: int) \
+def single_malfunction_generator(earliest_malfunction: int, malfunction_duration: int) \
         -> Tuple[MalfunctionGenerator, MalfunctionProcessData]:
     """Malfunction generator which guarantees exactly one malfunction during an
     episode of an ACTIVE agent.
@@ -124,7 +124,7 @@ def single_malfunction_generator(earlierst_malfunction: int, malfunction_duratio
             malfunction_calls[agent.handle] = 1
 
         # Break an agent that is active at the time of the malfunction
-        if agent.status == RailAgentStatus.ACTIVE and malfunction_calls[agent.handle] >= earlierst_malfunction:
+        if agent.status == RailAgentStatus.ACTIVE and malfunction_calls[agent.handle] >= earliest_malfunction:
             global_nr_malfunctions += 1
             return Malfunction(malfunction_duration)
         else:

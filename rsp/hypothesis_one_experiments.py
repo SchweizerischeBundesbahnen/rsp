@@ -69,30 +69,30 @@ def get_agenda_pipeline_params_002_a_bit_more_advanced() -> ParameterRangesAndSp
 
 def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAndSpeedData:
     if schedule_gen:
-        parameter_ranges = ParameterRanges(agent_range=[40, 40, 1],
+        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
                                            size_range=[50, 50, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
-                                           city_range=[5, 5, 1],
+                                           city_range=[9, 9, 1],
                                            earliest_malfunction=[1, 1, 1],
-                                           malfunction_duration=[20, 20, 1],
+                                           malfunction_duration=[50, 50, 1],
                                            number_of_shortest_paths_per_agent=[10, 10, 1],
-                                           max_window_size_from_earliest=[30, 30, 1],
+                                           max_window_size_from_earliest=[60, 60, 1],
                                            asp_seed_value=[94, 94, 1],
                                            # route change is penalized the same as 1 second delay
                                            weight_route_change=[30, 30, 1],
                                            weight_lateness_seconds=[1, 1, 1]
                                            )
     else:
-        parameter_ranges = ParameterRanges(agent_range=[40, 40, 1],
+        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
                                            size_range=[50, 50, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
-                                           city_range=[5, 5, 1],
-                                           earliest_malfunction=[1, 100, 20],
-                                           malfunction_duration=[20, 20, 1],
+                                           city_range=[9, 9, 1],
+                                           earliest_malfunction=[1, 200, 40],
+                                           malfunction_duration=[50, 50, 1],
                                            number_of_shortest_paths_per_agent=[10, 10, 1],
-                                           max_window_size_from_earliest=[30, 30, 1],
+                                           max_window_size_from_earliest=[60, 60, 1],
                                            asp_seed_value=[94, 94, 1],
                                            # route change is penalized the same as 1 second delay
                                            weight_route_change=[30, 30, 1],
@@ -285,7 +285,7 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        parallel_compute=AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
+        parallel_compute=AVAILABLE_CPUS - 2,  # take only half of avilable cpus so the machine stays responsive
     )
 
 
