@@ -82,6 +82,7 @@ def hypothesis_two_encounter_graph_directed(
         # for agent_id, trainrun in reschedule.items():
         #     trainrun.pop(1)
 
+        # 0. data preparation
         rolled_out_schedule = convert_trainrundict_to_positions_after_flatland_timestep(schedule)
         rolled_out_reschedule = convert_trainrundict_to_positions_after_flatland_timestep(reschedule)
 
@@ -89,7 +90,8 @@ def hypothesis_two_encounter_graph_directed(
         schedule_resource_occupations_per_resource, schedule_resource_occupations_per_agent = extract_resource_occupations(schedule)
         reschedule_resource_occupations_per_resource, reschedule_resource_occupations_per_agent = extract_resource_occupations(reschedule)
 
-        # compute the forward-only wave of the malfunction
+        # 1. compute the forward-only wave of the malfunction
+        # TODO does not work yet!
         # - forward-only: only agents running at or after the wave hitting are considere, i.e. agents do not decelerate ahed of the wave!
 
         resource_reached_at: Dict[Resource, int] = {}
@@ -124,6 +126,7 @@ def hypothesis_two_encounter_graph_directed(
                     if rolled_out_schedule_agent[t] is not None:
                         queue.append((rolled_out_schedule_agent[t].position, t))
 
+        # 2. visualize the wave in resource-time diagram
         # hack wave as additional agent
         wave_agent_id = number_of_trains
         fake_resource_occupations = [
@@ -147,6 +150,8 @@ def hypothesis_two_encounter_graph_directed(
                                     resource_occupations_reschedule=reschedule_resource_occupations_per_agent,
                                     width=width)
 
+        # 3. non-symmetric distance matrix of primary, secondary etc. effects
+        # TODO take only encounters after wave reaches the resource
         # non-symmetric distance_matrix: insert distance between two consecutive trains at a resource; if no direct encounter, distance is inf
         distance_matrix = np.zeros((number_of_trains, number_of_trains))
         distance_matrix.fill(np.inf)
@@ -177,6 +182,9 @@ def hypothesis_two_encounter_graph_directed(
         weights_matrix /= np_max
         print(weights_matrix)
 
+
+        # 4. visualize
+        # TODO
         pos = {}
         pos[malfunction.agent_id] = (0, 0)
         agents_at_depth = {malfunction.agent_id}
