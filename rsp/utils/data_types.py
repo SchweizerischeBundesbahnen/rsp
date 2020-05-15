@@ -150,7 +150,10 @@ if COMPATIBILITY_MODE:
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
+# For each time step, agent's location
 TrainSchedule = Dict[int, Waypoint]
+
+# TrainSchedule for all  trains
 TrainScheduleDict = Dict[int, TrainSchedule]
 
 

@@ -271,8 +271,6 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
                 f"agent {agent_id}: {waypoint} banned, should have no latest"
             assert waypoint not in route_dag_constraints.freeze_visit, \
                 f"agent {agent_id}: {waypoint} banned, should have no visit"
-            assert waypoint not in route_dag_constraints.freeze_visit, \
-                f"agent {agent_id}: {waypoint} banned, should have no visit"
         else:
             # 2. if waypoint is not banned --> must have earliest and latest s.t. earliest <= latest
             assert waypoint in route_dag_constraints.freeze_earliest, \

@@ -212,16 +212,17 @@ def plot_speed_up(
         fig.write_image(pdf_file)
 
 
-def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff) -> List[int]:
+def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff: bool = True) -> List[int]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
     ----------
-    with_diff
+
     experiment_data_frame : DataFrame
         Data from experiment for plot
     experiment_id: int
         Experiment id used to plot the specific Weg-Zeit-Diagram
+    with_diff
 
     Returns
     -------
@@ -277,14 +278,14 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
                   time_resource_reschedule_delta.max_time))
 
     # Plot Schedule
-    plot_time_resource_data(time_resource_data=time_resource_schedule.trajectories, title='Schedule', ranges=ranges)
+    plot_time_resource_data(trajectories=time_resource_schedule.trajectories, title='Schedule', ranges=ranges)
 
     # Plot Reschedule Full only plot this if there is an actual difference to the delta reschedule
     traces_rescheduling_diff, _ = _get_difference_in_time_space(
         time_resource_matrix_a=time_resource_reschedule_full.trajectories,
         time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
     if len(traces_rescheduling_diff) > 0:
-        plot_time_resource_data(time_resource_data=time_resource_reschedule_full.trajectories, title='Full Reschedule',
+        plot_time_resource_data(trajectories=time_resource_reschedule_full.trajectories, title='Full Reschedule',
                                 ranges=ranges)
 
     # Plot Reschedule Delta with additional data
@@ -295,7 +296,7 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
                                                    trainruns=time_resource_reschedule_delta.trajectories)
     additional_data.update({'Delay': delay_information})
-    plot_time_resource_data(time_resource_data=time_resource_reschedule_delta.trajectories, title='Delta Reschedule',
+    plot_time_resource_data(trajectories=time_resource_reschedule_delta.trajectories, title='Delta Reschedule',
                             ranges=ranges, additional_data=additional_data)
 
     # Plot difference
@@ -304,13 +305,13 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
         delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
                                                        trainruns=traces_influenced_agents)
         additional_data.update({'Delay': delay_information})
-        plot_time_resource_data(time_resource_data=traces_influenced_agents, title='Changed Agents',
+        plot_time_resource_data(trajectories=traces_influenced_agents, title='Changed Agents',
                                 ranges=ranges, additional_data=additional_data)
 
     return changed_agents_list
 
 
-def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
+def plot_time_resource_data(title: str, trajectories: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
                             additional_data: Dict = None):
     """
     Plot the time-resource-diagram with additional data for each train
@@ -318,7 +319,7 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
     ----------
     title: str
         Title of the plot
-    time_resource_data:
+    trajectories:
         Data to be shown, contains tuples for all occupied ressources during train run
     additional_data
         Dict containing additional data. Each additional data must have the same dimensins as time_resource_data
@@ -341,7 +342,7 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
         # Build hovertemplate
         for idx, data_point in enumerate(list_keys):
             hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
-        for idx, line in enumerate(time_resource_data):
+        for idx, line in enumerate(trajectories):
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
@@ -356,7 +357,7 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
                                      hovertemplate=hovertemplate
                                      ))
     else:
-        for idx, line in enumerate(time_resource_data):
+        for idx, line in enumerate(trajectories):
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
