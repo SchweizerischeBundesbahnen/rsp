@@ -569,11 +569,14 @@ def plot_schedule_metrics(experiment_data_frame: ExperimentResultsAnalysis, expe
         schedule_b=time_resource_schedule)
 
     schedule_times, schedule_ressources = _schedule_to_time_ressource_dicts(time_resource_schedule)
+    _, re_schedule_ressources = _schedule_to_time_ressource_dicts(time_resource_reschedule_delta)
+
     # Plot Density over time
     _plot_time_density(schedule_times)
 
     # Plot Occupancy over space
     _plot_ressource_occupation(schedule_ressources, width=width)
+    _plot_ressource_occupation(re_schedule_ressources, width=width)
 
     # Plot Delay propagation
     _plot_delay_propagation(changed_agent_traces, malfunction=malfunction, delay_information=delay, width=width)
