@@ -32,11 +32,12 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resou
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './exp_hypothesis_one_2020_05_14T16_41_30/'
+experiment_base_directory = './exp_hypothesis_one_2020_05_15T11_27_10/'
 experiment_of_interest = 2
 ```
 
@@ -87,6 +88,10 @@ changed_agents_traces = plot_many_time_resource_diagrams(experiment_data_frame=e
 
 ```{python}
 changed_agents = {a: True for a in [*changed_agents_traces]}
+```
+
+```{python}
+plot_schedule_metrics(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 #### Histogram of delay per agent after re-scheduling

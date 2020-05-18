@@ -19,8 +19,12 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import PlottingInformation
+from rsp.utils.data_types import RessourceScheduleDict
+from rsp.utils.data_types import TimeAgentDict
+from rsp.utils.data_types import TimeScheduleDict
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
+from rsp.utils.data_types import WaypointAgentDict
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
@@ -531,3 +535,118 @@ def _get_difference_in_time_space(schedule_a, schedule_b) -> TrainScheduleDict:
         if len(trainrun_difference) > 0:
             traces_influenced_agents[idx] = trainrun_difference
     return traces_influenced_agents
+
+
+def plot_schedule_metrics(experiment_data_frame: ExperimentResultsAnalysis, experiment_id: int):
+    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
+    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
+        experiment_data_series)
+    schedule = experiment_data.solution_full
+
+    # Get full schedule Time-resource-Data
+    time_resource_schedule: TrainScheduleDict = \
+        convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True)
+
+    schedule_times, schedule_ressources = _schedule_to_time_ressource_dicts(time_resource_schedule)
+    # Plot Density over time
+    _plot_time_density(schedule_times)
+    # Plot Density over space
+    _plot_ressource_density(schedule_ressources)
+    return
+
+
+def _schedule_to_time_ressource_dicts(schedule: TrainScheduleDict) -> Tuple[TimeScheduleDict, RessourceScheduleDict]:
+    """Convert TrainScheuldeDict into dicts for all time steps and all
+    ressources such that analysis on densities can be made.
+
+    Parameters
+    ----------
+    schedule: TrainScheduleDict
+        Schedule with all the trainruns that will be transfered
+
+    Returns
+    -------
+    Tuple[TimeScheduleDict, RessourceScheduleDict]
+        Containing the views in time and ressources on agent handles an occupancies
+    """
+    timescheduledict: TimeScheduleDict = {}
+    ressourcescheduledict: RessourceScheduleDict = {}
+    for train_id in schedule:
+        for time in schedule[train_id]:
+            waypoint = schedule[train_id][time].position
+            if time not in timescheduledict:
+                timescheduledict[time]: WaypointAgentDict = {}
+            if waypoint not in ressourcescheduledict:
+                ressourcescheduledict[waypoint]: TimeAgentDict = {}
+            timescheduledict[time][waypoint] = train_id
+            ressourcescheduledict[waypoint][time] = train_id
+    return timescheduledict, ressourcescheduledict
+
+
+def _plot_ressource_density(schedule_ressources: RessourceScheduleDict):
+    """
+    Plot agent density over ressource
+    Parameters
+    ----------
+    schedule_ressources
+        Dict containing all the times and agent handles for all ressources
+
+    Returns
+    -------
+
+    """
+    x = []
+    y = []
+    size = []
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+
+    for waypoint in sorted(schedule_ressources):
+        x.append(waypoint[1])
+        y.append(waypoint[0])
+        size.append((len(schedule_ressources[waypoint])))
+    fig.add_trace(go.Scatter(x=x,
+                             y=y,
+                             mode='markers',
+                             name="Schedule",
+                             marker=dict(
+                                 color=size,
+                                 size=size,
+                                 showscale=True
+                             )))
+    fig.update_layout(title_text="Train Density at Ressources",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+    fig.update_yaxes(zeroline=False, showgrid=True, autorange="reversed", tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, tick0=-0.5, dtick=1, gridcolor='Grey')
+
+    fig.show()
+
+
+def _plot_time_density(schedule_times: TimeScheduleDict):
+    """Plot agent density over time.
+
+    Parameters
+    ----------
+    schedule_times
+        Dict containing ressources and agent handles for all times
+
+    Returns
+    -------
+    """
+    x = []
+    y = []
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+
+    for time in sorted(schedule_times):
+        x.append(time)
+        y.append(len(schedule_times[time]))
+    fig.add_trace(go.Scatter(x=x, y=y, name="Schedule"))
+    fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
+    fig.show()
