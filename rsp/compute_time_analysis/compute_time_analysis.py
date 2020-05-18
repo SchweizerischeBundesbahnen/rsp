@@ -12,7 +12,6 @@ from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
-from plotly.validators.area.marker import SymbolValidator
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
@@ -687,13 +686,16 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
         y = []
         size = []
         marker = []
-        delay = delay_information[agent_id]
+        times = []
+        delay = []
         for time in schedule[agent_id]:
             waypoint = schedule[agent_id][time]
             x.append(waypoint.position[1])
             y.append(waypoint.position[0])
             size.append(delay_information[agent_id])
             marker.append(MARKER_LIST[waypoint.direction])
+            times.append(time)
+            delay.append(delay_information[agent_id])
         if agent_id == malfunction.agent_id:
             color = "red"
         else:
@@ -703,10 +705,11 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
                                  mode='markers',
                                  name="Train {}".format(agent_id),
                                  marker_symbol=marker,
+                                 customdata=list(zip(times, delay)),
                                  marker_size=size,
                                  marker_opacity=0.1,
                                  marker_color=color,
-                                 hovertemplate="Delay {}".format(delay)
+                                 hovertemplate="Time %{customdata[0]}<br>Delay: %{customdata[1]}"
                                  ))
     # Plot malfunction
     waypoint = schedule[malfunction.agent_id][malfunction.time_step + 1].position
@@ -717,7 +720,7 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
                              marker_symbol='x',
                              marker_size=50,
                              marker_color='red'))
-    fig.update_layout(title_text="Train Density at Ressources",
+    fig.update_layout(title_text="Malfunction position and effects",
                       autosize=False,
                       width=1000,
                       height=1000)
