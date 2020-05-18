@@ -19,8 +19,8 @@ from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_betw
 from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -84,13 +84,17 @@ def hypothesis_two_encounter_graph_directed(
         schedule_resource_occupations_per_resource, schedule_resource_occupations_per_agent = extract_resource_occupations(schedule)
         reschedule_resource_occupations_per_resource, reschedule_resource_occupations_per_agent = extract_resource_occupations(reschedule)
 
+        for resource, occupations in schedule_resource_occupations_per_resource.items():
+            for ro in occupations:
+                assert ro.resource == resource
+
+        for agent_id, occupations in schedule_resource_occupations_per_agent.items():
+            for ro in occupations:
+                assert ro.agent_id == agent_id
+
         # 1. compute the forward-only wave of the malfunction
         # "forward-only" means only agents running at or after the wave hitting them are considered,
         # i.e. agents do not decelerate ahead of the wave!
-        # TODO something is wrong: propagates only on resources of the malfunction train - why???
-
-        resource_reached_at: Dict[Resource, int] = {}
-
         open_wave_front: List[Tuple[ResourceOccupation, List[ResourceOccupation]]] = []
         transmission_chains: List[List[ResourceOccupation, ResourceOccupation]] = []
         closed_wave_front: List[ResourceOccupation] = []
@@ -102,21 +106,29 @@ def hypothesis_two_encounter_graph_directed(
         assert len(open_wave_front) > 0
         while len(open_wave_front) > 0:
             wave_front, history = open_wave_front.pop()
-
-            print(f"{wave_front} at {len(history)}")
             wave_front_resource = wave_front.resource
-            wave_front_time = wave_front.interval.from_incl
+            if wave_front in closed_wave_front:
+                continue
             closed_wave_front.append(wave_front)
-            resource_reached_at[wave_front_resource] = wave_front_time
 
             # the next scheduled train may be impacted!
-            # TODO we do not consider decelerate to let pass yet!
+            # TODO we do not consider decelerate to let pass yet! search backward in radius? would this be another type of chain?
             for ro in schedule_resource_occupations_per_resource[wave_front_resource]:
                 if ro.interval.from_incl >= wave_front.interval.to_excl:
-                    # TODO should we modify?
+                    assert ro not in history
                     chain = history + [ro]
                     open_wave_front.append((ro, chain))
                     transmission_chains.append(chain)
+
+                    for subsequent_ro in schedule_resource_occupations_per_agent[ro.agent_id]:
+                        if subsequent_ro.interval.from_incl > ro.interval.from_incl:
+                            chain = history + [subsequent_ro]
+                            el = (subsequent_ro, chain)
+                            assert subsequent_ro not in history
+                            if ro in closed_wave_front:
+                                continue
+                            open_wave_front.append(el)
+                            transmission_chains.append(chain)
                     break
 
         # 2. visualize the wave in resource-time diagram
@@ -152,7 +164,7 @@ def hypothesis_two_encounter_graph_directed(
 
         debug_info = {}
         for transmission_chain in transmission_chains:
-            # TODO weighting/damping
+            # TODO weighting/damping: take into account number of intermediate steps and their distance!
             from_ro = transmission_chain[-2]
             to_ro = transmission_chain[-1]
             distance = to_ro.interval.from_incl - from_ro.interval.to_excl
@@ -176,12 +188,14 @@ def hypothesis_two_encounter_graph_directed(
 
         # 4. visualize
         # take minimum depth of transmission between and the time reaching the second agent as coordinates
-        # TODO should we directly work on transmission chains?
+        # TODO is it a good idea to take minimum depth, should it not rather be cumulated distance from the malfunction train?
         pos = {}
         pos[malfunction.agent_id] = (0, 0)
         max_depth = 0
 
         for (_, to_agent_id), transmissions in debug_info.items():
+            if to_agent_id == malfunction_agent_id:
+                continue
             # sort by depth
             transmissions.sort(key=lambda t: t[2])
             # take transmission at minimum depth
@@ -192,6 +206,10 @@ def hypothesis_two_encounter_graph_directed(
             max_depth = max(max_depth, d)
 
         # TODO better visualization removed ones
+        # TODO explantion for upward arrows?
+        # TODO why do we have bidirectional arrays? is this a bug?
+        _debug_directed((8,37),debug_info, distance_matrix, weights_matrix)
+        _debug_directed((37,8),debug_info, distance_matrix, weights_matrix)
         staengeli_index = 0
         for agent_id in range(number_of_trains):
             if agent_id not in pos:
