@@ -645,10 +645,10 @@ def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict, width
                              mode='markers',
                              name="Schedule",
                              marker=dict(
-                                 color=color,
-                                 size=size,
+                                 color=size,
+                                 symbol='square',
                                  showscale=True,
-                                 reversescale=True
+                                 reversescale=False
                              )))
     fig.update_layout(title_text="Train Density at Ressources",
                       autosize=False,
