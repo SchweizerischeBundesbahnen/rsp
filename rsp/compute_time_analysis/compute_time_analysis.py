@@ -278,23 +278,25 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
         schedule_b=time_resource_reschedule_delta)
     if len(traces_rescheduling_diff) > 0:
         plot_time_resource_data(schedule_data=time_resource_reschedule_full, title='Full Reschedule',
-                                width=width, plotting_parameters=plotting_dimensions)
+                                width=width, plotting_parameters=plotting_dimensions,
+                                malfunction_time=malfunction_start)
 
     # Plot Reschedule Delta with additional data
     plot_time_resource_data(schedule_data=time_resource_reschedule_delta, title='Delta Reschedule',
-                            width=width, plotting_parameters=plotting_dimensions)
+                            width=width, plotting_parameters=plotting_dimensions, malfunction_time=malfunction_start)
 
     # Plot difference
     if with_diff:
         plot_time_resource_data(schedule_data=changed_agent_traces, title='Changed Agents',
-                                width=width, plotting_parameters=plotting_dimensions)
+                                width=width, plotting_parameters=plotting_dimensions,
+                                malfunction_time=malfunction_start)
 
     return changed_agent_traces
 
 
 def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width: int,
                             plotting_parameters: PlottingInformation = None,
-                            additional_data: Dict = None) -> Dict:
+                            malfunction_time: int = None) -> Dict:
     """
     Plot the time-resource-diagram with additional data for each train
     Parameters
@@ -350,6 +352,10 @@ def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width:
             y.append(time + 1)
             old_ressource = ressource
         fig.add_trace(go.Scatter(x=x, y=y))
+    if malfunction_time is not None:
+        x = [-10, max_ressource + 10]
+        y = [malfunction_time, malfunction_time]
+        fig.add_trace(go.Scatter(x=x, y=y,line=dict(color='red')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, max_ressource])
     fig.update_yaxes(title="Time", range=[max_time, 0])
@@ -550,8 +556,9 @@ def plot_schedule_metrics(experiment_data_frame: ExperimentResultsAnalysis, expe
     schedule_times, schedule_ressources = _schedule_to_time_ressource_dicts(time_resource_schedule)
     # Plot Density over time
     _plot_time_density(schedule_times)
-    # Plot Density over space
-    _plot_ressource_density(schedule_ressources)
+    # Plot Occupancy over space
+    _plot_ressource_occupation(schedule_ressources)
+
     return
 
 
@@ -583,7 +590,7 @@ def _schedule_to_time_ressource_dicts(schedule: TrainScheduleDict) -> Tuple[Time
     return timescheduledict, ressourcescheduledict
 
 
-def _plot_ressource_density(schedule_ressources: RessourceScheduleDict):
+def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict):
     """
     Plot agent density over ressource
     Parameters
@@ -598,28 +605,37 @@ def _plot_ressource_density(schedule_ressources: RessourceScheduleDict):
     x = []
     y = []
     size = []
+    color = []
     layout = go.Layout(
         plot_bgcolor='rgba(46,49,49,1)'
     )
     fig = go.Figure(layout=layout)
 
-    for waypoint in sorted(schedule_ressources):
+    for waypoint in schedule_ressources:
         x.append(waypoint[1])
         y.append(waypoint[0])
         size.append((len(schedule_ressources[waypoint])))
+        times = np.array(sorted(schedule_ressources[waypoint].keys()))
+        if len(times) > 1:
+            mean_temp_dist = np.mean(np.clip(times[1:] - times[:-1], 0, 50))
+            color.append(mean_temp_dist)
+        else:
+            color.append(50)
     fig.add_trace(go.Scatter(x=x,
                              y=y,
                              mode='markers',
                              name="Schedule",
                              marker=dict(
-                                 color=size,
+                                 color=color,
                                  size=size,
-                                 showscale=True
+                                 showscale=True,
+                                 reversescale=True
                              )))
     fig.update_layout(title_text="Train Density at Ressources",
                       autosize=False,
                       width=1000,
                       height=1000)
+
     fig.update_yaxes(zeroline=False, showgrid=True, autorange="reversed", tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_xaxes(zeroline=False, showgrid=True, tick0=-0.5, dtick=1, gridcolor='Grey')
 

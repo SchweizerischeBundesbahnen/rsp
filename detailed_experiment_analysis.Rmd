@@ -37,8 +37,8 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './exp_hypothesis_one_2020_05_15T11_27_10/'
-experiment_of_interest = 2
+experiment_base_directory = './exp_hypothesis_one_2020_05_18T11_56_31/'
+experiment_of_interest = 3
 ```
 
 ```{python}

@@ -9,7 +9,7 @@ from flatland.envs.malfunction_generators import MalfunctionProcessData
 from numpy.random.mtrand import RandomState
 
 
-def single_agent_malfunction_generator(malfunction_time: int, malfunction_duration: int, agent_id: int) \
+def single_agent_malfunction_generator(earliest_malfunction: int, malfunction_duration: int, agent_id: int) \
         -> Tuple[MalfunctionGenerator, MalfunctionProcessData]:
     """Malfunction generator which guarantees exactly one malfunction during an
     episode of an ACTIVE agent. The malfunctino occurs at malfunction_time
@@ -17,7 +17,7 @@ def single_agent_malfunction_generator(malfunction_time: int, malfunction_durati
 
     Parameters
     ----------
-    malfunction_time: Earliest possible malfunction onset
+    earliest_malfunction: Earliest possible malfunction onset
     malfunction_duration: The duration of the single malfunction
 
     Returns
@@ -62,8 +62,8 @@ def single_agent_malfunction_generator(malfunction_time: int, malfunction_durati
                 malfunction_calls[agent.handle] = 1
 
         # Break an agent that is active at the time of the malfunction
-        if agent.status == RailAgentStatus.ACTIVE and \
-                malfunction_calls[agent.handle] >= malfunction_time and agent.handle == agent_id:
+        if agent.handle == agent_id and agent.status == RailAgentStatus.ACTIVE and \
+                malfunction_calls[agent.handle] >= earliest_malfunction:
             global_nr_malfunctions += 1
             return Malfunction(malfunction_duration)
         else:
