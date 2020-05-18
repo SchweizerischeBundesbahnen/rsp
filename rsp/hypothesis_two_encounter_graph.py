@@ -76,12 +76,6 @@ def hypothesis_two_encounter_graph_directed(
         reschedule = experiment_result.results_full_after_malfunction.trainruns_dict
         number_of_trains = len(schedule)
 
-        # tweak the trainrun_dict: merge the initial synchronization step of length 1 in the first cell with the remainder in the cell
-        # for agent_id, trainrun in schedule.items():
-        #     trainrun.pop(1)
-        # for agent_id, trainrun in reschedule.items():
-        #     trainrun.pop(1)
-
         # 0. data preparation
         rolled_out_schedule = convert_trainrundict_to_positions_after_flatland_timestep(schedule)
         rolled_out_reschedule = convert_trainrundict_to_positions_after_flatland_timestep(reschedule)
@@ -91,52 +85,51 @@ def hypothesis_two_encounter_graph_directed(
         reschedule_resource_occupations_per_resource, reschedule_resource_occupations_per_agent = extract_resource_occupations(reschedule)
 
         # 1. compute the forward-only wave of the malfunction
-        # TODO does not work yet!
-        # - forward-only: only agents running at or after the wave hitting are considere, i.e. agents do not decelerate ahed of the wave!
+        # "forward-only" means only agents running at or after the wave hitting them are considered,
+        # i.e. agents do not decelerate ahead of the wave!
+        # TODO something is wrong: propagates only on resources of the malfunction train - why???
 
         resource_reached_at: Dict[Resource, int] = {}
-        resource_reached_by: Dict[Resource, int] = {}
 
-        queue: List[Tuple[Resource, int]] = []
-        queue.append((rolled_out_schedule[malfunction_agent_id][malfunction.time_step].position, malfunction.time_step))
-        while len(queue) > 0:
-            wave_front = queue.pop()
-            # print(wave_front)
-            wave_front_resource, wave_front_time = wave_front
+        open_wave_front: List[Tuple[ResourceOccupation, List[ResourceOccupation]]] = []
+        transmission_chains: List[List[ResourceOccupation, ResourceOccupation]] = []
+        closed_wave_front: List[ResourceOccupation] = []
+        for ro in schedule_resource_occupations_per_agent[malfunction_agent_id]:
+            # N.B. intervals include release times, therefore we can be strict at upper bound!
+            if malfunction.time_step < ro.interval.to_excl:
+                # TODO should it be the interval extended by the malfunction duration?
+                open_wave_front.append((ro, [ro]))
+        assert len(open_wave_front) > 0
+        while len(open_wave_front) > 0:
+            wave_front, history = open_wave_front.pop()
 
-            if wave_front_resource in resource_reached_at and wave_front_time >= resource_reached_at[wave_front_resource]:
-                # already dealt with
-                # non-optimized: resource already reached, we might re-enque impacted trains!
-                continue
+            print(f"{wave_front} at {len(history)}")
+            wave_front_resource = wave_front.resource
+            wave_front_time = wave_front.interval.from_incl
+            closed_wave_front.append(wave_front)
+            resource_reached_at[wave_front_resource] = wave_front_time
 
-            resource_reached_at.setdefault(wave_front_resource, wave_front_time)
-            resource_reached_at[wave_front_resource] = min(resource_reached_at[wave_front_resource], wave_front_time)
-            impacted_trains = [
-                (resource_occupation.agent_id, resource_occupation.interval.from_incl)
-                for resource_occupation in schedule_resource_occupations_per_resource[wave_front_resource]
-                # TODO this is forward_only, trains only wait if wave hits them during their run
-                if (resource_occupation.interval.to_excl >= wave_front_time)
-            ]
-            # print(impacted_trains)
-
-            for agent_id, time_from in impacted_trains:
-                # print(agent_id)
-                rolled_out_schedule_agent = rolled_out_schedule[agent_id]
-                for t in range(time_from, len(rolled_out_schedule_agent)):
-                    if rolled_out_schedule_agent[t] is not None:
-                        queue.append((rolled_out_schedule_agent[t].position, t))
+            # the next scheduled train may be impacted!
+            # TODO we do not consider decelerate to let pass yet!
+            for ro in schedule_resource_occupations_per_resource[wave_front_resource]:
+                if ro.interval.from_incl >= wave_front.interval.to_excl:
+                    # TODO should we modify?
+                    chain = history + [ro]
+                    open_wave_front.append((ro, chain))
+                    transmission_chains.append(chain)
+                    break
 
         # 2. visualize the wave in resource-time diagram
-        # hack wave as additional agent
+        # TODO dirty hack: visualize wave as additional agent
         wave_agent_id = number_of_trains
         fake_resource_occupations = [
-            ResourceOccupation(interval=LeftClosedInterval(from_incl=reached_at, to_excl=reached_at + 1),
-                               resource=resource,
+            ResourceOccupation(interval=ro.interval,
+                               resource=ro.resource,
                                agent_id=wave_agent_id)
-            for resource, reached_at in resource_reached_at.items()
+            for ro in closed_wave_front
         ]
         schedule_resource_occupations_per_agent[wave_agent_id] = fake_resource_occupations
-        reschedule_resource_occupations_per_agent[wave_agent_id] = fake_resource_occupations
+        reschedule_resource_occupations_per_agent[wave_agent_id] = []
 
         # sort and plot
         _, resource_sorting = resource_time_2d(schedule=schedule,
@@ -151,30 +144,29 @@ def hypothesis_two_encounter_graph_directed(
                                     width=width)
 
         # 3. non-symmetric distance matrix of primary, secondary etc. effects
-        # TODO take only encounters after wave reaches the resource
         # non-symmetric distance_matrix: insert distance between two consecutive trains at a resource; if no direct encounter, distance is inf
         distance_matrix = np.zeros((number_of_trains, number_of_trains))
+        distance_first_reaching = np.zeros((number_of_trains, number_of_trains))
         distance_matrix.fill(np.inf)
+        distance_first_reaching.fill(np.inf)
 
         debug_info = {}
+        for transmission_chain in transmission_chains:
+            # TODO weighting/damping
+            from_ro = transmission_chain[-2]
+            to_ro = transmission_chain[-1]
+            distance = to_ro.interval.from_incl - from_ro.interval.to_excl
+            assert distance >= 0
+            from_agent_id = from_ro.agent_id
+            to_agent_id = to_ro.agent_id
 
-        for resource, occupations in schedule_resource_occupations_per_resource.items():
-            for leaving_train_occupation, entering_train_occupation in zip(occupations, occupations[1:]):
-                # skip exit events before malfunction starts (cannot have any influence any more)
-                # TODO we could even deduce RELEASE_TIME, since the agent is already in the next cell?
-                if leaving_train_occupation.interval.to_excl <= malfunction.time_step:
-                    continue
-                distance = entering_train_occupation.interval.from_incl - leaving_train_occupation.interval.to_excl
-                if distance < 0:
-                    print(f"{resource} {leaving_train_occupation} - {entering_train_occupation}")
-                    print(f"{resource}: {occupations}")
-                    print(f"leaving train {leaving_train_occupation.agent_id}: {_pp.pformat(schedule[leaving_train_occupation.agent_id])}")
-                    print(f"leaving train ({entering_train_occupation.agent_id}): {_pp.pformat(schedule[entering_train_occupation.agent_id])}")
-                assert distance >= 0
-                distance_matrix[leaving_train_occupation.agent_id, entering_train_occupation.agent_id] = min(distance, distance_matrix[
-                    leaving_train_occupation.agent_id, entering_train_occupation.agent_id])
-                debug_info.setdefault((leaving_train_occupation.agent_id, entering_train_occupation.agent_id), []).append(
-                    (leaving_train_occupation, entering_train_occupation))
+            distance_before = distance_matrix[from_agent_id, to_agent_id]
+            if distance_before > distance:
+                distance_matrix[from_agent_id, to_agent_id] = min(distance, distance_before)
+                distance_first_reaching[from_agent_id, to_agent_id] = to_ro.interval.from_incl
+            elif distance_before == distance:
+                distance_first_reaching[from_agent_id, to_agent_id] = min(distance_first_reaching[from_agent_id, to_agent_id], to_ro.interval.from_incl)
+            debug_info.setdefault((from_agent_id, to_agent_id), []).append((from_ro, to_ro, len(transmission_chain)))
 
         weights_matrix = 1 / (distance_matrix + 0.000001)
         np_max = np.max(weights_matrix)
@@ -182,45 +174,30 @@ def hypothesis_two_encounter_graph_directed(
         weights_matrix /= np_max
         print(weights_matrix)
 
-
         # 4. visualize
-        # TODO
+        # take minimum depth of transmission between and the time reaching the second agent as coordinates
+        # TODO should we directly work on transmission chains?
         pos = {}
         pos[malfunction.agent_id] = (0, 0)
-        agents_at_depth = {malfunction.agent_id}
-        depth = 1
-        done_at_depth = set()
-        edges = set()
-        while len(agents_at_depth) > 0:
+        max_depth = 0
 
-            done_at_depth.update(agents_at_depth)
+        for (_, to_agent_id), transmissions in debug_info.items():
+            # sort by depth
+            transmissions.sort(key=lambda t: t[2])
+            # take transmission at minimum depth
+            minimum_depth_transmission = transmissions[0]
+            d = minimum_depth_transmission[2]
+            minimum_depth_transmission_to_ro = minimum_depth_transmission[1]
+            pos[to_agent_id] = (minimum_depth_transmission_to_ro.interval.from_incl, d)
+            max_depth = max(max_depth, d)
 
-            # TODO replace by time!
-            # TODO filter out edges not dependent! How to do that exactly?
-            round_index = 0
-            next_round = set()
-            for agent_id in agents_at_depth:
-                for neighbour in range(number_of_trains):
-                    if neighbour in done_at_depth:
-                        continue
-                    weight = weights_matrix[agent_id, neighbour]
-                    if weight > 0:
-                        pos[neighbour] = (round_index * 5, depth)
-                        round_index += 1
-                        next_round.add(neighbour)
-            print(f"depth {depth}: {next_round}")
-            print(pos)
-
-            agents_at_depth = next_round
-            depth += 1
-
-        # TODO visualiz removed ones
+        # TODO better visualization removed ones
         staengeli_index = 0
         for agent_id in range(number_of_trains):
             if agent_id not in pos:
-                pos[agent_id] = (staengeli_index * 2, depth + 5)
+                # TODO extract scale factor, distribute evenly?
+                pos[agent_id] = (staengeli_index * 10, max_depth + 5)
                 staengeli_index += 1
-        _debug_directed((6, 2), debug_info, distance_matrix, weights_matrix)
         _plot_encounter_graph_directed(
             weights_matrix=weights_matrix,
             title=f"Encounter Graph for experiment {experiment_result.experiment_id}, {malfunction}",
@@ -245,7 +222,7 @@ def extract_resource_occupations(schedule: TrainrunDict) -> Tuple[SortedResource
             for t in range(from_incl, to_excl):
                 rolled_out_resource_occupations[(resource, t)] = agent_id
     # sort occupations by interval lower bound
-    for resource, occupations in resource_occupations_per_resource.items():
+    for _, occupations in resource_occupations_per_resource.items():
         occupations.sort(key=lambda ro: ro.interval.from_incl)
     return resource_occupations_per_resource, resource_occupations_per_agent
 
@@ -261,15 +238,11 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
     schedule_trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_schedule, resource_sorting, width)
     reschedule_trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule, resource_sorting, width)
 
-    # # Get full reschedule Time-resource-Data
-    # time_resource_reschedule_full, _ = resource_time_2d(schedule=reschedule,
-    #                                                     width=width,
-    #                                                     malfunction_agent_id=malfunction_agent_id,
-    #                                                     sorting=ressource_sorting)
     # Plotting the graphs
     ranges = (len(resource_sorting),
-              max(max([ro[-1].interval.to_excl for ro in resource_occupations_schedule.values()]),
-                  max([ro[-1].interval.to_excl for ro in resource_occupations_reschedule.values()])))
+
+              max(max([ro[-1].interval.to_excl for ro in resource_occupations_schedule.values() if len(ro) > 0]),
+                  max([ro[-1].interval.to_excl for ro in resource_occupations_reschedule.values() if len(ro) > 0])))
     # Plot Schedule
     plot_time_resource_data(trajectories=schedule_trajectories, title='Schedule', ranges=ranges)
     # Plot Reschedule Full
@@ -310,7 +283,6 @@ def trajectories_from_resource_occupations_per_agent(resource_occupations_schedu
 
 def _debug_directed(pair, debug_info, distance_matrix, weights_matrix):
     print(f"debug_info[{pair}]={debug_info[pair]}")
-    # print(f"debug_info[(2,6)]={debug_info[(2,6)]}")
     print(f"weights_matrix[{pair}]={weights_matrix[pair]}")
     print(f"distance_matrix[{pair}]={distance_matrix[pair]}")
 

@@ -47,18 +47,6 @@ def _plot_encounter_graph_directed(weights_matrix: np.ndarray,
           f"expected nb of edges={graph.number_of_nodes() * (graph.number_of_nodes() - 1) / 2} "
           "(in diff matrix, <= is ok since the zeros are those without change)")
 
-
-
-
-    # # position of nodes
-    # if pos is None:
-    #     # Position nodes using Fruchterman-Reingold force-directed algorithm
-    #     # https://networkx.github.io/documentation/stable/reference/generated/networkx.drawing.layout.spring_layout.html
-    #     pos = nx.spring_layout(graph, seed=42)
-    # else:
-    #     fixed_nodes = pos.keys()
-    #     pos = nx.spring_layout(graph, seed=42, pos=pos, fixed=fixed_nodes)
-
     # Color the nodes
     node_color = ['lightblue' for i in range(graph.number_of_nodes())]
     if highlights is not None:
@@ -88,7 +76,6 @@ def _plot_encounter_graph_directed(weights_matrix: np.ndarray,
     plt.subplot(122)
 
     plt.imshow(weights_matrix, cmap='hot', interpolation='nearest')
-
 
     if file_name is not None:
         fig.savefig(file_name)

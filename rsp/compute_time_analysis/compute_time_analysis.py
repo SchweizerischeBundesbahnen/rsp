@@ -358,6 +358,9 @@ def plot_time_resource_data(title: str, trajectories: List[List[Tuple[int, int]]
                                      ))
     else:
         for idx, line in enumerate(trajectories):
+            # skip empty schedule (re-schedle for our ghost agent representing the wave front)
+            if len(line) == 0:
+                continue
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
