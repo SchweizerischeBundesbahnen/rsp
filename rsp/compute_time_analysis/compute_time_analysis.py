@@ -696,11 +696,12 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
             x.append(waypoint.position[1])
             y.append(waypoint.position[0])
             size.append(delay_information[agent_id])
-            marker.append(MARKER_LIST[waypoint.direction])
+            marker.append(MARKER_LIST[int(np.clip(waypoint.direction, 0, 3))])
             times.append(time)
             delay.append(delay_information[agent_id])
         if agent_id == malfunction.agent_id:
             color = "red"
+            print("Malfunctino agent is red")
         else:
             color = PLOTLY_COLORLIST[agent_id]
         fig.add_trace(go.Scatter(x=x,
@@ -715,7 +716,7 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
                                  hovertemplate="Time %{customdata[0]}<br>Delay: %{customdata[1]}"
                                  ))
     # Plot malfunction
-    waypoint = schedule[malfunction.agent_id][malfunction.time_step + 1].position
+    waypoint = list(schedule[malfunction.agent_id].values())[0].position
     fig.add_trace(go.Scatter(x=[waypoint[1]],
                              y=[waypoint[0]],
                              mode='markers',
