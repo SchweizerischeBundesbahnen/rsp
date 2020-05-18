@@ -14,7 +14,7 @@ from flatland.envs.rail_generators import sparse_rail_generator
 from flatland.envs.schedule_generators import sparse_schedule_generator
 
 from rsp.utils.data_types import SpeedData
-from rsp.utils.flatland_utils import single_malfunction_generator, single_agent_malfunction_generator
+from rsp.utils.flatland_utils import single_agent_malfunction_generator
 
 
 def create_flatland_environment(number_of_agents: int,

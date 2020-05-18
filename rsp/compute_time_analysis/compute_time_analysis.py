@@ -12,7 +12,9 @@ from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
+from plotly.validators.area.marker import SymbolValidator
 
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
@@ -330,7 +332,8 @@ def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width:
         max_ressource = plotting_parameters.dimensions[0]
         max_time = plotting_parameters.dimensions[1]
 
-    for trace in schedule_data.values():
+    for agent_idx in sorted(schedule_data):
+        trace = schedule_data[agent_idx]
         x = []
         y = []
         old_ressource = 0
@@ -351,11 +354,11 @@ def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width:
             y.append(time)
             y.append(time + 1)
             old_ressource = ressource
-        fig.add_trace(go.Scatter(x=x, y=y))
+        fig.add_trace(go.Scatter(x=x, y=y, line=dict(color=PLOTLY_COLORLIST[agent_idx])))
     if malfunction_time is not None:
         x = [-10, max_ressource + 10]
         y = [malfunction_time, malfunction_time]
-        fig.add_trace(go.Scatter(x=x, y=y,line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=x, y=y, line=dict(color='red')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, max_ressource])
     fig.update_yaxes(title="Time", range=[max_time, 0])
@@ -547,17 +550,34 @@ def plot_schedule_metrics(experiment_data_frame: ExperimentResultsAnalysis, expe
     experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
     experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
         experiment_data_series)
+    malfunction = experiment_data.malfunction
+    delay = experiment_data.lateness_delta_after_malfunction
     schedule = experiment_data.solution_full
+    reschedule_delta = experiment_data.solution_delta_after_malfunction
+    width = experiment_data.experiment_parameters.width
 
     # Get full schedule Time-resource-Data
     time_resource_schedule: TrainScheduleDict = \
         convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True)
 
+    # Get delta reschedule Time-resource-Data
+    time_resource_reschedule_delta: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
+        reschedule_delta, only_travelled_positions=True)
+
+    # Compute the difference between schedules and return traces for plotting
+    changed_agent_traces: TrainScheduleDict = _get_difference_in_time_space(
+        schedule_a=time_resource_reschedule_delta,
+        schedule_b=time_resource_schedule)
+
     schedule_times, schedule_ressources = _schedule_to_time_ressource_dicts(time_resource_schedule)
     # Plot Density over time
     _plot_time_density(schedule_times)
+
     # Plot Occupancy over space
-    _plot_ressource_occupation(schedule_ressources)
+    _plot_ressource_occupation(schedule_ressources, width=width)
+
+    # Plot Delay propagation
+    _plot_delay_propagation(changed_agent_traces, malfunction=malfunction, delay_information=delay, width=width)
 
     return
 
@@ -590,7 +610,7 @@ def _schedule_to_time_ressource_dicts(schedule: TrainScheduleDict) -> Tuple[Time
     return timescheduledict, ressourcescheduledict
 
 
-def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict):
+def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict, width: int):
     """
     Plot agent density over ressource
     Parameters
@@ -636,8 +656,74 @@ def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict):
                       width=1000,
                       height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, autorange="reversed", tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.update_xaxes(zeroline=False, showgrid=True, tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, width], tick0=-0.5, dtick=1, gridcolor='Grey')
+
+    fig.show()
+
+
+def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: ExperimentMalfunction,
+                            delay_information, width: int):
+    """
+    Plot agent density over ressource
+    Parameters
+    ----------
+    schedule_ressources
+        Dict containing all the times and agent handles for all ressources
+
+    Returns
+    -------
+
+    """
+
+    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+
+    for agent_id in schedule:
+        x = []
+        y = []
+        size = []
+        marker = []
+        delay = delay_information[agent_id]
+        for time in schedule[agent_id]:
+            waypoint = schedule[agent_id][time]
+            x.append(waypoint.position[1])
+            y.append(waypoint.position[0])
+            size.append(delay_information[agent_id])
+            marker.append(MARKER_LIST[waypoint.direction])
+        if agent_id == malfunction.agent_id:
+            color = "red"
+        else:
+            color = PLOTLY_COLORLIST[agent_id]
+        fig.add_trace(go.Scatter(x=x,
+                                 y=y,
+                                 mode='markers',
+                                 name="Train {}".format(agent_id),
+                                 marker_symbol=marker,
+                                 marker_size=size,
+                                 marker_opacity=0.1,
+                                 marker_color=color,
+                                 hovertemplate="Delay {}".format(delay)
+                                 ))
+    # Plot malfunction
+    waypoint = schedule[malfunction.agent_id][malfunction.time_step + 1].position
+    fig.add_trace(go.Scatter(x=[waypoint[1]],
+                             y=[waypoint[0]],
+                             mode='markers',
+                             name="Malfunction",
+                             marker_symbol='x',
+                             marker_size=50,
+                             marker_color='red'))
+    fig.update_layout(title_text="Train Density at Ressources",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, width], tick0=-0.5, dtick=1, gridcolor='Grey')
 
     fig.show()
 

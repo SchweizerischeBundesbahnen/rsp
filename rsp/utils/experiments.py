@@ -51,7 +51,8 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.asp.asp_helper import _print_stats
-from rsp.experiment_solvers.data_types import fake_solver_statistics, ExperimentMalfunction
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
+from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
