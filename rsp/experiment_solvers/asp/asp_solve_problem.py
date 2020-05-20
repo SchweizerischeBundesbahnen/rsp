@@ -17,6 +17,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 def solve_problem(
         problem: ASPProblemDescription,
         debug: bool = False,
+        verbose: bool = False
 ) -> Tuple[SchedulingExperimentResult, ASPSolutionDescription]:
     """Solves an :class:`AbstractProblemDescription` and optionally verifies it
     againts the provided :class:`RailEnv`.
@@ -51,7 +52,7 @@ def solve_problem(
     # --------------------------------------------------------------------------------------
     # Solve the problem
     # --------------------------------------------------------------------------------------
-    solution: ASPSolutionDescription = problem.solve()
+    solution: ASPSolutionDescription = problem.solve(verbose=verbose)
     assert solution.is_solved()
 
     solution.verify_correctness()
