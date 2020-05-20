@@ -149,10 +149,10 @@ TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
 TrainSchedule = Dict[int, Waypoint]
 TrainScheduleDict = Dict[int, TrainSchedule]
 
-WaypointAgentDict = Dict[Waypoint, int]  # Dict assigning agent handle to Waypoint (Ressource)
+RessourceAgentDict = Dict[Waypoint, int]  # Dict assigning agent handle to Waypoint (Ressource)
 TimeAgentDict = Dict[int, int]  # Dict assigning agent handle to time
 
-TimeScheduleDict = Dict[int, WaypointAgentDict]
+TimeScheduleDict = Dict[int, RessourceAgentDict]  # time step as int
 RessourceScheduleDict = Dict[Waypoint, TimeAgentDict]
 
 TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',

@@ -20,12 +20,12 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import PlottingInformation
+from rsp.utils.data_types import RessourceAgentDict
 from rsp.utils.data_types import RessourceScheduleDict
 from rsp.utils.data_types import TimeAgentDict
 from rsp.utils.data_types import TimeScheduleDict
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
-from rsp.utils.data_types import WaypointAgentDict
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
@@ -609,13 +609,13 @@ def _schedule_to_time_ressource_dicts(schedule: TrainScheduleDict) -> Tuple[Time
     ressourcescheduledict: RessourceScheduleDict = {}
     for train_id in schedule:
         for time in schedule[train_id]:
-            waypoint = schedule[train_id][time].position
+            ressource = schedule[train_id][time].position
             if time not in timescheduledict:
-                timescheduledict[time]: WaypointAgentDict = {}
-            if waypoint not in ressourcescheduledict:
-                ressourcescheduledict[waypoint]: TimeAgentDict = {}
-            timescheduledict[time][waypoint] = train_id
-            ressourcescheduledict[waypoint][time] = train_id
+                timescheduledict[time]: RessourceAgentDict = {}
+            if ressource not in ressourcescheduledict:
+                ressourcescheduledict[ressource]: TimeAgentDict = {}
+            timescheduledict[time][ressource] = train_id
+            ressourcescheduledict[ressource][time] = train_id
     return timescheduledict, ressourcescheduledict
 
 
@@ -694,7 +694,7 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
 
     # Sort agents according to influence depth for plotting
     agents = []
-    for agent, depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
+    for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
         if agent in schedule:
             agents.append(agent)
     for agent in schedule:
@@ -736,8 +736,8 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
                                  marker_opacity=0.1,
                                  marker_color=color,
                                  marker_line_color=color,
-                                 hovertemplate="Time:\t%{customdata[0]}<br>" + \
-                                               "Delay:\t%{customdata[1]}<br>" + \
+                                 hovertemplate="Time:\t%{customdata[0]}<br>" +
+                                               "Delay:\t%{customdata[1]}<br>" +
                                                "Influence depth:\t%{customdata[2]}"
                                  ))
     # Plot malfunction
@@ -785,6 +785,7 @@ def _plot_time_density(schedule_times: TimeScheduleDict):
     fig.add_trace(go.Scatter(x=x, y=y, name="Schedule"))
     fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
     fig.show()
+
 
 # Currently running very slow...
 def _delay_cause_level(schedule: TrainScheduleDict, malfunction: ExperimentMalfunction):
