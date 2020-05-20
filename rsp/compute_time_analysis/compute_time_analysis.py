@@ -336,6 +336,7 @@ def extract_plotting_information_from_train_schedule_dict(
 
 
 # TODO bad code smell: may have side effects on plotting_information - do we really need this? It would be better to pass in a list of schedule_data!
+# TODO unify with plot_time_resource_data_trajectories (we will need the trajectory version for SIM-512)
 def plot_time_resource_data(
         title: str,
         schedule_data: TrainScheduleDict,
@@ -406,8 +407,11 @@ def plot_time_resource_data(
     return plotting_information
 
 
-def plot_time_resource_data_trajectories(title: str, trajectories: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
-                                         additional_data: Dict = None):
+def plot_time_resource_data_trajectories(
+        title: str, trajectories: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
+        additional_data: Dict = None,
+        show: bool = True
+):
     """
     Plot the time-resource-diagram with additional data for each train
     Parameters
@@ -471,7 +475,8 @@ def plot_time_resource_data_trajectories(title: str, trajectories: List[List[Tup
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
-    fig.show()
+    if show:
+        fig.show()
 
 
 def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):

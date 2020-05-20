@@ -46,6 +46,7 @@ def hypothesis_two_encounter_graph_directed(
         experiment_base_directory: str,
         experiment_ids: List[int] = None,
         width: int = 400,
+        show: bool = True
 ):
     experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/'
@@ -64,12 +65,13 @@ def hypothesis_two_encounter_graph_directed(
 
         experiment_result: ExperimentResultsAnalysis = experiment_results_list[i]
 
-        disturbance_propagation_graph_visualization(experiment_result, width)
+        disturbance_propagation_graph_visualization(experiment_result, width, show=show)
 
 
 def disturbance_propagation_graph_visualization(
         experiment_result: ExperimentResultsAnalysis,
-        width: int = 400
+        width: int = 400,
+        show: bool = True
 ) -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
     """
 
@@ -137,7 +139,8 @@ def disturbance_propagation_graph_visualization(
         resource_sorting=resource_sorting,
         resource_occupations_schedule=schedule_resource_occupations_per_agent,
         resource_occupations_reschedule=reschedule_resource_occupations_per_agent,
-        width=width)
+        width=width,
+        show=show)
 
     # 3. non-symmetric distance matrix of primary, secondary etc. effects
     distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent = _distance_matrix_from_tranmission_chains(
@@ -348,7 +351,8 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
                                 nb_agents: int,
                                 resource_occupations_schedule: SortedResourceOccupationsPerAgentDict,
                                 resource_occupations_reschedule: SortedResourceOccupationsPerAgentDict,
-                                width: int) -> Dict[int, bool]:
+                                width: int,
+                                show: bool = True) -> Dict[int, bool]:
     malfunction_agent_id = malfunction.agent_id
     # TODO extract sorting from  resource_time_2d
     schedule_trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_schedule, resource_sorting, width)
@@ -359,9 +363,9 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
               max(max([ro[-1].interval.to_excl for ro in resource_occupations_schedule.values() if len(ro) > 0]),
                   max([ro[-1].interval.to_excl for ro in resource_occupations_reschedule.values() if len(ro) > 0])))
     # Plot Schedule
-    plot_time_resource_data_trajectories(trajectories=schedule_trajectories, title='Schedule', ranges=ranges)
+    plot_time_resource_data_trajectories(trajectories=schedule_trajectories, title='Schedule', ranges=ranges, show=show)
     # Plot Reschedule Full
-    plot_time_resource_data_trajectories(trajectories=reschedule_trajectories, title='Full Reschedule', ranges=ranges)
+    plot_time_resource_data_trajectories(trajectories=reschedule_trajectories, title='Full Reschedule', ranges=ranges, show=show)
     # Compute the difference between schedules and return traces for plotting
 
     traces_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
@@ -378,7 +382,9 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
     # Plot difference
     plot_time_resource_data_trajectories(
         trajectories=traces_influenced_agents, title='Changed Agents',
-        ranges=ranges)
+        ranges=ranges,
+        show=show
+    )
     return changed_agents_list
 
 
@@ -454,5 +460,5 @@ def hypothesis_two_encounter_graph_undirected(
 if __name__ == '__main__':
     hypothesis_two_encounter_graph_directed(
         experiment_base_directory='../rsp-data/agent_0_malfunction_2020_05_18T11_56_31',
-        experiment_ids=list(range(1)),
+        experiment_ids=list(range(1))
     )
