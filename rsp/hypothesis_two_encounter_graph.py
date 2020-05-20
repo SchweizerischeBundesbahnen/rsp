@@ -8,9 +8,9 @@ from typing import Tuple
 import numpy as np
 from flatland.core.grid.grid_utils import coordinate_to_position
 
-from rsp.compute_time_analysis.compute_time_analysis import _get_difference_in_time_space
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_data
-from rsp.compute_time_analysis.compute_time_analysis import resource_time_2d
+from rsp.compute_time_analysis.compute_time_analysis import _get_difference_in_time_space_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import extract_plotting_information_from_train_schedule_dict
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_data_trajectories
 from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_dummy_Euclidean
 from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_sum_of_time_window_overlaps
 from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
@@ -18,6 +18,7 @@ from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_gr
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import PlottingInformation
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ResourceSorting
 from rsp.utils.data_types import SortedResourceOccupationsPerAgentDict
@@ -29,6 +30,7 @@ from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_positions_for_all_timesteps
 from rsp.utils.global_constants import RELEASE_TIME
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -43,7 +45,7 @@ TransmissionChain = List[TransmissionLeg]
 def hypothesis_two_encounter_graph_directed(
         experiment_base_directory: str,
         experiment_ids: List[int] = None,
-        width: int = 400
+        width: int = 400,
 ):
     experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/'
@@ -107,7 +109,7 @@ def disturbance_propagation_graph_visualization(
     # 1. compute the forward-only wave of the malfunction
     # "forward-only" means only agents running at or after the wave hitting them are considered,
     # i.e. agents do not decelerate ahead of the wave!
-    transmission_chains = extract_transmission_chaing(malfunction=malfunction,
+    transmission_chains = extract_transmission_chains(malfunction=malfunction,
                                                       resource_occupations_per_agent=schedule_resource_occupations_per_agent,
                                                       resource_occupations_per_resource=schedule_resource_occupations_per_resource)
 
@@ -124,11 +126,11 @@ def disturbance_propagation_graph_visualization(
     schedule_resource_occupations_per_agent[wave_agent_id] = fake_resource_occupations
     reschedule_resource_occupations_per_agent[wave_agent_id] = []
 
-    # get resource sorting
-    _, resource_sorting = resource_time_2d(schedule=schedule,
-                                           width=width,
-                                           malfunction_agent_id=malfunction_agent_id,
-                                           sorting=None)
+    # get resource
+    plotting_parameters: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
+        schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True),
+        width=width)
+    resource_sorting = plotting_parameters.sorting
     changed_agents: Dict[int, bool] = _plot_resource_time_diagram(
         malfunction=malfunction,
         nb_agents=number_of_trains,
@@ -147,8 +149,16 @@ def disturbance_propagation_graph_visualization(
     return transmission_chains, distance_matrix, weights_matrix, minimal_depth
 
 
-def _plot_delay_propagation_graph(changed_agents, experiment_result, malfunction, malfunction_agent_id, max_time_schedule, minimal_depth, number_of_trains,
-                                  wave_fronts_reaching_other_agent, weights_matrix):
+def _plot_delay_propagation_graph(
+        changed_agents,
+        experiment_result,
+        malfunction,
+        malfunction_agent_id,
+        max_time_schedule,
+        minimal_depth,
+        number_of_trains,
+        wave_fronts_reaching_other_agent,
+        weights_matrix):
     # take minimum depth of transmission between and the time reaching the second agent as coordinates
     # TODO is it a good idea to take minimum depth, should it not rather be cumulated distance from the malfunction train?
     pos = {}
@@ -189,7 +199,7 @@ def _distance_matrix_from_tranmission_chains(
         number_of_trains: int,
         transmission_chains: List[TransmissionChain],
         cutoff: int = None
-) -> Tuple[np.ndarray, np.ndarray, Dict[int, int], Dict[int, List[ResourceOccupation]]]:
+) -> Tuple[np.ndarray, np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
     """
 
     Parameters
@@ -209,7 +219,7 @@ def _distance_matrix_from_tranmission_chains(
     distance_matrix.fill(np.inf)
     distance_first_reaching.fill(np.inf)
     # for each agent, wave_front reaching the other agent from malfunction agent
-    wave_fronts_reaching_other_agent: Dict[int, List[ResourceOccupation]] = {}
+    wave_fronts_reaching_other_agent: Dict[int, Dict[int, List[ResourceOccupation]]] = {agent_id: {} for agent_id in range(number_of_trains)}
     # for each agent, minimum transmission length reaching the other agent from malfunction agent
     minimal_depth: Dict[int, int] = {}
     for transmission_chain in transmission_chains:
@@ -245,7 +255,7 @@ def _distance_matrix_from_tranmission_chains(
         elif distance_before == distance:
             distance_first_reaching[from_agent_id, to_agent_id] = min(distance_first_reaching[from_agent_id, to_agent_id], to_ro.interval.from_incl)
     # almost-inverse: distance -> weights
-    weights_matrix = 1 / (distance_matrix + 0.000001)
+    weights_matrix: np.ndarray = (1 / distance_matrix) + 0.000001
     # normalize
     np_max = np.max(weights_matrix)
     print(np_max)
@@ -254,9 +264,11 @@ def _distance_matrix_from_tranmission_chains(
     return distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent
 
 
-def extract_transmission_chaing(malfunction: ExperimentMalfunction,
-                                resource_occupations_per_agent: SortedResourceOccupationsPerAgentDict,
-                                resource_occupations_per_resource: SortedResourceOccupationsPerResourceDict):
+def extract_transmission_chains(
+        malfunction: ExperimentMalfunction,
+        resource_occupations_per_agent: SortedResourceOccupationsPerAgentDict,
+        resource_occupations_per_resource: SortedResourceOccupationsPerResourceDict
+) -> List[TransmissionChain]:
     """Propagation of delay.
 
     Parameters
@@ -324,11 +336,11 @@ def validate_transmission_chains(transmission_chains: List[TransmissionChain]):
             # N.B: hop_on and hop_off may be at the same resource occupation!
             assert transmission.hop_off.interval.from_incl >= transmission.hop_on.interval.from_incl, transmission
             assert transmission.hop_off.interval.to_excl >= transmission.hop_on.interval.to_excl, transmission
-    for tr1, tr2 in zip(transmission_chain, transmission_chain[1:]):
-        assert tr1.hop_off.agent_id != tr2.hop_off.agent_id, (tr1, tr2)
-        # transmission via a resource
-        assert tr2.hop_on.resource == tr1.hop_off.resource, (tr1, tr2)
-        assert tr2.hop_on.interval.from_incl >= tr1.hop_off.interval.to_excl, (tr1, tr2)
+        for tr1, tr2 in zip(transmission_chain, transmission_chain[1:]):
+            assert tr1.hop_off.agent_id != tr2.hop_off.agent_id, (tr1, tr2)
+            # transmission via a resource
+            assert tr2.hop_on.resource == tr1.hop_off.resource, (tr1, tr2)
+            assert tr2.hop_on.interval.from_incl >= tr1.hop_off.interval.to_excl, (tr1, tr2)
 
 
 def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
@@ -347,15 +359,14 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
               max(max([ro[-1].interval.to_excl for ro in resource_occupations_schedule.values() if len(ro) > 0]),
                   max([ro[-1].interval.to_excl for ro in resource_occupations_reschedule.values() if len(ro) > 0])))
     # Plot Schedule
-    if False:
-        plot_time_resource_data(trajectories=schedule_trajectories, title='Schedule', ranges=ranges)
+    plot_time_resource_data_trajectories(trajectories=schedule_trajectories, title='Schedule', ranges=ranges)
     # Plot Reschedule Full
-    if False:
-        plot_time_resource_data(trajectories=reschedule_trajectories, title='Full Reschedule', ranges=ranges)
+    plot_time_resource_data_trajectories(trajectories=reschedule_trajectories, title='Full Reschedule', ranges=ranges)
     # Compute the difference between schedules and return traces for plotting
-    traces_influenced_agents, changed_agents_list = _get_difference_in_time_space(
-        time_resource_matrix_a=schedule_trajectories,
-        time_resource_matrix_b=reschedule_trajectories)
+
+    traces_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
+        trajectories_a=schedule_trajectories,
+        trajectories_b=reschedule_trajectories)
     # Printing situation overview
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents of {}. Total delay = {}.".format(
@@ -365,9 +376,9 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
             nb_agents,
             "TODO"))
     # Plot difference
-    if False:
-        plot_time_resource_data(trajectories=traces_influenced_agents, title='Changed Agents',
-                                ranges=ranges)
+    plot_time_resource_data_trajectories(
+        trajectories=traces_influenced_agents, title='Changed Agents',
+        ranges=ranges)
     return changed_agents_list
 
 

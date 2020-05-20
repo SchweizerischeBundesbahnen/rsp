@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python 3
+    display_name: Python [conda env:.conda-rsp] *
     language: python
-    name: python3
+    name: conda-env-.conda-rsp-py
 ---
 
 ```{python}
@@ -32,11 +32,12 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resou
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './agent_0_malfunction_2020_05_18T11_56_31'
+experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/'
 experiment_of_interest = 0
 ```
 
@@ -82,7 +83,15 @@ display(experiment_details.transpose())
 ```
 
 ```{python}
-changed_agents = plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+changed_agents_traces = plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+```
+
+```{python}
+changed_agents = {a: True for a in [*changed_agents_traces]}
+```
+
+```{python}
+schedule_times, schedule_ressources =plot_schedule_metrics(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 #### Histogram of delay per agent after re-scheduling
@@ -120,7 +129,7 @@ for experiment in experiment_results_list:
 
 ```{python}
 # %matplotlib inline
-agent_of_interest = 20
+agent_of_interest = 4
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
@@ -150,12 +159,14 @@ fixed_positions=None
 
 ```{python}
 fixed_positions = {agent_of_interest:(-100,-100)}
-(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,pos=fixed_positions,metric_function=undirected_distance_between_trains_sum_of_time_window_overlaps,debug_pair=[15, 44])
+plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,metric_function=symmetric_temporal_distance_between_trains)
 ```
 
 ```{python}
-display(distance_matrix_diff[23,24])
+fixed_positions = {agent_of_interest:(0,0)}
+plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents, pos=fixed_positions)
 ```
+
 ### Disturbance Propagation Graphs
 
 
