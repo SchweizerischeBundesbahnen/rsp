@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Dict
 from typing import Optional
 from typing import Tuple
 
@@ -17,7 +17,9 @@ def _plot_encounter_graph_directed(weights_matrix: np.ndarray,
                                    title: str,
                                    file_name: Optional[str] = None,
                                    pos: Optional[dict] = None,
-                                   highlights: Optional[dict] = None):
+                                   highlights: Optional[dict] = None,
+                                   changed_agents: Dict[int, bool] = None
+                                   ):
     """This method plots the encounter graph and the heatmap of the distance
     matrix into one file.
 
@@ -48,7 +50,7 @@ def _plot_encounter_graph_directed(weights_matrix: np.ndarray,
           "(in diff matrix, <= is ok since the zeros are those without change)")
 
     # Color the nodes
-    node_color = ['lightblue' for i in range(graph.number_of_nodes())]
+    node_color = ['lightblue' if (not changed_agents[i]) else 'red' for i in range(graph.number_of_nodes())]
     if highlights is not None:
         for node_idx in highlights:
             if highlights[node_idx]:

@@ -36,8 +36,8 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './res/exp_hypothesis_one_2020_03_31T07_11_03/'
-experiment_of_interest = 79
+experiment_base_directory = './agent_0_malfunction_2020_05_18T11_56_31'
+experiment_of_interest = 0
 ```
 
 ```{python}
@@ -140,6 +140,7 @@ plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
 from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_sum_of_time_window_overlaps
+
 ```
 
 ```{python}
@@ -155,6 +156,25 @@ fixed_positions = {agent_of_interest:(-100,-100)}
 ```{python}
 display(distance_matrix_diff[23,24])
 ```
+### Disturbance Propagation Graphs
+
+
+```{python}
+from rsp.hypothesis_two_encounter_graph import disturbance_propagation_graph_visualization
+```
+
+```{python}
+debug_info, distance_matrix, weights_matrix = disturbance_propagation_graph_visualization(experiment_result=single_exp_results)
+```
+
+```{python}
+from rsp.hypothesis_two_encounter_graph import _debug_directed
+```
+
+```{python}
+_debug_directed((0, 24), debug_info, distance_matrix, weights_matrix)
+```
+
 ### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?
 
 ```{python}
