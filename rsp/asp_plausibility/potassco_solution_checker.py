@@ -2,10 +2,15 @@ import argparse
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
+from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.logger import rsp_logger
+from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.experiments import _get_asp_solver_details_from_statistics
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 
 
-def main(experiment_data_folder_name: str, experiment_id: int, problem: str, debug: bool):
+def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: str, debug: bool, verbose: bool = False):
     """
 
     Parameters
@@ -16,31 +21,40 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem: str, deb
     debug
     """
     # We filter on a single experiment_id, so there should be only one one element in the list.
-    experiment_results = load_and_expand_experiment_results_from_data_folder(
+    experiment_results: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_folder_name,
         experiment_ids=[experiment_id]
     )[0]
 
-    tc = experiment_results._asdict()[f"problem_{problem}"]
-    print(problem)
-    if problem == "full":
+    problem: ScheduleProblemDescription = experiment_results._asdict()[f"problem_{problem_suffix}"]
+    results: SchedulingExperimentResult = experiment_results._asdict()[f"results_{problem_suffix}"]
+
+    if problem_suffix == "full":
         schedule_problem: ASPProblemDescription = ASPProblemDescription.factory_scheduling(
-            tc=tc,
+            tc=problem,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
         schedule_result, asp_solution = solve_problem(
             problem=schedule_problem,
+            verbose=verbose,
             debug=debug
         )
-    elif problem in ["full_after_malfunction", "delta_after_malfunction"]:
+    elif problem_suffix in ["full_after_malfunction", "delta_after_malfunction"]:
+        statistics = results.solver_statistics
+        rsp_logger.info(f"Problem {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name} baseline was: "
+                        f'{_get_asp_solver_details_from_statistics(elapsed_time=statistics["summary"]["times"]["total"], statistics=statistics)}')
+        rsp_logger.info(f"Generating {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=tc,
+            tc=problem,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
+        rsp_logger.info(f"Solving {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
         reschedule_result, asp_solution = solve_problem(
             problem=reschedule_problem,
+            verbose=verbose,
             debug=debug
         )
+        rsp_logger.info(f"Done {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
     else:
         raise ValueError(f"problem={args.which} unknown")
 
@@ -57,5 +71,7 @@ if __name__ == '__main__':
                         help='which problem to check',
                         nargs=1)
     parser.add_argument('--debug', action="store_true")
+    parser.add_argument('--verbose', action="store_true")
     args = parser.parse_args()
-    main(experiment_data_folder_name=args.experiment_data_folder_name[0], experiment_id=args.experiment_id[0], problem=args.problem[0], debug=args.debug)
+    main(experiment_data_folder_name=args.experiment_data_folder_name[0], experiment_id=args.experiment_id[0], problem_suffix=args.problem[0], debug=args.debug,
+         verbose=args.verbose)

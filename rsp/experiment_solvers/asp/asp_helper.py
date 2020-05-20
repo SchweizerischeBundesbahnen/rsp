@@ -168,7 +168,7 @@ def _asp_helper(encoding_files: List[str],
 
     if verbose:
         print("taking encodings from {}".format(encoding_files))
-        if plain_encoding:
+        if plain_encoding and debug:
             print("taking plain_encoding={}".format(plain_encoding))
     for enc in encoding_files:
         ctl.load(str(enc))
