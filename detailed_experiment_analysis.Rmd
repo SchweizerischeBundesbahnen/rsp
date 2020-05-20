@@ -38,7 +38,7 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 
 ```{python}
 experiment_base_directory = './exp_hypothesis_one_2020_05_18T11_56_31/'
-experiment_of_interest = 1
+experiment_of_interest = 0
 ```
 
 ```{python}
@@ -91,7 +91,7 @@ changed_agents = {a: True for a in [*changed_agents_traces]}
 ```
 
 ```{python}
-plot_schedule_metrics(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+schedule_times, schedule_ressources =plot_schedule_metrics(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 #### Histogram of delay per agent after re-scheduling

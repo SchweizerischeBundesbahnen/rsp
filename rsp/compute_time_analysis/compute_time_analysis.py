@@ -353,7 +353,9 @@ def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width:
             y.append(time)
             y.append(time + 1)
             old_ressource = ressource
-        fig.add_trace(go.Scatter(x=x, y=y, line=dict(color=PLOTLY_COLORLIST[agent_idx])))
+        fig.add_trace(
+            go.Scatter(x=x, y=y, name="Train Nr. {}".format(agent_idx), line=dict(color=PLOTLY_COLORLIST[agent_idx])))
+
     if malfunction_time is not None:
         x = [-10, max_ressource + 10]
         y = [malfunction_time, malfunction_time]
@@ -579,9 +581,14 @@ def plot_schedule_metrics(experiment_data_frame: ExperimentResultsAnalysis, expe
     _plot_ressource_occupation(re_schedule_ressources, width=width)
 
     # Plot Delay propagation
-    _plot_delay_propagation(changed_agent_traces, malfunction=malfunction, delay_information=delay, width=width)
-
-    return
+    changed_agent_dict = {}
+    for agent in changed_agent_traces:
+        changed_agent_dict[agent] = time_resource_schedule[agent]
+    delay_depth_dict = _delay_cause_level(time_resource_schedule, malfunction=malfunction)
+    _plot_delay_propagation(changed_agent_dict, malfunction=malfunction, delay_information=delay, width=width,
+                            depth_dict=delay_depth_dict)
+    print(delay_depth_dict)
+    return schedule_times, schedule_ressources
 
 
 def _schedule_to_time_ressource_dicts(schedule: TrainScheduleDict) -> Tuple[TimeScheduleDict, RessourceScheduleDict]:
@@ -665,7 +672,7 @@ def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict, width
 
 
 def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: ExperimentMalfunction,
-                            delay_information, width: int):
+                            delay_information, width: int, depth_dict: dict):
     """
     Plot agent density over ressource
     Parameters
@@ -679,41 +686,59 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
     """
 
     MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    DEPTH_COLOR = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
     layout = go.Layout(
         plot_bgcolor='rgba(46,49,49,1)'
     )
     fig = go.Figure(layout=layout)
 
-    for agent_id in schedule:
+    # Sort agents according to influence depth for plotting
+    agents = []
+    for agent, depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
+        if agent in schedule:
+            agents.append(agent)
+    for agent in schedule:
+        if agent not in agents:
+            agents.append(agent)
+
+    # Plot traces of agents
+    for agent_id in agents:
         x = []
         y = []
         size = []
         marker = []
         times = []
         delay = []
+        conflict_depth = []
         for time in schedule[agent_id]:
             waypoint = schedule[agent_id][time]
             x.append(waypoint.position[1])
             y.append(waypoint.position[0])
-            size.append(delay_information[agent_id])
+            size.append(max(10, delay_information[agent_id]))
             marker.append(MARKER_LIST[int(np.clip(waypoint.direction, 0, 3))])
             times.append(time)
             delay.append(delay_information[agent_id])
-        if agent_id == malfunction.agent_id:
-            color = "red"
-            print("Malfunctino agent is red")
+            if agent_id in depth_dict:
+                conflict_depth.append(depth_dict[agent_id])
+            else:
+                conflict_depth.append("None")
+        if agent_id in depth_dict:
+            color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
-            color = PLOTLY_COLORLIST[agent_id]
+            color = DEPTH_COLOR[-1]
         fig.add_trace(go.Scatter(x=x,
                                  y=y,
                                  mode='markers',
                                  name="Train {}".format(agent_id),
                                  marker_symbol=marker,
-                                 customdata=list(zip(times, delay)),
+                                 customdata=list(zip(times, delay, conflict_depth)),
                                  marker_size=size,
                                  marker_opacity=0.1,
                                  marker_color=color,
-                                 hovertemplate="Time %{customdata[0]}<br>Delay: %{customdata[1]}"
+                                 marker_line_color=color,
+                                 hovertemplate="Time:\t%{customdata[0]}<br>" + \
+                                               "Delay:\t%{customdata[1]}<br>" + \
+                                               "Influence depth:\t%{customdata[2]}"
                                  ))
     # Plot malfunction
     waypoint = list(schedule[malfunction.agent_id].values())[0].position
@@ -722,8 +747,9 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
                              mode='markers',
                              name="Malfunction",
                              marker_symbol='x',
-                             marker_size=50,
-                             marker_color='red'))
+                             marker_size=25,
+                             marker_line_color='black',
+                             marker_color='black'))
     fig.update_layout(title_text="Malfunction position and effects",
                       autosize=False,
                       width=1000,
@@ -759,3 +785,55 @@ def _plot_time_density(schedule_times: TimeScheduleDict):
     fig.add_trace(go.Scatter(x=x, y=y, name="Schedule"))
     fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
     fig.show()
+
+# Currently running very slow...
+def _delay_cause_level(schedule: TrainScheduleDict, malfunction: ExperimentMalfunction):
+    malfunction_id = malfunction.agent_id
+    schedule_times, schedule_ressources = _schedule_to_time_ressource_dicts(schedule)
+    depth = 0
+    depth_dict = {malfunction_id: 0}
+    lower_depth_dict = _find_neighbours(schedule=schedule, schedule_ressources=schedule_ressources,
+                                        agent_id=malfunction_id, depth=depth, known_neighbours=[malfunction_id],
+                                        incident_time=malfunction.time_step)
+    for lower_neighbour in lower_depth_dict:
+        if lower_neighbour not in depth_dict:
+            depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+        elif depth_dict[lower_neighbour] > lower_depth_dict[lower_neighbour]:
+            depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+
+    return depth_dict
+
+
+def _find_neighbours(schedule, schedule_ressources, agent_id, depth, known_neighbours, incident_time):
+    depth_dict = {}
+    lower_depth_dict = {}
+    for time in sorted(schedule[agent_id]):
+        if time < incident_time:
+            continue
+        waypoint = schedule[agent_id][time]
+        ressource_times_full = sorted(schedule_ressources[waypoint.position])
+        ressource_times = [i for i in ressource_times_full if i >= time]
+
+        if len(ressource_times) < 1:
+            break
+
+        current_neighbour = schedule_ressources[waypoint.position][ressource_times[0]]
+        while current_neighbour == agent_id:
+            ressource_times.pop(0)
+            if len(ressource_times) < 1:
+                break
+            current_neighbour = schedule_ressources[waypoint.position][ressource_times[0]]
+
+        if current_neighbour not in known_neighbours:
+            known_neighbours.append(current_neighbour)
+            depth_dict[current_neighbour] = depth
+            lower_depth_dict = _find_neighbours(schedule, schedule_ressources, current_neighbour, depth=depth + 1,
+                                                known_neighbours=[current_neighbour], incident_time=ressource_times[0])
+
+        for lower_neighbour in lower_depth_dict:
+            if lower_neighbour not in depth_dict:
+                depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+            elif depth_dict[lower_neighbour] > lower_depth_dict[lower_neighbour]:
+                depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+
+    return depth_dict
