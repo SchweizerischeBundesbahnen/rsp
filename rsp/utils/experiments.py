@@ -51,6 +51,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.asp.asp_helper import _print_stats
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
@@ -169,7 +170,9 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
 
     start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
     if show_results_without_details:
-        rsp_logger.info("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(), start_datetime_str))
+        rsp_logger.info(
+            "Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(),
+                                                              start_datetime_str))
     start_time = time.time()
 
     if show_results_without_details:
@@ -190,8 +193,10 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
         _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
 
         if debug:
-            _render_route_dags_from_data(experiment_base_directory=experiment_base_directory, experiment_id=experiment_parameters.experiment_id)
-            _visualize_route_dag_constraints_for_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction)
+            _render_route_dags_from_data(experiment_base_directory=experiment_base_directory,
+                                         experiment_id=experiment_parameters.experiment_id)
+            _visualize_route_dag_constraints_for_schedule_and_malfunction(
+                schedule_and_malfunction=schedule_and_malfunction)
 
     else:
         malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
@@ -208,7 +213,8 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if gen_only:
         elapsed_time = (time.time() - start_time)
         _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
-        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"]["total"]
+        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"][
+            "total"]
         rsp_logger.info("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%".format(
             experiment_parameters.experiment_id,
             elapsed_time, solver_time_full,
@@ -266,9 +272,12 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             elapsed_time,
             start_datetime_str,
             end_datetime_str,
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full.solver_statistics),
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full_after_malfunction.solver_statistics),
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
+                                                    statistics=experiment_results.results_full.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
+                                                    statistics=experiment_results.results_full_after_malfunction.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
+                                                    statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
         )
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         solver_time_full_after_malfunction = \
@@ -452,7 +461,7 @@ def gen_malfunction(malfunction_rail_env: RailEnv,
                     malfunction_env_reset,
                     schedule_trainruns: TrainrunDict,
                     verbose: bool = False
-                    ):
+                    ) -> ExperimentMalfunction:
     """A.2.2. Create malfunction.
 
     Parameters
@@ -556,7 +565,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           experiment_ids: Optional[List[int]] = None,
                           copy_agenda_from_base_directory: Optional[str] = None,
-                          run_experiments_parallel: int = AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
+                          run_experiments_parallel: int = AVAILABLE_CPUS // 2,
+                          # take only half of avilable cpus so the machine stays responsive
                           show_results_without_details: bool = True,
                           rendering: bool = False,
                           verbose: bool = False,
@@ -592,7 +602,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     check_create_folder(experiment_agenda_directory)
 
     if run_experiments_parallel <= 1:
-        rsp_logger.warn("Using only one process in pool might cause pool to stall sometimes. Use more than one process in pool?")
+        rsp_logger.warn(
+            "Using only one process in pool might cause pool to stall sometimes. Use more than one process in pool?")
 
     # tee stdout to log file
     tee_orig = tee_stdout_stderr_to_file(
@@ -622,7 +633,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     pool = multiprocessing.Pool(
         processes=run_experiments_parallel,
         maxtasksperchild=1)
-    rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
+    rsp_logger.info(
+        f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     run_and_save_one_experiment_partial = partial(
@@ -959,7 +971,8 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
             continue
         with open(file_name, 'rb') as handle:
             file_data: ExperimentResults = pickle.load(handle)
-            experiment_results_list.append(expand_experiment_results_for_analysis(file_data, nonify_problem_and_results=nonify_problem_and_results))
+            experiment_results_list.append(expand_experiment_results_for_analysis(file_data,
+                                                                                  nonify_problem_and_results=nonify_problem_and_results))
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")

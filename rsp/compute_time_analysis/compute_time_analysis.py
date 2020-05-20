@@ -13,16 +13,23 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.data_types import SpaceTimeDifference
-from rsp.utils.data_types import TimeResourceTrajectories
+from rsp.utils.data_types import PlottingInformation
+from rsp.utils.data_types import RessourceAgentDict
+from rsp.utils.data_types import RessourceScheduleDict
+from rsp.utils.data_types import TimeAgentDict
+from rsp.utils.data_types import TimeScheduleDict
+from rsp.utils.data_types import TrainSchedule
+from rsp.utils.data_types import TrainScheduleDict
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_positions_for_all_timesteps
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
@@ -242,87 +249,66 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     total_delay = sum(lateness_delta_after_malfunction.values())
 
     # Get full schedule Time-resource-Data
-    time_resource_schedule, ressource_sorting = resource_time_2d(schedule=schedule,
-                                                                 width=width,
-                                                                 malfunction_agent_id=malfunction_agent,
-                                                                 sorting=None)
+    time_resource_schedule: TrainScheduleDict = \
+        convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True)
     # Get full reschedule Time-resource-Data
-    time_resource_reschedule_full, _ = resource_time_2d(schedule=reschedule_full,
-                                                        width=width,
-                                                        malfunction_agent_id=malfunction_agent,
-                                                        sorting=ressource_sorting)
+    time_resource_reschedule_full: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
+        reschedule_full, only_travelled_positions=True)
     # Get delta reschedule Time-resource-Data
-    time_resource_reschedule_delta, _ = resource_time_2d(schedule=reschedule_delta,
-                                                         width=width,
-                                                         malfunction_agent_id=malfunction_agent,
-                                                         sorting=ressource_sorting)
+    time_resource_reschedule_delta: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
+        reschedule_delta, only_travelled_positions=True)
 
     # Compute the difference between schedules and return traces for plotting
-    traces_influenced_agents, changed_agents_list = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_reschedule_delta.trajectories,
-        time_resource_matrix_b=time_resource_schedule.trajectories)
-
+    changed_agent_traces: TrainScheduleDict = _get_difference_in_time_space(
+        schedule_a=time_resource_reschedule_delta,
+        schedule_b=time_resource_schedule)
     # Printing situation overview
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
             malfunction_agent, malfunction_start,
-            malfunction_duration, len(traces_influenced_agents), total_delay))
+            malfunction_duration, len(changed_agent_traces), total_delay))
 
     # Plotting the graphs
-    ranges = (max(time_resource_schedule.max_resource_id,
-                  time_resource_reschedule_full.max_resource_id,
-                  time_resource_reschedule_delta.max_resource_id),
-              max(time_resource_schedule.max_time,
-                  time_resource_reschedule_full.max_time,
-                  time_resource_reschedule_delta.max_time))
 
     # Plot Schedule
-    plot_time_resource_data(time_resource_data=time_resource_schedule.trajectories, title='Schedule', ranges=ranges)
+    plotting_dimensions = plot_time_resource_data(schedule_data=time_resource_schedule, title='Schedule', width=width)
 
     # Plot Reschedule Full only plot this if there is an actual difference to the delta reschedule
-    traces_rescheduling_diff, _ = _get_difference_in_time_space(
-        time_resource_matrix_a=time_resource_reschedule_full.trajectories,
-        time_resource_matrix_b=time_resource_reschedule_delta.trajectories)
+    traces_rescheduling_diff: TrainScheduleDict = _get_difference_in_time_space(
+        schedule_a=time_resource_reschedule_full,
+        schedule_b=time_resource_reschedule_delta)
     if len(traces_rescheduling_diff) > 0:
-        plot_time_resource_data(time_resource_data=time_resource_reschedule_full.trajectories, title='Full Reschedule',
-                                ranges=ranges)
+        plot_time_resource_data(schedule_data=time_resource_reschedule_full, title='Full Reschedule',
+                                width=width, plotting_parameters=plotting_dimensions,
+                                malfunction_time=malfunction_start)
 
     # Plot Reschedule Delta with additional data
-    additional_data = dict()
-    changed_agents_traces = _map_variable_to_trainruns(variable=changed_agents_list,
-                                                       trainruns=time_resource_reschedule_delta.trajectories)
-    additional_data.update({'Changed': changed_agents_traces})
-    delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
-                                                   trainruns=time_resource_reschedule_delta.trajectories)
-    additional_data.update({'Delay': delay_information})
-    plot_time_resource_data(time_resource_data=time_resource_reschedule_delta.trajectories, title='Delta Reschedule',
-                            ranges=ranges, additional_data=additional_data)
+    plot_time_resource_data(schedule_data=time_resource_reschedule_delta, title='Delta Reschedule',
+                            width=width, plotting_parameters=plotting_dimensions, malfunction_time=malfunction_start)
 
     # Plot difference
     if with_diff:
-        additional_data = dict()
-        delay_information = _map_variable_to_trainruns(variable=lateness_delta_after_malfunction,
-                                                       trainruns=traces_influenced_agents)
-        additional_data.update({'Delay': delay_information})
-        plot_time_resource_data(time_resource_data=traces_influenced_agents, title='Changed Agents',
-                                ranges=ranges, additional_data=additional_data)
+        plot_time_resource_data(schedule_data=changed_agent_traces, title='Changed Agents',
+                                width=width, plotting_parameters=plotting_dimensions,
+                                malfunction_time=malfunction_start)
 
-    return changed_agents_list
+    return changed_agent_traces
 
 
-def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
-                            additional_data: Dict = None):
+def plot_time_resource_data(title: str, schedule_data: TrainScheduleDict, width: int,
+                            plotting_parameters: PlottingInformation = None,
+                            malfunction_time: int = None) -> Dict:
     """
     Plot the time-resource-diagram with additional data for each train
     Parameters
     ----------
     title: str
         Title of the plot
-    time_resource_data:
+    schedule_data:
         Data to be shown, contains tuples for all occupied ressources during train run
     additional_data
         Dict containing additional data. Each additional data must have the same dimensins as time_resource_data
-    ranges
+    width
         Ranges of the window to be shown, used for consistent plotting
 
     Returns
@@ -333,46 +319,53 @@ def plot_time_resource_data(title: str, time_resource_data: List[List[Tuple[int,
         plot_bgcolor='rgba(46,49,49,1)'
     )
     fig = go.Figure(layout=layout)
-    # Get keys and information to add to hover data
-    hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
-    if additional_data is not None:
-        list_keys = [k for k in additional_data]
-        list_values = [v for v in additional_data.values()]
-        # Build hovertemplate
-        for idx, data_point in enumerate(list_keys):
-            hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
-        for idx, line in enumerate(time_resource_data):
-            x, y = zip(*line)
-            trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scatter(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
-                                         0],
-                                     hovertemplate=hovertemplate
-                                     ))
+    if plotting_parameters is None:
+        sorted_index = 0
+        max_time = 0
+        max_ressource = 0
+        sorting = {}
     else:
-        for idx, line in enumerate(time_resource_data):
-            x, y = zip(*line)
-            trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
+        sorting = plotting_parameters.sorting
+        sorted_index = len(plotting_parameters.sorting) + 1
+        max_ressource = plotting_parameters.dimensions[0]
+        max_time = plotting_parameters.dimensions[1]
 
-            fig.add_trace(go.Scatter(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     hovertemplate=hovertemplate
-                                     ))
+    for agent_idx in sorted(schedule_data):
+        trace = schedule_data[agent_idx]
+        x = []
+        y = []
+        old_ressource = 0
+        for time, waypoint in trace.items():
+            if time > max_time:
+                max_time = time
+            ressource = coordinate_to_position(width, [waypoint.position])
+            if ressource[0] not in sorting:
+                sorting[ressource[0]] = sorted_index
+                sorted_index += 1
+            if sorted_index > max_ressource:
+                max_ressource = sorted_index
+            if old_ressource != ressource:
+                x.append(None)
+                y.append(None)
+            x.append(sorting[ressource[0]])
+            x.append(sorting[ressource[0]])
+            y.append(time)
+            y.append(time + 1)
+            old_ressource = ressource
+        fig.add_trace(
+            go.Scatter(x=x, y=y, name="Train Nr. {}".format(agent_idx), line=dict(color=PLOTLY_COLORLIST[agent_idx])))
 
+    if malfunction_time is not None:
+        x = [-10, max_ressource + 10]
+        y = [malfunction_time, malfunction_time]
+        fig.add_trace(go.Scatter(x=x, y=y, line=dict(color='red')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
-    fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
-    fig.update_yaxes(title="Time", range=[ranges[1], 0])
+    fig.update_xaxes(title="Sorted resources", range=[0, max_ressource])
+    fig.update_yaxes(title="Time", range=[max_time, 0])
     fig.show()
+    plotting_parameters = PlottingInformation(sorting=sorting, dimensions=(max_ressource, max_time))
+    return plotting_parameters
 
 
 def plot_histogram_from_delay_data(experiment_data_frame, experiment_id):
@@ -527,126 +520,321 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
     return Path(video_src_schedule), Path(video_src_reschedule)
 
 
-def _map_variable_to_trainruns(variable: Dict, trainruns: List[List[Tuple[int, int]]]) -> List[List[object]]:
-    """Map data to trainruns for plotting as additional information. There must
-    be as many variables in the dict as there are trains in the trainrun list.
-
-    Parameters
-    ----------
-    variable
-        Dictionary containing the variable to be mapped to each individual trainrun
-    trainruns
-        List of all the trainruns to be plotted in time-ressource-diagram
-
-    Returns
-    -------
-    List[List[variable]] that can be used as additional information in plotting time-resource-diagrams
-    """
-    mapped_data = []
-    # Get keys and information to map to trainruns
-    if variable is not None:
-        list_values = [v for v in variable.values()]
-    for idx, trainrun in enumerate(trainruns):
-        trainrun_mapping = []
-        for _ in trainrun:
-            trainrun_mapping.append(list_values[idx])
-        mapped_data.append(trainrun_mapping)
-    return mapped_data
-
-
-def _get_difference_in_time_space(time_resource_matrix_a, time_resource_matrix_b) -> SpaceTimeDifference:
+def _get_difference_in_time_space(schedule_a, schedule_b) -> TrainScheduleDict:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
     ----------
-    time_resource_matrix_a
-    time_resource_matrix_b
+    schedule_a
+    schedule_b
 
     Returns
     -------
 
     """
     # Detect changes to original schedule
-    traces_influenced_agents = []
-    additional_information = dict()
-    for idx, trainrun in enumerate(time_resource_matrix_a):
-        trainrun_difference = []
-        for waypoint in trainrun:
-            if waypoint not in time_resource_matrix_b[idx]:
-                if len(trainrun_difference) > 0:
-                    if waypoint[0] != trainrun_difference[-1][0]:
-                        trainrun_difference.append((None, None))
-                trainrun_difference.append(waypoint)
+    traces_influenced_agents: TrainScheduleDict = {}
+
+    for idx in schedule_a:
+        trainrun_difference: TrainSchedule = {}
+        for time_step, waypoint in schedule_a[idx].items():
+            if time_step in schedule_b[idx]:
+                if waypoint != schedule_b[idx][time_step]:
+                    trainrun_difference[time_step] = waypoint
 
         if len(trainrun_difference) > 0:
-            traces_influenced_agents.append(trainrun_difference)
-            additional_information.update({idx: True})
-        else:
-            traces_influenced_agents.append([(None, None)])
-            additional_information.update({idx: False})
-        space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
-                                                    additional_information=additional_information)
-    return space_time_difference
+            traces_influenced_agents[idx] = trainrun_difference
+    return traces_influenced_agents
 
 
-def resource_time_2d(schedule: TrainrunDict,
-                     width: int,
-                     malfunction_agent_id: Optional[int] = -1,
-                     sorting: Optional[Dict] = None) -> Tuple[TimeResourceTrajectories, Dict]:
-    """Method to define the time-space paths of each train in two dimensions.
-    Initially we order them by the malfunctioning train.
+def plot_schedule_metrics(experiment_data_frame: ExperimentResultsAnalysis, experiment_id: int):
+    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
+    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
+        experiment_data_series)
+    malfunction = experiment_data.malfunction
+    delay = experiment_data.lateness_delta_after_malfunction
+    schedule = experiment_data.solution_full
+    reschedule_delta = experiment_data.solution_delta_after_malfunction
+    width = experiment_data.experiment_parameters.width
+
+    # Get full schedule Time-resource-Data
+    time_resource_schedule: TrainScheduleDict = \
+        convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True)
+
+    # Get delta reschedule Time-resource-Data
+    time_resource_reschedule_delta: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
+        reschedule_delta, only_travelled_positions=True)
+
+    # Compute the difference between schedules and return traces for plotting
+    changed_agent_traces: TrainScheduleDict = _get_difference_in_time_space(
+        schedule_a=time_resource_reschedule_delta,
+        schedule_b=time_resource_schedule)
+
+    schedule_times, schedule_ressources = _schedule_to_time_ressource_dicts(time_resource_schedule)
+    _, re_schedule_ressources = _schedule_to_time_ressource_dicts(time_resource_reschedule_delta)
+
+    # Plot Density over time
+    _plot_time_density(schedule_times)
+
+    # Plot Occupancy over space
+    _plot_ressource_occupation(schedule_ressources, width=width)
+    _plot_ressource_occupation(re_schedule_ressources, width=width)
+
+    # Plot Delay propagation
+    changed_agent_dict = {}
+    for agent in changed_agent_traces:
+        changed_agent_dict[agent] = time_resource_schedule[agent]
+    delay_depth_dict = _delay_cause_level(time_resource_schedule, malfunction=malfunction)
+    _plot_delay_propagation(changed_agent_dict, malfunction=malfunction, delay_information=delay, width=width,
+                            depth_dict=delay_depth_dict)
+    print(delay_depth_dict)
+    return schedule_times, schedule_ressources
+
+
+def _schedule_to_time_ressource_dicts(schedule: TrainScheduleDict) -> Tuple[TimeScheduleDict, RessourceScheduleDict]:
+    """Convert TrainScheuldeDict into dicts for all time steps and all
+    ressources such that analysis on densities can be made.
 
     Parameters
     ----------
-    schedule: TrainrunDict
-        Contains all the trainruns
+    schedule: TrainScheduleDict
+        Schedule with all the trainruns that will be transfered
 
-    width: int
-        width of grid, used to number ressources
-
-    malfunction_agent_id: int
-        agent which had malfunctino (used for sorting)
-
-    sorting: List[int]
-        Predefined sorting of ressources, if nothing is defined soring is according to first appearing agent (id:0,...)
     Returns
     -------
-    All the train trajectories and the max time and max ressource number for plotting
+    Tuple[TimeScheduleDict, RessourceScheduleDict]
+        Containing the views in time and ressources on agent handles an occupancies
     """
-    all_train_time_paths = []
-    max_time = 0
-    index = 0
+    timescheduledict: TimeScheduleDict = {}
+    ressourcescheduledict: RessourceScheduleDict = {}
+    for train_id in schedule:
+        for time in schedule[train_id]:
+            ressource = schedule[train_id][time].position
+            if time not in timescheduledict:
+                timescheduledict[time]: RessourceAgentDict = {}
+            if ressource not in ressourcescheduledict:
+                ressourcescheduledict[ressource]: TimeAgentDict = {}
+            timescheduledict[time][ressource] = train_id
+            ressourcescheduledict[ressource][time] = train_id
+    return timescheduledict, ressourcescheduledict
 
-    # Sort according to malfunctioning agent
-    if sorting is None:
-        sorting = {}
-        if malfunction_agent_id >= 0:
-            for waypoint in schedule[malfunction_agent_id]:
-                position = coordinate_to_position(width, [waypoint.waypoint.position])[0]
-                if position not in sorting:
-                    sorting.update({position: index})
-                    index += 1
 
-    index = int(len(sorting) + 1)
+def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict, width: int):
+    """
+    Plot agent density over ressource
+    Parameters
+    ----------
+    schedule_ressources
+        Dict containing all the times and agent handles for all ressources
 
-    for train_run in schedule:
-        train_time_path = []
-        pre_waypoint = schedule[train_run][0]
-        for waypoint in schedule[train_run][1:]:
-            pre_time = pre_waypoint.scheduled_at
-            time = waypoint.scheduled_at
-            if time > max_time:
-                max_time = time
-            position = coordinate_to_position(width, [pre_waypoint.waypoint.position])[0]
-            if position not in sorting:
-                sorting.update({position: index})
-                index += 1
-            train_time_path.append((sorting[position], pre_time))
-            train_time_path.append((sorting[position], time))
-            train_time_path.append((None, None))
-            pre_waypoint = waypoint
-        all_train_time_paths.append(train_time_path)
-    time_ressource_data = TimeResourceTrajectories(trajectories=all_train_time_paths,
-                                                   max_resource_id=index - 1,
-                                                   max_time=max_time)
-    return (time_ressource_data, sorting)
+    Returns
+    -------
+
+    """
+    x = []
+    y = []
+    size = []
+    color = []
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+
+    for waypoint in schedule_ressources:
+        x.append(waypoint[1])
+        y.append(waypoint[0])
+        size.append((len(schedule_ressources[waypoint])))
+        times = np.array(sorted(schedule_ressources[waypoint].keys()))
+        if len(times) > 1:
+            mean_temp_dist = np.mean(np.clip(times[1:] - times[:-1], 0, 50))
+            color.append(mean_temp_dist)
+        else:
+            color.append(50)
+    fig.add_trace(go.Scatter(x=x,
+                             y=y,
+                             mode='markers',
+                             name="Schedule",
+                             marker=dict(
+                                 color=size,
+                                 symbol='square',
+                                 showscale=True,
+                                 reversescale=False
+                             )))
+    fig.update_layout(title_text="Train Density at Ressources",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, width], tick0=-0.5, dtick=1, gridcolor='Grey')
+
+    fig.show()
+
+
+def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: ExperimentMalfunction,
+                            delay_information, width: int, depth_dict: dict):
+    """
+    Plot agent density over ressource
+    Parameters
+    ----------
+    schedule_ressources
+        Dict containing all the times and agent handles for all ressources
+
+    Returns
+    -------
+
+    """
+
+    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    DEPTH_COLOR = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+
+    # Sort agents according to influence depth for plotting
+    agents = []
+    for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
+        if agent in schedule:
+            agents.append(agent)
+    for agent in schedule:
+        if agent not in agents:
+            agents.append(agent)
+
+    # Plot traces of agents
+    for agent_id in agents:
+        x = []
+        y = []
+        size = []
+        marker = []
+        times = []
+        delay = []
+        conflict_depth = []
+        for time in schedule[agent_id]:
+            waypoint = schedule[agent_id][time]
+            x.append(waypoint.position[1])
+            y.append(waypoint.position[0])
+            size.append(max(10, delay_information[agent_id]))
+            marker.append(MARKER_LIST[int(np.clip(waypoint.direction, 0, 3))])
+            times.append(time)
+            delay.append(delay_information[agent_id])
+            if agent_id in depth_dict:
+                conflict_depth.append(depth_dict[agent_id])
+            else:
+                conflict_depth.append("None")
+        if agent_id in depth_dict:
+            color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
+        else:
+            color = DEPTH_COLOR[-1]
+        fig.add_trace(go.Scatter(x=x,
+                                 y=y,
+                                 mode='markers',
+                                 name="Train {}".format(agent_id),
+                                 marker_symbol=marker,
+                                 customdata=list(zip(times, delay, conflict_depth)),
+                                 marker_size=size,
+                                 marker_opacity=0.1,
+                                 marker_color=color,
+                                 marker_line_color=color,
+                                 hovertemplate="Time:\t%{customdata[0]}<br>" +
+                                               "Delay:\t%{customdata[1]}<br>" +
+                                               "Influence depth:\t%{customdata[2]}"
+                                 ))
+    # Plot malfunction
+    waypoint = list(schedule[malfunction.agent_id].values())[0].position
+    fig.add_trace(go.Scatter(x=[waypoint[1]],
+                             y=[waypoint[0]],
+                             mode='markers',
+                             name="Malfunction",
+                             marker_symbol='x',
+                             marker_size=25,
+                             marker_line_color='black',
+                             marker_color='black'))
+    fig.update_layout(title_text="Malfunction position and effects",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, width], tick0=-0.5, dtick=1, gridcolor='Grey')
+
+    fig.show()
+
+
+def _plot_time_density(schedule_times: TimeScheduleDict):
+    """Plot agent density over time.
+
+    Parameters
+    ----------
+    schedule_times
+        Dict containing ressources and agent handles for all times
+
+    Returns
+    -------
+    """
+    x = []
+    y = []
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+
+    for time in sorted(schedule_times):
+        x.append(time)
+        y.append(len(schedule_times[time]))
+    fig.add_trace(go.Scatter(x=x, y=y, name="Schedule"))
+    fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
+    fig.show()
+
+
+# Currently running very slow...
+def _delay_cause_level(schedule: TrainScheduleDict, malfunction: ExperimentMalfunction):
+    malfunction_id = malfunction.agent_id
+    schedule_times, schedule_ressources = _schedule_to_time_ressource_dicts(schedule)
+    depth = 0
+    depth_dict = {malfunction_id: 0}
+    lower_depth_dict = _find_neighbours(schedule=schedule, schedule_ressources=schedule_ressources,
+                                        agent_id=malfunction_id, depth=depth, known_neighbours=[malfunction_id],
+                                        incident_time=malfunction.time_step)
+    for lower_neighbour in lower_depth_dict:
+        if lower_neighbour not in depth_dict:
+            depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+        elif depth_dict[lower_neighbour] > lower_depth_dict[lower_neighbour]:
+            depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+
+    return depth_dict
+
+
+def _find_neighbours(schedule, schedule_ressources, agent_id, depth, known_neighbours, incident_time):
+    depth_dict = {}
+    lower_depth_dict = {}
+    for time in sorted(schedule[agent_id]):
+        if time < incident_time:
+            continue
+        waypoint = schedule[agent_id][time]
+        ressource_times_full = sorted(schedule_ressources[waypoint.position])
+        ressource_times = [i for i in ressource_times_full if i >= time]
+
+        if len(ressource_times) < 1:
+            break
+
+        current_neighbour = schedule_ressources[waypoint.position][ressource_times[0]]
+        while current_neighbour == agent_id:
+            ressource_times.pop(0)
+            if len(ressource_times) < 1:
+                break
+            current_neighbour = schedule_ressources[waypoint.position][ressource_times[0]]
+
+        if current_neighbour not in known_neighbours:
+            known_neighbours.append(current_neighbour)
+            depth_dict[current_neighbour] = depth
+            lower_depth_dict = _find_neighbours(schedule, schedule_ressources, current_neighbour, depth=depth + 1,
+                                                known_neighbours=[current_neighbour], incident_time=ressource_times[0])
+
+        for lower_neighbour in lower_depth_dict:
+            if lower_neighbour not in depth_dict:
+                depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+            elif depth_dict[lower_neighbour] > lower_depth_dict[lower_neighbour]:
+                depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
+
+    return depth_dict

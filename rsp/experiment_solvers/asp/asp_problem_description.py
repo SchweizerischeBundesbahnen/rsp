@@ -62,7 +62,7 @@ class ASPProblemDescription():
     def factory_scheduling(
             tc: ScheduleProblemDescription,
             asp_seed_value: Optional[int] = None,
-            no_optimize: bool = True
+            no_optimize: bool = False
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
             tc=tc,

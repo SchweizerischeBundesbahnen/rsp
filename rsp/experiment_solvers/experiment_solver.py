@@ -156,7 +156,7 @@ class ASPExperimentSolver():
         # --------------------------------------------------------------------------------------
         # 3. Re-Schedule Delta
         # --------------------------------------------------------------------------------------
-        rsp_logger.info("3. reschedule full")
+        rsp_logger.info("3. reschedule delta")
         delta_reschedule_problem = perfect_oracle(
             full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
             malfunction=malfunction,
@@ -210,7 +210,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
                          asp_seed_value: Optional[int] = None,
                          rendering: bool = False,
                          debug: bool = False,
-                         no_optimize: bool = True
+                         no_optimize: bool = False
                          ) -> SchedulingExperimentResult:
     """Solves the Full Scheduling Problem for static rail env (i.e. without
     malfunctions).

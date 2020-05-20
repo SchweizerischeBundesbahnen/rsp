@@ -142,16 +142,27 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
 
+TrainSchedule = Dict[int, Waypoint]  # Int key is the time step at which the waypoint is visited
+TrainScheduleDict = Dict[int, TrainSchedule]  # Int key is the agent handle for which the schedule is returned
+
+RessourceAgentDict = Dict[Waypoint, int]  # Dict assigning agent handle to Waypoint (Ressource)
+TimeAgentDict = Dict[int, int]  # Dict assigning agent handle to time
+
+TimeScheduleDict = Dict[int, RessourceAgentDict]  # time step as int
+RessourceScheduleDict = Dict[Waypoint, TimeAgentDict]
+
 TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
-                                      [('trajectories', List[Tuple[int, int]]), ('max_resource_id', int),
+                                      [('trajectories', TrainScheduleDict), ('max_resource_id', int),
                                        ('max_time', int)])
+# Information used for plotting time-ressource-graphs: Sorting is dict mapping ressource to int value used to sort
+# ressources for nice visualization
+PlottingInformation = NamedTuple('PlottingInformation',
+                                 [('sorting', Dict[Tuple[int, int], int]), ('dimensions', Tuple[int, int])])
+
 if COMPATIBILITY_MODE:
     ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
-
-TrainSchedule = Dict[int, Waypoint]
-TrainScheduleDict = Dict[int, TrainSchedule]
 
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
@@ -261,7 +272,7 @@ def expand_experiment_results_for_analysis(
     experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
-    time_full = experiment_results.results_full.solve_time
+    time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
     time_full_after_malfunction = \
         experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
     time_delta_after_malfunction = \
