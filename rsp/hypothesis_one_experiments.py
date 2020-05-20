@@ -13,6 +13,7 @@ from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import exists_schedule_and_malfunction
+from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_schedule_and_malfunction
@@ -215,7 +216,7 @@ def hypothesis_one_main():
 
 def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory: str, nb_runs: int = 1):
     rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
-    experiment_agenda_directory = copy_agenda_from_base_directory + "/agenda"
+    experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_agenda.experiment_name,
@@ -240,21 +241,31 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
 
 def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_directory: str,
                                                        experiment_parameters: ParameterRangesAndSpeedData = None):
+    """Simple method to run experiments with new parameters without the need to
+    generate the schedul. Takes malfunction and agenda and generates a new
+    agenda from the given parameters.
+
+    Parameters
+    ----------
+    copy_agenda_from_base_directory
+        Agenda containing schedule.
+    experiment_parameters
+        New set of parameters that will be used for the experiments
+
+    Returns
+    -------
+    """
     rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
 
     # Load the previous agenda
-    print('======================================')
-    print("Loading Agenda and Schedule")
-    print('======================================\n')
+    rsp_logger.info("Loading Agenda and Schedule")
     experiment_agenda_directory = copy_agenda_from_base_directory + "/agenda"
     loaded_experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
     loaded_schedule_and_malfunction = load_schedule_and_malfunction(
         experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
 
     # Create new experiment agenda
-    print('======================================')
-    print("Creating New Agenda")
-    print('======================================\n')
+    rsp_logger.info("Creating New Agenda")
     experiment_agenda = create_experiment_agenda(
         experiment_name=loaded_experiment_agenda.experiment_name,
         parameter_ranges_and_speed_data=experiment_parameters,
@@ -262,18 +273,14 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
     )
 
     # Save the new agenda
-    print('======================================')
-    print("Saving Agenda")
-    print('======================================\n')
+    rsp_logger.info("Saving New Agenda")
     save_experiment_agenda_and_hash_to_file(experiment_folder_name=experiment_agenda_directory,
                                             experiment_agenda=experiment_agenda)
 
     # Generate the malfunction experiments
-    print('======================================')
-    print("Generating Malfunctions")
-    print('======================================\n')
+    rsp_logger.info("Generating Malfunctions")
     for experiment in experiment_agenda.experiments:
-        print("Generating malfunction for experiment {}".format(experiment.experiment_id))
+        rsp_logger.info("Generating malfunction for experiment {}".format(experiment.experiment_id))
         _, malfunction_env = create_env_pair_for_experiment(experiment)
 
         def malfunction_env_reset():
@@ -282,22 +289,21 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
         malfunction = gen_malfunction(malfunction_rail_env=malfunction_env,
                                       malfunction_env_reset=malfunction_env_reset,
                                       schedule_trainruns=loaded_schedule_and_malfunction.schedule_experiment_result.trainruns_dict)
-        print("Generated malfunction for agent {} at time {} for {} steps".format(malfunction.agent_id,
-                                                                                  malfunction.time_step,
-                                                                                  malfunction.malfunction_duration))
+        rsp_logger.info("Generated malfunction for agent {} at time {} for {} steps".format(malfunction.agent_id,
+                                                                                            malfunction.time_step,
+                                                                                            malfunction.malfunction_duration))
+        # Use the same schedule and only vary the malfunction
         schedule_and_malfunction = ScheduleAndMalfunction(
             schedule_problem_description=loaded_schedule_and_malfunction.schedule_problem_description,
             schedule_experiment_result=loaded_schedule_and_malfunction.schedule_experiment_result,
             experiment_malfunction=malfunction)
-
+        # Save the newly generated schedule malfunction pairs
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
                                       experiment_agenda_directory=experiment_agenda_directory,
                                       experiment_id=experiment.experiment_id)
 
     # Run Pipeline
-    print('======================================')
-    print("Running Pipeline")
-    print('======================================\n')
+    rsp_logger.info("Running Pipeline with new Parameters and Malfunctions")
 
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,

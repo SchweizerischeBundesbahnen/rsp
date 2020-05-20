@@ -37,15 +37,15 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 
 ```{python}
 experiments_of_interest = None
-experiments_base_directory_comparison = './exp_hypothesis_one_2020_05_18T11_56_31/'
-experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=f'{experiments_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
+experiments_base_directory = '../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/'
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=f'{experiments_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
     experiment_ids=experiments_of_interest,
     nonify_problem_and_results=True
 )
-experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
+experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
 
-display(experiment_data_comparison)
+display(experiment_data)
 ```
 
 ```{python}
@@ -59,7 +59,7 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_aft
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 # display(experiment_data.dtypes)
 
-hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data_comparison)
+hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
 
 
 
@@ -73,11 +73,15 @@ hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=
 
 ```{python}
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_speed_up
-hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_comparison)
+hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
 
 # for exploration, use:
 # plot_speed_up(experiment_data=experiment_data,
 #                        axis_of_interest=axis_of_interest)
+```
+
+```{python}
+
 ```
 
 ```{python}

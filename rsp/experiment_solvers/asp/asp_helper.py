@@ -14,6 +14,7 @@ from importlib_resources import path
 
 from rsp.experiment_solvers.asp import theory
 from rsp.logger import rsp_logger
+from rsp.logger import VERBOSE
 
 
 class ASPObjective(Enum):
@@ -152,7 +153,7 @@ def _asp_helper(encoding_files: List[str],
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)
     # bezieht sich auf eine sehr alte clingo[DL] version. Im Rahmen einer einheitlichen API für alle clingo Erweiterungen
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
-    rsp_logger.info(f"no_optimize={no_optimize}")
+    rsp_logger.log(VERBOSE, f"no_optimize={no_optimize}")
 
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")

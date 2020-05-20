@@ -9,7 +9,7 @@ from flatland.envs.malfunction_generators import MalfunctionProcessData
 from numpy.random.mtrand import RandomState
 
 
-def single_agent_malfunction_generator(earliest_malfunction: int, malfunction_duration: int, agent_id: int) \
+def specific_agent_malfunction_generator(earliest_malfunction: int, malfunction_duration: int, agent_id: int) \
         -> Tuple[MalfunctionGenerator, MalfunctionProcessData]:
     """Malfunction generator which guarantees exactly one malfunction during an
     episode of an ACTIVE agent. The malfunctino occurs at malfunction_time

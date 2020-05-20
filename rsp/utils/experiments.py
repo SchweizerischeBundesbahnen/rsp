@@ -127,14 +127,6 @@ def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment
     return os.path.isfile(schedule_and_malfunction_file_name)
 
 
-def copy_and_rename_experiment_id(experiment_agenda_directory: str, experiment_id: int):
-    old_file_name = os.path.join(experiment_agenda_directory,
-                                 f"experiment_{0:03d}_schedule_and_malfunction.pkl")
-    new_file_name = os.path.join(experiment_agenda_directory,
-                                 f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
-    shutil.copy(old_file_name, new_file_name)
-
-
 def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> ScheduleAndMalfunction:
     """Load a persisted `ScheduleAndMalfunction` from a file.
     Parameters

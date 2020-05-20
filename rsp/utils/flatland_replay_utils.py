@@ -30,6 +30,8 @@ def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: 
     ----------
     trainrun_dict: TrainrunDict
         for each agent, a list of time steps with new position
+    only_travelled_positions:
+        Only add actually visited times to the dict to avoid multiple None entries.
 
     Returns
     -------

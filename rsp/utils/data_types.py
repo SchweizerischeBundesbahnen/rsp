@@ -142,12 +142,8 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
 
-TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
-                                      [('trajectories', List[Tuple[int, int]]), ('max_resource_id', int),
-                                       ('max_time', int)])
-
-TrainSchedule = Dict[int, Waypoint]
-TrainScheduleDict = Dict[int, TrainSchedule]
+TrainSchedule = Dict[int, Waypoint]  # Int key is the time step at which the waypoint is visited
+TrainScheduleDict = Dict[int, TrainSchedule]  # Int key is the agent handle for which the schedule is returned
 
 RessourceAgentDict = Dict[Waypoint, int]  # Dict assigning agent handle to Waypoint (Ressource)
 TimeAgentDict = Dict[int, int]  # Dict assigning agent handle to time
@@ -158,8 +154,10 @@ RessourceScheduleDict = Dict[Waypoint, TimeAgentDict]
 TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
                                       [('trajectories', TrainScheduleDict), ('max_resource_id', int),
                                        ('max_time', int)])
-
-PlottingInformation = NamedTuple('PlottingInformation', [('sorting', Dict), ('dimensions', Tuple[int, int])])
+# Information used for plotting time-ressource-graphs: Sorting is dict mapping ressource to int value used to sort
+# ressources for nice visualization
+PlottingInformation = NamedTuple('PlottingInformation',
+                                 [('sorting', Dict[Tuple[int, int], int]), ('dimensions', Tuple[int, int])])
 
 if COMPATIBILITY_MODE:
     ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
