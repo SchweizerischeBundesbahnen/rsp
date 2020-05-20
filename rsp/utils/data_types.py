@@ -156,6 +156,22 @@ TrainSchedule = Dict[int, Waypoint]
 # TrainSchedule for all  trains
 TrainScheduleDict = Dict[int, TrainSchedule]
 
+LeftClosedInterval = NamedTuple('LeftClosedInterval', [
+    ('from_incl', int),
+    ('to_excl', int)])
+Resource = NamedTuple('Resource', [
+    ('row', int),
+    ('column', int)])
+ResourceOccupation = NamedTuple('ResourceOccupation', [
+    ('interval', LeftClosedInterval),
+    ('resource', Resource),
+    ('agent_id', int)])
+
+SortedResourceOccupationsPerResourceDict = Dict[Resource, List[ResourceOccupation]]
+SortedResourceOccupationsPerAgentDict = Dict[int, List[ResourceOccupation]]
+ResourceSorting = Dict[Resource, int]
+Trajectories = List[List[Tuple[int, int]]]
+
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
                                              experiment_parameters: ExperimentParameters) -> Dict:
