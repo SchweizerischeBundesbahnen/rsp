@@ -6,7 +6,6 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
@@ -20,12 +19,10 @@ from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_gr
 from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.flatland_replay_utils import convert_trainrundict_to_positions_after_flatland_timestep
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -62,7 +59,6 @@ def hypothesis_two_encounter_graph_directed(
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_directory,
         experiment_ids=experiment_ids)
-    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
 
     for i in list(range(len(experiment_results_list))):
         experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_ids[i]:04d}_analysis"
@@ -86,8 +82,6 @@ def disturbance_propagation_graph_visualization(experiment_result: ExperimentRes
     number_of_trains = len(schedule)
     max_time_schedule = np.max([trainrun[-1].scheduled_at for trainrun in schedule.values()])
     # 0. data preparation
-    rolled_out_schedule = convert_trainrundict_to_positions_after_flatland_timestep(schedule)
-    rolled_out_reschedule = convert_trainrundict_to_positions_after_flatland_timestep(reschedule)
     # aggregate occupations of each resource
     schedule_resource_occupations_per_resource, schedule_resource_occupations_per_agent = extract_resource_occupations(schedule)
     reschedule_resource_occupations_per_resource, reschedule_resource_occupations_per_agent = extract_resource_occupations(reschedule)
@@ -186,7 +180,7 @@ def disturbance_propagation_graph_visualization(experiment_result: ExperimentRes
             for distance in distances:
                 assert distance >= 0
             max_distance = np.max(distances)
-            if max_distance >=  malfunction.malfunction_duration:
+            if max_distance >= malfunction.malfunction_duration:
                 continue
         from_ro = transmission_chain[-2].hop_off
         to_ro = transmission_chain[-1].hop_on
@@ -236,16 +230,9 @@ def disturbance_propagation_graph_visualization(experiment_result: ExperimentRes
 
         pos[to_agent_id] = (hop_ons[0].interval.from_incl, d)
         max_depth = max(max_depth, d)
-    print(f"pos[85]={pos[85]}")
-    print(f"pos[86]={pos[86]}")
-    # TODO better visualization removed ones
     # TODO explantion for upward arrows?
     # TODO why do we have bidirectional arrays? is this a bug?
     # TODO why jumping over from malfunction agent
-    # _debug_directed((8, 37), debug_info, distance_matrix, weights_matrix)
-    # _debug_directed((37, 8), debug_info, distance_matrix, weights_matrix)
-    # _debug_directed((10, 24), debug_info, distance_matrix, weights_matrix)
-    # 6->27 direkte Pfiel
     staengeli_index = 0
     nb_not_affected = len([agent_id for agent_id in range(number_of_trains) if agent_id not in pos])
     for agent_id in range(number_of_trains):
@@ -329,11 +316,9 @@ def trajectories_from_resource_occupations_per_agent(resource_occupations_schedu
                                                      resource_sorting: ResourceSorting,
                                                      width: int) -> Trajectories:
     schedule_trajectories: Trajectories = []
-    # print(resource_sorting)
-    for agent_id, resource_ocupations in resource_occupations_schedule.items():
+    for _, resource_ocupations in resource_occupations_schedule.items():
         train_time_path = []
         for resource_ocupation in resource_ocupations:
-            # print(f" {agent_id} {resource_ocupation}")
             position = coordinate_to_position(width, [resource_ocupation.resource])[0]
             # TODO dirty hack: add positions from re-scheduling to resource_sorting in the first place instead of workaround here!
             if position not in resource_sorting:
