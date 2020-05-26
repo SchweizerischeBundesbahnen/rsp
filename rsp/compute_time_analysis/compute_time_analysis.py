@@ -1,5 +1,6 @@
 """Rendering methods to use with jupyter notebooks."""
 import os.path
+import re
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -11,6 +12,8 @@ import plotly.graph_objects as go
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import Waypoint
+from matplotlib import pyplot as plt
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
@@ -20,6 +23,7 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import PlottingInformation
+from rsp.utils.data_types import ResourceSorting
 from rsp.utils.data_types import RessourceAgentDict
 from rsp.utils.data_types import RessourceScheduleDict
 from rsp.utils.data_types import SpaceTimeDifference
@@ -27,6 +31,7 @@ from rsp.utils.data_types import TimeAgentDict
 from rsp.utils.data_types import TimeScheduleDict
 from rsp.utils.data_types import TrainSchedule
 from rsp.utils.data_types import TrainScheduleDict
+from rsp.utils.data_types import Trajectories
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
@@ -398,7 +403,7 @@ def plot_time_resource_data(
     if malfunction_time is not None:
         x = [-10, max_ressource + 10]
         y = [malfunction_time, malfunction_time]
-        fig.add_trace(go.Scatter(x=x, y=y, line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=x, y=y, name='malfunction start', line=dict(color='red')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, max_ressource])
     fig.update_yaxes(title="Time", range=[max_time, 0])
@@ -407,9 +412,87 @@ def plot_time_resource_data(
     return plotting_information
 
 
+def _trajectories_from_time_windows(problem: ScheduleProblemDescription, resource_sorting: ResourceSorting, width) -> Trajectories:
+    schedule_trajectories: Trajectories = []
+
+    for _, route_dag_constraints in problem.route_dag_constraints_dict.items():
+        train_time_path = []
+        earliest_resource = {}
+        latest_resource = {}
+        for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+            waypoint: Waypoint = waypoint
+            resource = waypoint.position
+            earliest_resource.setdefault(resource, earliest)
+            earliest_resource[resource] = min(earliest_resource[resource], earliest)
+        for waypoint, latest in route_dag_constraints.freeze_latest.items():
+            waypoint: Waypoint = waypoint
+            resource = waypoint.position
+            latest_resource.setdefault(resource, latest)
+            latest_resource[resource] = max(latest_resource[resource], latest)
+        for resource, earliest in earliest_resource.items():
+            position = coordinate_to_position(width, [resource])[0]
+            # TODO dirty hack: add positions not in schedule, improve resource_sorting!
+            if position not in resource_sorting:
+                resource_sorting[position] = len(resource_sorting)
+            train_time_path.append((resource_sorting[position], earliest))
+            train_time_path.append((resource_sorting[position], latest_resource[resource]))
+            train_time_path.append((None, None))
+        schedule_trajectories.append(train_time_path)
+    return schedule_trajectories
+
+
+def plot_time_window_resource_trajectories(
+        experiment_result: ExperimentResultsAnalysis,
+        width: int = 400,
+        show: bool = True):
+    plotting_parameters: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
+        schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(
+            trainrun_dict=experiment_result.results_full.trainruns_dict,
+            only_travelled_positions=True),
+        width=width)
+    ranges = (len(plotting_parameters.sorting),
+              max(experiment_result.problem_full.max_episode_steps,
+                  experiment_result.problem_full_after_malfunction.max_episode_steps,
+                  experiment_result.problem_delta_after_malfunction.max_episode_steps))
+    for title, (problem, malfunction) in {
+        'Schedule': (experiment_result.problem_full, None),
+        'Full Re-Schedule': (experiment_result.problem_full_after_malfunction, experiment_result.malfunction),
+        'Delta Re-Schedule': (experiment_result.problem_delta_after_malfunction, experiment_result.malfunction)
+    }.items():
+        trajectories = _trajectories_from_time_windows(problem, plotting_parameters.sorting, width)
+        plot_time_resource_data_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
+
+
+def plot_shared_heatmap(
+        experiment_result: ExperimentResultsAnalysis,
+        show: bool = True):
+    for title, result in {
+        'Schedule': experiment_result.results_full,
+        'Full Re-Schedule': experiment_result.results_full_after_malfunction,
+        'Delta Re-Schedule': experiment_result.results_delta_after_malfunction
+    }.items():
+        shared = list(filter(lambda s: s.startswith('shared'), result.solver_result))
+        distance_matrix = np.zeros((experiment_result.experiment_parameters.height, experiment_result.experiment_parameters.width))
+        for sh in shared:
+            sh = sh.replace('shared', '')
+            sh = re.sub('t[0-9]+', '"XXX"', sh)
+            (t0, (wp00, wp01), t1, (wp10, wp11)) = eval(sh)
+            distance_matrix[wp00[0]] += 1
+            distance_matrix[wp01[0]] += 1
+        distance_matrix /= np.max(distance_matrix)
+        fig = plt.figure(figsize=(18, 12), dpi=80)
+        fig.suptitle(title, fontsize=16)
+        plt.subplot(121)
+        plt.imshow(distance_matrix, cmap='hot', interpolation='nearest')
+        if show:
+            fig.show()
+
+
 def plot_time_resource_data_trajectories(
-        title: str, trajectories: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
+        title: str,
+        trajectories: List[List[Tuple[int, int]]], ranges: Tuple[int, int],
         additional_data: Dict = None,
+        malfunction: ExperimentMalfunction = None,
         show: bool = True
 ):
     """
@@ -471,7 +554,12 @@ def plot_time_resource_data_trajectories(
                                      name="Agent {}".format(idx),
                                      hovertemplate=hovertemplate
                                      ))
-
+    if malfunction is not None:
+        x = [-10, ranges[1] + 10]
+        y = [malfunction.time_step, malfunction.time_step]
+        fig.add_trace(go.Scatter(x=x, y=y, name='malfunction start', line=dict(color='red')))
+        y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
+        fig.add_trace(go.Scatter(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
     fig.update_yaxes(title="Time", range=[ranges[1], 0])

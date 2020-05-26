@@ -21,6 +21,7 @@ from rsp.utils.file_utils import check_create_folder
 _pp = pprint.PrettyPrinter(indent=4)
 
 
+# TODO does only_travelled_positions what it promises to do?
 def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict,
                                                                  only_travelled_positions: bool = False) -> TrainScheduleDict:
     """

@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python [conda env:.conda-rsp] *
+    display_name: Python 3
     language: python
-    name: conda-env-.conda-rsp-py
+    name: python3
 ---
 
 ```{python}
@@ -33,11 +33,14 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
 from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
+
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/'
+experiment_base_directory = 'res/mini_toy_example'
 experiment_of_interest = 0
 ```
 
@@ -79,7 +82,7 @@ display(experiment_details.transpose())
 ```
 
 ```{python}
-#list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full_after_malfunction.solver_result))
+    list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full_after_malfunction.solver_result))
 ```
 
 ```{python}
@@ -129,7 +132,7 @@ for experiment in experiment_results_list:
 
 ```{python}
 # %matplotlib inline
-agent_of_interest = 4
+agent_of_interest = 1
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
@@ -143,6 +146,16 @@ plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```
 
+#### Time Resource Window Graph
+
+```{python}
+plot_time_window_resource_trajectories(experiment_result=single_exp_results)
+```
+
+```{python}
+plot_shared_heatmap(experiment_result=single_exp_results)
+```
+
 #### Encounter Graphs
 
 ```{python}
@@ -154,7 +167,7 @@ from rsp.encounter_graph.encounter_graph import symmetric_distance_between_train
 
 ```{python}
 fixed_positions=None
-(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,pos=fixed_positions,metric_function=symmetric_temporal_distance_between_trains,debug_pair=[15, 44])
+(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,pos=fixed_positions,metric_function=symmetric_temporal_distance_between_trains)
 ```
 
 ```{python}
