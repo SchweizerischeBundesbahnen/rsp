@@ -74,7 +74,7 @@ def hypothesis_two_disturbance_propagation_graph(
 
         experiment_result: ExperimentResultsAnalysis = experiment_results_list[i]
 
-        disturbance_propagation_graph_visualization(experiment_result, width, show=show)
+        disturbance_propagation_graph_visualization(experiment_result, show=show)
 
 
 def disturbance_propagation_graph_visualization(
