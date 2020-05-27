@@ -480,7 +480,7 @@ def plot_time_resource_trajectories(
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scatter(x=x,
+            fig.add_trace(go.Scattergl(x=x,
                                      y=y,
                                      mode='lines+markers',
                                      marker=dict(size=2, color=trace_color),
@@ -498,7 +498,7 @@ def plot_time_resource_trajectories(
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scatter(x=x,
+            fig.add_trace(go.Scattergl(x=x,
                                      y=y,
                                      mode='lines+markers',
                                      marker=dict(size=2, color=trace_color),
@@ -509,9 +509,9 @@ def plot_time_resource_trajectories(
     if malfunction is not None:
         x = [-10, ranges[1] + 10]
         y = [malfunction.time_step, malfunction.time_step]
-        fig.add_trace(go.Scatter(x=x, y=y, name='malfunction start', line=dict(color='red')))
+        fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction start', line=dict(color='red')))
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
-        fig.add_trace(go.Scatter(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
+        fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
@@ -811,7 +811,7 @@ def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict, width
             color.append(mean_temp_dist)
         else:
             color.append(50)
-    fig.add_trace(go.Scatter(x=x,
+    fig.add_trace(go.Scattergl(x=x,
                              y=y,
                              mode='markers',
                              name="Schedule",
@@ -887,7 +887,7 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
             color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
             color = DEPTH_COLOR[-1]
-        fig.add_trace(go.Scatter(x=x,
+        fig.add_trace(go.Scattergl(x=x,
                                  y=y,
                                  mode='markers',
                                  name="Train {}".format(agent_id),
@@ -903,7 +903,7 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
                                  ))
     # Plot malfunction
     waypoint = list(schedule[malfunction.agent_id].values())[0].position
-    fig.add_trace(go.Scatter(x=[waypoint[1]],
+    fig.add_trace(go.Scattergl(x=[waypoint[1]],
                              y=[waypoint[0]],
                              mode='markers',
                              name="Malfunction",
@@ -943,7 +943,7 @@ def _plot_time_density(schedule_times: TimeScheduleDict):
     for time in sorted(schedule_times):
         x.append(time)
         y.append(len(schedule_times[time]))
-    fig.add_trace(go.Scatter(x=x, y=y, name="Schedule"))
+    fig.add_trace(go.Scattergl(x=x, y=y, name="Schedule"))
     fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
     fig.show()
 
