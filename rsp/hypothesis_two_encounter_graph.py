@@ -7,9 +7,8 @@ from typing import Tuple
 
 import numpy as np
 
-from rsp.compute_time_analysis.compute_time_analysis import _get_difference_in_time_space_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import _plot_resource_time_diagram
 from rsp.compute_time_analysis.compute_time_analysis import extract_plotting_information_from_train_schedule_dict
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
 from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_dummy_Euclidean
 from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_sum_of_time_window_overlaps
 from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
@@ -19,12 +18,9 @@ from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import PlottingInformation
 from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import ResourceSorting
 from rsp.utils.data_types import SortedResourceOccupationsPerAgentDict
 from rsp.utils.data_types import SortedResourceOccupationsPerResourceDict
-from rsp.utils.data_types import Trajectories
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-from rsp.utils.data_types_converters_and_validators import trajectories_from_resource_occupations_per_agent
 from rsp.utils.data_types_converters_and_validators import verify_extracted_resource_occupations
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -97,7 +93,7 @@ def disturbance_propagation_graph_visualization(
     schedule = experiment_result.results_full.trainruns_dict
     malfunction = experiment_result.malfunction
     malfunction_agent_id = malfunction.agent_id
-    reschedule = experiment_result.results_full_after_malfunction.trainruns_dict
+    reschedule_full = experiment_result.results_full_after_malfunction.trainruns_dict
     number_of_trains = len(schedule)
     max_time_schedule = np.max([trainrun[-1].scheduled_at for trainrun in schedule.values()])
 
@@ -109,11 +105,17 @@ def disturbance_propagation_graph_visualization(
     verify_extracted_resource_occupations(resource_occupations_per_agent=schedule_resource_occupations_per_agent,
                                           resource_occupations_per_resource=schedule_resource_occupations_per_resource,
                                           release_time=RELEASE_TIME)
-    reschedule_resource_occupations_per_resource, reschedule_resource_occupations_per_agent = extract_resource_occupations(
-        schedule=reschedule,
+    reschedule_full_resource_occupations_per_resource, reschedule_full_resource_occupations_per_agent = extract_resource_occupations(
+        schedule=reschedule_full,
         release_time=RELEASE_TIME)
-    verify_extracted_resource_occupations(resource_occupations_per_agent=reschedule_resource_occupations_per_agent,
-                                          resource_occupations_per_resource=reschedule_resource_occupations_per_resource,
+    verify_extracted_resource_occupations(resource_occupations_per_agent=reschedule_full_resource_occupations_per_agent,
+                                          resource_occupations_per_resource=reschedule_full_resource_occupations_per_resource,
+                                          release_time=RELEASE_TIME)
+    reschedule_delta_resource_occupations_per_resource, reschedule_delta_resource_occupations_per_agent = extract_resource_occupations(
+        schedule=reschedule_full,
+        release_time=RELEASE_TIME)
+    verify_extracted_resource_occupations(resource_occupations_per_agent=reschedule_delta_resource_occupations_per_agent,
+                                          resource_occupations_per_resource=reschedule_delta_resource_occupations_per_resource,
                                           release_time=RELEASE_TIME)
 
     # 1. compute the forward-only wave of the malfunction
@@ -134,22 +136,18 @@ def disturbance_propagation_graph_visualization(
     ]
 
     schedule_resource_occupations_per_agent[wave_agent_id] = fake_resource_occupations
-    reschedule_resource_occupations_per_agent[wave_agent_id] = []
+    reschedule_full_resource_occupations_per_agent[wave_agent_id] = []
 
     # get resource
-    plotting_parameters: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
+    plotting_information: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
         schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True),
         width=experiment_result.experiment_parameters.width)
-    resource_sorting = plotting_parameters.sorting
-    # TODO use PlottingInformation instead of resource_sorting and width
     changed_agents: Dict[int, bool] = _plot_resource_time_diagram(
         malfunction=malfunction,
-        nb_agents=number_of_trains,
-        resource_sorting=resource_sorting,
+        plotting_information=plotting_information,
         resource_occupations_schedule=schedule_resource_occupations_per_agent,
-        resource_occupations_reschedule=reschedule_resource_occupations_per_agent,
-        width=experiment_result.experiment_parameters.width,
-        show=show)
+        resource_occupations_reschedule_full=reschedule_full_resource_occupations_per_agent,
+        resource_occupations_reschedule_delta=reschedule_delta_resource_occupations_per_agent)
 
     # 3. non-symmetric distance matrix of primary, secondary etc. effects
     distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent = _distance_matrix_from_tranmission_chains(
@@ -349,48 +347,6 @@ def validate_transmission_chains(transmission_chains: List[TransmissionChain]):
             # transmission via a resource
             assert tr2.hop_on.resource == tr1.hop_off.resource, (tr1, tr2)
             assert tr2.hop_on.interval.from_incl >= tr1.hop_off.interval.to_excl, (tr1, tr2)
-
-
-def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
-                                resource_sorting: ResourceSorting,
-                                nb_agents: int,
-                                resource_occupations_schedule: SortedResourceOccupationsPerAgentDict,
-                                resource_occupations_reschedule: SortedResourceOccupationsPerAgentDict,
-                                width: int,
-                                show: bool = True) -> Dict[int, bool]:
-    malfunction_agent_id = malfunction.agent_id
-    schedule_trajectories: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_schedule, resource_sorting, width)
-    reschedule_trajectories: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule, resource_sorting, width)
-
-    # Plotting the graphs
-    ranges = (len(resource_sorting),
-              max(max([ro[-1].interval.to_excl for ro in resource_occupations_schedule.values() if len(ro) > 0]),
-                  max([ro[-1].interval.to_excl for ro in resource_occupations_reschedule.values() if len(ro) > 0])))
-    # Plot Schedule
-    plot_time_resource_trajectories(trajectories=schedule_trajectories, title='Schedule', ranges=ranges, show=show)
-    # Plot Reschedule Full
-    plot_time_resource_trajectories(trajectories=reschedule_trajectories, title='Full Reschedule', ranges=ranges, show=show)
-    # Compute the difference between schedules and return traces for plotting
-
-    trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
-        trajectories_a=schedule_trajectories,
-        trajectories_b=reschedule_trajectories)
-    # Printing situation overview
-    print(
-        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents of {}. Total delay = {}.".format(
-            malfunction_agent_id, malfunction.time_step,
-            malfunction.malfunction_duration,
-            len([agent_id for agent_id, changed in changed_agents_list.items() if changed]),
-            nb_agents,
-            "TODO"))
-    # Plot difference
-    plot_time_resource_trajectories(
-        trajectories=trajectories_influenced_agents,
-        title='Changed Agents',
-        ranges=ranges,
-        show=show
-    )
-    return changed_agents_list
 
 
 def hypothesis_two_encounter_graph_undirected(
