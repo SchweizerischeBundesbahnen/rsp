@@ -6,11 +6,10 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
-from flatland.core.grid.grid_utils import coordinate_to_position
 
 from rsp.compute_time_analysis.compute_time_analysis import _get_difference_in_time_space_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import extract_plotting_information_from_train_schedule_dict
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_data_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
 from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_dummy_Euclidean
 from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_sum_of_time_window_overlaps
 from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
@@ -25,6 +24,7 @@ from rsp.utils.data_types import SortedResourceOccupationsPerAgentDict
 from rsp.utils.data_types import SortedResourceOccupationsPerResourceDict
 from rsp.utils.data_types import Trajectories
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
+from rsp.utils.data_types_converters_and_validators import trajectories_from_resource_occupations_per_agent
 from rsp.utils.data_types_converters_and_validators import verify_extracted_resource_occupations
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -42,12 +42,21 @@ TransmissionLeg = NamedTuple('TransmissionLeg', [
 TransmissionChain = List[TransmissionLeg]
 
 
-def hypothesis_two_encounter_graph_directed(
+def hypothesis_two_disturbance_propagation_graph(
         experiment_base_directory: str,
         experiment_ids: List[int] = None,
         width: int = 400,
         show: bool = True
 ):
+    """
+
+    Parameters
+    ----------
+    experiment_base_directory
+    experiment_ids
+    width
+    show
+    """
     experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/'
 
@@ -70,15 +79,14 @@ def hypothesis_two_encounter_graph_directed(
 
 def disturbance_propagation_graph_visualization(
         experiment_result: ExperimentResultsAnalysis,
-        width: int = 400,
         show: bool = True
 ) -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
     """
 
     Parameters
     ----------
+    show
     experiment_result
-    width
 
     Returns
     -------
@@ -131,15 +139,16 @@ def disturbance_propagation_graph_visualization(
     # get resource
     plotting_parameters: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
         schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True),
-        width=width)
+        width=experiment_result.experiment_parameters.width)
     resource_sorting = plotting_parameters.sorting
+    # TODO use PlottingInformation instead of resource_sorting and width
     changed_agents: Dict[int, bool] = _plot_resource_time_diagram(
         malfunction=malfunction,
         nb_agents=number_of_trains,
         resource_sorting=resource_sorting,
         resource_occupations_schedule=schedule_resource_occupations_per_agent,
         resource_occupations_reschedule=reschedule_resource_occupations_per_agent,
-        width=width,
+        width=experiment_result.experiment_parameters.width,
         show=show)
 
     # 3. non-symmetric distance matrix of primary, secondary etc. effects
@@ -217,10 +226,8 @@ def _distance_matrix_from_tranmission_chains(
     """
 
     # non-symmetric distance_matrix: insert distance between two consecutive trains at a resource; if no direct encounter, distance is inf
-    distance_matrix = np.zeros((number_of_trains, number_of_trains))
-    distance_first_reaching = np.zeros((number_of_trains, number_of_trains))
-    distance_matrix.fill(np.inf)
-    distance_first_reaching.fill(np.inf)
+    distance_matrix = np.full(shape=(number_of_trains, number_of_trains), fill_value=np.inf)
+    distance_first_reaching = np.full(shape=(number_of_trains, number_of_trains), fill_value=np.inf)
     # for each agent, wave_front reaching the other agent from malfunction agent
     wave_fronts_reaching_other_agent: Dict[int, Dict[int, List[ResourceOccupation]]] = {agent_id: {} for agent_id in range(number_of_trains)}
     # for each agent, minimum transmission length reaching the other agent from malfunction agent
@@ -261,9 +268,7 @@ def _distance_matrix_from_tranmission_chains(
     weights_matrix: np.ndarray = (1 / distance_matrix) + 0.000001
     # normalize
     np_max = np.max(weights_matrix)
-    print(np_max)
     weights_matrix /= np_max
-    print(weights_matrix)
     return distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent
 
 
@@ -354,21 +359,20 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
                                 width: int,
                                 show: bool = True) -> Dict[int, bool]:
     malfunction_agent_id = malfunction.agent_id
-    # TODO extract sorting from  resource_time_2d
-    schedule_trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_schedule, resource_sorting, width)
-    reschedule_trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule, resource_sorting, width)
+    schedule_trajectories: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_schedule, resource_sorting, width)
+    reschedule_trajectories: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule, resource_sorting, width)
 
     # Plotting the graphs
     ranges = (len(resource_sorting),
               max(max([ro[-1].interval.to_excl for ro in resource_occupations_schedule.values() if len(ro) > 0]),
                   max([ro[-1].interval.to_excl for ro in resource_occupations_reschedule.values() if len(ro) > 0])))
     # Plot Schedule
-    plot_time_resource_data_trajectories(trajectories=schedule_trajectories, title='Schedule', ranges=ranges, show=show)
+    plot_time_resource_trajectories(trajectories=schedule_trajectories, title='Schedule', ranges=ranges, show=show)
     # Plot Reschedule Full
-    plot_time_resource_data_trajectories(trajectories=reschedule_trajectories, title='Full Reschedule', ranges=ranges, show=show)
+    plot_time_resource_trajectories(trajectories=reschedule_trajectories, title='Full Reschedule', ranges=ranges, show=show)
     # Compute the difference between schedules and return traces for plotting
 
-    traces_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
+    trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
         trajectories_a=schedule_trajectories,
         trajectories_b=reschedule_trajectories)
     # Printing situation overview
@@ -380,36 +384,13 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
             nb_agents,
             "TODO"))
     # Plot difference
-    plot_time_resource_data_trajectories(
-        trajectories=traces_influenced_agents, title='Changed Agents',
+    plot_time_resource_trajectories(
+        trajectories=trajectories_influenced_agents,
+        title='Changed Agents',
         ranges=ranges,
         show=show
     )
     return changed_agents_list
-
-
-def trajectories_from_resource_occupations_per_agent(resource_occupations_schedule: SortedResourceOccupationsPerAgentDict,
-                                                     resource_sorting: ResourceSorting,
-                                                     width: int) -> Trajectories:
-    schedule_trajectories: Trajectories = []
-    for _, resource_ocupations in resource_occupations_schedule.items():
-        train_time_path = []
-        for resource_ocupation in resource_ocupations:
-            position = coordinate_to_position(width, [resource_ocupation.resource])[0]
-            # TODO dirty hack: add positions from re-scheduling to resource_sorting in the first place instead of workaround here!
-            if position not in resource_sorting:
-                resource_sorting[position] = len(resource_sorting)
-            train_time_path.append((resource_sorting[position], resource_ocupation.interval.from_incl))
-            train_time_path.append((resource_sorting[position], resource_ocupation.interval.to_excl))
-            train_time_path.append((None, None))
-        schedule_trajectories.append(train_time_path)
-    return schedule_trajectories
-
-
-def _debug_directed(pair, debug_info, distance_matrix, weights_matrix):
-    print(f"debug_info[{pair}]={debug_info[pair]}")
-    print(f"weights_matrix[{pair}]={weights_matrix[pair]}")
-    print(f"distance_matrix[{pair}]={distance_matrix[pair]}")
 
 
 def hypothesis_two_encounter_graph_undirected(
@@ -458,7 +439,7 @@ def hypothesis_two_encounter_graph_undirected(
 
 
 if __name__ == '__main__':
-    hypothesis_two_encounter_graph_directed(
+    hypothesis_two_disturbance_propagation_graph(
         experiment_base_directory='../rsp-data/agent_0_malfunction_2020_05_18T11_56_31',
         experiment_ids=list(range(1))
     )

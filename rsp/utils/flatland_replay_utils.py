@@ -21,24 +21,24 @@ from rsp.utils.file_utils import check_create_folder
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-# TODO does only_travelled_positions what it promises to do?
 def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict,
                                                                  only_travelled_positions: bool = False) -> TrainScheduleDict:
-    """
-    Converts a `TrainrunDict` (only entry times into a new position) into a dict with the waypoint for each agent and agent time step.
-    The positions are the new positions the agents ent
+    """Converts a `TrainrunDict` (only entry times into a new position) into a
+    dict with the waypoint for each agent and agent time step. The positions
+    are the new positions the agents enters. No timesteps are added after the
+    train is done!
+
     Parameters
     ----------
     trainrun_dict: TrainrunDict
         for each agent, a list of time steps with new position
     only_travelled_positions:
-        Only add actually visited times to the dict to avoid multiple None entries.
+        Only add times not starting at 0 but when agent enters the grid. None is added before.
 
     Returns
     -------
     TrainScheduleDict
         for each agent and time step, the current position (not considering release times)
-
     """
     train_schedule_dict: TrainScheduleDict = {}
     for agent_id, trainrun in trainrun_dict.items():

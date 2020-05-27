@@ -82,11 +82,15 @@ display(experiment_details.transpose())
 ```
 
 ```{python}
-    list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full_after_malfunction.solver_result))
+    list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full.solver_result))
 ```
 
 ```{python}
 changed_agents_traces = plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+```
+
+```{python}
+
 ```
 
 ```{python}
@@ -132,7 +136,7 @@ for experiment in experiment_results_list:
 
 ```{python}
 # %matplotlib inline
-agent_of_interest = 1
+agent_of_interest = 0
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
@@ -188,15 +192,7 @@ from rsp.hypothesis_two_encounter_graph import disturbance_propagation_graph_vis
 ```
 
 ```{python}
-debug_info, distance_matrix, weights_matrix = disturbance_propagation_graph_visualization(experiment_result=single_exp_results)
-```
-
-```{python}
-from rsp.hypothesis_two_encounter_graph import _debug_directed
-```
-
-```{python}
-_debug_directed((0, 24), debug_info, distance_matrix, weights_matrix)
+transmission_chains, distance_matrix, weights_matrix, minimal_depth = disturbance_propagation_graph_visualization(experiment_result=single_exp_results)
 ```
 
 ### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?

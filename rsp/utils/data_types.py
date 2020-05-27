@@ -51,9 +51,6 @@ ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('speed_data', SpeedData)
 ])
 
-SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', List[List[Tuple[int, int]]]),
-                                                           ('additional_information', Dict)])
-
 # the experiment_id is unambiguous within the agenda for the full parameter set!
 ExperimentParameters = NamedTuple('ExperimentParameters',
                                   [('experiment_id', int),
@@ -142,10 +139,17 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
 
-# For each time step, agent's location: int key is the time step at which the waypoint is visited
+# For each time step, agent's location: int key is the time step at which the train occupies the resource
+# (agents occupy only one resource at a time, no release time)
 TrainSchedule = Dict[int, Waypoint]
-# TrainSchedule for all  trains: Int key is the agent handle for which the schedule is returned
+# TrainSchedule for all  trains: int key is the agent handle for which the schedule is returned
 TrainScheduleDict = Dict[int, TrainSchedule]
+
+# For some time steps, agent's location: int key is the time step at which the train occupies the resource
+# (agents occupy only one resource at a time, no release time)
+TrainScheduleDifference = TrainSchedule
+# TrainScheduleDifference for some trains: int key is the agent handle for which the schedule difference is returned
+TrainScheduleDifferenceDict = Dict[int, TrainScheduleDifference]
 
 RessourceAgentDict = Dict[Waypoint, int]  # Dict assigning agent handle to Waypoint (Ressource)
 TimeAgentDict = Dict[int, int]  # Dict assigning agent handle to time
@@ -156,6 +160,10 @@ RessourceScheduleDict = Dict[Waypoint, TimeAgentDict]
 TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
                                       [('trajectories', TrainScheduleDict), ('max_resource_id', int),
                                        ('max_time', int)])
+
+Trajectories = List[List[Tuple[int, int]]]
+SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
+                                                           ('additional_information', Dict)])
 
 if COMPATIBILITY_MODE:
     ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
@@ -176,11 +184,13 @@ ResourceOccupation = NamedTuple('ResourceOccupation', [
 SortedResourceOccupationsPerResourceDict = Dict[Resource, List[ResourceOccupation]]
 SortedResourceOccupationsPerAgentDict = Dict[int, List[ResourceOccupation]]
 ResourceSorting = Dict[Resource, int]
-Trajectories = List[List[Tuple[int, int]]]
+
 # Information used for plotting time-ressource-graphs: Sorting is dict mapping ressource to int value used to sort
 # ressources for nice visualization
 PlottingInformation = NamedTuple('PlottingInformation',
-                                 [('sorting', ResourceSorting), ('dimensions', Tuple[int, int])])
+                                 [('sorting', ResourceSorting),
+                                  ('dimensions', Tuple[int, int]),
+                                  ('grid_width', int)])
 
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
@@ -458,7 +468,6 @@ def convert_experiment_results_analysis_to_data_frame(experiment_results: Experi
     Parameters
     ----------
     experiment_results: ExperimentResults
-    experiment_parameters: ExperimentParameters
 
     Returns
     -------
