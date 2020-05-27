@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import Dict
 from typing import List
+from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 
@@ -27,14 +28,10 @@ from rsp.utils.data_types import ResourceSorting
 from rsp.utils.data_types import RessourceAgentDict
 from rsp.utils.data_types import RessourceScheduleDict
 from rsp.utils.data_types import SortedResourceOccupationsPerAgentDict
-from rsp.utils.data_types import SpaceTimeDifference
 from rsp.utils.data_types import TimeAgentDict
 from rsp.utils.data_types import TimeScheduleDict
 from rsp.utils.data_types import TrainScheduleDict
-from rsp.utils.data_types import Trajectories
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-from rsp.utils.data_types_converters_and_validators import trajectories_from_resource_occupations_per_agent
-from rsp.utils.data_types_converters_and_validators import trajectories_from_train_schedule_dict
 from rsp.utils.data_types_converters_and_validators import verify_extracted_resource_occupations
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
@@ -42,6 +39,10 @@ from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_positions_for_all_timesteps
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 from rsp.utils.global_constants import RELEASE_TIME
+
+Trajectories = List[List[Tuple[int, int]]]
+SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
+                                                           ('additional_information', Dict)])
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -323,7 +324,7 @@ def extract_plotting_information_from_train_schedule_dict(
     return plotting_parameters
 
 
-# TODO convert scheduleproblemdescription to resource occupations and derive Trajectories using trajectories_from_resource_occupations_per_agent
+# TODO SIM-537 convert scheduleproblemdescription to resource occupations and derive Trajectories using trajectories_from_resource_occupations_per_agent
 def _trajectories_from_time_windows(problem: ScheduleProblemDescription, resource_sorting: ResourceSorting, width) -> Trajectories:
     schedule_trajectories: Trajectories = []
 
@@ -1045,3 +1046,79 @@ def _find_neighbours(schedule, schedule_ressources, agent_id, depth, known_neigh
                 depth_dict[lower_neighbour] = lower_depth_dict[lower_neighbour]
 
     return depth_dict
+
+
+def trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule: SortedResourceOccupationsPerAgentDict,
+        resource_sorting: ResourceSorting,
+        width: int) -> Trajectories:
+    """
+
+    Parameters
+    ----------
+    resource_occupations_schedule
+    resource_sorting
+    width
+
+    Returns
+    -------
+
+    """
+    schedule_trajectories: Trajectories = []
+    for _, resource_ocupations in resource_occupations_schedule.items():
+        train_time_path = []
+        for resource_ocupation in resource_ocupations:
+            position = coordinate_to_position(width, [resource_ocupation.resource])[0]
+            # TODO dirty hack: add positions from re-scheduling to resource_sorting in the first place instead of workaround here!
+            if position not in resource_sorting:
+                resource_sorting[position] = len(resource_sorting)
+            train_time_path.append((resource_sorting[position], resource_ocupation.interval.from_incl))
+            train_time_path.append((resource_sorting[position], resource_ocupation.interval.to_excl))
+            train_time_path.append((None, None))
+        schedule_trajectories.append(train_time_path)
+    return schedule_trajectories
+
+
+# TODO SIM-537 remove trajectories_from_train_schedule_dict, use only trajectories_from_resource_occupations_per_agent
+def trajectories_from_train_schedule_dict(
+        train_schedule_dict: TrainScheduleDict,
+        plotting_information: PlottingInformation,
+) -> Trajectories:
+    """
+
+    Parameters
+    ----------
+    plotting_information
+    train_schedule_dict
+
+    Returns
+    -------
+
+    """
+    resource_sorting = plotting_information.sorting
+    schedule_trajectories: Trajectories = []
+    width = plotting_information.grid_width
+    for _, train_schedule in train_schedule_dict.items():
+        train_time_path = []
+        previous_waypoint = None
+        entry_time = -1
+        for time_step, waypoint in train_schedule.items():
+
+            if previous_waypoint is None and waypoint is not None:
+                entry_time = time_step
+                previous_waypoint = waypoint
+            elif previous_waypoint != waypoint:
+                position = coordinate_to_position(width, [previous_waypoint.position])[0]
+                # TODO dirty hack: add positions from re-scheduling to resource_sorting in the first place instead of workaround here!
+                if position not in resource_sorting:
+                    resource_sorting[position] = len(resource_sorting)
+
+                train_time_path.append((resource_sorting[position], entry_time))
+                train_time_path.append((resource_sorting[position], time_step))
+                train_time_path.append((None, None))
+
+                previous_waypoint = waypoint
+                entry_time = time_step
+
+        schedule_trajectories.append(train_time_path)
+    return schedule_trajectories
