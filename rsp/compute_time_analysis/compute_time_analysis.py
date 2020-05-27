@@ -355,8 +355,15 @@ def _trajectories_from_time_windows(problem: ScheduleProblemDescription, resourc
 
 def plot_time_window_resource_trajectories(
         experiment_result: ExperimentResultsAnalysis,
-        width: int = 400,
         show: bool = True):
+    """Plot time-window -- resource diagram for all three problems.
+
+    Parameters
+    ----------
+    experiment_result
+    show
+    """
+    width = experiment_result.experiment_parameters.width
     plotting_parameters: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
         schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(
             trainrun_dict=experiment_result.results_full.trainruns_dict,
@@ -378,6 +385,13 @@ def plot_time_window_resource_trajectories(
 def plot_shared_heatmap(
         experiment_result: ExperimentResultsAnalysis,
         show: bool = True):
+    """Plot a heat map of how many shareds are on the resources.
+
+    Parameters
+    ----------
+    experiment_result
+    show
+    """
     for title, result in {
         'Schedule': experiment_result.results_full,
         'Full Re-Schedule': experiment_result.results_full_after_malfunction,
