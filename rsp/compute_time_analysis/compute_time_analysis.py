@@ -26,17 +26,22 @@ from rsp.utils.data_types import PlottingInformation
 from rsp.utils.data_types import ResourceSorting
 from rsp.utils.data_types import RessourceAgentDict
 from rsp.utils.data_types import RessourceScheduleDict
+from rsp.utils.data_types import SortedResourceOccupationsPerAgentDict
 from rsp.utils.data_types import SpaceTimeDifference
 from rsp.utils.data_types import TimeAgentDict
 from rsp.utils.data_types import TimeScheduleDict
 from rsp.utils.data_types import TrainScheduleDict
 from rsp.utils.data_types import Trajectories
+from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
+from rsp.utils.data_types_converters_and_validators import trajectories_from_resource_occupations_per_agent
 from rsp.utils.data_types_converters_and_validators import trajectories_from_train_schedule_dict
+from rsp.utils.data_types_converters_and_validators import verify_extracted_resource_occupations
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_positions_for_all_timesteps
 from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
+from rsp.utils.global_constants import RELEASE_TIME
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -244,84 +249,43 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     """
     # Extract data
     experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
-    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
+    experiment_result: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
         experiment_data_series)
-    schedule = experiment_data.solution_full
-    reschedule_full = experiment_data.solution_full_after_malfunction
-    reschedule_delta = experiment_data.solution_delta_after_malfunction
-    malfunction_agent = experiment_data.malfunction.agent_id
-    malfunction_start = experiment_data.malfunction.time_step
-    malfunction_duration = experiment_data.malfunction.malfunction_duration
-    width = experiment_data.experiment_parameters.width
-    lateness_delta_after_malfunction = experiment_data.lateness_delta_after_malfunction
-    total_delay = sum(lateness_delta_after_malfunction.values())
 
-    # Get full schedule Time-resource-Data
-    train_schedule_dict_schedule: TrainScheduleDict = \
-        convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True)
-    # Get full reschedule Time-resource-Data
-    train_schedule_dict_reschedule_full: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
-        reschedule_full, only_travelled_positions=True)
-    # Get delta reschedule Time-resource-Data
-    train_schedule_dict_reschedule_delta: TrainScheduleDict = convert_trainrundict_to_entering_positions_for_all_timesteps(
-        reschedule_delta, only_travelled_positions=True)
+    schedule = experiment_result.solution_full
+    reschedule_full = experiment_result.solution_full_after_malfunction
 
-    # plotting information
-    plotting_information = extract_plotting_information_from_train_schedule_dict(schedule_data=train_schedule_dict_schedule, width=width)
+    schedule_resource_occupations_per_resource, schedule_resource_occupations_per_agent = extract_resource_occupations(
+        schedule=schedule,
+        release_time=RELEASE_TIME)
+    verify_extracted_resource_occupations(resource_occupations_per_agent=schedule_resource_occupations_per_agent,
+                                          resource_occupations_per_resource=schedule_resource_occupations_per_resource,
+                                          release_time=RELEASE_TIME)
+    reschedule_resource_occupations_per_resource, reschedule_resource_occupations_per_agent = extract_resource_occupations(
+        schedule=reschedule_full,
+        release_time=RELEASE_TIME)
+    verify_extracted_resource_occupations(resource_occupations_per_agent=reschedule_resource_occupations_per_agent,
+                                          resource_occupations_per_resource=reschedule_resource_occupations_per_resource,
+                                          release_time=RELEASE_TIME)
 
-    # trajectories
-    trajectories_schedule = trajectories_from_train_schedule_dict(
-        train_schedule_dict=train_schedule_dict_schedule,
-        plotting_information=plotting_information)
-    trajectories_reschedule_full = trajectories_from_train_schedule_dict(
-        train_schedule_dict=train_schedule_dict_reschedule_full,
-        plotting_information=plotting_information)
-    trajectories_reschedule_delta = trajectories_from_train_schedule_dict(
-        train_schedule_dict=train_schedule_dict_reschedule_delta,
-        plotting_information=plotting_information)
+    reschedule_delta_resource_occupations_per_resource, reschedule_delta_resource_occupations_per_agent = extract_resource_occupations(
+        schedule=reschedule_full,
+        release_time=RELEASE_TIME)
+    verify_extracted_resource_occupations(resource_occupations_per_agent=reschedule_delta_resource_occupations_per_agent,
+                                          resource_occupations_per_resource=reschedule_delta_resource_occupations_per_resource,
+                                          release_time=RELEASE_TIME)
 
-    # Plot Schedule
-    plot_time_resource_trajectories(
-        title='Schedule', ranges=plotting_information.dimensions,
-        trajectories=trajectories_schedule)
+    plotting_information: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
+        schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True),
+        width=experiment_result.experiment_parameters.width)
 
-    # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
-    trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
-        trajectories_a=trajectories_schedule,
-        trajectories_b=trajectories_reschedule_full)
-
-    # Printing situation overview
-    nb_changed_agents = sum([1 for changed in changed_agents_list.values() if changed])
-    print(
-        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
-            malfunction_agent, malfunction_start,
-            malfunction_duration, nb_changed_agents, total_delay))
-    # Plot Reschedule Full only if something has changed
-    if nb_changed_agents > 0:
-        plot_time_resource_trajectories(
-            trajectories=trajectories_reschedule_full,
-            title='Full Reschedule',
-            malfunction=experiment_data.malfunction,
-            ranges=plotting_information.dimensions
-        )
-
-    # Plot Reschedule Delta with additional data
-    plot_time_resource_trajectories(
-        title='Delta Reschedule', ranges=plotting_information.dimensions,
-        trajectories=trajectories_reschedule_delta,
-        malfunction=experiment_data.malfunction
+    return _plot_resource_time_diagram(
+        malfunction=experiment_result.malfunction,
+        plotting_information=plotting_information,
+        resource_occupations_schedule=schedule_resource_occupations_per_agent,
+        resource_occupations_reschedule_full=reschedule_resource_occupations_per_agent,
+        resource_occupations_reschedule_delta=reschedule_delta_resource_occupations_per_agent
     )
-
-    # Plot difference if asked for
-    if with_diff:
-        plot_time_resource_trajectories(
-            trajectories=trajectories_influenced_agents,
-            title='Changed Agents',
-            malfunction=experiment_data.malfunction,
-            ranges=plotting_information.dimensions
-        )
-
-    return changed_agents_list
 
 
 def extract_plotting_information_from_train_schedule_dict(
@@ -359,6 +323,7 @@ def extract_plotting_information_from_train_schedule_dict(
     return plotting_parameters
 
 
+# TODO convert scheduleproblemdescription to resource occupations and derive Trajectories using trajectories_from_resource_occupations_per_agent
 def _trajectories_from_time_windows(problem: ScheduleProblemDescription, resource_sorting: ResourceSorting, width) -> Trajectories:
     schedule_trajectories: Trajectories = []
 
@@ -433,6 +398,73 @@ def plot_shared_heatmap(
         plt.imshow(distance_matrix, cmap='hot', interpolation='nearest')
         if show:
             fig.show()
+
+
+def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
+                                plotting_information: PlottingInformation,
+                                resource_occupations_schedule: SortedResourceOccupationsPerAgentDict,
+                                resource_occupations_reschedule_full: SortedResourceOccupationsPerAgentDict,
+                                resource_occupations_reschedule_delta: SortedResourceOccupationsPerAgentDict,
+                                with_diff: bool = True
+                                ) -> Dict[int, bool]:
+    resource_sorting = plotting_information.sorting
+    width = plotting_information.grid_width
+    trajectories_schedule: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_schedule, resource_sorting, width)
+    trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule_full, resource_sorting, width)
+    trajectories_reschedule_delta: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule_delta, resource_sorting,
+                                                                                                   width)
+
+    total_delay = sum(
+        max(resource_occupations_schedule[agent_id][-1].interval.to_excl - sorted_resource_occupations_reschedule_delta[-1].interval.to_excl, 0)
+        for agent_id, sorted_resource_occupations_reschedule_delta in resource_occupations_reschedule_delta.items()
+    )
+
+    # Plot Schedule
+    plot_time_resource_trajectories(
+        title='Schedule',
+        ranges=plotting_information.dimensions,
+        trajectories=trajectories_schedule)
+
+    # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
+    trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
+        trajectories_a=trajectories_schedule,
+        trajectories_b=trajectories_reschedule_full)
+
+    # Printing situation overview
+    nb_changed_agents = sum([1 for changed in changed_agents_list.values() if changed])
+    print(
+        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
+            malfunction.agent_id,
+            malfunction.time_step,
+            malfunction.malfunction_duration,
+            nb_changed_agents,
+            total_delay))
+    # Plot Reschedule Full only if something has changed
+    if nb_changed_agents > 0:
+        plot_time_resource_trajectories(
+            trajectories=trajectories_reschedule_full,
+            title='Full Reschedule',
+            malfunction=malfunction,
+            ranges=plotting_information.dimensions
+        )
+
+    # Plot Reschedule Delta with additional data
+    plot_time_resource_trajectories(
+        title='Delta Reschedule', ranges=plotting_information.dimensions,
+        trajectories=trajectories_reschedule_delta,
+        malfunction=malfunction
+    )
+
+    # Plot difference if asked for
+    if with_diff:
+        plot_time_resource_trajectories(
+            trajectories=trajectories_influenced_agents,
+            title='Changed Agents',
+            malfunction=malfunction,
+            ranges=plotting_information.dimensions
+        )
+
+    return changed_agents_list
 
 
 def plot_time_resource_trajectories(

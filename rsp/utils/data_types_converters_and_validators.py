@@ -86,6 +86,7 @@ def verify_extracted_resource_occupations(  # noqa: C901
             assert ro.interval.to_excl > ro.interval.from_incl
 
 
+# TODO used in plotting only, not here
 def trajectories_from_resource_occupations_per_agent(
         resource_occupations_schedule: SortedResourceOccupationsPerAgentDict,
         resource_sorting: ResourceSorting,
@@ -117,6 +118,7 @@ def trajectories_from_resource_occupations_per_agent(
     return schedule_trajectories
 
 
+# TODO remove, use only trajectories_from_resource_occupations_per_agent
 def trajectories_from_train_schedule_dict(
         train_schedule_dict: TrainScheduleDict,
         plotting_information: PlottingInformation,
