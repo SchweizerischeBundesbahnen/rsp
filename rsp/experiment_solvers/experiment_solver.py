@@ -87,7 +87,6 @@ class ASPExperimentSolver():
         ExperimentResults
         """
         tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
-        print("Max window size allowed",experiment_parameters.max_window_size_from_earliest)
         schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
         # / SIM-366 temporary hack: when re-using schedule and malfunction,  try to reduce the topology so it has no cycles.
@@ -98,7 +97,8 @@ class ASPExperimentSolver():
                                     agent.initial_position,
                                     agent.initial_direction,
                                     agent.target,
-                                    experiment_parameters.number_of_shortest_paths_per_agent) for i, agent in enumerate(malfunction_rail_env.agents)
+                                    experiment_parameters.number_of_shortest_paths_per_agent)
+            for i, agent in enumerate(malfunction_rail_env.agents)
         }
         dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
         for agent_id, schedule in schedule_trainruns.items():

@@ -1,3 +1,4 @@
+import shutil
 from typing import List
 from typing import Optional
 
@@ -240,17 +241,20 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
 
 
 def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_directory: str,
-                                                       experiment_parameters: ParameterRangesAndSpeedData = None):
+                                                       experiment_parameters: ParameterRangesAndSpeedData = None,
+                                                       base_experiment_id: int = 0):
     """Simple method to run experiments with new parameters without the need to
     generate the schedul. Takes malfunction and agenda and generates a new
     agenda from the given parameters.
 
     Parameters
     ----------
+
     copy_agenda_from_base_directory
         Agenda containing schedule.
     experiment_parameters
         New set of parameters that will be used for the experiments
+    base_experiment_id
 
     Returns
     -------
@@ -259,10 +263,10 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
 
     # Load the previous agenda
     rsp_logger.info("Loading Agenda and Schedule")
-    experiment_agenda_directory = copy_agenda_from_base_directory + "/agenda"
+    experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     loaded_experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
     loaded_schedule_and_malfunction = load_schedule_and_malfunction(
-        experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
+        experiment_agenda_directory=experiment_agenda_directory, experiment_id=base_experiment_id)
 
     # Create new experiment agenda
     rsp_logger.info("Creating New Agenda")
@@ -274,7 +278,10 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
 
     # Save the new agenda
     rsp_logger.info("Saving New Agenda")
-    save_experiment_agenda_and_hash_to_file(experiment_folder_name=experiment_agenda_directory,
+    tmp_experiment_folder = './tmp_experiment_folder'
+    tmp_experiment_agenda_directory = f'{tmp_experiment_folder}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
+
+    save_experiment_agenda_and_hash_to_file(experiment_folder_name=tmp_experiment_agenda_directory,
                                             experiment_agenda=experiment_agenda)
 
     # Generate the malfunction experiments
@@ -299,7 +306,7 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
             experiment_malfunction=malfunction)
         # Save the newly generated schedule malfunction pairs
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
-                                      experiment_agenda_directory=experiment_agenda_directory,
+                                      experiment_agenda_directory=tmp_experiment_agenda_directory,
                                       experiment_id=experiment.experiment_id)
 
     # Run Pipeline
@@ -309,9 +316,11 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
         experiment_agenda=experiment_agenda,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
-        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        copy_agenda_from_base_directory=tmp_experiment_folder,
         parallel_compute=AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
     )
+    # Cleanup files
+    shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
 
 
 def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: str):
