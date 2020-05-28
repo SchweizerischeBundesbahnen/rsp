@@ -90,7 +90,7 @@ def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAn
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
                                            city_range=[10, 10, 1],
-                                           earliest_malfunction=[1, 100, 5],
+                                           earliest_malfunction=[1, 100, 2],
                                            malfunction_duration=[50, 50, 1],
                                            number_of_shortest_paths_per_agent=[10, 10, 1],
                                            max_window_size_from_earliest=[60, 60, 1],

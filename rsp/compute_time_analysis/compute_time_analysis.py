@@ -231,8 +231,7 @@ def plot_speed_up(
         fig.write_image(pdf_file)
 
 
-def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff: bool = True) -> \
-Dict[int, bool]:
+def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
