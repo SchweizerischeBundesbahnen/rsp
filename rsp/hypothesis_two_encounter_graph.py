@@ -173,7 +173,9 @@ def _plot_delay_propagation_graph(
         minimal_depth,
         number_of_trains,
         wave_fronts_reaching_other_agent,
-        weights_matrix):
+        weights_matrix,
+        file_name: str = None,
+):
     # take minimum depth of transmission between and the time reaching the second agent as coordinates
     # TODO is it a good idea to take minimum depth, should it not rather be cumulated distance from the malfunction train?
     pos = {}
@@ -206,7 +208,7 @@ def _plot_delay_propagation_graph(
         weights_matrix=weights_matrix,
         changed_agents=changed_agents,
         title=f"Encounter Graph for experiment {experiment_result.experiment_id}, {malfunction}",
-        file_name=f"encounter_graph_{experiment_result.experiment_id:04d}.pdf",
+        file_name=file_name,
         pos=pos)
 
 

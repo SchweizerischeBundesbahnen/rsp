@@ -88,7 +88,6 @@ class ASPExperimentSolver():
         """
         rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
         tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
-
         schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
         # / SIM-366 temporary hack: when re-using schedule and malfunction,  try to reduce the topology so it has no cycles.
@@ -100,7 +99,8 @@ class ASPExperimentSolver():
                                     agent.initial_position,
                                     agent.initial_direction,
                                     agent.target,
-                                    experiment_parameters.number_of_shortest_paths_per_agent) for i, agent in enumerate(malfunction_rail_env.agents)
+                                    experiment_parameters.number_of_shortest_paths_per_agent)
+            for i, agent in enumerate(malfunction_rail_env.agents)
         }
         rsp_logger.info(f"done get_k_shortest_paths for experiment {experiment_parameters.experiment_id}")
         rsp_logger.info(f"start tweaking topology experiment {experiment_parameters.experiment_id}")

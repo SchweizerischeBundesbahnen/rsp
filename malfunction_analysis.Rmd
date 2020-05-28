@@ -1,0 +1,93 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.1
+  kernelspec:
+    display_name: Python [conda env:.conda-rsp] *
+    language: python
+    name: conda-env-.conda-rsp-py
+---
+
+```{python}
+# %autosave 0
+# %matplotlib notebook
+# %matplotlib qt4
+# %load_ext autoreload
+# %autoreload 2
+import sys
+sys.path.append("./flatland_ckua")
+import pandas as pd
+from IPython.display import Video
+
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resource_diagrams
+from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
+from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
+from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
+
+from rsp.route_dag.route_dag import ScheduleProblemEnum
+```
+
+```{python}
+experiment_base_directory = '.exp_hypothesis_one_2020_05_28T09_23_21/'
+experiment_of_interest = 0
+```
+
+```{python}
+experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory,
+    experiment_ids=[experiment_of_interest],
+    nonify_problem_and_results=False
+)
+experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+```
+
+### Visualize Weg-Zeit-Diagram of specific experiment
+
+```{python}
+single_experiment_dataframe = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest].iloc[0]
+single_exp_results = convert_pandas_series_experiment_results_analysis(single_experiment_dataframe)
+choices_full_schedule = single_exp_results.results_full.solver_statistics["solving"]["solvers"]["choices"]
+choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+```
+
+```{python}
+experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
+       'n_agents', 'max_num_cities', 'max_rail_between_cities',
+       'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
+       'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
+       'nb_resource_conflicts_full_after_malfunction',
+       'nb_resource_conflicts_delta_after_malfunction']]
+experiment_details['choices_full_schedule'] = choices_full_schedule
+experiment_details['choices_full_reschedule'] = choices_full_reschedule
+experiment_details['choices_delta_reschedule'] = choices_delta_reschedule
+
+```
+
+### Disturbance Propagation Graphs
+
+
+```{python}
+from rsp.hypothesis_two_encounter_graph import disturbance_propagation_graph_visualization
+```
+
+```{python}
+transmission_chains, distance_matrix, weights_matrix, minimal_depth = disturbance_propagation_graph_visualization(experiment_result=single_exp_results)
+```
+
+```{python}
+
+```

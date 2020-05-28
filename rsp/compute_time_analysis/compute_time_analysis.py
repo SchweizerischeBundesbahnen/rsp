@@ -285,7 +285,8 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
         plotting_information=plotting_information,
         resource_occupations_schedule=schedule_resource_occupations_per_agent,
         resource_occupations_reschedule_full=reschedule_resource_occupations_per_agent,
-        resource_occupations_reschedule_delta=reschedule_delta_resource_occupations_per_agent
+        resource_occupations_reschedule_delta=reschedule_delta_resource_occupations_per_agent,
+        with_diff=with_diff
     )
 
 
@@ -527,16 +528,16 @@ def plot_time_resource_trajectories(
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scatter(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
-                                         0],
-                                     hovertemplate=hovertemplate
-                                     ))
+            fig.add_trace(go.Scattergl(
+                x=x,
+                y=y,
+                mode='lines+markers',
+                marker=dict(size=2, color=trace_color),
+                line=dict(color=trace_color),
+                name="Agent {}".format(idx),
+                customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[0],
+                hovertemplate=hovertemplate
+            ))
     else:
         for idx, line in enumerate(trajectories):
             # skip empty schedule (re-schedle for our ghost agent representing the wave front)
@@ -545,20 +546,21 @@ def plot_time_resource_trajectories(
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scatter(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     hovertemplate=hovertemplate
-                                     ))
+            fig.add_trace(
+                go.Scattergl(x=x,
+                             y=y,
+                             mode='lines+markers',
+                             marker=dict(size=2, color=trace_color),
+                             line=dict(color=trace_color),
+                             name="Agent {}".format(idx),
+                             hovertemplate=hovertemplate
+                             ))
     if malfunction is not None:
         x = [-10, ranges[1] + 10]
         y = [malfunction.time_step, malfunction.time_step]
-        fig.add_trace(go.Scatter(x=x, y=y, name='malfunction start', line=dict(color='red')))
+        fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction start', line=dict(color='red')))
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
-        fig.add_trace(go.Scatter(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
+        fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
@@ -858,16 +860,16 @@ def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict, width
             color.append(mean_temp_dist)
         else:
             color.append(50)
-    fig.add_trace(go.Scatter(x=x,
-                             y=y,
-                             mode='markers',
-                             name="Schedule",
-                             marker=dict(
-                                 color=size,
-                                 symbol='square',
-                                 showscale=True,
-                                 reversescale=False
-                             )))
+    fig.add_trace(go.Scattergl(x=x,
+                               y=y,
+                               mode='markers',
+                               name="Schedule",
+                               marker=dict(
+                                   color=size,
+                                   symbol='square',
+                                   showscale=True,
+                                   reversescale=False
+                               )))
     fig.update_layout(title_text="Train Density at Ressources",
                       autosize=False,
                       width=1000,
@@ -934,30 +936,30 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
             color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
             color = DEPTH_COLOR[-1]
-        fig.add_trace(go.Scatter(x=x,
-                                 y=y,
-                                 mode='markers',
-                                 name="Train {}".format(agent_id),
-                                 marker_symbol=marker,
-                                 customdata=list(zip(times, delay, conflict_depth)),
-                                 marker_size=size,
-                                 marker_opacity=0.1,
-                                 marker_color=color,
-                                 marker_line_color=color,
-                                 hovertemplate="Time:\t%{customdata[0]}<br>" +
-                                               "Delay:\t%{customdata[1]}<br>" +
-                                               "Influence depth:\t%{customdata[2]}"
-                                 ))
+        fig.add_trace(go.Scattergl(x=x,
+                                   y=y,
+                                   mode='markers',
+                                   name="Train {}".format(agent_id),
+                                   marker_symbol=marker,
+                                   customdata=list(zip(times, delay, conflict_depth)),
+                                   marker_size=size,
+                                   marker_opacity=0.1,
+                                   marker_color=color,
+                                   marker_line_color=color,
+                                   hovertemplate="Time:\t%{customdata[0]}<br>" +
+                                                 "Delay:\t%{customdata[1]}<br>" +
+                                                 "Influence depth:\t%{customdata[2]}"
+                                   ))
     # Plot malfunction
     waypoint = list(schedule[malfunction.agent_id].values())[0].position
-    fig.add_trace(go.Scatter(x=[waypoint[1]],
-                             y=[waypoint[0]],
-                             mode='markers',
-                             name="Malfunction",
-                             marker_symbol='x',
-                             marker_size=25,
-                             marker_line_color='black',
-                             marker_color='black'))
+    fig.add_trace(go.Scattergl(x=[waypoint[1]],
+                               y=[waypoint[0]],
+                               mode='markers',
+                               name="Malfunction",
+                               marker_symbol='x',
+                               marker_size=25,
+                               marker_line_color='black',
+                               marker_color='black'))
     fig.update_layout(title_text="Malfunction position and effects",
                       autosize=False,
                       width=1000,
@@ -990,7 +992,7 @@ def _plot_time_density(schedule_times: TimeScheduleDict):
     for time in sorted(schedule_times):
         x.append(time)
         y.append(len(schedule_times[time]))
-    fig.add_trace(go.Scatter(x=x, y=y, name="Schedule"))
+    fig.add_trace(go.Scattergl(x=x, y=y, name="Schedule"))
     fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
     fig.show()
 
