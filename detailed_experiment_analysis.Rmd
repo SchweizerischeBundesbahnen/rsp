@@ -40,7 +40,7 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiments_base_directory = '../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/'
+experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/'
 experiment_of_interest = 0
 ```
 
@@ -82,7 +82,19 @@ display(experiment_details.transpose())
 ```
 
 ```{python}
-    list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full.solver_result))
+from rsp.experiment_solvers.asp.asp_helper import _print_stats
+# print("=================================================================================")
+# print(f"= {experiment_base_directory} results_full_after_malfunction ")
+# print("=================================================================================")
+# _print_stats(single_exp_results.results_full_after_malfunction.solver_statistics)
+# print("=================================================================================")
+# print(f"= {experiment_base_directory} results_delta_after_malfunction ")
+# print("=================================================================================")
+# _print_stats(single_exp_results.results_delta_after_malfunction.solver_statistics)
+```
+
+```{python}
+#    list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full.solver_result))
 ```
 
 ```{python}

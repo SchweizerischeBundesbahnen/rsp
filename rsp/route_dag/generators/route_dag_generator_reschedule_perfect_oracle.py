@@ -10,6 +10,8 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
     generic_schedule_problem_description_for_rescheduling
+from rsp.route_dag.generators.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
+from rsp.route_dag.generators.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import TopoDict
@@ -146,6 +148,24 @@ def perfect_oracle(
         )
         for agent_id in delta.keys()
     }
+
+    # TODO SIM-324 pull out verification
+    for agent_id, _ in freeze_dict.items():
+        verify_consistency_of_route_dag_constraints_for_agent(
+            agent_id=agent_id,
+            route_dag_constraints=freeze_dict[agent_id],
+            topo=topo_dict[agent_id],
+            # TODO perfect oracle seems not to respect malfunction!!
+            # malfunction=malfunction, # noqa
+            max_window_size_from_earliest=max_window_size_from_earliest,
+        )
+        # re-schedule train run must be open in route dag constraints
+        verify_trainrun_satisfies_route_dag_constraints(
+            agent_id=agent_id,
+            route_dag_constraints=freeze_dict[agent_id],
+            scheduled_trainrun=full_reschedule_trainrun_waypoints_dict[agent_id]
+        )
+
     return ScheduleProblemDescription(
         route_dag_constraints_dict=freeze_dict_all,
         minimum_travel_time_dict=tc.minimum_travel_time_dict,
