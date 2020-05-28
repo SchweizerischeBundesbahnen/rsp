@@ -10,6 +10,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.logger import rsp_logger
 from rsp.route_dag.generators.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
@@ -84,6 +85,7 @@ def generic_schedule_problem_description_for_rescheduling(
             route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
             force_freeze=force_freeze[agent_id],
             malfunction=malfunction if malfunction.agent_id == agent_id else None,
+            max_window_size_from_earliest=max_window_size_from_earliest
         )
         verify_trainrun_satisfies_route_dag_constraints(
             agent_id=agent_id,
@@ -197,20 +199,24 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
 
     # 5. propagate earliest and latest in the sub-DAG
     # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
+    # TODO bad code smell: earliest_dict is in-out-parameter
     propagate_earliest(banned_set=banned_set,
                        earliest_dict=reachable_earliest_dict,
                        force_freeze_dict=force_freeze_dict,
                        minimum_travel_time=minimum_travel_time,
                        subdag_source=subdag_source,
                        topo=topo)
-    propagate_latest(banned_set=banned_set,
-                     force_freeze_dict=force_freeze_dict,
-                     latest_arrival=latest_arrival,
-                     latest_dict=reachable_latest_dict,
-                     earliest_dict=reachable_earliest_dict,
-                     minimum_travel_time=minimum_travel_time,
-                     max_window_size_from_earliest=max_window_size_from_earliest,
-                     topo=topo)
+    # TODO bad code smell: do we need latest_dict as input here at all?
+    reachable_latest_dict = propagate_latest(
+        banned_set=banned_set,
+        force_freeze_dict=force_freeze_dict,
+        latest_arrival=latest_arrival,
+        latest_dict=reachable_latest_dict,
+        earliest_dict=reachable_earliest_dict,
+        minimum_travel_time=minimum_travel_time,
+        max_window_size_from_earliest=max_window_size_from_earliest,
+        topo=topo
+    )
 
     # 6. ban all waypoints that are reachable in the toplogy but not in time (i.e. where earliest > latest)
     for waypoint in all_waypoints:
@@ -324,9 +330,9 @@ def _generic_route_dag_contraints_for_rescheduling(
     Returns
     -------
     """
-
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
         malfunction.time_step < schedule_trainrun[-1].scheduled_at) or force_freeze:
+        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}")
         return _generic_route_dag_constraints_for_rescheduling_agent_while_running(
             minimum_travel_time=minimum_travel_time,
             topo=topo,
@@ -343,6 +349,7 @@ def _generic_route_dag_contraints_for_rescheduling(
 
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
+        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}")
         freeze_earliest = propagate_earliest(
             banned_set=set(),
             earliest_dict={schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at},
@@ -377,6 +384,7 @@ def _generic_route_dag_contraints_for_rescheduling(
                 freeze.freeze_banned.append(waypoint)
         return freeze
     elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
+        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         all_waypoints = topo.nodes
         return RouteDAGConstraints(

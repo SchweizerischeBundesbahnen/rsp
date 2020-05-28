@@ -97,11 +97,11 @@ def propagate_latest(banned_set: Set[Waypoint],
     if max_window_size_from_earliest == np.inf:
         return latest_backwards
     else:
-        latest_forward = _propagate_latest_forward_constant(earliest_dict=earliest_dict,
-                                                            latest_dict={},
-                                                            latest_arrival=latest_arrival,
-                                                            max_window_size_from_earliest=max_window_size_from_earliest)
-
+        latest_forward = _propagate_latest_forward_constant(
+            earliest_dict=earliest_dict,
+            latest_arrival=latest_arrival,
+            max_window_size_from_earliest=max_window_size_from_earliest
+        )
         latest = dict()
         for waypoint, latest_forward_time in latest_forward.items():
             latest_backward_time = latest_backwards.get(waypoint)
@@ -110,7 +110,6 @@ def propagate_latest(banned_set: Set[Waypoint],
 
 
 def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
-                                       latest_dict: Dict[Waypoint, int],
                                        latest_arrival: int,
                                        max_window_size_from_earliest: int) -> Dict[Waypoint, int]:
     """Extract latest by adding a constant value to earliest.
@@ -118,16 +117,14 @@ def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
     Parameters
     ----------
     earliest_dict
-    latest_dict
     latest_arrival
     max_window_size_from_earliest: int
         maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
         back propagation of latest"
     """
-
+    latest_dict = {}
     for waypoint, earliest in earliest_dict.items():
-        latest = earliest + max_window_size_from_earliest
-        latest = latest_arrival if latest > latest_arrival else latest
+        latest = min(earliest + max_window_size_from_earliest, latest_arrival)
         latest_dict[waypoint] = latest
     return latest_dict
 
@@ -216,6 +213,7 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
         topo: nx.DiGraph,
         force_freeze: Optional[List[TrainrunWaypoint]] = None,
         malfunction: Optional[ExperimentMalfunction] = None,
+        max_window_size_from_earliest: int = np.inf
 ):
     """Does the route_dag_constraints reflect the force freeze, route DAG and
     malfunctions correctly? Are the constraints consistent?
@@ -229,9 +227,11 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
     3.3 if trainrun_waypoint is in force_freeze -> assert that trainrun_waypoint.waypoint not in freeze_banned
     4. verify that all points up to malfunction are forced to be visited
     5. verify that every node in freeze_visit has predecessor and successor not banned
+    6. verify that latest-earliest <= max_window_size_from_earliest
 
     Parameters
     ----------
+    agent_id
     route_dag_constraints
         the experiment freeze to be verified.
     topo
@@ -240,6 +240,7 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
         the trainrun waypoints that must as given (consistency is not checked!)
     malfunction
         if it's the agent in malfunction, the experiment freeze should put a visit and earliest constraint
+    max_window_size_from_earliest
 
     Returns
     -------
@@ -311,7 +312,7 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
                 assert waypoint in route_dag_constraints.freeze_visit
             else:
                 assert earliest >= malfunction.time_step + malfunction.malfunction_duration, \
-                    f"{agent_id} {malfunction}. found earliest={earliest} for {waypoint}"
+                    f"agent {agent_id} with malfunction {malfunction}. Found earliest={earliest} for {waypoint}"
 
     # 5. verify that every node in freeze_visit has predecessor and successor not banned
     for waypoint in route_dag_constraints.freeze_visit:
@@ -327,6 +328,12 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
                 if successor not in route_dag_constraints.freeze_banned:
                     done = True
             assert done, f"waypoint {waypoint} must be visited, but no successor that is not banned"
+
+    # 6. verify that latest-earliest <= max_window_size_from_earliest
+    for waypoint in route_dag_constraints.freeze_earliest:
+        assert (route_dag_constraints.freeze_latest[waypoint] - route_dag_constraints.freeze_earliest[waypoint] <= max_window_size_from_earliest), \
+            f"{waypoint} of {agent_id}: [{route_dag_constraints.freeze_earliest[waypoint]},{route_dag_constraints.freeze_latest[waypoint]}], " \
+            f"expected {max_window_size_from_earliest}"
 
 
 def verify_trainrun_satisfies_route_dag_constraints(agent_id, route_dag_constraints, scheduled_trainrun):

@@ -468,9 +468,10 @@ def test_rescheduling_bottleneck():
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():
-        verify_consistency_of_route_dag_constraints_for_agent(agent_id=agent_id,
-                                                              route_dag_constraints=freeze_dict[agent_id],
-                                                              topo=tc_reschedule_problem.topo_dict[agent_id])
+        verify_consistency_of_route_dag_constraints_for_agent(
+            agent_id=agent_id,
+            route_dag_constraints=freeze_dict[agent_id],
+            topo=tc_reschedule_problem.topo_dict[agent_id])
 
     ASPProblemDescription.factory_rescheduling(
         tc=tc_reschedule_problem
