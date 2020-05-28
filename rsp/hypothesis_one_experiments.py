@@ -240,9 +240,9 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
     )
 
 
-def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_directory: str,
-                                                       experiment_parameters: ParameterRangesAndSpeedData = None,
-                                                       base_experiment_id: int = 0):
+def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agenda_from_base_directory: str,
+                                                                      experiment_parameters: ParameterRangesAndSpeedData = None,
+                                                                      base_experiment_id: int = 0):
     """Simple method to run experiments with new parameters without the need to
     generate the schedul. Takes malfunction and agenda and generates a new
     agenda from the given parameters.
@@ -255,6 +255,7 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
     experiment_parameters
         New set of parameters that will be used for the experiments
     base_experiment_id
+        The experiment to choose from the original agenda
 
     Returns
     -------
@@ -358,9 +359,10 @@ def hypothesis_one_malfunction_analysis(agenda_folder: str = None):
     # Generate examples with different malfunctions
     parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation(schedule_gen=False)
 
-    hypothesis_one_rerun_with_new_params_same_schedule(experiment_base_folder_name,
-                                                       experiment_parameters=parameter_ranges_and_speed_data)
+    hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(experiment_base_folder_name,
+                                                                      experiment_parameters=parameter_ranges_and_speed_data)
 
 
 if __name__ == '__main__':
+    # TODO we should not check in the variations here and in the params!
     hypothesis_one_malfunction_analysis('../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/')

@@ -231,7 +231,7 @@ def plot_speed_up(
         fig.write_image(pdf_file)
 
 
-def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int) -> Dict[int, bool]:
+def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff: bool = True) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -285,7 +285,8 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
         plotting_information=plotting_information,
         resource_occupations_schedule=schedule_resource_occupations_per_agent,
         resource_occupations_reschedule_full=reschedule_resource_occupations_per_agent,
-        resource_occupations_reschedule_delta=reschedule_delta_resource_occupations_per_agent
+        resource_occupations_reschedule_delta=reschedule_delta_resource_occupations_per_agent,
+        with_diff=with_diff
     )
 
 
