@@ -241,7 +241,8 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
 
 
 def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_directory: str,
-                                                       experiment_parameters: ParameterRangesAndSpeedData = None):
+                                                       experiment_parameters: ParameterRangesAndSpeedData = None,
+                                                       base_experiment_id: int = 0):
     """Simple method to run experiments with new parameters without the need to
     generate the schedul. Takes malfunction and agenda and generates a new
     agenda from the given parameters.
@@ -263,7 +264,7 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
     experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     loaded_experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
     loaded_schedule_and_malfunction = load_schedule_and_malfunction(
-        experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
+        experiment_agenda_directory=experiment_agenda_directory, experiment_id=base_experiment_id)
 
     # Create new experiment agenda
     rsp_logger.info("Creating New Agenda")
