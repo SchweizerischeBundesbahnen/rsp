@@ -274,7 +274,6 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
         experiments_per_grid_element=1,
     )
 
-
     # Generate the malfunction experiments
     rsp_logger.info("Generating Malfunctions")
     for experiment in experiment_agenda.experiments:
@@ -296,7 +295,6 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
             schedule_experiment_result=loaded_schedule_and_malfunction.schedule_experiment_result,
             experiment_malfunction=malfunction)
 
-
     # Run Pipeline
     rsp_logger.info("Running Pipeline with new Parameters and Malfunctions")
 
@@ -312,11 +310,13 @@ def hypothesis_one_rerun_with_new_params_same_schedule(copy_agenda_from_base_dir
     for experiment in experiment_agenda.experiments:
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
                                       experiment_agenda_directory=experiment_agenda_directory,
-                                  experiment_id=experiment.experiment_id)
+                                      experiment_id=experiment.experiment_id)
     # Save the new agenda
     rsp_logger.info("Saving New Agenda")
     save_experiment_agenda_and_hash_to_file(experiment_folder_name=experiment_agenda_directory,
                                             experiment_agenda=experiment_agenda)
+
+
 def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: str):
     rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITH REGEN SCHEDULE")
     experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
@@ -357,4 +357,4 @@ def hypothesis_one_malfunction_analysis(agenda_folder: str = None):
 
 
 if __name__ == '__main__':
-    hypothesis_one_malfunction_analysis()
+    hypothesis_one_malfunction_analysis('./exp_hypothesis_one_2020_05_28T10_53_19')
