@@ -201,7 +201,6 @@ def _plot_delay_propagation_graph(
         weights_matrix=weights_matrix,
         changed_agents=changed_agents,
         title=f"Encounter Graph for experiment {experiment_result.experiment_id}, {malfunction}",
-        file_name=f"encounter_graph_{experiment_result.experiment_id:04d}.pdf",
         pos=pos)
 
 

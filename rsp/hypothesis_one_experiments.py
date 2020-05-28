@@ -70,7 +70,7 @@ def get_agenda_pipeline_params_002_a_bit_more_advanced() -> ParameterRangesAndSp
 
 def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAndSpeedData:
     if schedule_gen:
-        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
+        parameter_ranges = ParameterRanges(agent_range=[10, 10, 1],
                                            size_range=[50, 50, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
@@ -85,7 +85,7 @@ def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAn
                                            weight_lateness_seconds=[1, 1, 1]
                                            )
     else:
-        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
+        parameter_ranges = ParameterRanges(agent_range=[10, 10, 1],
                                            size_range=[50, 50, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
@@ -354,4 +354,4 @@ def hypothesis_one_malfunction_analysis(agenda_folder: str = None):
 
 
 if __name__ == '__main__':
-    hypothesis_one_malfunction_analysis('./many_malfunctions')
+    hypothesis_one_malfunction_analysis()
