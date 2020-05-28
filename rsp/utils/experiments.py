@@ -187,6 +187,7 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if experiment_agenda_directory is not None and exists_schedule_and_malfunction(
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id):
+        rsp_logger.info(f"load_schedule_and_malfunction for {experiment_parameters.experiment_id}")
         schedule_and_malfunction = load_schedule_and_malfunction(
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)
@@ -199,6 +200,7 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
                 schedule_and_malfunction=schedule_and_malfunction)
 
     else:
+        rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
         malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
             debug=debug,
             experiment_parameters=experiment_parameters,
@@ -633,8 +635,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     pool = multiprocessing.Pool(
         processes=run_experiments_parallel,
         maxtasksperchild=1)
-    rsp_logger.info(
-        f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
+    rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     run_and_save_one_experiment_partial = partial(
@@ -790,7 +791,7 @@ def create_experiment_agenda(experiment_name: str,
 
             experiment_list.append(current_experiment)
     experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
-    print("Generated an agenda with {} experiments".format(len(experiment_list)))
+    rsp_logger.info("Generated an agenda with {} experiments".format(len(experiment_list)))
     return experiment_agenda
 
 
