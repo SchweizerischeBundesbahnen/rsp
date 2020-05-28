@@ -104,7 +104,8 @@ def flux_helper(
 
     if asp_heuristics:
         for asp_heurisic in asp_heuristics:
-            # TODO SIM-176 switch on heuristics
+            # TODO SIM-167 switch on heuristics
+            # TODO SIM-167 add "--heur=domain" to args
             if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ,
                                 ASPHeuristics.HEURISTIC_DELAY,
                                 ASPHeuristics.HEURISIC_ROUTES]:
@@ -157,7 +158,8 @@ def _asp_helper(encoding_files: List[str],
 
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")
-    ctl_args = [f"-c use_decided=1", f"-t{nb_threads}", "--lookahead=no"]
+    # TODO SIM-167   add  "--heur=domain" if we have heuristics
+    ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:
         ctl_args.append(f"--seed={asp_seed_value}")

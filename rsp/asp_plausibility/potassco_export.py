@@ -148,7 +148,8 @@ def _potassco_write_lp_and_sh_for_experiment(
         out.write("clingo-dl " + " ".join(programs) +
                   f" {file_name_prefix}.lp "
                   f"--seed={results.solver_seed} "
-                  f"-c use_decided=1 -t2 --lookahead=no "
+                  f"-t2 --lookahead=no "
+                  f"--propagate=partial "
                   f"--opt-mode=opt "
                   f"--models=0\n"
                   )
