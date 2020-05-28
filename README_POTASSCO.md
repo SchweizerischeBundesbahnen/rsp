@@ -40,7 +40,7 @@ $WORKSPACE_FOLDER/rsp-data   # <---- your local clone of git@github.com:Schweize
 conda activate rsp
 cd $WORKSPACE_FOLDER/rsp
 export PYTHONPATH=$PWD:$PWD/flatland_ckua:$PYTHONPATH
-python rsp/asp_plausibility/potassco_export.py --experiment_base_directory=../rsp-data/many_agent_example --experiment_id=0 --problem=full_after_malfunction
+python rsp/asp_plausibility/potassco_export.py --experiment_base_directory=../rsp-data/agent_0_malfunction_2020_05_27T19_45_49 --experiment_id=0 --problem=full_after_malfunction
 ```
 This generates a folder `../rsp-data/many_agent_example/potassco`:
 
@@ -68,7 +68,7 @@ To run the modified program with the data und verify correctness:
 conda activate rsp
 cd $WORKSPACE_FOLDER/rsp
 export PYTHONPATH=$PWD:$PYTHONPATH
-python rsp/asp_plausibility/potassco_solution_checker.py  --experiment_data_folder_name=../rsp-data/many_agent_example/data --experiment_id=0 --problem=full_after_malfunction
+python rsp/asp_plausibility/potassco_solution_checker.py  --experiment_data_folder_name=../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/data --experiment_id=0 --problem=full_after_malfunction
 ```
 
 The correcntess checker is implemented here: `rsp/experiment_solvers/asp/asp_solution_description.py#verify_correctness_helper()`
