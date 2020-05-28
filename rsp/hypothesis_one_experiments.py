@@ -354,4 +354,4 @@ def hypothesis_one_malfunction_analysis(agenda_folder: str = None):
 
 
 if __name__ == '__main__':
-    hypothesis_one_malfunction_analysis('./many_malfunctions')
+    hypothesis_one_malfunction_analysis('../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/')

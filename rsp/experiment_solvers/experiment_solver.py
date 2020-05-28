@@ -86,12 +86,14 @@ class ASPExperimentSolver():
         -------
         ExperimentResults
         """
+        rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
         tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
 
         schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
         # / SIM-366 temporary hack: when re-using schedule and malfunction,  try to reduce the topology so it has no cycles.
         # For the time being, we want to re-use our schedules because generating them takes too long currently.
+        rsp_logger.info(f"start get_k_shortest_paths for experiment {experiment_parameters.experiment_id}")
         agents_paths_dict = {
             # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
             i: get_k_shortest_paths(malfunction_rail_env,
@@ -100,11 +102,14 @@ class ASPExperimentSolver():
                                     agent.target,
                                     experiment_parameters.number_of_shortest_paths_per_agent) for i, agent in enumerate(malfunction_rail_env.agents)
         }
+        rsp_logger.info(f"done get_k_shortest_paths for experiment {experiment_parameters.experiment_id}")
+        rsp_logger.info(f"start tweaking topology experiment {experiment_parameters.experiment_id}")
         dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
         for agent_id, schedule in schedule_trainruns.items():
             for tr_wp in schedule:
                 assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed"
-        rsp_logger.info("all scheduled waypoints still in ")
+        rsp_logger.info(f"-> all scheduled waypoints still in {experiment_parameters.experiment_id}")
+        rsp_logger.info(f"done tweaking topology experiment {experiment_parameters.experiment_id}")
         # \
 
         # --------------------------------------------------------------------------------------
@@ -199,6 +204,7 @@ class ASPExperimentSolver():
             results_full_after_malfunction=full_reschedule_result,
             results_delta_after_malfunction=delta_reschedule_result
         )
+        rsp_logger.info(f"done re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
         return current_results
 
 
