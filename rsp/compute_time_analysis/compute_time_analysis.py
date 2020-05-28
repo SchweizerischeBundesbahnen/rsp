@@ -536,17 +536,16 @@ def plot_time_resource_trajectories(
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scattergl(x=x,
-                                       y=y,
-                                       mode='lines+markers',
-                                       marker=dict(size=2, color=trace_color),
-                                       line=dict(color=trace_color),
-                                       name="Agent {}".format(idx),
-                                       customdata=
-                                       np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
-                                           0],
-                                       hovertemplate=hovertemplate
-                                       ))
+            fig.add_trace(go.Scattergl(
+                x=x,
+                y=y,
+                mode='lines+markers',
+                marker=dict(size=2, color=trace_color),
+                line=dict(color=trace_color),
+                name="Agent {}".format(idx),
+                customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[0],
+                hovertemplate=hovertemplate
+            ))
     else:
         for idx, line in enumerate(trajectories):
             # skip empty schedule (re-schedle for our ghost agent representing the wave front)
@@ -555,14 +554,15 @@ def plot_time_resource_trajectories(
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scattergl(x=x,
-                                       y=y,
-                                       mode='lines+markers',
-                                       marker=dict(size=2, color=trace_color),
-                                       line=dict(color=trace_color),
-                                       name="Agent {}".format(idx),
-                                       hovertemplate=hovertemplate
-                                       ))
+            fig.add_trace(
+                go.Scattergl(x=x,
+                             y=y,
+                             mode='lines+markers',
+                             marker=dict(size=2, color=trace_color),
+                             line=dict(color=trace_color),
+                             name="Agent {}".format(idx),
+                             hovertemplate=hovertemplate
+                             ))
     if malfunction is not None:
         x = [-10, ranges[1] + 10]
         y = [malfunction.time_step, malfunction.time_step]
