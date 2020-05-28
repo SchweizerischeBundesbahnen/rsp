@@ -71,7 +71,7 @@ def get_agenda_pipeline_params_002_a_bit_more_advanced() -> ParameterRangesAndSp
 
 def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAndSpeedData:
     if schedule_gen:
-        parameter_ranges = ParameterRanges(agent_range=[10, 10, 1],
+        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
                                            size_range=[50, 50, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
@@ -86,7 +86,7 @@ def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAn
                                            weight_lateness_seconds=[1, 1, 1]
                                            )
     else:
-        parameter_ranges = ParameterRanges(agent_range=[10, 10, 1],
+        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
                                            size_range=[50, 50, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
@@ -244,8 +244,11 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agend
                                                                       experiment_parameters: ParameterRangesAndSpeedData = None,
                                                                       base_experiment_id: int = 0):
     """Simple method to run experiments with new parameters without the need to
-    generate the schedul. Takes malfunction and agenda and generates a new
-    agenda from the given parameters.
+    generate the schedule.
+    Takes the schedule of the `base_experiment_id` and prepares a new agenda with malfunction according from the parameters.
+    The new agenda is prepared in temporary folder which is then passed to the pipeline `hypothesis_one_pipeline_without_setup`
+    using `copy_agenda_from_base_directory` from the temporary folder.
+    .
 
     Parameters
     ----------
@@ -277,9 +280,10 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agend
         experiments_per_grid_element=1,
     )
 
-    # Save the new agenda
+    # Save the new agenda into a tmp folder
     rsp_logger.info("Saving New Agenda")
     tmp_experiment_folder = './tmp_experiment_folder'
+    shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
     tmp_experiment_agenda_directory = f'{tmp_experiment_folder}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
 
     save_experiment_agenda_and_hash_to_file(experiment_folder_name=tmp_experiment_agenda_directory,
