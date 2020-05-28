@@ -188,9 +188,10 @@ def main(experiment_base_directory: str,
 
 if __name__ == '__main__':
     # sample call:
-    # python rsp/asp_plausibility/potassco_export.py --experiment_base_directory=res/mini_toy_example --experiment_id=0 --problem=full_after_malfunction
+    # python rsp/asp_plausibility/potassco_export.py --experiment_base_directory=../rsp-data/agent_0_malfunction_2020_05_27T19_45_49
+    #   --experiment_id=0 --problem=full_after_malfunction
     parser = argparse.ArgumentParser()
-    parser.add_argument('--experiment_base_directory', type=str, nargs=1, help='./res/mini_toy_example')
+    parser.add_argument('--experiment_base_directory', type=str, nargs=1, help='../rsp-data/agent_0_malfunction_2020_05_27T19_45_49')
     parser.add_argument('--experiment_id', type=int, nargs=1, help='0,1,2,3...')
     parser.add_argument('--problem', type=str,
                         choices=['full_after_malfunction', 'full', 'delta_after_malfunction'],

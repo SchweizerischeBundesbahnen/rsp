@@ -62,9 +62,9 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: s
 if __name__ == '__main__':
     # sample call:
     # python rsp/asp_plausibility/potassco_solution_checker \
-    #   --experiment_data_folder_name=res/mini_toy_example/data --experiment_id=0 --problem=full_after_malfunction
+    #   --experiment_data_folder_name=../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/data --experiment_id=0 --problem=full_after_malfunction
     parser = argparse.ArgumentParser()
-    parser.add_argument('--experiment_data_folder_name', type=str, nargs=1, help='./res/mini_toy_example/data')
+    parser.add_argument('--experiment_data_folder_name', type=str, nargs=1, help='../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/data')
     parser.add_argument('--experiment_id', type=int, nargs=1, help='0,1,2,3...')
     parser.add_argument('--problem', type=str,
                         choices=['full_after_malfunction', 'full', 'delta_after_malfunction'],
