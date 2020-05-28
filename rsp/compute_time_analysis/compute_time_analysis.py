@@ -231,7 +231,8 @@ def plot_speed_up(
         fig.write_image(pdf_file)
 
 
-def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff: bool = True) -> Dict[int, bool]:
+def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experiment_id: int, with_diff: bool = True) -> \
+Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -272,12 +273,14 @@ def plot_many_time_resource_diagrams(experiment_data_frame: DataFrame, experimen
     reschedule_delta_resource_occupations_per_resource, reschedule_delta_resource_occupations_per_agent = extract_resource_occupations(
         schedule=reschedule_full,
         release_time=RELEASE_TIME)
-    verify_extracted_resource_occupations(resource_occupations_per_agent=reschedule_delta_resource_occupations_per_agent,
-                                          resource_occupations_per_resource=reschedule_delta_resource_occupations_per_resource,
-                                          release_time=RELEASE_TIME)
+    verify_extracted_resource_occupations(
+        resource_occupations_per_agent=reschedule_delta_resource_occupations_per_agent,
+        resource_occupations_per_resource=reschedule_delta_resource_occupations_per_resource,
+        release_time=RELEASE_TIME)
 
     plotting_information: PlottingInformation = extract_plotting_information_from_train_schedule_dict(
-        schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(schedule, only_travelled_positions=True),
+        schedule_data=convert_trainrundict_to_entering_positions_for_all_timesteps(schedule,
+                                                                                   only_travelled_positions=True),
         width=experiment_result.experiment_parameters.width)
 
     return _plot_resource_time_diagram(
@@ -325,7 +328,8 @@ def extract_plotting_information_from_train_schedule_dict(
 
 
 # TODO SIM-537 convert scheduleproblemdescription to resource occupations and derive Trajectories using trajectories_from_resource_occupations_per_agent
-def _trajectories_from_time_windows(problem: ScheduleProblemDescription, resource_sorting: ResourceSorting, width) -> Trajectories:
+def _trajectories_from_time_windows(problem: ScheduleProblemDescription, resource_sorting: ResourceSorting,
+                                    width) -> Trajectories:
     schedule_trajectories: Trajectories = []
 
     for _, route_dag_constraints in problem.route_dag_constraints_dict.items():
@@ -380,7 +384,8 @@ def plot_time_window_resource_trajectories(
         'Delta Re-Schedule': (experiment_result.problem_delta_after_malfunction, experiment_result.malfunction)
     }.items():
         trajectories = _trajectories_from_time_windows(problem, plotting_parameters.sorting, width)
-        plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
+        plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show,
+                                        malfunction=malfunction)
 
 
 def plot_shared_heatmap(
@@ -399,7 +404,8 @@ def plot_shared_heatmap(
         'Delta Re-Schedule': experiment_result.results_delta_after_malfunction
     }.items():
         shared = list(filter(lambda s: s.startswith('shared'), result.solver_result))
-        distance_matrix = np.zeros((experiment_result.experiment_parameters.height, experiment_result.experiment_parameters.width))
+        distance_matrix = np.zeros(
+            (experiment_result.experiment_parameters.height, experiment_result.experiment_parameters.width))
         for sh in shared:
             sh = sh.replace('shared', '')
             sh = re.sub('t[0-9]+', '"XXX"', sh)
@@ -424,13 +430,17 @@ def _plot_resource_time_diagram(malfunction: ExperimentMalfunction,
                                 ) -> Dict[int, bool]:
     resource_sorting = plotting_information.sorting
     width = plotting_information.grid_width
-    trajectories_schedule: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_schedule, resource_sorting, width)
-    trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule_full, resource_sorting, width)
-    trajectories_reschedule_delta: Trajectories = trajectories_from_resource_occupations_per_agent(resource_occupations_reschedule_delta, resource_sorting,
-                                                                                                   width)
+    trajectories_schedule: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule, resource_sorting, width)
+    trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_reschedule_full, resource_sorting, width)
+    trajectories_reschedule_delta: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_reschedule_delta, resource_sorting,
+        width)
 
     total_delay = sum(
-        max(resource_occupations_schedule[agent_id][-1].interval.to_excl - sorted_resource_occupations_reschedule_delta[-1].interval.to_excl, 0)
+        max(resource_occupations_schedule[agent_id][-1].interval.to_excl - sorted_resource_occupations_reschedule_delta[
+            -1].interval.to_excl, 0)
         for agent_id, sorted_resource_occupations_reschedule_delta in resource_occupations_reschedule_delta.items()
     )
 
@@ -528,15 +538,16 @@ def plot_time_resource_trajectories(
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
             fig.add_trace(go.Scattergl(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
-                                         0],
-                                     hovertemplate=hovertemplate
-                                     ))
+                                       y=y,
+                                       mode='lines+markers',
+                                       marker=dict(size=2, color=trace_color),
+                                       line=dict(color=trace_color),
+                                       name="Agent {}".format(idx),
+                                       customdata=
+                                       np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[
+                                           0],
+                                       hovertemplate=hovertemplate
+                                       ))
     else:
         for idx, line in enumerate(trajectories):
             # skip empty schedule (re-schedle for our ghost agent representing the wave front)
@@ -546,18 +557,19 @@ def plot_time_resource_trajectories(
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
             fig.add_trace(go.Scattergl(x=x,
-                                     y=y,
-                                     mode='lines+markers',
-                                     marker=dict(size=2, color=trace_color),
-                                     line=dict(color=trace_color),
-                                     name="Agent {}".format(idx),
-                                     hovertemplate=hovertemplate
-                                     ))
+                                       y=y,
+                                       mode='lines+markers',
+                                       marker=dict(size=2, color=trace_color),
+                                       line=dict(color=trace_color),
+                                       name="Agent {}".format(idx),
+                                       hovertemplate=hovertemplate
+                                       ))
     if malfunction is not None:
         x = [-10, ranges[1] + 10]
         y = [malfunction.time_step, malfunction.time_step]
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction start', line=dict(color='red')))
-        y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
+        y = [malfunction.time_step + malfunction.malfunction_duration,
+             malfunction.time_step + malfunction.malfunction_duration]
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
@@ -718,7 +730,8 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
     return Path(video_src_schedule), Path(video_src_reschedule)
 
 
-def _get_difference_in_time_space_trajectories(trajectories_a: Trajectories, trajectories_b: Trajectories) -> SpaceTimeDifference:
+def _get_difference_in_time_space_trajectories(trajectories_a: Trajectories,
+                                               trajectories_b: Trajectories) -> SpaceTimeDifference:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
@@ -771,10 +784,13 @@ def plot_schedule_metrics(experiment_data_frame: ExperimentResultsAnalysis, expe
         reschedule_delta, only_travelled_positions=True)
 
     # Compute the difference between schedules and return traces for plotting
-    plotting_information = extract_plotting_information_from_train_schedule_dict(schedule_data=train_schedule_dict_schedule, width=width)
+    plotting_information = extract_plotting_information_from_train_schedule_dict(
+        schedule_data=train_schedule_dict_schedule, width=width)
     trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
-        trajectories_a=trajectories_from_train_schedule_dict(train_schedule_dict_reschedule_delta, plotting_information=plotting_information),
-        trajectories_b=trajectories_from_train_schedule_dict(train_schedule_dict_schedule, plotting_information=plotting_information)
+        trajectories_a=trajectories_from_train_schedule_dict(train_schedule_dict_reschedule_delta,
+                                                             plotting_information=plotting_information),
+        trajectories_b=trajectories_from_train_schedule_dict(train_schedule_dict_schedule,
+                                                             plotting_information=plotting_information)
     )
 
     schedule_times, schedule_resources = _schedule_to_time_ressource_dicts(train_schedule_dict_schedule)
@@ -859,15 +875,15 @@ def _plot_ressource_occupation(schedule_ressources: RessourceScheduleDict, width
         else:
             color.append(50)
     fig.add_trace(go.Scattergl(x=x,
-                             y=y,
-                             mode='markers',
-                             name="Schedule",
-                             marker=dict(
-                                 color=size,
-                                 symbol='square',
-                                 showscale=True,
-                                 reversescale=False
-                             )))
+                               y=y,
+                               mode='markers',
+                               name="Schedule",
+                               marker=dict(
+                                   color=size,
+                                   symbol='square',
+                                   showscale=True,
+                                   reversescale=False
+                               )))
     fig.update_layout(title_text="Train Density at Ressources",
                       autosize=False,
                       width=1000,
@@ -935,29 +951,29 @@ def _plot_delay_propagation(schedule: TrainScheduleDict, malfunction: Experiment
         else:
             color = DEPTH_COLOR[-1]
         fig.add_trace(go.Scattergl(x=x,
-                                 y=y,
-                                 mode='markers',
-                                 name="Train {}".format(agent_id),
-                                 marker_symbol=marker,
-                                 customdata=list(zip(times, delay, conflict_depth)),
-                                 marker_size=size,
-                                 marker_opacity=0.1,
-                                 marker_color=color,
-                                 marker_line_color=color,
-                                 hovertemplate="Time:\t%{customdata[0]}<br>" +
-                                               "Delay:\t%{customdata[1]}<br>" +
-                                               "Influence depth:\t%{customdata[2]}"
-                                 ))
+                                   y=y,
+                                   mode='markers',
+                                   name="Train {}".format(agent_id),
+                                   marker_symbol=marker,
+                                   customdata=list(zip(times, delay, conflict_depth)),
+                                   marker_size=size,
+                                   marker_opacity=0.1,
+                                   marker_color=color,
+                                   marker_line_color=color,
+                                   hovertemplate="Time:\t%{customdata[0]}<br>" +
+                                                 "Delay:\t%{customdata[1]}<br>" +
+                                                 "Influence depth:\t%{customdata[2]}"
+                                   ))
     # Plot malfunction
     waypoint = list(schedule[malfunction.agent_id].values())[0].position
     fig.add_trace(go.Scattergl(x=[waypoint[1]],
-                             y=[waypoint[0]],
-                             mode='markers',
-                             name="Malfunction",
-                             marker_symbol='x',
-                             marker_size=25,
-                             marker_line_color='black',
-                             marker_color='black'))
+                               y=[waypoint[0]],
+                               mode='markers',
+                               name="Malfunction",
+                               marker_symbol='x',
+                               marker_size=25,
+                               marker_line_color='black',
+                               marker_color='black'))
     fig.update_layout(title_text="Malfunction position and effects",
                       autosize=False,
                       width=1000,
