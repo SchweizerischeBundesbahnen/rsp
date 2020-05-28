@@ -37,6 +37,11 @@ TransmissionLeg = NamedTuple('TransmissionLeg', [
 ])
 TransmissionChain = List[TransmissionLeg]
 
+# hop-on resource-occupations reaching at this depth (int key = depth)
+WAVE_PER_DEPTH = Dict[int, List[ResourceOccupation]]
+# waves reaching per agent (int key = agent_id)
+WAVE_PER_AGENT_AND_DEPTH = Dict[int, WAVE_PER_DEPTH]
+
 
 def hypothesis_two_disturbance_propagation_graph(
         experiment_base_directory: str,
@@ -226,7 +231,7 @@ def _distance_matrix_from_tranmission_chains(
     distance_matrix = np.full(shape=(number_of_trains, number_of_trains), fill_value=np.inf)
     distance_first_reaching = np.full(shape=(number_of_trains, number_of_trains), fill_value=np.inf)
     # for each agent, wave_front reaching the other agent from malfunction agent
-    wave_fronts_reaching_other_agent: Dict[int, Dict[int, List[ResourceOccupation]]] = {agent_id: {} for agent_id in range(number_of_trains)}
+    wave_reaching_other_agent: WAVE_PER_AGENT_AND_DEPTH = {agent_id: {} for agent_id in range(number_of_trains)}
     # for each agent, minimum transmission length reaching the other agent from malfunction agent
     minimal_depth: Dict[int, int] = {}
     for transmission_chain in transmission_chains:
@@ -245,7 +250,7 @@ def _distance_matrix_from_tranmission_chains(
         from_ro = transmission_chain[-2].hop_off
         to_ro = transmission_chain[-1].hop_on
         hop_on_depth = len(transmission_chain) - 1
-        wave_fronts_reaching_other_agent[to_ro.agent_id].setdefault(hop_on_depth, []).append(to_ro)
+        wave_reaching_other_agent[to_ro.agent_id].setdefault(hop_on_depth, []).append(to_ro)
         minimal_depth.setdefault(to_ro.agent_id, hop_on_depth)
         minimal_depth[to_ro.agent_id] = min(minimal_depth[to_ro.agent_id], hop_on_depth)
 
@@ -266,7 +271,7 @@ def _distance_matrix_from_tranmission_chains(
     # normalize
     np_max = np.max(weights_matrix)
     weights_matrix /= np_max
-    return distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent
+    return distance_matrix, weights_matrix, minimal_depth, wave_reaching_other_agent
 
 
 def extract_transmission_chains(

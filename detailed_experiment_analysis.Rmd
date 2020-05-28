@@ -40,7 +40,7 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = 'res/mini_toy_example'
+experiments_base_directory = '../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/'
 experiment_of_interest = 0
 ```
 
@@ -150,11 +150,13 @@ plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```
 
-#### Time Resource Window Graph
+#### Time Resource Window Graph: time windows in scheduling problem per resource
 
 ```{python}
 plot_time_window_resource_trajectories(experiment_result=single_exp_results)
 ```
+
+#### Resource Heat Map: how many potential resource conflicts on this resource?
 
 ```{python}
 plot_shared_heatmap(experiment_result=single_exp_results)

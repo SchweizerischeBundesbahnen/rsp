@@ -139,6 +139,7 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
 
+# TODO SIM-537 do not use  TrainSchedule in visualizations -> only in FLATland replay
 # For each time step, agent's location: int key is the time step at which the train occupies the resource
 # (agents occupy only one resource at a time, no release time)
 TrainSchedule = Dict[int, Waypoint]
@@ -151,7 +152,7 @@ TrainScheduleDifference = TrainSchedule
 # TrainScheduleDifference for some trains: int key is the agent handle for which the schedule difference is returned
 TrainScheduleDifferenceDict = Dict[int, TrainScheduleDifference]
 
-# TODO refactor use SortedResourceOccupationsPerResourceDict instead and zip
+# TODO SIM-537 remove RessourceAgentDict, use SortedResourceOccupationsPerResourceDict instead and zip
 RessourceAgentDict = Dict[Waypoint, int]  # Dict assigning agent handle to Waypoint (Ressource)
 TimeAgentDict = Dict[int, int]  # Dict assigning agent handle to time
 
@@ -161,11 +162,6 @@ RessourceScheduleDict = Dict[Waypoint, TimeAgentDict]
 TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
                                       [('trajectories', TrainScheduleDict), ('max_resource_id', int),
                                        ('max_time', int)])
-# TODO refactor use Trajectories only for plotting! Use SorteResourceOccupationsXX and _trajectories_from_time_windows
-# TODO train_schedule_dict not used in visualizations -> only in FLATland replay
-Trajectories = List[List[Tuple[int, int]]]
-SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
-                                                           ('additional_information', Dict)])
 
 if COMPATIBILITY_MODE:
     ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
