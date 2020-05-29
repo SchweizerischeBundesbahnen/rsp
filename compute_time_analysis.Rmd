@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python [conda env:.conda-rsp] *
+    display_name: Python 3
     language: python
-    name: conda-env-.conda-rsp-py
+    name: python3
 ---
 
 ```{python}
@@ -28,7 +28,6 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
 from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resource_diagrams
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
@@ -37,9 +36,9 @@ from rsp.route_dag.route_dag import ScheduleProblemEnum
 
 ```{python}
 experiments_of_interest = None
-experiments_base_directory = '../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/'
+experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/'
 experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=f'{experiments_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
+    experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
     experiment_ids=experiments_of_interest,
     nonify_problem_and_results=True
 )
@@ -78,12 +77,4 @@ hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
 # for exploration, use:
 # plot_speed_up(experiment_data=experiment_data,
 #                        axis_of_interest=axis_of_interest)
-```
-
-```{python}
-
-```
-
-```{python}
-
 ```

@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python [conda env:.conda-rsp] *
+    display_name: Python 3
     language: python
-    name: conda-env-.conda-rsp-py
+    name: python3
 ---
 
 ```{python}
@@ -28,19 +28,17 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
 from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resource_diagrams
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
 from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
 
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = '.exp_hypothesis_one_2020_05_28T09_23_21/'
+experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/'
 experiment_of_interest = 0
 ```
 
