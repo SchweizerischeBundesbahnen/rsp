@@ -100,7 +100,6 @@ def perfect_oracle(
         agent_id: {
             waypoint
             for waypoint in all_waypoints[agent_id]
-            # the trainruns returned by the solver do not include the dummy target node, therefore never ban it.
             if (waypoint not in schedule_waypoints[agent_id]
                 and waypoint not in full_reschedule_waypoints[agent_id]
                 and waypoint.direction != MAGIC_DIRECTION_FOR_SOURCE_TARGET)

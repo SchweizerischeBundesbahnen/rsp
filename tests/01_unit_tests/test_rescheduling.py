@@ -108,7 +108,6 @@ def test_rescheduling_no_bottleneck():
 
     fake_schedule = {
         0: [
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -139,7 +138,6 @@ def test_rescheduling_no_bottleneck():
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
         1: [
-            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -281,7 +279,6 @@ def test_rescheduling_bottleneck():
 
     fake_schedule = {
         0: [
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -312,7 +309,6 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
         1: [
-            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -345,7 +341,6 @@ def test_rescheduling_bottleneck():
     fake_malfunction = ExperimentMalfunction(time_step=14, agent_id=1, malfunction_duration=20)
     expected_reschedule = {
         0: [
-            TrainrunWaypoint(scheduled_at=14 + 3, waypoint=Waypoint(position=(8, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=15 + 3, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=16 + 3, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=17 + 3, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -378,7 +373,6 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=44 + 3, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=45 + 3, waypoint=Waypoint(position=(24, 23), direction=3))],
         1: [
-            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -425,7 +419,6 @@ def test_rescheduling_bottleneck():
 
     assert freeze_dict[0].freeze_visit == []
     for trainrun_waypoint in [
-        TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
         TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
         TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
         TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -506,7 +499,6 @@ def test_rescheduling_delta_no_bottleneck():
 
     fake_schedule = {
         0: [
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -537,7 +529,6 @@ def test_rescheduling_delta_no_bottleneck():
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
         1: [
-            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -570,7 +561,6 @@ def test_rescheduling_delta_no_bottleneck():
 
     full_reschedule_trainruns = {
         0: [
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(8, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=40, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -601,7 +591,6 @@ def test_rescheduling_delta_no_bottleneck():
             TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(24, 23), direction=3))],
         1: [
-            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(23, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -650,7 +639,6 @@ def test_rescheduling_delta_bottleneck():
 
     fake_schedule = {
         0: [
-            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -681,7 +669,6 @@ def test_rescheduling_delta_bottleneck():
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(24, 23), direction=3))],
         1: [
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(23, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -713,7 +700,6 @@ def test_rescheduling_delta_bottleneck():
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 23), direction=3))]}
     fake_full_reschedule_trainruns = {
         0: [
-            TrainrunWaypoint(scheduled_at=0, waypoint=Waypoint(position=(8, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(8, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(8, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -744,7 +730,6 @@ def test_rescheduling_delta_bottleneck():
             TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(24, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(24, 23), direction=3))],
         1: [
-            TrainrunWaypoint(scheduled_at=17, waypoint=Waypoint(position=(23, 23), direction=5)),
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(23, 24), direction=1)),
             TrainrunWaypoint(scheduled_at=20, waypoint=Waypoint(position=(23, 25), direction=1)),

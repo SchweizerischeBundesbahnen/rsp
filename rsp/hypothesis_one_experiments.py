@@ -285,7 +285,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agend
     shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
     tmp_experiment_agenda_directory = f'{tmp_experiment_folder}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
 
-    save_experiment_agenda_and_hash_to_file(experiment_folder_name=tmp_experiment_agenda_directory,
+    save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name=tmp_experiment_agenda_directory,
                                             experiment_agenda=experiment_agenda)
 
     # Generate the malfunction experiments

@@ -33,6 +33,7 @@ FLATLAND_OFFSET_PATTERN = {
     2: np.array([-OFFSET, 0]),
     # heading west = coming from east: +col
     3: np.array([0, OFFSET]),
+    # TODO SIM-517 remove
     # dummy heading = no offset
     5: np.array([0.5 * -OFFSET, 0.5 * -OFFSET])
 }

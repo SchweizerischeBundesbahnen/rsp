@@ -1,11 +1,9 @@
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_sum_running_times_trainruns_dict
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import create_env_pair_for_experiment
 
@@ -86,20 +84,13 @@ def test_scheduling():
     # sanity check for our expected data
     for agent in static_env.agents:
         # first element is dummy node
-        assert schedule_trainruns[agent.handle][1].waypoint.position == agent.initial_position
-        assert schedule_trainruns[agent.handle][1].waypoint.direction == agent.initial_direction
+        assert schedule_trainruns[agent.handle][0].waypoint.position == agent.initial_position
+        assert schedule_trainruns[agent.handle][0].waypoint.direction == agent.initial_direction
         assert schedule_trainruns[agent.handle][-1].waypoint.position == agent.target
 
-    expected_total_running_times = 58
-
-    # sanity check for earliest at target (one time step before arrival at dummy target node)
-    agent_minimum_running_times = sum([
-        tc_schedule_problem.route_dag_constraints_dict[agent.handle].freeze_earliest[
-            Waypoint(position=agent.target, direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)]
-        for agent in static_env.agents]) - len(static_env.agents)
-    assert expected_total_running_times == agent_minimum_running_times, \
-        f"expected expected_total_running_times={expected_total_running_times}" + \
-        f"==agent_minimum_running_times={agent_minimum_running_times}"
+    # train 0: 23 -> 51
+    # train 1: 0 -> 28
+    expected_total_running_times = 56
 
     # optimization costs must be zero since we have no delay with respect to earliest
     expected_objective = 0

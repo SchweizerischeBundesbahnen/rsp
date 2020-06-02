@@ -12,6 +12,7 @@ from typing import Set
 from typing import Tuple
 
 import pandas as pd
+from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
@@ -21,7 +22,6 @@ from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
 from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import RouteDAGConstraints
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
@@ -315,26 +315,24 @@ def expand_experiment_results_for_analysis(
     edge_eff_route_penalties_delta_after_malfunction = {}
     for agent_id in experiment_results.results_full.trainruns_dict.keys():
         # full re-scheduling
-        train_run_full_after_malfunction_agent = experiment_results.results_full_after_malfunction.trainruns_dict[
+        train_run_full_after_malfunction_agent: Trainrun = experiment_results.results_full_after_malfunction.trainruns_dict[
             agent_id]
-        dummy_target_vertex = Waypoint(
-            position=train_run_full_after_malfunction_agent[-1].waypoint.position,
-            direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+        target_full_after_malfunction_agent: Waypoint = train_run_full_after_malfunction_agent[-1].waypoint
 
         train_run_full_after_malfunction_constraints_agent = \
             experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_full_after_malfunction_dummy_target_earliest_agent = \
-            train_run_full_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
-        train_run_full_after_malfunction_scheduled_at_dummy_target = \
-            train_run_full_after_malfunction_agent[-1].scheduled_at + 1
+        train_run_full_after_malfunction_target_earliest_agent = \
+            train_run_full_after_malfunction_constraints_agent.freeze_earliest[target_full_after_malfunction_agent]
+        train_run_full_after_malfunction_scheduled_at_target = \
+            train_run_full_after_malfunction_agent[-1].scheduled_at
         lateness_full_after_malfunction[agent_id] = \
             max(
-                train_run_full_after_malfunction_scheduled_at_dummy_target -
-                train_run_full_after_malfunction_dummy_target_earliest_agent,
+                train_run_full_after_malfunction_scheduled_at_target -
+                train_run_full_after_malfunction_target_earliest_agent,
                 0)
         # TODO SIM-325 extend to all vertices
         vertex_eff_lateness_full_after_malfunction[agent_id] = {
-            dummy_target_vertex: lateness_full_after_malfunction[agent_id]
+            target_full_after_malfunction_agent: lateness_full_after_malfunction[agent_id]
         }
         edges_full_after_malfunction_agent = {
             (wp1.waypoint, wp2.waypoint)
@@ -354,20 +352,21 @@ def expand_experiment_results_for_analysis(
         # delta re-scheduling
         train_run_delta_after_malfunction_agent = experiment_results.results_delta_after_malfunction.trainruns_dict[
             agent_id]
+        target_delta_after_malfunction_agent: Waypoint = train_run_delta_after_malfunction_agent[-1].waypoint
         train_run_delta_after_malfunction_target_agent = train_run_delta_after_malfunction_agent[-1]
         train_run_delta_after_malfunction_constraints_agent = \
             experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_delta_after_malfunction_dummy_target_earliest_agent = \
-            train_run_delta_after_malfunction_constraints_agent.freeze_earliest[dummy_target_vertex]
-        train_run_delta_after_malfunction_scheduled_at_dummy_target = \
-            train_run_delta_after_malfunction_target_agent.scheduled_at + 1
+        train_run_delta_after_malfunction_target_earliest_agent = \
+            train_run_delta_after_malfunction_constraints_agent.freeze_earliest[target_delta_after_malfunction_agent]
+        train_run_delta_after_malfunction_scheduled_at_target = \
+            train_run_delta_after_malfunction_target_agent.scheduled_at
         lateness_delta_after_malfunction[agent_id] = \
             max(
-                train_run_delta_after_malfunction_scheduled_at_dummy_target - train_run_delta_after_malfunction_dummy_target_earliest_agent,
+                train_run_delta_after_malfunction_scheduled_at_target - train_run_delta_after_malfunction_target_earliest_agent,
                 0)
         # TODO SIM-325 extend to all vertices
         vertex_eff_lateness_delta_after_malfunction[agent_id] = {
-            dummy_target_vertex: lateness_delta_after_malfunction[agent_id]
+            target_delta_after_malfunction_agent: lateness_delta_after_malfunction[agent_id]
         }
         edges_delta_after_malfunction_agent = {
             (wp1.waypoint, wp2.waypoint)

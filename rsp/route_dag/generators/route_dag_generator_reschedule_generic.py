@@ -173,10 +173,8 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
     # 2. latest for sinks
     # there may be multiple vertices by which the last cell may be entered!
     sinks = list(get_sinks_for_topo(topo))
-    assert len(sinks) == 1
     for sink in sinks:
-        # TODO SIM-322 hard-coded assumption; actually this is even wrong, since the sink is the dummy target; fix tests!
-        reachable_latest_dict[sink] = latest_arrival - 1
+        reachable_latest_dict[sink] = latest_arrival
 
     # 3. visit, earliest and latest for force_freeze
     for trainrun_waypoint in force_freeze:
