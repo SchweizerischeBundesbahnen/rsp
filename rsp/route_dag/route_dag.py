@@ -131,7 +131,7 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
 
     topo = nx.DiGraph()
     skip_count = 0
-    for path in agent_paths:
+    for index, path in enumerate(agent_paths):
         topo_path = nx.DiGraph()
 
         # add edges only to a copy
@@ -142,7 +142,7 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
 
         # the path must have no cycles
         topo_path_cycles = list(nx.simple_cycles(topo_path))
-        assert len(topo_path_cycles) == 0, f"cycle in shortest path"
+        assert len(topo_path_cycles) == 0, f"cycle in shortest path {index}: {topo_path_cycles}"
 
         # if the copy has no cycles, take the copy.
         cycles = list(nx.simple_cycles(topo_copy))

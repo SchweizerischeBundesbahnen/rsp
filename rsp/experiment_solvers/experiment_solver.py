@@ -107,7 +107,7 @@ class ASPExperimentSolver():
         dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
         for agent_id, schedule in schedule_trainruns.items():
             for tr_wp in schedule:
-                assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed"
+                assert tr_wp.waypoint in topo_dict[agent_id].nodes(), f"{tr_wp} removed, not all waypoints from schedule still in topo"
         rsp_logger.info(f"-> all scheduled waypoints still in {experiment_parameters.experiment_id}")
         rsp_logger.info(f"done tweaking topology experiment {experiment_parameters.experiment_id}")
         # \
