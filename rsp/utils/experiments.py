@@ -1037,6 +1037,24 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     return experiment_results_list
 
 
+def load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id) -> Tuple[ExperimentResults, str]:
+    files = os.listdir(experiment_data_folder_name)
+    rsp_logger.info(f"loading experiment results from {experiment_data_folder_name}")
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
+        file_name = os.path.join(experiment_data_folder_name, file)
+        if not file_name.endswith(".pkl"):
+            continue
+
+        # filter experiments according to defined experiment_ids
+        exp_id = get_experiment_id_from_filename(file_name)
+        if exp_id != experiment_id:
+            continue
+        with open(file_name, 'rb') as handle:
+            experiment_result: ExperimentResults = pickle.load(handle)
+            return experiment_result, file_name
+
+
 def load_without_average(data_folder: str) -> DataFrame:
     """Load all data from the folder, expand and convert to data frame.
     Parameters

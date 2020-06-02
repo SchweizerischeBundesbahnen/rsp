@@ -83,7 +83,6 @@ def test_scheduling():
 
     # sanity check for our expected data
     for agent in static_env.agents:
-        # first element is dummy node
         assert schedule_trainruns[agent.handle][0].waypoint.position == agent.initial_position
         assert schedule_trainruns[agent.handle][0].waypoint.direction == agent.initial_direction
         assert schedule_trainruns[agent.handle][-1].waypoint.position == agent.target

@@ -12,7 +12,6 @@ from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
     generic_schedule_problem_description_for_rescheduling
 from rsp.route_dag.generators.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.route_dag.generators.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import ExperimentMalfunction
@@ -101,8 +100,7 @@ def perfect_oracle(
             waypoint
             for waypoint in all_waypoints[agent_id]
             if (waypoint not in schedule_waypoints[agent_id]
-                and waypoint not in full_reschedule_waypoints[agent_id]
-                and waypoint.direction != MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+                and waypoint not in full_reschedule_waypoints[agent_id])
         }
         for agent_id in delta.keys()}
 
@@ -114,13 +112,10 @@ def perfect_oracle(
         nodes_to_removes = [
             waypoint
             for waypoint in schedule_topo.nodes
-            # the trainruns returned by the solver do not include the dummy target node, therefore never ban it.
             if (waypoint not in schedule_waypoints[agent_id] and
-                waypoint not in full_reschedule_waypoints[agent_id] and
-                waypoint.direction != MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+                waypoint not in full_reschedule_waypoints[agent_id])
         ]
         for from_node, to_node in schedule_topo.edges:
-            # the trainruns returned by the solver do not include the dummy target node, therefore do not remove corresponding edges
             if from_node not in nodes_to_removes and to_node not in nodes_to_removes:
                 new_topo.add_edge(from_node, to_node)
         topo_dict[agent_id] = new_topo

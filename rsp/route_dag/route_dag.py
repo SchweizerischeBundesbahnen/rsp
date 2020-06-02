@@ -13,8 +13,6 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.logger import rsp_logger
 
-MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
-
 TopoDict = Dict[int, nx.DiGraph]
 AgentPaths = List[List[Waypoint]]
 AgentsPathsDict = Dict[int, AgentPaths]

@@ -29,7 +29,7 @@ def test_exp_006_hypothesis_window_size_null_2020_03_17T18_34_47_experiment_158(
         experiment_id=158)
     experiment_parameters: ExperimentParameters = experiment_agenda.experiments[158]
 
-    # dirty hack, remove dummy stuff
+    # SIM-517 dirty hack, re-create to remove dummy stuff
     if recreate_pickle:
         schedule_and_malfunction = create_schedule_and_malfunction(
             experiment_parameters=experiment_parameters,

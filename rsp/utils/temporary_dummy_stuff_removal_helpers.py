@@ -1,18 +1,11 @@
-import os
-import pickle
-from typing import Tuple
-
-import tqdm
-
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
-from rsp.logger import rsp_logger
-from rsp.utils.data_types import ExperimentResults
+from rsp.utils.experiments import load_experiment_result_without_expanding
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import save_experiment_results_to_file
 from rsp.utils.experiments import save_schedule_and_malfunction
-from rsp.utils.file_utils import get_experiment_id_from_filename
 
 
+# SIM-517
 def remove_dummy_stuff_from_experiment_results_file(experiment_data_folder_name: str,
                                                     experiment_id: int):
     experiment_results, file_name = load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id)
@@ -42,24 +35,7 @@ def remove_dummy_stuff_from_experiment_results_file(experiment_data_folder_name:
     save_experiment_results_to_file(experiment_results=experiment_results, file_name=file_name)
 
 
-def load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id) -> Tuple[ExperimentResults, str]:
-    files = os.listdir(experiment_data_folder_name)
-    rsp_logger.info(f"loading and expanding experiment results from {experiment_data_folder_name}")
-    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-    for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
-        file_name = os.path.join(experiment_data_folder_name, file)
-        if not file_name.endswith(".pkl"):
-            continue
-
-        # filter experiments according to defined experiment_ids
-        exp_id = get_experiment_id_from_filename(file_name)
-        if exp_id != experiment_id:
-            continue
-        with open(file_name, 'rb') as handle:
-            experiment_result: ExperimentResults = pickle.load(handle)
-            return experiment_result, file_name
-
-
+# SIM-517
 def remove_dummy_stuff_from_schedule_and_malfunction_pickle(
         experiment_agenda_directory: str,
         experiment_id: int):

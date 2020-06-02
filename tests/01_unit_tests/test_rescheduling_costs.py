@@ -7,7 +7,6 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.route_dag.generators.route_dag_generator_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 
@@ -56,7 +55,7 @@ def test_costs_forced_rerouting_one_agent():
 def test_costs_forced_delay_one_agent():
     """Force delay."""
 
-    topo, edge_on_first_path, edge_on_second_path, dummy_source, dummy_target = _make_topo()
+    topo, edge_on_first_path, edge_on_second_path, source_waypoint, target_waypoint = _make_topo()
 
     for penalized_edge in [edge_on_first_path, edge_on_second_path]:
         topo_dict = {0: topo}
@@ -65,11 +64,11 @@ def test_costs_forced_delay_one_agent():
 
         route_dag_constraints = _get_route_dag_constraints_for_scheduling(
             topo=topo_dict[0],
-            source_waypoint=dummy_source,
+            source_waypoint=source_waypoint,
             minimum_travel_time=minimum_travel_time_dict[0],
             latest_arrival=latest_arrival)
         forced_delay = 5
-        route_dag_constraints.freeze_earliest[dummy_source] = forced_delay
+        route_dag_constraints.freeze_earliest[source_waypoint] = forced_delay
         schedule_problem_description = ScheduleProblemDescription(
             route_dag_constraints_dict={0: route_dag_constraints},
             minimum_travel_time_dict=minimum_travel_time_dict,
@@ -108,7 +107,7 @@ def test_costs_forced_delay_two_agents():
     same grid cell / resource, therefore one has to pass after the
     other.
     """
-    topo, edge_on_first_path, edge_on_second_path, dummy_source, dummy_target = _make_topo()
+    topo, edge_on_first_path, edge_on_second_path, source_waypoint, target_waypoint = _make_topo()
     for penalized_edge in [edge_on_first_path, edge_on_second_path]:
         topo_dict = {0: topo, 1: topo}
         minimum_travel_time = 3
@@ -117,7 +116,7 @@ def test_costs_forced_delay_two_agents():
 
         route_dag_constraints_dict = {agent_id: _get_route_dag_constraints_for_scheduling(
             topo=topo,
-            source_waypoint=dummy_source,
+            source_waypoint=source_waypoint,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
             latest_arrival=latest_arrival)
             for agent_id, topo in topo_dict.items()
@@ -160,8 +159,8 @@ def test_costs_forced_delay_two_agents():
 
 def test_costs_forced_rerouting_two_agents():
     """Two trains were schedule to run one after the other on the same path."""
-    topo1, edge_on_first_path1, _, dummy_source1, dummy_target1 = _make_topo2(dummy_offset=55)
-    topo2, edge_on_first_path2, _, dummy_source2, dummy_target2 = _make_topo2(dummy_offset=56)
+    topo1, edge_on_first_path1, _, source_waypoint1, target_waypoint1 = _make_topo2(dummy_offset=55)
+    topo2, edge_on_first_path2, _, source_waypoint2, target_waypoint2 = _make_topo2(dummy_offset=56)
 
     topo_dict = {0: topo1, 1: topo2}
     minimum_travel_time = 3
@@ -172,7 +171,7 @@ def test_costs_forced_rerouting_two_agents():
         route_dag_constraints_dict = {
             agent_id: _get_route_dag_constraints_for_scheduling(
                 topo=topo,
-                source_waypoint=dummy_source1 if agent_id == 0 else dummy_source2,
+                source_waypoint=source_waypoint1 if agent_id == 0 else source_waypoint2,
                 minimum_travel_time=minimum_travel_time_dict[agent_id],
                 latest_arrival=latest_arrival
             )
@@ -245,37 +244,37 @@ def _make_topo() -> nx.DiGraph:
 
     """
     source_waypoint = Waypoint(position=(0, 0), direction=int(Grid4TransitionsEnum.SOUTH))
-    target_waypoint = Waypoint(position=(1+4, 1), direction=int(Grid4TransitionsEnum.SOUTH))
+    target_waypoint = Waypoint(position=(1 + 4, 1), direction=int(Grid4TransitionsEnum.SOUTH))
 
     topo = nx.DiGraph()
 
     # first path
     topo.add_edge(source_waypoint,
-                  Waypoint(position=(1+0, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
-    edge_on_first_path = (Waypoint(position=(1+0, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
-                          Waypoint(position=(1+1, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
+                  Waypoint(position=(1 + 0, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
+    edge_on_first_path = (Waypoint(position=(1 + 0, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
+                          Waypoint(position=(1 + 1, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
     topo.add_edge(*edge_on_first_path)
-    topo.add_edge(Waypoint(position=(1+1, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
-                  Waypoint(position=(1+2, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
-    topo.add_edge(Waypoint(position=(1+2, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
-                  Waypoint(position=(1+3, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
-    topo.add_edge(Waypoint(position=(1+3, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
-                  Waypoint(position=(1+3, 1), direction=int(Grid4TransitionsEnum.EAST)))
-    topo.add_edge(Waypoint(position=(1+3, 1), direction=int(Grid4TransitionsEnum.EAST)),
+    topo.add_edge(Waypoint(position=(1 + 1, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
+                  Waypoint(position=(1 + 2, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
+    topo.add_edge(Waypoint(position=(1 + 2, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
+                  Waypoint(position=(1 + 3, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
+    topo.add_edge(Waypoint(position=(1 + 3, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
+                  Waypoint(position=(1 + 3, 1), direction=int(Grid4TransitionsEnum.EAST)))
+    topo.add_edge(Waypoint(position=(1 + 3, 1), direction=int(Grid4TransitionsEnum.EAST)),
                   target_waypoint)
     # second path
     topo.add_edge(source_waypoint,
-                  Waypoint(position=(1+0, 0), direction=int(Grid4TransitionsEnum.EAST)))
-    edge_on_second_path = (Waypoint(position=(1+0, 0), direction=int(Grid4TransitionsEnum.EAST)),
-                           Waypoint(position=(1+0, 1), direction=int(Grid4TransitionsEnum.EAST)))
+                  Waypoint(position=(1 + 0, 0), direction=int(Grid4TransitionsEnum.EAST)))
+    edge_on_second_path = (Waypoint(position=(1 + 0, 0), direction=int(Grid4TransitionsEnum.EAST)),
+                           Waypoint(position=(1 + 0, 1), direction=int(Grid4TransitionsEnum.EAST)))
     topo.add_edge(*edge_on_second_path)
-    topo.add_edge(Waypoint(position=(1+0, 1), direction=int(Grid4TransitionsEnum.EAST)),
-                  Waypoint(position=(1+1, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
-    topo.add_edge(Waypoint(position=(1+1, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
-                  Waypoint(position=(1+2, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
-    topo.add_edge(Waypoint(position=(1+2, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
-                  Waypoint(position=(1+3, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
-    topo.add_edge(Waypoint(position=(1+3, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
+    topo.add_edge(Waypoint(position=(1 + 0, 1), direction=int(Grid4TransitionsEnum.EAST)),
+                  Waypoint(position=(1 + 1, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
+    topo.add_edge(Waypoint(position=(1 + 1, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
+                  Waypoint(position=(1 + 2, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
+    topo.add_edge(Waypoint(position=(1 + 2, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
+                  Waypoint(position=(1 + 3, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
+    topo.add_edge(Waypoint(position=(1 + 3, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
                   target_waypoint)
     return topo, edge_on_first_path, edge_on_second_path, source_waypoint, target_waypoint
 
@@ -301,13 +300,13 @@ def _make_topo2(dummy_offset: int) -> nx.DiGraph:
     -------
 
     """
-    dummy_source = Waypoint(position=(0 + dummy_offset, 0 + dummy_offset), direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
-    dummy_target = Waypoint(position=(3 + dummy_offset, 0 + dummy_offset), direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
+    source_waypoint = Waypoint(position=(0 + dummy_offset, 0 + dummy_offset), direction=int(Grid4TransitionsEnum.SOUTH))
+    target_waypoint = Waypoint(position=(3 + dummy_offset, 0 + dummy_offset), direction=int(Grid4TransitionsEnum.SOUTH))
 
     topo = nx.DiGraph()
 
     # first path
-    topo.add_edge(dummy_source,
+    topo.add_edge(source_waypoint,
                   Waypoint(position=(0, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
     edge_on_left_path = (Waypoint(position=(0, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
                          Waypoint(position=(1, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
@@ -317,9 +316,9 @@ def _make_topo2(dummy_offset: int) -> nx.DiGraph:
     topo.add_edge(Waypoint(position=(2, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
                   Waypoint(position=(3, 0), direction=int(Grid4TransitionsEnum.SOUTH)))
     topo.add_edge(Waypoint(position=(3, 0), direction=int(Grid4TransitionsEnum.SOUTH)),
-                  dummy_target)
+                  target_waypoint)
     # second path
-    topo.add_edge(dummy_source,
+    topo.add_edge(source_waypoint,
                   Waypoint(position=(0, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
     edge_on_right_path = (Waypoint(position=(0, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
                           Waypoint(position=(1, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
@@ -329,5 +328,5 @@ def _make_topo2(dummy_offset: int) -> nx.DiGraph:
     topo.add_edge(Waypoint(position=(2, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
                   Waypoint(position=(3, 1), direction=int(Grid4TransitionsEnum.SOUTH)))
     topo.add_edge(Waypoint(position=(3, 1), direction=int(Grid4TransitionsEnum.SOUTH)),
-                  dummy_target)
-    return topo, edge_on_left_path, edge_on_right_path, dummy_source, dummy_target
+                  target_waypoint)
+    return topo, edge_on_left_path, edge_on_right_path, source_waypoint, target_waypoint
