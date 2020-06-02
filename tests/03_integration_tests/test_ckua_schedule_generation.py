@@ -36,7 +36,7 @@ def dummy_rail_env(observation_builder: ObservationBuilder,
 
 # TODO SIM-434 should we remove all ckua code?
 def test_ckua_generate_schedule():
-    if True:
+    if False:
         ckua_generate_schedule(
             env=dummy_rail_env(observation_builder=DummyObservationBuilder()),
             random_seed=94

@@ -45,7 +45,6 @@ from typing import Tuple
 
 import numpy as np
 import tqdm as tqdm
-from flatland.action_plan.action_plan import ControllerFromTrainruns
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
@@ -75,8 +74,6 @@ from rsp.utils.experiment_env_generators import create_flatland_environment_with
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
-from rsp.utils.flatland_replay_utils import create_controller_from_trainruns_and_malfunction
-from rsp.utils.flatland_replay_utils import replay
 from rsp.utils.psutil_helpers import current_process_stats_human_readable
 from rsp.utils.psutil_helpers import virtual_memory_human_readable
 from rsp.utils.tee import reset_tee
@@ -451,27 +448,29 @@ def gen_schedule_and_malfunction(
             debug=debug
         )
     malfunction = gen_malfunction(
-        malfunction_env_reset=malfunction_env_reset,
-        malfunction_rail_env=malfunction_rail_env,
-        schedule_trainruns=schedule_result.trainruns_dict,
-        verbose=verbose)
+        earliest_malfunction=experiment_parameters.earliest_malfunction,
+        malfunction_duration=experiment_parameters.malfunction_duration,
+        schedule_trainruns=schedule_result.trainruns_dict
+    )
     schedule_and_malfunction = ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
     return malfunction_rail_env, schedule_and_malfunction
 
 
-def gen_malfunction(malfunction_rail_env: RailEnv,
-                    malfunction_env_reset,
-                    schedule_trainruns: TrainrunDict,
-                    verbose: bool = False
-                    ) -> ExperimentMalfunction:
+def gen_malfunction(
+        earliest_malfunction: int,
+        malfunction_duration: int,
+        schedule_trainruns: TrainrunDict,
+        # TODO SIM-516 agent_id=0 hard-coded?
+        malfunction_agent_id: int = 0,
+) -> ExperimentMalfunction:
     """A.2.2. Create malfunction.
 
     Parameters
     ----------
-    malfunction_rail_env
-    malfunction_env_reset
+    earliest_malfunction
+    malfunction_duration
+    malfunction_agent_id
     schedule_trainruns
-    verbose
 
     Returns
     -------
@@ -479,22 +478,13 @@ def gen_malfunction(malfunction_rail_env: RailEnv,
     # --------------------------------------------------------------------------------------
     # 1. Generate malfuntion
     # --------------------------------------------------------------------------------------
-    malfunction_env_reset()
-    controller_from_train_runs: ControllerFromTrainruns = create_controller_from_trainruns_and_malfunction(
-        trainrun_dict=schedule_trainruns,
-        env=malfunction_rail_env)
-    malfunction_env_reset()
-    malfunction = replay(
-        controller_from_train_runs=controller_from_train_runs,
-        env=malfunction_rail_env,
-        stop_on_malfunction=True,
-        solver_name="ASP")
-    malfunction_env_reset()
-    # replay may return None (if the given malfunction does not happen during the agents time in the grid
-    if malfunction is None:
-        raise Exception("Could not produce a malfunction")
-    if verbose:
-        print(f"  **** malfunction={malfunction}")
+    # TODO SIM-517 when dummies removed, take first section instead of second
+    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][1].scheduled_at)
+    malfunction = ExperimentMalfunction(
+        time_step=malfunction_start,
+        malfunction_duration=malfunction_duration,
+        agent_id=malfunction_agent_id
+    )
     return malfunction
 
 
