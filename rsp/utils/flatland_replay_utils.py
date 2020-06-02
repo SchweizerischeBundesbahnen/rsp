@@ -177,16 +177,15 @@ def extract_trainrun_dict_from_flatland_positions(
     return trainrun_dict
 
 
-def replay_and_verify_trainruns(rail_env: RailEnv,
-                                trainruns: TrainrunDict,
-                                title: str = None,
-                                expected_malfunction: Optional[ExperimentMalfunction] = None,
-                                rendering: bool = False,
-                                experiment_id: str = '0',
-                                data_folder: Optional[str] = None,
-                                convert_to_mpeg: bool = False,
-                                mpeg_resolution: str = '640x360',
-                                debug: bool = False) -> int:
+def render_trainruns(rail_env: RailEnv,  # noqa:C901
+                     trainruns: TrainrunDict,
+                     title: str = None,
+                     malfunction: Optional[ExperimentMalfunction] = None,
+                     experiment_id: int = 0,
+                     data_folder: Optional[str] = None,
+                     convert_to_mpeg: bool = False,
+                     mpeg_resolution: str = '640x360',
+                     show: bool = False):
     """
 
     Parameters
@@ -197,10 +196,8 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         a train run per agent
     title: str
         Title to set for folder
-    expected_malfunction: Optional[ExperimentMalfunction]
+    malfunction: Optional[ExperimentMalfunction]
         if a malfunction is supposed to happen, pass it here.
-    rendering: bool
-        render the replay?
     data_folder: Optional[str]
         if `rendering=True`, save the visualization to a png per time step
     experiment_id:
@@ -209,18 +206,13 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
         if `rendering=True` and `data_folder` is defined, convert the generated pngs to an mpeg
     mpeg_resolution:
         resolution to use if mpeg is generated
-    debug: bool
-        show debug output
+    show: bool
+        show panel while rendering?
 
     Returns
     -------
 
     """
-    controller_from_train_runs = create_controller_from_trainruns_and_malfunction(
-        env=rail_env,
-        trainrun_dict=trainruns,
-        expected_malfunction=expected_malfunction,
-        debug=debug)
     image_output_directory = None
 
     if data_folder:
@@ -233,18 +225,39 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
                                               foldername)
 
         check_create_folder(image_output_directory)
-    total_reward = replay(
-        controller_from_train_runs=controller_from_train_runs,
-        env=rail_env,
-        stop_on_malfunction=False,
-        solver_name='data_analysis',
-        rendering=rendering,
-        image_output_directory=image_output_directory,
-        debug=debug,
-        expected_flatland_positions=convert_trainrundict_to_positions_after_flatland_timestep(trainruns)
-    )
-    if rendering and convert_to_mpeg:
-        print("curdir=" + str(os.curdir))
+    train_schedule_dict: TrainScheduleDict = convert_trainrundict_to_positions_after_flatland_timestep(trainrun_dict=trainruns)
+    max_episode_steps = np.max([time_step for agent_id, train_schedule in train_schedule_dict.items() for time_step in train_schedule.keys()])
+    # TODO SIM-516 simplify: never without rendering?
+    renderer = init_renderer_for_env(rail_env, rendering=True)
+
+    for time_step in range(max_episode_steps):
+        # TODO malfunction
+        for agent_id, train_schedule in train_schedule_dict.items():
+            waypoint = train_schedule.get(time_step, None)
+            if waypoint is None:
+                rail_env.agents[agent_id].position = None
+            else:
+                rail_env.agents[agent_id].position = waypoint.position
+                rail_env.agents[agent_id].direction = waypoint.direction
+        if malfunction is not None:
+            malfunction_start = malfunction.time_step
+            malfunction_end = malfunction_start + malfunction.malfunction_duration
+            if malfunction_start <= time_step < malfunction_end:
+                rail_env.agents[malfunction.agent_id].malfunction_data["malfunction"] = malfunction_end - time_step
+        # TODO SIM-516  simplify: test_id, solver_name???
+        render_env(renderer,
+                   test_id=0,
+                   solver_name='data_analysis',
+                   i_step=time_step,
+                   show=show,
+                   image_output_directory=image_output_directory)
+
+    try:
+        cleanup_renderer_for_env(renderer)
+    except AttributeError as e:
+        # TODO why does this happen?
+        warnings.warn(str(e))
+    if convert_to_mpeg:
         import ffmpeg
         (ffmpeg
          .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s=mpeg_resolution)
@@ -255,7 +268,6 @@ def replay_and_verify_trainruns(rail_env: RailEnv,
          .overwrite_output()
          .run()
          )
-    return total_reward
 
 
 # --------------------------------------------------------------------------------------

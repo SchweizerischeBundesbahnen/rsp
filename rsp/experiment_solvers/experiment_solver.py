@@ -1,5 +1,4 @@
 import pprint
-import warnings
 from typing import Callable
 from typing import Optional
 from typing import Tuple
@@ -24,7 +23,6 @@ from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
-from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
 
 
 class ASPExperimentSolver():
@@ -247,15 +245,6 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     schedule_result, schedule_solution = solve_problem(
         problem=schedule_problem,
         debug=debug)
-
-    # TODO SIM-355 fix bug and improve logging in parallel mode
-    try:
-        replay_and_verify_trainruns(rail_env=static_rail_env,
-                                    trainruns=schedule_solution.get_trainruns_dict(),
-                                    rendering=rendering,
-                                    )
-    except AssertionError as e:
-        warnings.warn(str(e))
 
     return schedule_result
 

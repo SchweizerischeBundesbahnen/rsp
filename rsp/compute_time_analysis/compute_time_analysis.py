@@ -35,7 +35,7 @@ from rsp.utils.data_types_converters_and_validators import verify_schedule_as_re
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
+from rsp.utils.flatland_replay_utils import render_trainruns
 from rsp.utils.global_constants import RELEASE_TIME
 
 Trajectories = List[List[Tuple[int, int]]]
@@ -701,13 +701,13 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
 
         # Only render if file is not yet created
         if not os.path.exists(video_src_schedule):
-            replay_and_verify_trainruns(data_folder=output_folder,
-                                        experiment_id=experiment_data.experiment_id,
-                                        title=title,
-                                        rendering=True,
-                                        rail_env=static_rail_env,
-                                        trainruns=experiment_data.solution_full,
-                                        convert_to_mpeg=True)
+            render_trainruns(data_folder=output_folder,
+                             experiment_id=experiment_data.experiment_id,
+                             title=title,
+                             rail_env=static_rail_env,
+                             trainruns=experiment_data.solution_full,
+                             malfunction=experiment_data.malfunction,
+                             convert_to_mpeg=True)
     else:
         video_src_reschedule = None
 
@@ -720,14 +720,13 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
                                             f"experiment_{experiment_id}_flatland_data_analysis.mp4")
         # Only render if file is not yet created
         if not os.path.exists(video_src_reschedule):
-            replay_and_verify_trainruns(data_folder=output_folder,
-                                        experiment_id=experiment_data.experiment_id,
-                                        expected_malfunction=experiment_data.malfunction,
-                                        title=title,
-                                        rendering=True,
-                                        rail_env=malfunction_rail_env,
-                                        trainruns=experiment_data.solution_full_after_malfunction,
-                                        convert_to_mpeg=True)
+            render_trainruns(data_folder=output_folder,
+                             experiment_id=experiment_data.experiment_id,
+                             malfunction=experiment_data.malfunction,
+                             title=title,
+                             rail_env=malfunction_rail_env,
+                             trainruns=experiment_data.solution_full_after_malfunction,
+                             convert_to_mpeg=True)
     else:
         video_src_reschedule = None
 

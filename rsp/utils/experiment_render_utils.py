@@ -16,7 +16,7 @@ from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.flatland_replay_utils import replay_and_verify_trainruns
+from rsp.utils.flatland_replay_utils import render_trainruns
 
 
 def visualize_experiment(experiment_parameters: ExperimentParameters,
@@ -154,13 +154,12 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
 
     # Generate aggregated visualization
     if flatland_rendering:
-        replay_and_verify_trainruns(data_folder=rendering_folder,
-                                    experiment_id=experiment_results_analysis.experiment_id,
-                                    expected_malfunction=experiment_results_analysis.malfunction,
-                                    rendering=flatland_rendering,
-                                    rail_env=malfunction_rail_env,
-                                    trainruns=train_runs_full_after_malfunction,
-                                    convert_to_mpeg=convert_to_mpeg)
+        render_trainruns(data_folder=rendering_folder,
+                         experiment_id=experiment_results_analysis.experiment_id,
+                         malfunction=experiment_results_analysis.malfunction,
+                         rail_env=malfunction_rail_env,
+                         trainruns=train_runs_full_after_malfunction,
+                         convert_to_mpeg=convert_to_mpeg)
 
 
 def _make_title(agent_id: str,
