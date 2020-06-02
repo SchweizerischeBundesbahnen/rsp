@@ -207,8 +207,6 @@ def test_rescheduling_no_bottleneck():
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
 
     full_reschedule_result = asp_reschedule_wrapper(
-        malfunction_for_verification=fake_malfunction,
-        malfunction_rail_env_for_verification=dynamic_env,
         reschedule_problem_description=get_schedule_problem_for_full_rescheduling(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
@@ -216,7 +214,6 @@ def test_rescheduling_no_bottleneck():
             latest_arrival=dynamic_env._max_episode_steps,
             topo_dict=tc_schedule_problem.topo_dict
         ),
-        malfunction_env_reset=lambda *args, **kwargs: None,
         asp_seed_value=94
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
@@ -480,9 +477,6 @@ def test_rescheduling_bottleneck():
     inject_fake_malfunction_into_dynamic_env(dynamic_env, fake_malfunction)
 
     full_reschedule_result = asp_reschedule_wrapper(
-        malfunction_for_verification=fake_malfunction,
-        malfunction_env_reset=lambda *args, **kwargs: None,
-        malfunction_rail_env_for_verification=dynamic_env,
         reschedule_problem_description=get_schedule_problem_for_full_rescheduling(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
@@ -817,10 +811,6 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
     )
     delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=tc_delta_reschedule_problem,
-        malfunction_for_verification=fake_malfunction,
-        # TODO SIM-324 code smell: why do we need to pass env? -> extract validation with env
-        malfunction_rail_env_for_verification=dynamic_env,
-        malfunction_env_reset=lambda *args, **kwargs: None,
         asp_seed_value=94
     )
     delta_reschedule_trainruns = delta_reschedule_result.trainruns_dict

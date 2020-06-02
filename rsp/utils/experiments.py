@@ -37,7 +37,6 @@ import threading
 import time
 import traceback
 from functools import partial
-from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -54,13 +53,17 @@ from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
 from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
+from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
+from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.route_dag.route_dag import apply_weight_route_change
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
@@ -145,7 +148,6 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
                    experiment_parameters: ExperimentParameters,
                    experiment_base_directory: str,
                    show_results_without_details: bool = True,
-                   rendering: bool = False,
                    verbose: bool = False,
                    debug: bool = False,
                    gen_only: bool = False,
@@ -198,10 +200,9 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
 
     else:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
-        malfunction_rail_env, schedule_and_malfunction = create_schedule_and_malfunction(
+        schedule_and_malfunction = create_schedule_and_malfunction(
             debug=debug,
             experiment_parameters=experiment_parameters,
-            rendering=rendering,
             solver=solver,
             verbose=verbose)
         if experiment_agenda_directory is not None:
@@ -229,27 +230,9 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
             results_delta_after_malfunction=None
         )
 
-    if rendering:
-        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-        env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
-                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
-                                  show_debug=False,
-                                  screen_height=600,  # Adjust these parameters to fit your resolution
-                                  screen_width=800)
-        env_renderer.reset()
-        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
-
-    # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
-    def malfunction_env_reset():
-        malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
-
-    malfunction_env_reset()
-
     # B2: full and delta re-scheduling
-    experiment_results: ExperimentResults = solver._run_experiment_from_environment(
+    experiment_results: ExperimentResults = run_experiment_from_schedule_and_malfunction(
         schedule_and_malfunction=schedule_and_malfunction,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters,
         verbose=verbose,
         debug=debug
@@ -257,10 +240,6 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     if experiment_results is None:
         print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
         return []
-
-    if rendering:
-        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-        env_renderer.close_window()
 
     if show_results_without_details:
         elapsed_time = (time.time() - start_time)
@@ -299,6 +278,117 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
     # TODO SIM-324 pull out validation steps
     plausibility_check_experiment_results(experiment_results=experiment_results)
     return experiment_results
+
+
+def run_experiment_from_schedule_and_malfunction(
+        schedule_and_malfunction: ScheduleAndMalfunction,
+        experiment_parameters: ExperimentParameters,
+        verbose: bool = False,
+        debug: bool = False,
+        visualize_route_dag_constraing: bool = False
+) -> ExperimentResults:
+    """B2. Runs the main part of the experiment: re-scheduling full and delta.
+
+    Parameters
+    ----------
+    schedule_and_malfunction
+    experiment_parameters
+    verbose
+    debug
+    visualize_route_dag_constraing
+
+    Returns
+    -------
+    ExperimentResults
+    """
+    rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
+    tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
+    schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
+
+    # --------------------------------------------------------------------------------------
+    # 2. Re-schedule Full
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("2. reschedule full")
+    reduced_topo_dict = tc_schedule_problem.topo_dict
+    full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+        malfunction=malfunction,
+        schedule_trainruns=schedule_trainruns,
+        minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+        latest_arrival=tc_schedule_problem.max_episode_steps,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        topo_dict=reduced_topo_dict
+    )
+    full_reschedule_problem = apply_weight_route_change(
+        schedule_problem=full_reschedule_problem,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+
+    # activate visualize_route_dag_constraing for debugging
+    if visualize_route_dag_constraing:
+        for agent_id in schedule_trainruns:
+            visualize_route_dag_constraints_simple_wrapper(
+                schedule_problem_description=full_reschedule_problem,
+                trainrun_dict=None,
+                experiment_malfunction=malfunction,
+                agent_id=agent_id,
+                file_name=f"rescheduling_neu_agent_{agent_id}.pdf",
+            )
+
+    full_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=full_reschedule_problem,
+        debug=debug,
+        asp_seed_value=experiment_parameters.asp_seed_value
+    )
+
+    full_reschedule_trainruns = full_reschedule_result.trainruns_dict
+
+    if verbose:
+        print(f"  **** full re-schedule_solution=\n{full_reschedule_trainruns}")
+
+    # --------------------------------------------------------------------------------------
+    # 3. Re-Schedule Delta
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("3. reschedule delta")
+    delta_reschedule_problem = perfect_oracle(
+        full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
+        malfunction=malfunction,
+        max_episode_steps=tc_schedule_problem.max_episode_steps,
+        schedule_topo_dict=reduced_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
+    )
+    delta_reschedule_problem = apply_weight_route_change(
+        schedule_problem=delta_reschedule_problem,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+    delta_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_reschedule_problem,
+        debug=debug,
+        asp_seed_value=experiment_parameters.asp_seed_value
+    )
+
+    if verbose:
+        print(f"  **** delta re-schedule solution")
+        print(delta_reschedule_result.trainruns_dict)
+
+    # --------------------------------------------------------------------------------------
+    # 4. Result
+    # --------------------------------------------------------------------------------------
+    current_results = ExperimentResults(
+        experiment_parameters=experiment_parameters,
+        malfunction=malfunction,
+        problem_full=tc_schedule_problem,
+        problem_full_after_malfunction=full_reschedule_problem,
+        problem_delta_after_malfunction=delta_reschedule_problem,
+        results_full=schedule_result,
+        results_full_after_malfunction=full_reschedule_result,
+        results_delta_after_malfunction=delta_reschedule_result
+    )
+    rsp_logger.info(f"done re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
+    return current_results
 
 
 def _visualize_route_dag_constraints_for_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction):
@@ -342,52 +432,33 @@ def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dic
 def create_schedule_and_malfunction(
         experiment_parameters: ExperimentParameters,
         solver: ASPExperimentSolver,
-        rendering: bool = False,
         verbose: bool = False,
         debug: bool = False
-) -> Tuple[RailEnv, ScheduleAndMalfunction]:
+) -> ScheduleAndMalfunction:
     """A.2 Create schedule and malfunction from experiment parameters.
     Parameters
     ----------
     experiment_parameters
     solver
     debug
-    rendering
     verbose
     Returns
     -------
     malfunction_rail_env, schedule_and_malfunction
     """
     static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-    if rendering:
-        from flatland.utils.rendertools import RenderTool, AgentRenderVariant
-        env_renderer = RenderTool(malfunction_rail_env, gl="PILSVG",
-                                  agent_render_variant=AgentRenderVariant.ONE_STEP_BEHIND,
-                                  show_debug=False,
-                                  screen_height=600,  # Adjust these parameters to fit your resolution
-                                  screen_width=800)
-        env_renderer.reset()
-        env_renderer.render_env(show=True, show_observations=False, show_predictions=False)
 
-    # wrap reset params in this function, so we avoid copy-paste errors each time we have to reset the malfunction_rail_env
-    def malfunction_env_reset():
-        malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
-
-    return gen_schedule_and_malfunction(
+    return gen_schedule_and_malfunction_from_rail_env(
         experiment_parameters=experiment_parameters,
         static_rail_env=static_rail_env,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
         solver=solver,
         verbose=verbose,
         debug=debug)
 
 
-def gen_schedule_and_malfunction(
+def gen_schedule_and_malfunction_from_rail_env(
         experiment_parameters: ExperimentParameters,
         static_rail_env: RailEnv,
-        malfunction_rail_env: RailEnv,
-        malfunction_env_reset: Callable,
         solver: ASPExperimentSolver,
         verbose: bool = False,
         debug: bool = False
@@ -399,8 +470,6 @@ def gen_schedule_and_malfunction(
     ----------
     experiment_parameters
     static_rail_env
-    malfunction_rail_env
-    malfunction_env_reset
     solver
     verbose
     debug
@@ -421,6 +490,7 @@ def gen_schedule_and_malfunction(
             rendering=False,
             show=False
         )
+        # TODO SIM-517 use topo_dict instead of env?
         verify_trainrun_dict(
             env=static_rail_env,
             trainrun_dict=trainrun_dict,
@@ -453,7 +523,7 @@ def gen_schedule_and_malfunction(
         schedule_trainruns=schedule_result.trainruns_dict
     )
     schedule_and_malfunction = ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
-    return malfunction_rail_env, schedule_and_malfunction
+    return schedule_and_malfunction
 
 
 def gen_malfunction(
@@ -537,7 +607,6 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
         experiment_results: ExperimentResults = run_experiment(solver=solver,
                                                                experiment_parameters=current_experiment_parameters,
-                                                               rendering=rendering,
                                                                verbose=verbose,
                                                                experiment_base_directory=experiment_base_directory,
                                                                show_results_without_details=show_results_without_details,
