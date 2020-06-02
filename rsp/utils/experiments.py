@@ -55,7 +55,7 @@ from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
-from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import rsp_logger
 from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
@@ -490,9 +490,8 @@ def gen_schedule_and_malfunction_from_rail_env(
             rendering=False,
             show=False
         )
-        # TODO SIM-517 use topo_dict instead of env?
-        verify_trainrun_dict(
-            env=static_rail_env,
+        verify_trainrun_dict_for_schedule_problem(
+            schedule_problem=tc_schedule_problem,
             trainrun_dict=trainrun_dict,
             expected_route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict
         )

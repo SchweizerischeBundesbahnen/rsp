@@ -2,14 +2,16 @@ from typing import Dict
 from typing import Optional
 from typing import Tuple
 
-from flatland.envs.rail_env import RailEnv
-from flatland.envs.rail_env_shortest_paths import get_valid_move_actions_
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
+from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
+from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import ExperimentMalfunction
 
 
@@ -26,11 +28,12 @@ def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_di
         for agent_id in trainruns_dict_reschedule])
 
 
-def verify_trainrun_dict(env: RailEnv,
-                         trainrun_dict: TrainrunDict,
-                         expected_malfunction: Optional[ExperimentMalfunction] = None,
-                         expected_route_dag_constraints: Optional[RouteDAGConstraintsDict] = None
-                         ):
+def verify_trainrun_dict_for_schedule_problem(
+        schedule_problem: ScheduleProblemDescription,
+        trainrun_dict: TrainrunDict,
+        expected_malfunction: Optional[ExperimentMalfunction] = None,
+        expected_route_dag_constraints: Optional[RouteDAGConstraintsDict] = None
+):
     """Verify the consistency of a train run.
     1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     2. verify mutual exclusion
@@ -40,17 +43,17 @@ def verify_trainrun_dict(env: RailEnv,
     6. verfy freezes are respected (if given)
     Parameters
     ----------
-    env
+    schedule_problem
     trainrun_dict
     expected_malfunction
     expected_route_dag_constraints
     Returns
     -------
     """
-    minimum_runningtime_dict = {agent.handle: int(1 // env.agents[agent.handle].speed_data['speed']) for agent in env.agents}
-    initial_positions = {agent.handle: agent.initial_position for agent in env.agents}
-    initial_directions = {agent.handle: agent.initial_direction for agent in env.agents}
-    targets = {agent.handle: agent.target for agent in env.agents}
+    minimum_runningtime_dict = schedule_problem.minimum_travel_time_dict
+    initial_positions = {agent_id: next(get_sources_for_topo(topo)).position for agent_id, topo in schedule_problem.topo_dict.items()}
+    initial_directions = {agent_id: next(get_sources_for_topo(topo)).direction for agent_id, topo in schedule_problem.topo_dict.items()}
+    targets = {agent_id: next(get_sinks_for_topo(topo)).position for agent_id, topo in schedule_problem.topo_dict.items()}
 
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     # 2. verify mutual exclusion
@@ -61,9 +64,8 @@ def verify_trainrun_dict(env: RailEnv,
                                 targets=targets,
                                 trainrun_dict=trainrun_dict)
 
-    # 4. check that the transitions are valid FLATland transitions according to the grid
-    if env is not None:
-        _verify_trainruns_4_consistency_with_flatland_moves(env, trainrun_dict)
+    # 4. check that the transitions are valid FLATland transitions according to the topo_dict
+    _verify_trainruns_4_consistency_with_flatland_moves(topo_dict=schedule_problem.topo_dict, trainrun_dict=trainrun_dict)
 
     # 5. verify expected malfunction
     if expected_malfunction:
@@ -157,19 +159,14 @@ def _verify_trainruns_6_freeze(expected_route_dag_constraints, trainruns_dict):
             assert waypoint not in waypoint_dict
 
 
-def _verify_trainruns_4_consistency_with_flatland_moves(env, trainruns_dict):
-    for agent_id, trainrun_sparse in trainruns_dict.items():
+def _verify_trainruns_4_consistency_with_flatland_moves(topo_dict: TopoDict, trainrun_dict):
+    for agent_id, trainrun_sparse in trainrun_dict.items():
         previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
         for trainrun_waypoint in trainrun_sparse:
             if previous_trainrun_waypoint is not None:
-                valid_next_waypoints = {
-                    Waypoint(position=rail_env_next_action.next_position, direction=rail_env_next_action.next_direction)
-                    for rail_env_next_action in
-                    get_valid_move_actions_(agent_direction=previous_trainrun_waypoint.waypoint.direction,
-                                            agent_position=previous_trainrun_waypoint.waypoint.position,
-                                            rail=env.rail)}
-                assert trainrun_waypoint.waypoint in valid_next_waypoints, \
-                    f"invalid move for agent {agent_id}: {previous_trainrun_waypoint} -> {trainrun_waypoint}, expected one of {valid_next_waypoints}"
+                assert (previous_trainrun_waypoint, trainrun_waypoint.waypoint) in topo_dict[agent_id].edges, \
+                    f"invalid move for agent {agent_id}: {previous_trainrun_waypoint} -> {trainrun_waypoint}, " \
+                    f"expected one of {topo_dict[agent_id].neighbors(previous_trainrun_waypoint)}"
 
 
 def _verify_trainruns_3_source_target(trainrun_dict: TrainrunDict,
@@ -177,12 +174,11 @@ def _verify_trainruns_3_source_target(trainrun_dict: TrainrunDict,
                                       initial_directions: Dict[int, int],
                                       targets: Dict[int, Tuple[int, int]]):
     for agent_id, trainrun in trainrun_dict.items():
-        # initial trainrun_waypoint is first after dummy
-        initial_trainrun_waypoint = trainrun[1]
+        initial_trainrun_waypoint = trainrun[0]
         assert initial_trainrun_waypoint.waypoint.position == initial_positions[agent_id], \
-            f"agent {agent_id} does not start in expected initial position, found {initial_trainrun_waypoint}"
+            f"agent {agent_id} does not start in expected initial position, found {initial_trainrun_waypoint}, expected {initial_positions[agent_id]}"
         assert initial_trainrun_waypoint.waypoint.direction == initial_directions[agent_id], \
-            f"agent {agent_id} does not start in expected initial direction, found {initial_trainrun_waypoint}"
+            f"agent {agent_id} does not start in expected initial direction, found {initial_trainrun_waypoint}, expected {initial_directions[agent_id]}"
         # target trainrun waypoint is last before dummy
         final_trainrun_waypoint = trainrun_dict[agent_id][-1]
         assert final_trainrun_waypoint.waypoint.position == targets[agent_id], \

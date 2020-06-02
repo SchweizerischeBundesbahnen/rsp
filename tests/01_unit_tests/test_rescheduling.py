@@ -8,7 +8,6 @@ from flatland.envs.agent_utils import EnvAgent
 from flatland.envs.malfunction_generators import Malfunction
 from flatland.envs.malfunction_generators import Malfunction as FLMalfunction
 from flatland.envs.malfunction_generators import MalfunctionProcessData
-from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
@@ -17,10 +16,9 @@ from numpy.random.mtrand import RandomState
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
-from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
+from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
-from rsp.route_dag.generators.route_dag_generator_schedule import _get_topology_with_dummy_nodes_from_agent_paths_dict
 from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.route_dag.generators.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
@@ -172,27 +170,17 @@ def test_rescheduling_no_bottleneck():
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    verify_trainrun_dict(static_env, fake_schedule)
+    k = 10
+    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
+    verify_trainrun_dict_for_schedule_problem(schedule_problem=tc_schedule_problem, trainrun_dict=fake_schedule)
 
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
-    k = 10
-    agents_paths_dict = {
-        i: get_k_shortest_paths(static_env,
-                                agent.initial_position,
-                                agent.initial_direction,
-                                agent.target,
-                                k) for i, agent in enumerate(static_env.agents)
-    }
-    _, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict=agents_paths_dict)
-    # we derive the re-schedule problem from the schedule problem
 
-    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed'])) for agent in
-                                static_env.agents}
     tc: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        topo_dict=topo_dict,
+        minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+        topo_dict=tc_schedule_problem.topo_dict,
         latest_arrival=dynamic_env._max_episode_steps
     )
     freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
@@ -201,7 +189,7 @@ def test_rescheduling_no_bottleneck():
         verify_consistency_of_route_dag_constraints_for_agent(
             agent_id=agent_id,
             route_dag_constraints=freeze_dict[agent_id],
-            topo=topo_dict[agent_id]
+            topo=tc_schedule_problem.topo_dict[agent_id]
         )
 
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
@@ -420,11 +408,11 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 23), direction=3))]}
-    verify_trainrun_dict(static_env, fake_schedule)
 
     # we derive the re-schedule problem from the schedule problem
     k = 10
     tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, k)
+    verify_trainrun_dict_for_schedule_problem(schedule_problem=tc_schedule_problem, trainrun_dict=fake_schedule)
     tc_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
