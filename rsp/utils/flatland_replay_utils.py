@@ -186,8 +186,7 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
         check_create_folder(image_output_directory)
     train_schedule_dict: TrainScheduleDict = convert_trainrun_dict_to_train_schedule_dict(trainrun_dict=trainruns)
     max_episode_steps = np.max([time_step for agent_id, train_schedule in train_schedule_dict.items() for time_step in train_schedule.keys()])
-    # TODO SIM-516 simplify: never without rendering?
-    renderer = init_renderer_for_env(rail_env, rendering=True)
+    renderer = init_renderer_for_env(rail_env)
 
     for time_step in range(max_episode_steps):
         # TODO malfunction
@@ -234,16 +233,15 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
 # --------------------------------------------------------------------------------------
 
 
-def init_renderer_for_env(env: RailEnv, rendering: bool = False):
-    if rendering:
-        from flatland.utils.rendertools import AgentRenderVariant
-        from flatland.utils.rendertools import RenderTool
-        return RenderTool(env, gl="PILSVG",
-                          agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                          show_debug=True,
-                          clear_debug_text=True,
-                          screen_height=1000,
-                          screen_width=1000)
+def init_renderer_for_env(env: RailEnv):
+    from flatland.utils.rendertools import AgentRenderVariant
+    from flatland.utils.rendertools import RenderTool
+    return RenderTool(env, gl="PILSVG",
+                      agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
+                      show_debug=True,
+                      clear_debug_text=True,
+                      screen_height=1000,
+                      screen_width=1000)
 
 
 def render_env(renderer,
@@ -267,26 +265,24 @@ def render_env(renderer,
     image_output_directory: Optional[str]
         store files to this directory if given
     """
-    if renderer is not None:
-        from flatland.utils.rendertools import RenderTool
-        renderer: RenderTool = renderer
-        renderer.render_env(show=show, show_observations=False, show_predictions=False)
-        if image_output_directory is not None:
-            if not os.path.exists(image_output_directory):
-                os.makedirs(image_output_directory)
-            renderer.gl.save_image(os.path.join(image_output_directory,
-                                                "flatland_frame_{:04d}_{:04d}_{}.png".format(test_id,
-                                                                                             i_step,
-                                                                                             solver_name)))
+    from flatland.utils.rendertools import RenderTool
+    renderer: RenderTool = renderer
+    renderer.render_env(show=show, show_observations=False, show_predictions=False)
+    if image_output_directory is not None:
+        if not os.path.exists(image_output_directory):
+            os.makedirs(image_output_directory)
+        renderer.gl.save_image(os.path.join(image_output_directory,
+                                            "flatland_frame_{:04d}_{:04d}_{}.png".format(test_id,
+                                                                                         i_step,
+                                                                                         solver_name)))
 
 
 def cleanup_renderer_for_env(renderer):
-    if renderer:
-        from flatland.utils.rendertools import RenderTool
-        renderer: RenderTool = renderer
-        # close renderer window
-        try:
-            renderer.close_window()
-        except AttributeError as e:
-            # TODO why does this happen?
-            warnings.warn(str(e))
+    from flatland.utils.rendertools import RenderTool
+    renderer: RenderTool = renderer
+    # close renderer window
+    try:
+        renderer.close_window()
+    except AttributeError as e:
+        # TODO why does this happen?
+        warnings.warn(str(e))
