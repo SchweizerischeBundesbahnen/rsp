@@ -139,30 +139,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
 ])
 
-# TODO SIM-537 do not use  TrainSchedule in visualizations -> only in FLATland replay
-# For each time step, agent's location: int key is the time step at which the train occupies the resource
-# (agents occupy only one resource at a time, no release time)
-TrainSchedule = Dict[int, Waypoint]
-# TrainSchedule for all  trains: int key is the agent handle for which the schedule is returned
-TrainScheduleDict = Dict[int, TrainSchedule]
-
-# For some time steps, agent's location: int key is the time step at which the train occupies the resource
-# (agents occupy only one resource at a time, no release time)
-TrainScheduleDifference = TrainSchedule
-# TrainScheduleDifference for some trains: int key is the agent handle for which the schedule difference is returned
-TrainScheduleDifferenceDict = Dict[int, TrainScheduleDifference]
-
-# TODO SIM-537 remove RessourceAgentDict, use SortedResourceOccupationsPerResourceDict instead and zip
-RessourceAgentDict = Dict[Waypoint, int]  # Dict assigning agent handle to Waypoint (Ressource)
-TimeAgentDict = Dict[int, int]  # Dict assigning agent handle to time
-
-TimeScheduleDict = Dict[int, RessourceAgentDict]  # time step as int
-RessourceScheduleDict = Dict[Waypoint, TimeAgentDict]
-
-TimeResourceTrajectories = NamedTuple('TimeResourceTrajectories',
-                                      [('trajectories', TrainScheduleDict), ('max_resource_id', int),
-                                       ('max_time', int)])
-
 if COMPATIBILITY_MODE:
     ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
 COLUMNS = ExperimentResults._fields
@@ -177,18 +153,24 @@ Resource = NamedTuple('Resource', [
 ResourceOccupation = NamedTuple('ResourceOccupation', [
     ('interval', LeftClosedInterval),
     ('resource', Resource),
-    ('agent_id', int)])
+    ('direction', int),
+    ('agent_id', int)
+])
 
-SortedResourceOccupationsPerResourceDict = Dict[Resource, List[ResourceOccupation]]
-SortedResourceOccupationsPerAgentDict = Dict[int, List[ResourceOccupation]]
-ResourceSorting = Dict[Resource, int]
+# sorted list of non-overlapping resource occupations per resource
+SortedResourceOccupationsPerResource = Dict[Resource, List[ResourceOccupation]]
 
-# Information used for plotting time-ressource-graphs: Sorting is dict mapping ressource to int value used to sort
-# ressources for nice visualization
-PlottingInformation = NamedTuple('PlottingInformation',
-                                 [('sorting', ResourceSorting),
-                                  ('dimensions', Tuple[int, int]),
-                                  ('grid_width', int)])
+# sorted list of resource occupations per agent; resource occupations overlap by release time!
+SortedResourceOccupationsPerAgent = Dict[int, List[ResourceOccupation]]
+
+# list of resource occupations per agent and time-step (there are multiple resource occupations if the previous resource is not released yet)
+ResourceOccupationPerAgentAndTimeStep = Dict[Tuple[int, int], List[ResourceOccupation]]
+
+ScheduleAsResourceOccupations = NamedTuple('ScheduleAsResourceOccupations', [
+    ('sorted_resource_occupations_per_resource', SortedResourceOccupationsPerResource),
+    ('sorted_resource_occupations_per_agent', SortedResourceOccupationsPerAgent),
+    ('resource_occupations_per_agent_and_time_step', ResourceOccupationPerAgentAndTimeStep),
+])
 
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,

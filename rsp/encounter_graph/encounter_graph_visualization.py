@@ -1,17 +1,9 @@
-import os
 from typing import Dict
-from typing import List
 from typing import Optional
-from typing import Tuple
 
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
-
-from rsp.encounter_graph.encounter_graph import compute_symmetric_distance_matrix
-from rsp.route_dag.route_dag import ScheduleProblemEnum
-from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.flatland_replay_utils import convert_trainrundict_to_entering_positions_for_all_timesteps
 
 
 def _plot_encounter_graph_directed(weights_matrix: np.ndarray,
@@ -166,93 +158,3 @@ def _plot_encounter_graph_undirected(distance_matrix: np.ndarray,
         plt.close(fig)
 
     return pos
-
-
-def plot_encounter_graphs_for_experiment_result(
-        experiment_result: ExperimentResultsAnalysis,
-        pos: Optional[dict] = None,
-        highlighted_nodes: Optional[dict] = None,
-        encounter_graph_folder: Optional[str] = None,
-        metric_function: Optional = None,
-        debug_pair: Optional[Tuple[int, int]] = None
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-
-    Parameters
-    ----------
-
-    experiment_result
-        Experiment Data to be used to generate encountergraphs
-    pos
-        Fixed positions for the nodes in the encountergraph
-    highlighted_nodes
-        Dict containing nodes that need to be highlighted
-    encounter_graph_folder
-        Folder to store encounter graphs
-    metric_function
-        Custom metric function to determine distance between nodes
-    debug_pair
-    Returns
-    -------
-    """
-    print("plot_encounter_graphs_for_experiment_result")
-    trainrun_dict_full = experiment_result.solution_full
-    trainrun_dict_full_after_malfunction = experiment_result.solution_full_after_malfunction
-    train_schedule_dict_full = convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict_full)
-    train_schedule_dict_full_after_malfunction = convert_trainrundict_to_entering_positions_for_all_timesteps(
-        trainrun_dict_full_after_malfunction)
-    print("schedule: compute_undirected_distance_matrix")
-    distance_matrix_full = compute_symmetric_distance_matrix(
-        trainrun_dict=trainrun_dict_full,
-        schedule_problem_description=experiment_result.problem_full,
-        train_schedule_dict=train_schedule_dict_full,
-        metric_function=metric_function)
-    print(distance_matrix_full)
-    if debug_pair is not None:
-        print(distance_matrix_full[debug_pair[0], debug_pair[1]])
-    print("re-schedule: compute_undirected_distance_matrix")
-
-    distance_matrix_full_after_malfunction = compute_symmetric_distance_matrix(
-        trainrun_dict=trainrun_dict_full_after_malfunction,
-        schedule_problem_description=experiment_result.problem_full_after_malfunction,
-        train_schedule_dict=train_schedule_dict_full_after_malfunction,
-        metric_function=metric_function)
-    print(distance_matrix_full_after_malfunction)
-    if debug_pair is not None:
-        print(distance_matrix_full_after_malfunction[debug_pair[0], debug_pair[1]])
-    distance_matrix_diff = np.abs(distance_matrix_full_after_malfunction - distance_matrix_full)
-    print(distance_matrix_diff)
-    if debug_pair is not None:
-        print(distance_matrix_diff[debug_pair[0], debug_pair[1]])
-
-    titles = {
-        ScheduleProblemEnum.PROBLEM_SCHEDULE: "encounter graph initial schedule (S0)",
-        ScheduleProblemEnum.PROBLEM_RSP_FULL: "encounter graph re-schedule full after malfunction (S)",
-        ScheduleProblemEnum.PROBLEM_RSP_DELTA: "encounter graph re-schedule delta after malfunction (S')"
-    }
-    if encounter_graph_folder is not None:
-        file_names = {
-            ScheduleProblemEnum.PROBLEM_SCHEDULE:
-                os.path.join(encounter_graph_folder, f"encounter_graph_initial_schedule.pdf"),
-            ScheduleProblemEnum.PROBLEM_RSP_FULL:
-                os.path.join(encounter_graph_folder, f"encounter_graph_schedule_after_malfunction.pdf"),
-            ScheduleProblemEnum.PROBLEM_RSP_DELTA:
-                os.path.join(encounter_graph_folder, f"encounter_graph_schedule_after_malfunction.pdf")
-        }
-    distance_matrices = {
-        ScheduleProblemEnum.PROBLEM_SCHEDULE: distance_matrix_full,
-        ScheduleProblemEnum.PROBLEM_RSP_FULL: distance_matrix_full_after_malfunction,
-        ScheduleProblemEnum.PROBLEM_RSP_DELTA: distance_matrix_diff
-    }
-    schedule_problems_to_visualize: List[ScheduleProblemEnum] = [
-        ScheduleProblemEnum.PROBLEM_SCHEDULE,
-        ScheduleProblemEnum.PROBLEM_RSP_FULL,
-        ScheduleProblemEnum.PROBLEM_RSP_DELTA
-    ]
-    for schedule_problem_to_visualize in schedule_problems_to_visualize:
-        pos = _plot_encounter_graph_undirected(distance_matrix=distance_matrices[schedule_problem_to_visualize],
-                                               title=titles[schedule_problem_to_visualize], file_name=(
-                file_names[schedule_problem_to_visualize] if encounter_graph_folder is not None else None), pos=pos,
-                                               highlights=highlighted_nodes)
-
-    return distance_matrix_full, distance_matrix_full_after_malfunction, distance_matrix_diff

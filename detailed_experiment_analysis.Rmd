@@ -28,13 +28,14 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
 from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_many_time_resource_diagrams
+from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagram
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
 from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
+from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
 
 from rsp.route_dag.route_dag import ScheduleProblemEnum
 ```
@@ -98,11 +99,11 @@ from rsp.experiment_solvers.asp.asp_helper import _print_stats
 ```
 
 ```{python}
-changed_agents_traces = plot_many_time_resource_diagrams(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest, with_diff=True)
+schedule_plotting = extract_schedule_plotting(experiment_result=single_exp_results)
 ```
 
 ```{python}
-
+changed_agents_traces = plot_resource_time_diagram(schedule_plotting = schedule_plotting, with_diff=True)
 ```
 
 ```{python}
@@ -110,7 +111,7 @@ changed_agents = {a: True for a in [*changed_agents_traces]}
 ```
 
 ```{python}
-schedule_times, schedule_ressources =plot_schedule_metrics(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+plot_schedule_metrics(schedule_plotting=schedule_plotting, lateness_delta_after_malfunction=single_exp_results.lateness_delta_after_malfunction)
 ```
 
 #### Histogram of delay per agent after re-scheduling
@@ -165,37 +166,13 @@ plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM
 #### Time Resource Window Graph: time windows in scheduling problem per resource
 
 ```{python}
-plot_time_window_resource_trajectories(experiment_result=single_exp_results)
+plot_time_window_resource_trajectories(experiment_result=single_exp_results,plotting_information=schedule_plotting.plotting_information)
 ```
 
 #### Resource Heat Map: how many potential resource conflicts on this resource?
 
 ```{python}
 plot_shared_heatmap(experiment_result=single_exp_results)
-```
-
-#### Encounter Graphs
-
-```{python}
-from rsp.encounter_graph.encounter_graph_visualization import plot_encounter_graphs_for_experiment_result
-from rsp.encounter_graph.encounter_graph import symmetric_temporal_distance_between_trains
-from rsp.encounter_graph.encounter_graph import symmetric_distance_between_trains_sum_of_time_window_overlaps
-
-```
-
-```{python}
-fixed_positions=None
-(distance_matrix_full, distance_matrix_malfunction, distance_matrix_diff) = plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,pos=fixed_positions,metric_function=symmetric_temporal_distance_between_trains)
-```
-
-```{python}
-fixed_positions = {agent_of_interest:(-100,-100)}
-plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents,metric_function=symmetric_temporal_distance_between_trains)
-```
-
-```{python}
-fixed_positions = {agent_of_interest:(0,0)}
-plot_encounter_graphs_for_experiment_result(experiment_result=single_exp_results,highlighted_nodes=changed_agents, pos=fixed_positions)
 ```
 
 ### Disturbance Propagation Graphs

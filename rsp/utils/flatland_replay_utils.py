@@ -2,6 +2,7 @@ import os
 import pprint
 import time
 import warnings
+from typing import Dict
 from typing import Optional
 
 import numpy as np
@@ -12,13 +13,18 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env import RailEnvActions
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
+from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.utils.data_types import ExperimentMalfunction
-from rsp.utils.data_types import TrainSchedule
-from rsp.utils.data_types import TrainScheduleDict
 from rsp.utils.file_utils import check_create_folder
 
 _pp = pprint.PrettyPrinter(indent=4)
+
+# For each time step, agent's location: int key is the time step at which the train occupies the resource
+# (agents occupy only one resource at a time, no release time)
+TrainSchedule = Dict[int, Waypoint]
+# TrainSchedule for all  trains: int key is the agent handle for which the schedule is returned
+TrainScheduleDict = Dict[int, TrainSchedule]
 
 
 def convert_trainrundict_to_entering_positions_for_all_timesteps(trainrun_dict: TrainrunDict,
