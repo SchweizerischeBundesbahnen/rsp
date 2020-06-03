@@ -5,7 +5,7 @@ library identifier: 'python-helper@master',
         retriever: modernSCM(
                 [$class       : 'GitSCMSource',
                  credentialsId: 'fsosebuild',
-                 remote       : 'https://code.sbb.ch/scm/KD_ESTA_BLUEPRINTS/esta-python-helper.git'])
+                 remote       : 'ssh://git@code.sbb.ch:7999/kd_esta_blueprints/esta-python-helper.git'])
 
 
 pipeline {

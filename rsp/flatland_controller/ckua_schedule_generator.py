@@ -17,6 +17,7 @@ from rsp.logger import rsp_logger
 from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.flatland_replay_utils import extract_trainrun_dict_from_flatland_positions
 from rsp.utils.flatland_replay_utils import FLATlandPositionsPerTimeStep
+from rsp.utils.flatland_replay_utils import render_trainruns
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -121,6 +122,15 @@ def ckua_generate_schedule(  # noqa:C901
         schedule=flatland_positions,
         targets=targets)
 
+    if rendering:
+        env.reset(False, False, False, random_seed=random_seed)
+        render_trainruns(
+            rail_env=env,
+            trainruns=trainrun_dict_from_flatland_positions,
+            data_folder="blabla22",
+            convert_to_mpeg=True
+        )
+
     trainrun_dict_from_selected_ways = extract_trainrun_dict_from_selected_ways(flatland_controller)
 
     # TODO SIM-494 trainrun_dict_from_flatland_positions has cycles:
@@ -144,7 +154,7 @@ def ckua_generate_schedule(  # noqa:C901
     return trainrun_dict_from_selected_ways, elapsed_time
 
 
-def extract_trainrun_dict_from_selected_ways(flatland_controller):
+def extract_trainrun_dict_from_selected_ways(flatland_controller) -> TrainrunDict:
     trainrun_dict_from_selected_ways = {}
     for agent_id, selected_way in flatland_controller.dispatcher.controllers.items():
         cell_graph_agent = flatland_controller.dispatcher.controllers[agent_id]

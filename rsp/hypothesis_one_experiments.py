@@ -11,7 +11,6 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
-from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import exists_schedule_and_malfunction
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
@@ -293,14 +292,11 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agend
     rsp_logger.info("Generating Malfunctions")
     for experiment in experiment_agenda.experiments:
         rsp_logger.info("Generating malfunction for experiment {}".format(experiment.experiment_id))
-        _, malfunction_env = create_env_pair_for_experiment(experiment)
 
-        def malfunction_env_reset():
-            malfunction_env.reset(False, False, False, experiment.flatland_seed_value)
-
-        malfunction = gen_malfunction(malfunction_rail_env=malfunction_env,
-                                      malfunction_env_reset=malfunction_env_reset,
-                                      schedule_trainruns=loaded_schedule_and_malfunction.schedule_experiment_result.trainruns_dict)
+        malfunction = gen_malfunction(
+            malfunction_duration=experiment.malfunction_duration,
+            earliest_malfunction=experiment.earliest_malfunction,
+            schedule_trainruns=loaded_schedule_and_malfunction.schedule_experiment_result.trainruns_dict)
         rsp_logger.info("Generated malfunction for agent {} at time {} for {} steps".format(malfunction.agent_id,
                                                                                             malfunction.time_step,
                                                                                             malfunction.malfunction_duration))
