@@ -38,7 +38,7 @@ from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import render_trainruns
 from rsp.utils.global_constants import RELEASE_TIME
 
-Trajectories = List[List[Tuple[int, int]]]
+Trajectories = List[List[Tuple[Optional[int], Optional[int]]]]
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
 ResourceSorting = Dict[Resource, int]

@@ -547,6 +547,8 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # 1. Generate malfuntion
     # --------------------------------------------------------------------------------------
+    # TODO SIM-517 Erik do we need to handle the exception if malfunctions happens later than the train is running in the env?
+    # TODO SIM-517 Erik: what do we do if the malfunction happens after the agent has already finished its path?
     malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at)
     malfunction = ExperimentMalfunction(
         time_step=malfunction_start,

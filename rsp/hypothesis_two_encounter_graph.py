@@ -4,19 +4,28 @@ from typing import List
 from typing import Tuple
 
 import numpy as np
+import tqdm
+from flatland.core.grid.grid_utils import coordinate_to_position
 
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
 from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagram
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import Trajectories
 from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
+from rsp.logger import rsp_logger
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains
+from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_time_windows
 from rsp.transmission_chains.transmission_chains import TransmissionChain
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ResourceOccupation
+from rsp.utils.data_types import SchedulingProblemInTimeWindows
+from rsp.utils.data_types_converters_and_validators import extract_time_windows
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.global_constants import RELEASE_TIME
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -93,30 +102,66 @@ def disturbance_propagation_graph_visualization(
     transmission_chains = extract_transmission_chains(malfunction=malfunction,
                                                       resource_occupations_per_agent=schedule_resource_occupations_per_agent,
                                                       resource_occupations_per_resource=schedule_resource_occupations_per_resource)
+    # TODO SIM-549
+    if False:
+        # 2. visualize the wave in resource-time diagram
+        # TODO remove dirty hack of visualizing wave as additional agent
+        wave_agent_id = number_of_trains
+        fake_resource_occupations = [
+            ResourceOccupation(interval=transmission_chain[-1].hop_off.interval,
+                               resource=transmission_chain[-1].hop_off.resource,
+                               direction=transmission_chain[-1].hop_off.direction,
+                               agent_id=wave_agent_id)
+            for transmission_chain in transmission_chains
+        ]
 
-    # 2. visualize the wave in resource-time diagram
-    # TODO remove dirty hack of visualizing wave as additional agent
-    wave_agent_id = number_of_trains
-    fake_resource_occupations = [
-        ResourceOccupation(interval=transmission_chain[-1].hop_off.interval,
-                           resource=transmission_chain[-1].hop_off.resource,
-                           direction=transmission_chain[-1].hop_off.direction,
-                           agent_id=wave_agent_id)
-        for transmission_chain in transmission_chains
-    ]
+        schedule_resource_occupations_per_agent[wave_agent_id] = fake_resource_occupations
+        reschedule_full_resource_occupations_per_agent[wave_agent_id] = []
 
-    schedule_resource_occupations_per_agent[wave_agent_id] = fake_resource_occupations
-    reschedule_full_resource_occupations_per_agent[wave_agent_id] = []
+        # get resource
+        changed_agents: Dict[int, bool] = plot_resource_time_diagram(schedule_plotting)
 
-    # get resource
-    changed_agents: Dict[int, bool] = plot_resource_time_diagram(schedule_plotting)
+        # 3. non-symmetric distance matrix of primary, secondary etc. effects
+        distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent = distance_matrix_from_tranmission_chains(
+            number_of_trains=number_of_trains, transmission_chains=transmission_chains)
+        # 4. visualize
+        _plot_delay_propagation_graph(changed_agents, experiment_result, malfunction, malfunction_agent_id, max_time_schedule, minimal_depth, number_of_trains,
+                                      wave_fronts_reaching_other_agent, weights_matrix)
 
-    # 3. non-symmetric distance matrix of primary, secondary etc. effects
-    distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent = distance_matrix_from_tranmission_chains(
-        number_of_trains=number_of_trains, transmission_chains=transmission_chains)
-    # 4. visualize
-    _plot_delay_propagation_graph(changed_agents, experiment_result, malfunction, malfunction_agent_id, max_time_schedule, minimal_depth, number_of_trains,
-                                  wave_fronts_reaching_other_agent, weights_matrix)
+    # 5. transmission chains re-scheduling problem
+    rsp_logger.info("start extract_time_windows")
+    re_schedule_full_time_windows: SchedulingProblemInTimeWindows = extract_time_windows(
+        route_dag_constraints_dict=experiment_result.problem_full_after_malfunction.route_dag_constraints_dict,
+        minimum_travel_time_dict=experiment_result.problem_full_after_malfunction.minimum_travel_time_dict,
+        release_time=RELEASE_TIME)
+    rsp_logger.info("end extract_time_windows")
+    rsp_logger.info("start extract_transmission_chains_from_time_windows")
+    transmission_chains_time_window: List[TransmissionChain] = extract_transmission_chains_from_time_windows(
+        time_windows=re_schedule_full_time_windows,
+        malfunction=malfunction)
+    rsp_logger.info("end extract_transmission_chains_from_time_windows")
+
+    trajectories_from_transmission_chains_time_window: Trajectories = [[] for _ in schedule]
+    plotting_information = schedule_plotting.plotting_information
+    for transmission_chain in tqdm.tqdm(transmission_chains_time_window):
+        last_time_window = transmission_chain[-1].hop_off
+        position = coordinate_to_position(plotting_information.grid_width, [last_time_window.resource])[0]
+        # TODO dirty hack: add positions from re-scheduling to resource_sorting in the first place instead of workaround here!
+        if position not in plotting_information.sorting:
+            plotting_information.sorting[position] = len(plotting_information.sorting)
+
+        agent_id = last_time_window.agent_id
+        train_time_path = trajectories_from_transmission_chains_time_window[agent_id]
+        train_time_path.append((plotting_information.sorting[position], last_time_window.interval.from_incl))
+        train_time_path.append((plotting_information.sorting[position], last_time_window.interval.to_excl))
+        train_time_path.append((None, None))
+
+    plot_time_resource_trajectories(
+        trajectories=trajectories_from_transmission_chains_time_window,
+        title='Time Window Propagation',
+        malfunction=malfunction,
+        ranges=plotting_information.dimensions
+    )
 
     return transmission_chains, distance_matrix, weights_matrix, minimal_depth
 
@@ -171,6 +216,6 @@ def _plot_delay_propagation_graph(
 
 if __name__ == '__main__':
     hypothesis_two_disturbance_propagation_graph(
-        experiment_base_directory='../rsp-data/agent_0_malfunction_2020_05_18T11_56_31',
-        experiment_ids=list(range(1))
+        experiment_base_directory='../rsp-data/agent_0_malfunction_2020_05_27T19_45_49',
+        experiment_ids=[0]
     )
