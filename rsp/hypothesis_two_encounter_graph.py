@@ -199,6 +199,7 @@ def disturbance_propagation_graph_visualization(
         trajectories_b=trajectories_from_transmission_chains_time_window)
     plot_time_resource_trajectories(
         trajectories=false_negatives,
+        # TODO SIM-549 is there something wrong because release times are not contained in time windows?
         title='False negatives (in re-schedule full but not in prediction)',
         malfunction=malfunction,
         ranges=plotting_information.dimensions
@@ -212,7 +213,7 @@ def disturbance_propagation_graph_visualization(
         malfunction=malfunction,
         ranges=plotting_information.dimensions
     )
-    # TODO SIM-549 is there something wrong because release times are not contained in time windows?
+
     # TODO SIM-549 damping: probabilistic delay propagation?
     # TODO SIM-549 use notebook so we do not have to re-generate transmission-chains on every trial
 
