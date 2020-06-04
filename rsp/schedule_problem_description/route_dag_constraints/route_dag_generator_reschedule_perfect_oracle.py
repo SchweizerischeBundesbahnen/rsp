@@ -121,7 +121,7 @@ def perfect_oracle(
         topo_dict[agent_id] = new_topo
 
     # (PO-3.2) propagate earliest and latest
-    tc: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
+    schedule_problem_description: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
         schedule_trainruns=schedule_trainrun_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
@@ -132,7 +132,7 @@ def perfect_oracle(
     )
 
     # (PO-3.3) add force_banned again to propagation constraints
-    freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
+    freeze_dict: RouteDAGConstraintsDict = schedule_problem_description.route_dag_constraints_dict
     freeze_dict_all: RouteDAGConstraintsDict = {
         agent_id: RouteDAGConstraints(
             freeze_visit=freeze_dict[agent_id].freeze_visit,
@@ -162,10 +162,10 @@ def perfect_oracle(
 
     return ScheduleProblemDescription(
         route_dag_constraints_dict=freeze_dict_all,
-        minimum_travel_time_dict=tc.minimum_travel_time_dict,
-        topo_dict=tc.topo_dict,
-        max_episode_steps=tc.max_episode_steps,
-        route_section_penalties=tc.route_section_penalties,
+        minimum_travel_time_dict=schedule_problem_description.minimum_travel_time_dict,
+        topo_dict=schedule_problem_description.topo_dict,
+        max_episode_steps=schedule_problem_description.max_episode_steps,
+        route_section_penalties=schedule_problem_description.route_section_penalties,
         weight_lateness_seconds=1
     )
 

@@ -174,14 +174,14 @@ def test_rescheduling_no_bottleneck():
 
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
 
-    tc: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    reschedule_problem_description: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
         topo_dict=tc_schedule_problem.topo_dict,
         latest_arrival=static_env._max_episode_steps
     )
-    freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
+    freeze_dict: RouteDAGConstraintsDict = reschedule_problem_description.route_dag_constraints_dict
 
     for agent_id, _ in freeze_dict.items():
         verify_consistency_of_route_dag_constraints_for_agent(
@@ -770,10 +770,10 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
     tc_delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle(
         full_reschedule_trainrun_waypoints_dict=fake_full_reschedule_trainruns,
         malfunction=fake_malfunction,
-        max_episode_steps=schedule_problem.tc.max_episode_steps,
-        schedule_topo_dict=schedule_problem.tc.topo_dict,
+        max_episode_steps=schedule_problem.schedule_problem_description.max_episode_steps,
+        schedule_topo_dict=schedule_problem.schedule_problem_description.topo_dict,
         schedule_trainrun_dict=fake_schedule,
-        minimum_travel_time_dict=schedule_problem.tc.minimum_travel_time_dict
+        minimum_travel_time_dict=schedule_problem.schedule_problem_description.minimum_travel_time_dict
     )
     delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=tc_delta_reschedule_problem,

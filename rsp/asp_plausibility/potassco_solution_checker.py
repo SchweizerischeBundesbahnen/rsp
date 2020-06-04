@@ -31,7 +31,7 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: s
 
     if problem_suffix == "full":
         schedule_problem: ASPProblemDescription = ASPProblemDescription.factory_scheduling(
-            tc=problem,
+            schedule_problem_description=problem,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
         schedule_result, asp_solution = solve_problem(
@@ -45,7 +45,7 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: s
                         f'{_get_asp_solver_details_from_statistics(elapsed_time=statistics["summary"]["times"]["total"], statistics=statistics)}')
         rsp_logger.info(f"Generating {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=problem,
+            schedule_problem_description=problem,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
         rsp_logger.info(f"Solving {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")

@@ -36,7 +36,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
     schedule_problem = ASPProblemDescription.factory_scheduling(
-        tc=schedule_problem_description,
+        schedule_problem_description=schedule_problem_description,
         asp_seed_value=asp_seed_value,
         no_optimize=no_optimize
     )
@@ -65,7 +65,7 @@ def asp_reschedule_wrapper(
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
     full_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-        tc=reschedule_problem_description,
+        schedule_problem_description=reschedule_problem_description,
         asp_seed_value=asp_seed_value
     )
 

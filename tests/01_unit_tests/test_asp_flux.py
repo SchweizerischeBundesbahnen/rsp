@@ -66,7 +66,7 @@ def test_simple_rail_asp_one_agent():
 
     k = 1
     tc = _create_schedule_problem_description_from_rail_env(env, k)
-    problem = ASPProblemDescription.factory_scheduling(tc=tc)
+    problem = ASPProblemDescription.factory_scheduling(schedule_problem_description=tc)
 
     print(problem.asp_program)
     models, stats, _, _, _ = flux_helper(problem.asp_program)

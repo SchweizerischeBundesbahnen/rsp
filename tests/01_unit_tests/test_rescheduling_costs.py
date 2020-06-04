@@ -39,7 +39,7 @@ def test_costs_forced_rerouting_one_agent():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, _ = solve_problem(problem=reschedule_problem)
         print(solution.trainruns_dict[0])
@@ -80,7 +80,7 @@ def test_costs_forced_delay_one_agent():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
@@ -133,7 +133,7 @@ def test_costs_forced_delay_two_agents():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
@@ -188,7 +188,7 @@ def test_costs_forced_rerouting_two_agents():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 

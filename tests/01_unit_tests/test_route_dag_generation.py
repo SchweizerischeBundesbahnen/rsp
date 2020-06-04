@@ -563,14 +563,14 @@ def test_get_freeze_for_full_rescheduling():
 
         ])
     topo_dict = _get_topology_from_agents_path_dict({2: agent_paths})
-    tc: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    reschedule_full_problem_description: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         minimum_travel_time_dict={2: 1},
         topo_dict=topo_dict,
         malfunction=malfunction,
         schedule_trainruns={2: train_run},
         latest_arrival=333
     )
-    route_dag_constraints: RouteDAGConstraints = tc.route_dag_constraints_dict[2]
+    route_dag_constraints: RouteDAGConstraints = reschedule_full_problem_description.route_dag_constraints_dict[2]
     print(f"freeze_visit={_pp.pformat(route_dag_constraints.freeze_visit)}")
     print(f"freeze_earliest={_pp.pformat(route_dag_constraints.freeze_earliest)}")
     print(f"freeze_latest={_pp.pformat(route_dag_constraints.freeze_latest)}")
@@ -1444,7 +1444,7 @@ def test_get_freeze_for_delta():
                 Waypoint(position=(23, 27), direction=0), Waypoint(position=(24, 28), direction=1),
                 Waypoint(position=(24, 29), direction=1), Waypoint(position=(23, 29), direction=0)
             ])}
-    tc: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
+    reschedule_problem_description: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
         topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
@@ -1453,7 +1453,7 @@ def test_get_freeze_for_delta():
         malfunction=malfunction,
         latest_arrival=333
     )
-    freeze_dict: RouteDAGConstraintsDict = tc.route_dag_constraints_dict
+    freeze_dict: RouteDAGConstraintsDict = reschedule_problem_description.route_dag_constraints_dict
 
     print("####freeze_dict")
     experimentFreezeDictPrettyPrint(freeze_dict)
