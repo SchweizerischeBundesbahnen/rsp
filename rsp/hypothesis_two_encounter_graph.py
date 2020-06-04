@@ -7,11 +7,13 @@ import numpy as np
 import tqdm
 from flatland.core.grid.grid_utils import coordinate_to_position
 
+from rsp.compute_time_analysis.compute_time_analysis import _get_difference_in_time_space_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
 from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagram
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import Trajectories
+from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
 from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
 from rsp.logger import rsp_logger
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
@@ -165,6 +167,20 @@ def disturbance_propagation_graph_visualization(
     plot_time_resource_trajectories(
         trajectories=trajectories_from_transmission_chains_time_window,
         title='Time Window Propagation',
+        malfunction=malfunction,
+        ranges=plotting_information.dimensions
+    )
+
+    # Plot difference of reschedule_full with prediciton
+    trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=reschedule_full_resource_occupations_per_agent,
+        plotting_information=plotting_information)
+    trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
+        trajectories_a=trajectories_reschedule_full,
+        trajectories_b=trajectories_from_transmission_chains_time_window)
+    plot_time_resource_trajectories(
+        trajectories=trajectories_influenced_agents,
+        title='Reduction by prediction',
         malfunction=malfunction,
         ranges=plotting_information.dimensions
     )

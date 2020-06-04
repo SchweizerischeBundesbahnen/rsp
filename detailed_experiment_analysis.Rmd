@@ -39,7 +39,7 @@ from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plo
 from rsp.utils.temporary_dummy_stuff_removal_helpers import remove_dummy_stuff_from_experiment_results_file
 
 
-from rsp.route_dag.route_dag import ScheduleProblemEnum
+from rsp.schedule_problem_description.route_dag_constraints import ScheduleProblemEnum
 ```
 
 ```{python}
