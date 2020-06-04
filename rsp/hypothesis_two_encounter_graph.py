@@ -24,7 +24,6 @@ _pp = pprint.PrettyPrinter(indent=4)
 def hypothesis_two_disturbance_propagation_graph(
         experiment_base_directory: str,
         experiment_ids: List[int] = None,
-        width: int = 400,
         show: bool = True
 ):
     """

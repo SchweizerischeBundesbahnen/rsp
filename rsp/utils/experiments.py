@@ -129,12 +129,17 @@ def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment
     return os.path.isfile(schedule_and_malfunction_file_name)
 
 
-def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> ScheduleAndMalfunction:
+def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> ScheduleAndMalfunction:
     """Load a persisted `ScheduleAndMalfunction` from a file.
     Parameters
     ----------
     experiment_agenda_directory
     experiment_id
+    re_save
+        used if module path used in pickle has changed;
+        use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+
+
     Returns
     -------
     """
@@ -143,7 +148,13 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
 
     with open(schedule_and_malfunction_file_name, 'rb') as handle:
         file_data: ScheduleAndMalfunction = pickle.load(handle)
-        return file_data
+
+    # used if module path used in pickle has changed
+    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+    if re_save:
+        with open(schedule_and_malfunction_file_name, 'wb') as handle:
+            pickle.dump(ScheduleAndMalfunction(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
+    return file_data
 
 
 def run_experiment(
