@@ -10,6 +10,7 @@ from flatland.core.grid.grid_utils import coordinate_to_position
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
 from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagram
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import Trajectories
 from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
 from rsp.logger import rsp_logger
@@ -127,6 +128,11 @@ def disturbance_propagation_graph_visualization(
         # 4. visualize
         _plot_delay_propagation_graph(changed_agents, experiment_result, malfunction, malfunction_agent_id, max_time_schedule, minimal_depth, number_of_trains,
                                       wave_fronts_reaching_other_agent, weights_matrix)
+
+    plot_time_window_resource_trajectories(
+        experiment_result=experiment_result,
+        plotting_information=schedule_plotting.plotting_information
+    )
 
     # 5. transmission chains re-scheduling problem
     rsp_logger.info("start extract_time_windows")
