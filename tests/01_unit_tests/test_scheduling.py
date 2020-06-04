@@ -72,9 +72,9 @@ def test_scheduling():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
     assert static_env.rail.grid.tolist() == expected_grid
 
-    tc_schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, 10)
+    schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, 10)
     schedule_result = asp_schedule_wrapper(
-        schedule_problem_description=tc_schedule_problem,
+        schedule_problem_description=schedule_problem,
         asp_seed_value=94,
         no_optimize=False
     )

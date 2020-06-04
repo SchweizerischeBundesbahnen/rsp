@@ -302,19 +302,19 @@ def run_experiment_from_schedule_and_malfunction(
     ExperimentResults
     """
     rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
-    tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
+    schedule_problem, schedule_result, malfunction = schedule_and_malfunction
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # --------------------------------------------------------------------------------------
     # 2. Re-schedule Full
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
-    reduced_topo_dict = tc_schedule_problem.topo_dict
+    reduced_topo_dict = schedule_problem.topo_dict
     full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
-        minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
-        latest_arrival=tc_schedule_problem.max_episode_steps,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        latest_arrival=schedule_problem.max_episode_steps,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         topo_dict=reduced_topo_dict
     )
@@ -353,10 +353,10 @@ def run_experiment_from_schedule_and_malfunction(
     delta_reschedule_problem = perfect_oracle(
         full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
         malfunction=malfunction,
-        max_episode_steps=tc_schedule_problem.max_episode_steps,
+        max_episode_steps=schedule_problem.max_episode_steps,
         schedule_topo_dict=reduced_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
-        minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
     )
     delta_reschedule_problem = apply_weight_route_change(
@@ -380,7 +380,7 @@ def run_experiment_from_schedule_and_malfunction(
     current_results = ExperimentResults(
         experiment_parameters=experiment_parameters,
         malfunction=malfunction,
-        problem_full=tc_schedule_problem,
+        problem_full=schedule_problem,
         problem_full_after_malfunction=full_reschedule_problem,
         problem_delta_after_malfunction=delta_reschedule_problem,
         results_full=schedule_result,
@@ -447,7 +447,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
     -------
     """
 
-    tc_schedule_problem, rail_env = create_schedule_full_problem_description_from_experiment_parameters(
+    schedule_problem, rail_env = create_schedule_full_problem_description_from_experiment_parameters(
         experiment_parameters=experiment_parameters
     )
 
@@ -461,9 +461,9 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
             show=False
         )
         verify_trainrun_dict_for_schedule_problem(
-            schedule_problem=tc_schedule_problem,
+            schedule_problem=schedule_problem,
             trainrun_dict=trainrun_dict,
-            expected_route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict
+            expected_route_dag_constraints=schedule_problem.route_dag_constraints_dict
         )
         schedule_result = SchedulingExperimentResult(
             total_reward=-np.inf,
@@ -472,7 +472,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
             build_problem_time=-np.inf,
             nb_conflicts=-np.inf,
             trainruns_dict=trainrun_dict,
-            route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict,
+            route_dag_constraints=schedule_problem.route_dag_constraints_dict,
             solver_statistics=fake_solver_statistics(elapsed_time),
             solver_result={},
             solver_configuration={},
@@ -481,7 +481,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         )
     else:
         schedule_result = asp_schedule_wrapper(
-            schedule_problem_description=tc_schedule_problem,
+            schedule_problem_description=schedule_problem,
             asp_seed_value=experiment_parameters.asp_seed_value,
             debug=debug
         )
@@ -490,7 +490,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         malfunction_duration=experiment_parameters.malfunction_duration,
         schedule_trainruns=schedule_result.trainruns_dict
     )
-    schedule_and_malfunction = ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
+    schedule_and_malfunction = ScheduleAndMalfunction(schedule_problem, schedule_result, malfunction)
     return schedule_and_malfunction
 
 
