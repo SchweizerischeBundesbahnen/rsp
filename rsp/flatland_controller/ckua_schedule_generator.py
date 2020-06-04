@@ -10,7 +10,6 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from libs.cell_graph_agent import AgentWayStep
 
-from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_simple
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.logger import rsp_logger
@@ -145,10 +144,6 @@ def ckua_generate_schedule(  # noqa:C901
                                 initial_directions=initial_directions,
                                 targets=targets,
                                 minimum_runningtime_dict=minimum_runningtime_dict)
-    env.reset(False, False, False, random_seed=random_seed)
-    verify_trainrun_dict(env=env, trainrun_dict=trainrun_dict_from_flatland_positions)
-    env.reset(False, False, False, random_seed=random_seed)
-    verify_trainrun_dict(env=env, trainrun_dict=trainrun_dict_from_selected_ways)
 
     print("verification done")
     return trainrun_dict_from_selected_ways, elapsed_time

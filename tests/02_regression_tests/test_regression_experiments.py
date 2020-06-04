@@ -24,11 +24,12 @@ from rsp.utils.experiments import create_env_pair_for_experiment
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import gen_schedule_and_malfunction
+from rsp.utils.experiments import gen_schedule_and_malfunction_from_rail_env
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
+from rsp.utils.experiments import run_experiment_from_schedule_and_malfunction
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.utils.experiments import save_schedule_and_malfunction
 
@@ -506,17 +507,13 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
-        schedule_and_malfunction_scaled: ScheduleAndMalfunction = gen_schedule_and_malfunction(
+        schedule_and_malfunction_scaled: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_rail_env(
             static_rail_env=static_rail_env,
-            malfunction_rail_env=malfunction_rail_env,
-            malfunction_env_reset=malfunction_env_reset,
             experiment_parameters=experiment_parameters_scaled,
             solver=solver
         )
-        schedule_and_malfunction: ScheduleAndMalfunction = gen_schedule_and_malfunction(
+        schedule_and_malfunction: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_rail_env(
             static_rail_env=static_rail_env,
-            malfunction_rail_env=malfunction_rail_env,
-            malfunction_env_reset=malfunction_env_reset,
             experiment_parameters=experiment_parameters,
             solver=solver
         )
@@ -539,17 +536,13 @@ def test_run_alpha_beta(regen_schedule: bool = False):
         experiment_id=1
     )
 
-    experiment_result_scaled: ExperimentResults = solver._run_experiment_from_environment(
+    experiment_result_scaled: ExperimentResults = run_experiment_from_schedule_and_malfunction(
         schedule_and_malfunction=schedule_and_malfunction_scaled,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters_scaled,
     )
 
-    experiment_result: ExperimentResults = solver._run_experiment_from_environment(
+    experiment_result: ExperimentResults = run_experiment_from_schedule_and_malfunction(
         schedule_and_malfunction=schedule_and_malfunction,
-        malfunction_rail_env=malfunction_rail_env,
-        malfunction_env_reset=malfunction_env_reset,
         experiment_parameters=experiment_parameters,
     )
 
