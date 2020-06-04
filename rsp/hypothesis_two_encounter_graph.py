@@ -175,15 +175,46 @@ def disturbance_propagation_graph_visualization(
     trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
         resource_occupations_schedule=reschedule_full_resource_occupations_per_agent,
         plotting_information=plotting_information)
-    trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
+    diff_reschedule_full_and_prediction, changed_agents_list = _get_difference_in_time_space_trajectories(
         trajectories_a=trajectories_reschedule_full,
         trajectories_b=trajectories_from_transmission_chains_time_window)
     plot_time_resource_trajectories(
-        trajectories=trajectories_influenced_agents,
-        title='Reduction by prediction',
+        trajectories=diff_reschedule_full_and_prediction,
+        title='Reduction by prediction (time window in re-scheduling problem, but not in prediction)',
         malfunction=malfunction,
         ranges=plotting_information.dimensions
     )
+    diff_prediction_and_reschedule_full, changed_agents_list = _get_difference_in_time_space_trajectories(
+        trajectories_b=trajectories_reschedule_full,
+        trajectories_a=trajectories_from_transmission_chains_time_window)
+    plot_time_resource_trajectories(
+        trajectories=diff_prediction_and_reschedule_full,
+        # TODO SIM-549 is not empty yet, understand why?
+        title='Sanity check: Prediction without corresponding time window in re-scheduling problem, should be empty',
+        malfunction=malfunction,
+        ranges=plotting_information.dimensions
+    )
+    false_negatives, changed_agents_list = _get_difference_in_time_space_trajectories(
+        trajectories_a=trajectories_reschedule_full,
+        trajectories_b=trajectories_from_transmission_chains_time_window)
+    plot_time_resource_trajectories(
+        trajectories=false_negatives,
+        title='False negatives (in re-schedule full but not in prediction)',
+        malfunction=malfunction,
+        ranges=plotting_information.dimensions
+    )
+    false_positives, changed_agents_list = _get_difference_in_time_space_trajectories(
+        trajectories_b=trajectories_reschedule_full,
+        trajectories_a=trajectories_from_transmission_chains_time_window)
+    plot_time_resource_trajectories(
+        trajectories=false_positives,
+        title='False positives (in prediction but not in re-schedule full)',
+        malfunction=malfunction,
+        ranges=plotting_information.dimensions
+    )
+    # TODO SIM-549 is there something wrong because release times are not contained in time windows?
+    # TODO SIM-549 damping: probabilistic delay propagation?
+    # TODO SIM-549 use notebook so we do not have to re-generate transmission-chains on every trial
 
     return transmission_chains, distance_matrix, weights_matrix, minimal_depth
 
