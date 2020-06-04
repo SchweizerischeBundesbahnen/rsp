@@ -6,15 +6,15 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
-from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
-from rsp.route_dag.route_dag import get_paths_in_route_dag
-from rsp.route_dag.route_dag import RouteDAGConstraints
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_for_route_dag_constraints
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiments import create_env_from_experiment_parameters
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import render_trainruns
 
@@ -42,7 +42,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
         Converts the rendering to mpeg
     """
 
-    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+    rail_env = create_env_from_experiment_parameters(experiment_parameters)
     train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
     train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
@@ -157,7 +157,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
         render_trainruns(data_folder=rendering_folder,
                          experiment_id=experiment_results_analysis.experiment_id,
                          malfunction=experiment_results_analysis.malfunction,
-                         rail_env=malfunction_rail_env,
+                         rail_env=rail_env,
                          trainruns=train_runs_full_after_malfunction,
                          convert_to_mpeg=convert_to_mpeg)
 

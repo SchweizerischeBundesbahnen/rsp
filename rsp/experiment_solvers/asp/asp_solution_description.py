@@ -8,9 +8,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.asp.asp_helper import FluxHelperResult
-from rsp.route_dag.route_dag import get_sinks_for_topo
-from rsp.route_dag.route_dag import get_sources_for_topo
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 
 
 class ASPSolutionDescription():

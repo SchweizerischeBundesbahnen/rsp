@@ -4,7 +4,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.route_dag_constraints import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import _get_asp_solver_details_from_statistics
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder

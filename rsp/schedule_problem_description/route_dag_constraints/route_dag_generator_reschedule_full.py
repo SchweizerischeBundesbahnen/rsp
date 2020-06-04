@@ -4,9 +4,9 @@ import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-from rsp.route_dag.generators.route_dag_generator_reschedule_generic import \
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_generic import \
     generic_schedule_problem_description_for_rescheduling
-from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 
 

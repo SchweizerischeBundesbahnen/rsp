@@ -9,7 +9,7 @@ from rsp.experiment_solvers.asp.asp_helper import configuration_as_dict_from_con
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.route_dag.route_dag import get_paths_in_route_dag
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 
 _pp = pprint.PrettyPrinter(indent=4)
 

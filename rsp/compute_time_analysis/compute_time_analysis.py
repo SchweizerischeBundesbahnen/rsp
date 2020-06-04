@@ -18,9 +18,9 @@ from matplotlib import pyplot as plt
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints
-from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.route_dag.route_dag import ScheduleProblemEnum
+from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
@@ -32,7 +32,7 @@ from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SortedResourceOccupationsPerAgent
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
 from rsp.utils.data_types_converters_and_validators import verify_schedule_as_resource_occupations
-from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiments import create_env_from_experiment_parameters
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import render_trainruns
@@ -687,7 +687,7 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
         experiment_data_series)
 
     # Generate environment for rendering
-    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_data.experiment_parameters)
+    rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
     # Generate aggregated visualization
     output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
 
@@ -704,7 +704,7 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
             render_trainruns(data_folder=output_folder,
                              experiment_id=experiment_data.experiment_id,
                              title=title,
-                             rail_env=static_rail_env,
+                             rail_env=rail_env,
                              trainruns=experiment_data.solution_full,
                              malfunction=experiment_data.malfunction,
                              convert_to_mpeg=True)
@@ -724,7 +724,7 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
                              experiment_id=experiment_data.experiment_id,
                              malfunction=experiment_data.malfunction,
                              title=title,
-                             rail_env=malfunction_rail_env,
+                             rail_env=rail_env,
                              trainruns=experiment_data.solution_full_after_malfunction,
                              convert_to_mpeg=True)
     else:

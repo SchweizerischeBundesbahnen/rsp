@@ -3,11 +3,11 @@ from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
-from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
-from rsp.route_dag.route_dag import _get_topology_from_agents_path_dict
-from rsp.route_dag.route_dag import get_sinks_for_topo
-from rsp.route_dag.route_dag import get_sources_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
+from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_earliest
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_latest
 from rsp.utils.experiment_env_generators import create_flatland_environment
 
 
