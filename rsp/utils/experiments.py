@@ -1035,7 +1035,7 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     return experiment_results_list
 
 
-def load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id) -> Tuple[ExperimentResults, str]:
+def load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id, re_save: bool = False) -> Tuple[ExperimentResults, str]:
     files = os.listdir(experiment_data_folder_name)
     rsp_logger.info(f"loading experiment results from {experiment_data_folder_name}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
@@ -1050,7 +1050,10 @@ def load_experiment_result_without_expanding(experiment_data_folder_name, experi
             continue
         with open(file_name, 'rb') as handle:
             experiment_result: ExperimentResults = pickle.load(handle)
-            return experiment_result, file_name
+        if re_save:
+            with open(file_name, 'wb') as handle:
+                pickle.dump(ExperimentResults(**experiment_result._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
+        return experiment_result, file_name
 
 
 def load_without_average(data_folder: str) -> DataFrame:
