@@ -10,7 +10,6 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.experiment_solvers.asp.asp_helper import FluxHelperResult
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 
 
@@ -28,6 +27,7 @@ class ASPSolutionDescription():
     def verify_correctness(self):
         self.__class__.verify_correctness_helper(self.tc, self.answer_set)
 
+    # TODO SIM-517 harmonize with verify trainruns?
     @staticmethod  # noqa: C901
     def verify_correctness_helper(tc: ScheduleProblemDescription, answer_set: Set[str]):
         """Verify that solution is consistent."""
@@ -64,26 +64,18 @@ class ASPSolutionDescription():
             assert trainrun_waypoints[-1].waypoint in sink_waypoints, \
                 f"(1.2) [{agent_id}] unexpected sink: {trainrun_waypoints[-1].waypoint} not in {sink_waypoints}"
 
-            # 1.3 verify that the dummy sections (first and last) have time 1
-            assert trainrun_waypoints[1].scheduled_at - trainrun_waypoints[0].scheduled_at == 1, \
-                f"(1.3) [{agent_id}] dummy section at source should take exactly 1: " \
-                f"found {trainrun_waypoints[0].scheduled_at} - {trainrun_waypoints[1].scheduled_at}"
-            assert trainrun_waypoints[-1].scheduled_at - trainrun_waypoints[-2].scheduled_at == 1, \
-                f"(1.3) [{agent_id}] dummy section at sink should take exactly 1: " \
-                f"found {trainrun_waypoints[-2].scheduled_at} - {trainrun_waypoints[-1].scheduled_at}"
-
-            # 1.4 verify minimimum_running_time is respected for all but first and last segment
-            for wp_1, wp_2 in zip(trainrun_waypoints[1:], trainrun_waypoints[2:-1]):
+            # 1.3 verify minimimum_running_time is respected
+            for wp_1, wp_2 in zip(trainrun_waypoints, trainrun_waypoints[1:]):
                 assert wp_2.scheduled_at - wp_1.scheduled_at >= minimum_running_time, \
                     f"(1.4) [{agent_id}] minimum running time not respected: " \
                     f"found {wp_1} - {wp_2}, but minimum_running_time={minimum_running_time}"
 
-            # 1.5 verify that trainrun satisfies topology
+            # 1.4 verify that trainrun satisfies topology
             for wp_1, wp_2 in zip(trainrun_waypoints, trainrun_waypoints[1:]):
                 assert (wp_1.waypoint, wp_2.waypoint) in topo.edges, \
                     f"(1.5) [{agent_id}] no edge for {wp_1} - {wp_2}"
 
-            # 1.6 verify path has no cycles
+            # 1.5 verify path has no cycles
             assert len(set(waypoints)) == len(waypoints), \
                 f"(1.6) [{agent_id}] cycle"
 
@@ -175,12 +167,6 @@ class ASPSolutionDescription():
         path = list(filter(lambda pse: pse.scheduled_at > 0 or pse.waypoint == start_waypoint,
                            map(self.__class__._parse_dl_fact, agent_facts)))
         path.sort(key=lambda p: p.scheduled_at)
-        # remove the transition from the target waypoint to the dummy
-        assert path[-1].waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET, \
-            f"{path[-1]}"
-        # TODO SIM-322 hard-coded assumption that last segment is 1
-        assert path[-1].scheduled_at - path[-2].scheduled_at == 1, f"{path[-2:]}"
-        path = path[:-1]
         return path
 
     def get_objective_value(self) -> float:

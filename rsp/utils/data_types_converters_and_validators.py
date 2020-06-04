@@ -71,8 +71,7 @@ def verify_schedule_as_resource_occupations(  # noqa: C901
     # 2. resource occupations must be mutually exclusive
     for occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.values():
         for ro_1, ro_2 in zip(occupations, occupations[1:]):
-            # TODO SIM-517 cleanup dummy synchronization step at the beginning makes two intervals for the same agent at the same resource, which is OK.
-            assert ro_2.interval.from_incl >= ro_1.interval.to_excl or ro_1.agent_id == ro_2.agent_id, f"{ro_1} {ro_2}"
+            assert ro_2.interval.from_incl >= ro_1.interval.to_excl, f"{ro_1} {ro_2}"
 
     # 3. resource occupations per agent must be for the relevant agent
     for agent_id, occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_agent.items():

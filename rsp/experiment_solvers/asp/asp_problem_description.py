@@ -15,7 +15,6 @@ from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescr
 from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraints
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 
 
@@ -252,11 +251,6 @@ class ASPProblemDescription():
         # initially, not act_penalty_for_train activated
         self.asp_program.append("act_penalty_for_train(0,0,0).")
 
-        # ensure that dummy edge at source and target take exactly 1 by forcing also <= 1 (>= is enforced by minimum running time)
-        # TODO SIM-322 hard-coded value 1
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- start(T,V), route(T,(V,V')).")
-        self.asp_program.append("&diff{ (T,V')-(T,V) }  <= 1:- end(T,V'), route(T,(V,V')).")
-
         # add trains
         for agent_id, topo in tc.topo_dict.items():
             sources = get_sources_for_topo(topo)
@@ -269,10 +263,6 @@ class ASPProblemDescription():
                                   )
 
             for (entry_waypoint, exit_waypoint) in topo.edges:
-                # TODO SIM-322 hard-coded assumptions on dummy edges
-                is_dummy_edge = (
-                        entry_waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or exit_waypoint.direction ==
-                        MAGIC_DIRECTION_FOR_SOURCE_TARGET)
                 # do not add edge to the ASP model if one of the two vertices is banned!
                 if entry_waypoint not in freeze.freeze_banned and exit_waypoint not in freeze.freeze_banned:
                     self._implement_route_section(
@@ -280,11 +270,8 @@ class ASPProblemDescription():
                         entry_waypoint=entry_waypoint,
                         exit_waypoint=exit_waypoint,
                         resource_id=entry_waypoint.position,
-                        minimum_travel_time=(1
-                                             if is_dummy_edge
-                                             else tc.minimum_travel_time_dict[agent_id]),
-                        route_section_penalty=(tc.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0)
-                                               if not is_dummy_edge else 0))
+                        minimum_travel_time=tc.minimum_travel_time_dict[agent_id],
+                        route_section_penalty=tc.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(
                 agent_id=agent_id,

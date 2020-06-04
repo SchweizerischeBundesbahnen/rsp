@@ -45,12 +45,7 @@ def propagate_earliest(banned_set: Set[Waypoint],
                 if successor in force_freeze_dict or successor in banned_set:
                     continue
                 else:
-                    minimum_travel_time_here = minimum_travel_time
-                    # TODO SIM-322 put minimum_travel_time per edge and add dumy edges for source and sink as input
-                    # minimum travel time is 1 (synchronization step) to one if we're coming from the source or goint to sink
-                    if topo.in_degree[waypoint] == 0 or topo.out_degree[successor] == 0:
-                        minimum_travel_time_here = 1
-                    path_earliest = earliest_dict.get(waypoint, np.inf) + minimum_travel_time_here
+                    path_earliest = earliest_dict.get(waypoint, np.inf) + minimum_travel_time
                     earliest = min(path_earliest, earliest_dict.get(successor, np.inf))
                     if earliest > subdag_source.scheduled_at and earliest < np.inf:
                         earliest = int(earliest)
@@ -158,13 +153,7 @@ def _propagate_latest_backwards(banned_set: Set[Waypoint],
                 if predecessor in force_freeze_dict or predecessor in banned_set:
                     continue
                 else:
-                    minimum_travel_time_corrected = minimum_travel_time
-                    # TODO SIM-322 put minimum_travel_time per edge and add dumy edges for source and sink as input
-                    # minimum travel time is 1 (synchronization step) if we're goint to the sink or coming from source
-                    if topo.out_degree[waypoint] == 0 or topo.in_degree[predecessor] == 0:
-                        minimum_travel_time_corrected = 1
-
-                    path_latest = latest_dict.get(waypoint, -np.inf) - minimum_travel_time_corrected
+                    path_latest = latest_dict.get(waypoint, -np.inf) - minimum_travel_time
                     latest = max(path_latest, latest_dict.get(predecessor, -np.inf))
                     if latest < latest_arrival and latest > -np.inf:
                         latest = int(latest)

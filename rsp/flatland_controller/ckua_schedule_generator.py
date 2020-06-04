@@ -13,12 +13,12 @@ from libs.cell_graph_agent import AgentWayStep
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_simple
 from rsp.flatland_controller.ckua_flatland_controller import CkUaController
 from rsp.logger import rsp_logger
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.flatland_replay_utils import extract_trainrun_dict_from_flatland_positions
 from rsp.utils.flatland_replay_utils import FLATlandPositionsPerTimeStep
 from rsp.utils.flatland_replay_utils import render_trainruns
 
 _pp = pprint.PrettyPrinter(indent=4)
+MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
 
 
 def ckua_generate_schedule(  # noqa:C901

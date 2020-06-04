@@ -11,7 +11,6 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.file_utils import check_create_folder
 
@@ -23,13 +22,16 @@ TrainSchedule = Dict[int, Waypoint]
 # TrainSchedule for all  trains: int key is the agent handle for which the schedule is returned
 TrainScheduleDict = Dict[int, TrainSchedule]
 
+# TODO SIM-434 do not use this data structure, only used in ckua_schedule_generation
 # key: agent.handle, value: Waypoint (position and direction)
 CurentFLATlandPositions = Dict[int, Waypoint]
 
+# TODO SIM-434 do not use this data structure, only used in ckua_schedule_generation
 # key: time_step, value: Waypoint (position and direction)
 # N.B. position and direction are taken at before this step() is executed in FLATland!
 AgentFLATlandPositions = Dict[int, Waypoint]
 
+# TODO SIM-434 do not use this data structure, only used in ckua_schedule_generation
 # key: time_step, value: dict[agent.handle]->Waypoint (position and direction)
 FLATlandPositionsPerTimeStep = Dict[int, CurentFLATlandPositions]
 
@@ -95,21 +97,6 @@ def extract_trainrun_dict_from_flatland_positions(
             # are we running?
             if next_waypoint.position is not None:
                 if next_waypoint.position != curr_pos:
-                    # are we starting?
-                    if curr_pos is None:
-                        # sanity checks
-                        assert time_step >= 1
-                        assert next_waypoint.position == initial_positions[agent_id]
-                        assert next_waypoint.direction == initial_directions[agent_id]
-
-                        # when entering the grid in time_step t, the agent has a position only before t+1 -> entry event at t!
-                        trainrun_dict[agent_id].append(
-                            TrainrunWaypoint(
-                                waypoint=Waypoint(
-                                    position=next_waypoint.position,
-                                    direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET),
-                                scheduled_at=time_step - 1))
-
                     # when the agent has a new position before time_step t, this corresponds to an entry at t!
                     trainrun_dict[agent_id].append(
                         TrainrunWaypoint(
@@ -119,8 +106,6 @@ def extract_trainrun_dict_from_flatland_positions(
             # are we done?
             if next_waypoint.position is None and curr_pos is not None:
                 # when the agent enters the target cell, it vanishes immediately in FLATland.
-                # TODO in the rsp model, we will add a transition to the dummy time of time 1 + release time 1 -> is there a problem?
-                #  (We might lose capacity in the rsp formulation)
                 trainrun_dict[agent_id].append(
                     TrainrunWaypoint(
                         waypoint=Waypoint(

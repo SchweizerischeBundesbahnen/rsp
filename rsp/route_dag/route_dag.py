@@ -13,8 +13,6 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.logger import rsp_logger
 
-MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
-
 TopoDict = Dict[int, nx.DiGraph]
 AgentPaths = List[List[Waypoint]]
 AgentsPathsDict = Dict[int, AgentPaths]
@@ -191,28 +189,12 @@ def get_reduced_dag_by_constraints(
     return topo_reduced
 
 
-def _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict: AgentsPathsDict):
+def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> TopoDict:
     # get topology from agent paths
     topo_dict = {agent_id: topo_from_agent_paths(agents_paths_dict[agent_id])
                  for agent_id in agents_paths_dict}
-    # add dummy nodes
-    dummy_source_dict: Dict[int, Waypoint] = {}
-    dummy_sink_dict: Dict[int, Waypoint] = {}
-    for agent_id, topo in topo_dict.items():
-        sources = list(get_sources_for_topo(topo))
-        sinks = list(get_sinks_for_topo(topo))
 
-        dummy_sink_waypoint = Waypoint(position=agents_paths_dict[agent_id][0][-1].position,
-                                       direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
-        dummy_sink_dict[agent_id] = dummy_sink_waypoint
-        dummy_source_waypoint = Waypoint(position=agents_paths_dict[agent_id][0][0].position,
-                                         direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET)
-        dummy_source_dict[agent_id] = dummy_source_waypoint
-        for source in sources:
-            topo.add_edge(dummy_source_waypoint, source)
-        for sink in sinks:
-            topo.add_edge(sink, dummy_sink_waypoint)
-    return dummy_source_dict, topo_dict
+    return topo_dict
 
 
 def apply_weight_route_change(

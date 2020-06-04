@@ -25,16 +25,10 @@ def solve_problem(
     Parameters
     ----------
     problem
-    env
-        The env to run the verification with
-    rendering_call_back
         Called every step in replay
     debug
         Display debugging information
-    loop_index
-        Used for display, should identify the problem instance
-    expected_malfunction
-        Used in verification if provided
+    verbose
 
     Returns
     -------

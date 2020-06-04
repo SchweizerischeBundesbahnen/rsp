@@ -33,8 +33,6 @@ FLATLAND_OFFSET_PATTERN = {
     2: np.array([-OFFSET, 0]),
     # heading west = coming from east: +col
     3: np.array([0, OFFSET]),
-    # dummy heading = no offset
-    5: np.array([0.5 * -OFFSET, 0.5 * -OFFSET])
 }
 
 
@@ -285,8 +283,7 @@ def _visualize_cycles_in_route_graph(agent_paths: AgentPaths, cycles: List[List[
         visualize_cycle_in_route_dag(
             topo=topo,
             file_name=f"cycle_{k}.pdf",
-            cycle=cycle,
-            dummies=[agent_path[1] for agent_path in agent_paths] + [agent_path[-2] for agent_path in agent_paths]
+            cycle=cycle
         )
     for k, path in enumerate(agent_paths):
         topo_path = nx.DiGraph()
@@ -297,15 +294,13 @@ def _visualize_cycles_in_route_graph(agent_paths: AgentPaths, cycles: List[List[
         visualize_cycle_in_route_dag(
             topo=topo_path,
             file_name=f"path_{k}.pdf",
-            cycle=[],
-            dummies=[path[0], path[-1]]
+            cycle=[]
         )
 
 
 def visualize_cycle_in_route_dag(
         topo: nx.DiGraph,
         cycle: List[Tuple[TrainrunWaypoint, TrainrunWaypoint]],
-        dummies: List[TrainrunWaypoint],
         train_run: Optional[Trainrun] = None,
         file_name: Optional[str] = None,
         title: Optional[str] = None,
@@ -324,8 +319,6 @@ def visualize_cycle_in_route_dag(
         title in the picture
     scale
         scale in or out
-    dummies
-        drawn yellow
     cycle
         drawn red
     """
@@ -355,7 +348,7 @@ def visualize_cycle_in_route_dag(
                                 all_waypoints}
 
     plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
-    plt_color_map = [_get_color_for_node_cycle(node, cycle, dummies) for node in topo.nodes()]
+    plt_color_map = [_get_color_for_node_cycle(node, cycle) for node in topo.nodes()]
     plt.legend(handles=_get_color_labels_cycle())
 
     plt_labels = {
@@ -433,10 +426,8 @@ def _get_color_labels():
     return legend_patches
 
 
-def _get_color_for_node_cycle(node, cycle, dummies):
-    if node in dummies:
-        return 'yellow'
-    elif node in cycle:
+def _get_color_for_node_cycle(node, cycle):
+    if node in cycle:
         return 'red'
     else:
         return 'lightblue'

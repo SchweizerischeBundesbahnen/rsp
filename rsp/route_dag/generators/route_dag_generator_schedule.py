@@ -7,8 +7,9 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_earliest
 from rsp.route_dag.generators.route_dag_generator_utils import propagate_latest
-from rsp.route_dag.route_dag import _get_topology_with_dummy_nodes_from_agent_paths_dict
+from rsp.route_dag.route_dag import _get_topology_from_agents_path_dict
 from rsp.route_dag.route_dag import get_sinks_for_topo
+from rsp.route_dag.route_dag import get_sources_for_topo
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.utils.data_types import RouteDAGConstraints
 
@@ -25,13 +26,13 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> Schedule
 
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                 for agent in env.agents}
-    dummy_source_dict, topo_dict = _get_topology_with_dummy_nodes_from_agent_paths_dict(agents_paths_dict)
+    topo_dict = _get_topology_from_agents_path_dict(agents_paths_dict)
     schedule_problem_description = ScheduleProblemDescription(
         route_dag_constraints_dict={
             agent_id: _get_route_dag_constraints_for_scheduling(
                 minimum_travel_time=minimum_travel_time_dict[agent_id],
                 topo=topo_dict[agent_id],
-                dummy_source=dummy_source_dict[agent_id],
+                source_waypoint=next(get_sources_for_topo(topo_dict[agent_id])),
                 latest_arrival=env._max_episode_steps)
             for agent_id, topo in topo_dict.items()},
         minimum_travel_time_dict=minimum_travel_time_dict,
@@ -46,7 +47,7 @@ def schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> Schedule
 
 def _get_route_dag_constraints_for_scheduling(
         topo: nx.DiGraph,
-        dummy_source: Waypoint,
+        source_waypoint: Waypoint,
         minimum_travel_time: int,
         latest_arrival: int
 ) -> RouteDAGConstraints:
@@ -54,10 +55,10 @@ def _get_route_dag_constraints_for_scheduling(
         freeze_visit=[],
         freeze_earliest=propagate_earliest(
             banned_set=set(),
-            earliest_dict={dummy_source: 0},
+            earliest_dict={source_waypoint: 0},
             minimum_travel_time=minimum_travel_time,
             force_freeze_dict={},
-            subdag_source=TrainrunWaypoint(waypoint=dummy_source, scheduled_at=0),
+            subdag_source=TrainrunWaypoint(waypoint=source_waypoint, scheduled_at=0),
             topo=topo,
         ),
         freeze_latest=propagate_latest(

@@ -78,13 +78,11 @@ def test_simple_rail_asp_one_agent():
     actual_answer_set = list(models)[0]
 
     expected = set([
-        "dl((t0,((3,1),5)),0)",
-        "dl((t0,((3,1),1)),1)",
-        "dl((t0,((3,2),1)),2)",
-        "dl((t0,((3,3),1)),3)",
-        "dl((t0,((3,4),1)),4)",
-        "dl((t0,((3,5),1)),5)",
-        "dl((t0,((3,5),5)),6)"
+        "dl((t0,((3,1),1)),0)",
+        "dl((t0,((3,2),1)),1)",
+        "dl((t0,((3,3),1)),2)",
+        "dl((t0,((3,4),1)),3)",
+        "dl((t0,((3,5),1)),4)",
     ])
 
     assert actual_answer_set.issuperset(expected), \

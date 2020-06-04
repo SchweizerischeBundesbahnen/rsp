@@ -8,11 +8,13 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.route_dag.route_dag import get_sinks_for_topo
 from rsp.route_dag.route_dag import get_sources_for_topo
-from rsp.route_dag.route_dag import MAGIC_DIRECTION_FOR_SOURCE_TARGET
 from rsp.route_dag.route_dag import RouteDAGConstraintsDict
 from rsp.route_dag.route_dag import ScheduleProblemDescription
 from rsp.route_dag.route_dag import TopoDict
 from rsp.utils.data_types import ExperimentMalfunction
+from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
+from rsp.utils.data_types_converters_and_validators import verify_schedule_as_resource_occupations
+from rsp.utils.global_constants import RELEASE_TIME
 
 
 def get_sum_running_times_trainruns_dict(trainruns_dict: TrainrunDict):
@@ -179,46 +181,15 @@ def _verify_trainruns_3_source_target(trainrun_dict: TrainrunDict,
             f"agent {agent_id} does not start in expected initial position, found {initial_trainrun_waypoint}, expected {initial_positions[agent_id]}"
         assert initial_trainrun_waypoint.waypoint.direction == initial_directions[agent_id], \
             f"agent {agent_id} does not start in expected initial direction, found {initial_trainrun_waypoint}, expected {initial_directions[agent_id]}"
-        # target trainrun waypoint is last before dummy
+        # target trainrun waypoint
         final_trainrun_waypoint = trainrun_dict[agent_id][-1]
         assert final_trainrun_waypoint.waypoint.position == targets[agent_id], \
             f"agent {agent_id} does not end in expected target position, found {final_trainrun_waypoint}, expected{targets[agent_id]}"
 
 
-def _verify_trainruns_2_mutual_exclusion(trainruns_dict):
-    agent_positions_per_time_step = {}
-    for agent_id, trainrun_sparse in trainruns_dict.items():
-
-        previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
-        # TODO refactor: extract the "ausrollen"
-        for trainrun_waypoint in trainrun_sparse:
-            if previous_trainrun_waypoint is not None:
-                while trainrun_waypoint.scheduled_at > previous_trainrun_waypoint.scheduled_at + 1:
-                    time_step = previous_trainrun_waypoint.scheduled_at + 1
-                    agent_positions_per_time_step.setdefault(time_step, {})
-                    previous_trainrun_waypoint = TrainrunWaypoint(waypoint=previous_trainrun_waypoint.waypoint,
-                                                                  scheduled_at=time_step)
-
-                    agent_positions_per_time_step[time_step][agent_id] = previous_trainrun_waypoint
-            agent_positions_per_time_step.setdefault(trainrun_waypoint.scheduled_at, {})
-            agent_positions_per_time_step[trainrun_waypoint.scheduled_at][agent_id] = trainrun_waypoint
-            previous_trainrun_waypoint = trainrun_waypoint
-
-        time_step = previous_trainrun_waypoint.scheduled_at + 1
-        agent_positions_per_time_step.setdefault(time_step, {})
-        trainrun_waypoint = TrainrunWaypoint(
-            waypoint=Waypoint(position=previous_trainrun_waypoint.waypoint.position,
-                              direction=MAGIC_DIRECTION_FOR_SOURCE_TARGET),
-            scheduled_at=time_step)
-        agent_positions_per_time_step[time_step][agent_id] = trainrun_waypoint
-    for time_step in agent_positions_per_time_step:
-        positions = {trainrun_waypoint.waypoint.position for trainrun_waypoint in
-                     agent_positions_per_time_step[time_step].values()}
-        positions_list = [trainrun_waypoint.waypoint.position for trainrun_waypoint in
-                          agent_positions_per_time_step[time_step].values()]
-        assert len(positions) == len(agent_positions_per_time_step[time_step]), \
-            f"at {time_step}, conflicting positions ({len(positions)} {positions_list} vs. {len(agent_positions_per_time_step[time_step])}): \n" + \
-            f"{agent_positions_per_time_step[time_step]} \n {positions}"
+def _verify_trainruns_2_mutual_exclusion(trainrun_dict: TrainrunDict):
+    schedule_as_resource_occupations = extract_resource_occupations(schedule=trainrun_dict, release_time=RELEASE_TIME)
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations, release_time=RELEASE_TIME)
 
 
 def _verify_trainruns_1_path_consistency(trainrun_dict: TrainrunDict, minimum_runningtime_dict: Dict[int, int]):
@@ -231,18 +202,10 @@ def _verify_trainruns_1_path_consistency(trainrun_dict: TrainrunDict, minimum_ru
         for trainrun_waypoint in trainrun_sparse:
             # 1.a) ensure schedule is ascending and respects the train's constant speed
             if previous_trainrun_waypoint is not None:
-                # TODO SIM-322 hard-coded assumption
-                if previous_trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET or \
-                        trainrun_waypoint.waypoint.direction == MAGIC_DIRECTION_FOR_SOURCE_TARGET:
-                    assert trainrun_waypoint.scheduled_at - previous_trainrun_waypoint.scheduled_at == 1, \
-                        f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
-                        f"from {previous_trainrun_waypoint} " + \
-                        f"is a dummy segment that should need exactly one time step."
-                else:
-                    assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell, \
-                        f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
-                        f"from {previous_trainrun_waypoint} " + \
-                        f"minimum running time={minimum_running_time_per_cell}"
+                assert trainrun_waypoint.scheduled_at >= previous_trainrun_waypoint.scheduled_at + minimum_running_time_per_cell, \
+                    f"agent {agent_id} inconsistency: to {trainrun_waypoint} " + \
+                    f"from {previous_trainrun_waypoint} " + \
+                    f"minimum running time={minimum_running_time_per_cell}"
             # 1.b) ensure train run is non-circular
             assert trainrun_waypoint not in previous_waypoints
             previous_trainrun_waypoint = trainrun_waypoint

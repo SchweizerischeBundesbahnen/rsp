@@ -547,8 +547,7 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # 1. Generate malfuntion
     # --------------------------------------------------------------------------------------
-    # TODO SIM-517 when dummies removed, take first section instead of second
-    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][1].scheduled_at)
+    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at)
     malfunction = ExperimentMalfunction(
         time_step=malfunction_start,
         malfunction_duration=malfunction_duration,
@@ -929,23 +928,23 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
     return env_static, env_malfunction
 
 
-def save_experiment_agenda_and_hash_to_file(experiment_folder_name: str, experiment_agenda: ExperimentAgenda):
+def save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name: str, experiment_agenda: ExperimentAgenda):
     """Save experiment agenda and current git hash to the folder with the
     experiments.
     Parameters
     ----------
-    experiment_folder_name: str
+    experiment_agenda_folder_name: str
         Folder name of experiment where all experiment files and agenda are stored
     experiment_agenda: ExperimentAgenda
         The experiment agenda to save
     """
-    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
-    check_create_folder(experiment_folder_name)
+    file_name = os.path.join(experiment_agenda_folder_name, "experiment_agenda.pkl")
+    check_create_folder(experiment_agenda_folder_name)
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # write current hash to sha.txt to experiment folder
-    _write_sha_txt(experiment_folder_name)
+    _write_sha_txt(experiment_agenda_folder_name)
 
 
 def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
@@ -968,13 +967,13 @@ def create_experiment_folder_name(experiment_name: str) -> str:
     return "{}_{}".format(experiment_name, datetime_string)
 
 
-def create_experiment_filename(experiment_folder_name: str, experiment_id: int) -> str:
+def create_experiment_filename(experiment_data_folder_name: str, experiment_id: int) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
     filename = "experiment_{:04d}_{}.pkl".format(experiment_id, datetime_string)
-    return os.path.join(experiment_folder_name, filename)
+    return os.path.join(experiment_data_folder_name, filename)
 
 
-def save_experiment_results_to_file(experiment_results: List, file_name: str):
+def save_experiment_results_to_file(experiment_results: ExperimentResults, file_name: str):
     """Save the data frame with all the result from an experiment into a given
     file.
     Parameters
@@ -1036,6 +1035,24 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
     return experiment_results_list
+
+
+def load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id) -> Tuple[ExperimentResults, str]:
+    files = os.listdir(experiment_data_folder_name)
+    rsp_logger.info(f"loading experiment results from {experiment_data_folder_name}")
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
+        file_name = os.path.join(experiment_data_folder_name, file)
+        if not file_name.endswith(".pkl"):
+            continue
+
+        # filter experiments according to defined experiment_ids
+        exp_id = get_experiment_id_from_filename(file_name)
+        if exp_id != experiment_id:
+            continue
+        with open(file_name, 'rb') as handle:
+            experiment_result: ExperimentResults = pickle.load(handle)
+            return experiment_result, file_name
 
 
 def load_without_average(data_folder: str) -> DataFrame:
