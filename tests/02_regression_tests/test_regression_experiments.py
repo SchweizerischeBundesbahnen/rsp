@@ -6,11 +6,10 @@ import numpy as np
 
 from rsp.experiment_solvers.data_types import schedule_experiment_results_equals_modulo_solve_time
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
-from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
 from rsp.logger import rsp_logger
-from rsp.route_dag.route_dag import schedule_problem_description_equals
+from rsp.schedule_problem_description.data_types_and_utils import schedule_problem_description_equals
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import convert_list_of_experiment_results_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
@@ -19,11 +18,11 @@ from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiments import create_env_from_experiment_parameters
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import gen_schedule_and_malfunction_from_rail_env
+from rsp.utils.experiments import gen_schedule_and_malfunction_from_experiment_parameters
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import run_experiment
@@ -105,22 +104,14 @@ def test_created_env_tuple():
                                            max_window_size_from_earliest=np.inf)
 
     # Generate the tuple of environments
-    static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
+    static_env = create_env_from_experiment_parameters(params=test_parameters)
     print(static_env.rail.grid.tolist())
-
-    # Check that the same number of agents were created
-    assert static_env.get_num_agents() == dynamic_env.get_num_agents()
 
     # Check that the same grid was created
     assert static_env.rail.grid.tolist() == expected_grid
-    assert dynamic_env.rail.grid.tolist() == expected_grid
-
-    # Check agent information
-    for agent_index in range(static_env.get_num_agents()):
-        assert static_env.agents[agent_index] == dynamic_env.agents[agent_index]
 
 
-def test_regression_experiment_agenda(regen: bool = False, remove_dummy: bool = False):
+def test_regression_experiment_agenda(regen: bool = False, remove_dummy: bool = False, re_save: bool = False):
     """Run a simple agenda as regression test.
 
     It verifies that we can start from a set of schedules and
@@ -138,10 +129,16 @@ def test_regression_experiment_agenda(regen: bool = False, remove_dummy: bool = 
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf
                              )])
     experiment_agenda_directory = os.path.join("tests", "02_regression_tests", "data", "test_regression_experiment_agenda", EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+
+    # used if module path used in pickle has changed
+    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+    if re_save:
+        load_schedule_and_malfunction(experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
     if regen:
         save_experiment_agenda_and_hash_to_file(
             experiment_agenda_folder_name=experiment_agenda_directory,
             experiment_agenda=agenda)
+
     if remove_dummy:
         remove_dummy_stuff_from_schedule_and_malfunction_pickle(experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
 
@@ -265,7 +262,7 @@ def test_run_full_pipeline():
     delete_experiment_folder(experiment_folder_name)
 
 
-def test_run_alpha_beta(regen_schedule: bool = False):
+def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
     """Ensure that we get the exact same solution if we multiply the weights
     for route change and lateness by the same factor."""
 
@@ -285,27 +282,31 @@ def test_run_alpha_beta(regen_schedule: bool = False):
             'weight_lateness_seconds': experiment_parameters.weight_lateness_seconds * scale
         }))
 
-    solver = ASPExperimentSolver()
-
-    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
+    static_rail_env = create_env_from_experiment_parameters(experiment_parameters)
     static_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "static_env_alpha_beta.pkl")
-    malfunction_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "malfunction_env_alpha_beta.pkl")
 
-    def malfunction_env_reset():
-        malfunction_rail_env.reset(False, False, False, experiment_parameters.flatland_seed_value)
+    # used if module path used in pickle has changed
+    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+    if re_save:
+        load_schedule_and_malfunction(
+            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+            experiment_id=0,
+            re_save=True
+        )
+        load_schedule_and_malfunction(
+            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+            experiment_id=1,
+            re_save=True
+        )
 
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
-        schedule_and_malfunction_scaled: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_rail_env(
-            static_rail_env=static_rail_env,
+        schedule_and_malfunction_scaled: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_experiment_parameters(
             experiment_parameters=experiment_parameters_scaled,
-            solver=solver
         )
-        schedule_and_malfunction: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_rail_env(
-            static_rail_env=static_rail_env,
-            experiment_parameters=experiment_parameters,
-            solver=solver
+        schedule_and_malfunction: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+            experiment_parameters=experiment_parameters
         )
 
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction_scaled,
@@ -358,9 +359,9 @@ def test_seed():
 
     folder_name = create_experiment_folder_name("test_seed")
     try:
-        experiment_results: ExperimentResults = run_experiment(ASPExperimentSolver(),
-                                                               experiment_parameters=experiment_parameters,
-                                                               experiment_base_directory=folder_name)
+        experiment_results: ExperimentResults = run_experiment(
+            experiment_parameters=experiment_parameters,
+            experiment_base_directory=folder_name)
 
         # check that asp seed value is received in solver
         assert experiment_results.results_full.solver_seed == experiment_parameters.asp_seed_value, \

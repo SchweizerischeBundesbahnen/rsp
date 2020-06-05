@@ -6,11 +6,11 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.route_dag import get_sinks_for_topo
-from rsp.route_dag.route_dag import get_sources_for_topo
-from rsp.route_dag.route_dag import RouteDAGConstraintsDict
-from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.route_dag.route_dag import TopoDict
+from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
 from rsp.utils.data_types_converters_and_validators import verify_schedule_as_resource_occupations
@@ -36,13 +36,13 @@ def verify_trainrun_dict_for_schedule_problem(
         expected_malfunction: Optional[ExperimentMalfunction] = None,
         expected_route_dag_constraints: Optional[RouteDAGConstraintsDict] = None
 ):
-    """Verify the consistency of a train run.
+    """Verify the consistency rules of a train run:
     1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
     2. verify mutual exclusion
     3. check that the paths lead from the desired start and goal
     4. check that the transitions are valid FLATland transitions according to the grid
     5. verify expected malfunction (if given)
-    6. verfy freezes are respected (if given)
+    6. verify freezes are respected (if given)
     Parameters
     ----------
     schedule_problem
@@ -66,18 +66,18 @@ def verify_trainrun_dict_for_schedule_problem(
                                 targets=targets,
                                 trainrun_dict=trainrun_dict)
 
-    # 4. check that the transitions are valid FLATland transitions according to the topo_dict
-    _verify_trainruns_4_consistency_with_flatland_moves(topo_dict=schedule_problem.topo_dict, trainrun_dict=trainrun_dict)
+    # 4. check that the transitions are valid transitions according to the topo_dict
+    _verify_trainruns_rule_4_consistency_with_topology(topo_dict=schedule_problem.topo_dict, trainrun_dict=trainrun_dict)
 
     # 5. verify expected malfunction
     if expected_malfunction:
-        _verify_trainruns_5_malfunction(expected_malfunction=expected_malfunction,
-                                        trainrun_dict=trainrun_dict,
-                                        minimum_runningtime_dict=minimum_runningtime_dict)
+        _verify_trainruns_rule_5_malfunction(expected_malfunction=expected_malfunction,
+                                             trainrun_dict=trainrun_dict,
+                                             minimum_runningtime_dict=minimum_runningtime_dict)
 
     # 6. verify freezes are respected
     if expected_route_dag_constraints:
-        _verify_trainruns_6_freeze(expected_route_dag_constraints, trainrun_dict)
+        _verify_trainruns_rule_6_freeze(expected_route_dag_constraints, trainrun_dict)
 
 
 def verify_trainrun_dict_simple(trainrun_dict: TrainrunDict,
@@ -99,14 +99,14 @@ def verify_trainrun_dict_simple(trainrun_dict: TrainrunDict,
     targets
     """
     # 1. ensure train runs are scheduled ascending, the train run is non-circular and respects the train's constant speed.
-    _verify_trainruns_1_path_consistency(trainrun_dict=trainrun_dict, minimum_runningtime_dict=minimum_runningtime_dict)
+    _verify_trainruns_rule_1_path_consistency(trainrun_dict=trainrun_dict, minimum_runningtime_dict=minimum_runningtime_dict)
     # 2. verify mutual exclusion
-    _verify_trainruns_2_mutual_exclusion(trainrun_dict)
+    _verify_trainruns_rule_2_mutual_exclusion(trainrun_dict)
     # 3. check that the paths lead from the desired start and goal
-    _verify_trainruns_3_source_target(trainrun_dict=trainrun_dict,
-                                      initial_positions=initial_positions,
-                                      initial_directions=initial_directions,
-                                      targets=targets)
+    _verify_trainruns_rule_3_source_target(trainrun_dict=trainrun_dict,
+                                           initial_positions=initial_positions,
+                                           initial_directions=initial_directions,
+                                           targets=targets)
 
     for agent_id, trainrun in trainrun_dict.items():
         waypoints = [trainrun_waypoint.waypoint for trainrun_waypoint in trainrun]
@@ -114,7 +114,8 @@ def verify_trainrun_dict_simple(trainrun_dict: TrainrunDict,
         assert no_cycle, f"cycle detected for agent {agent_id} \nduplicates={set([x for x in waypoints if waypoints.count(x) > 1])}\ntrainrun={trainrun}"
 
 
-def _verify_trainruns_5_malfunction(expected_malfunction: ExperimentMalfunction, trainrun_dict: TrainrunDict, minimum_runningtime_dict: Dict[int, int]):
+def _verify_trainruns_rule_5_malfunction(expected_malfunction: ExperimentMalfunction, trainrun_dict: TrainrunDict, minimum_runningtime_dict: Dict[int, int]):
+    """Train run consistency rule 5: verify expected malfunction (if given)"""
     malfunction_agent_path = trainrun_dict[expected_malfunction.agent_id]
     # malfunction must not start before the agent is in the grid
     assert malfunction_agent_path[0].scheduled_at + 1 <= expected_malfunction.time_step
@@ -129,7 +130,8 @@ def _verify_trainruns_5_malfunction(expected_malfunction: ExperimentMalfunction,
             break
 
 
-def _verify_trainruns_6_freeze(expected_route_dag_constraints, trainruns_dict):
+def _verify_trainruns_rule_6_freeze(expected_route_dag_constraints, trainruns_dict):
+    """Train run consistency rule 6: verify freezes are respected (if given)"""
     for agent_id, route_dag_constraints in expected_route_dag_constraints.items():
         waypoint_dict: Dict[Waypoint, int] = {
             trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
@@ -161,7 +163,9 @@ def _verify_trainruns_6_freeze(expected_route_dag_constraints, trainruns_dict):
             assert waypoint not in waypoint_dict
 
 
-def _verify_trainruns_4_consistency_with_flatland_moves(topo_dict: TopoDict, trainrun_dict):
+def _verify_trainruns_rule_4_consistency_with_topology(topo_dict: TopoDict, trainrun_dict):
+    """Train run consistency rule 4: check that the transitions are valid
+    FLATland transitions according to the topology."""
     for agent_id, trainrun_sparse in trainrun_dict.items():
         previous_trainrun_waypoint: Optional[TrainrunWaypoint] = None
         for trainrun_waypoint in trainrun_sparse:
@@ -171,10 +175,12 @@ def _verify_trainruns_4_consistency_with_flatland_moves(topo_dict: TopoDict, tra
                     f"expected one of {topo_dict[agent_id].neighbors(previous_trainrun_waypoint)}"
 
 
-def _verify_trainruns_3_source_target(trainrun_dict: TrainrunDict,
-                                      initial_positions: Dict[int, Tuple[int, int]],
-                                      initial_directions: Dict[int, int],
-                                      targets: Dict[int, Tuple[int, int]]):
+def _verify_trainruns_rule_3_source_target(trainrun_dict: TrainrunDict,
+                                           initial_positions: Dict[int, Tuple[int, int]],
+                                           initial_directions: Dict[int, int],
+                                           targets: Dict[int, Tuple[int, int]]):
+    """Train run consistency rule 3: check that the paths lead from the desired
+    start and goal."""
     for agent_id, trainrun in trainrun_dict.items():
         initial_trainrun_waypoint = trainrun[0]
         assert initial_trainrun_waypoint.waypoint.position == initial_positions[agent_id], \
@@ -187,12 +193,15 @@ def _verify_trainruns_3_source_target(trainrun_dict: TrainrunDict,
             f"agent {agent_id} does not end in expected target position, found {final_trainrun_waypoint}, expected{targets[agent_id]}"
 
 
-def _verify_trainruns_2_mutual_exclusion(trainrun_dict: TrainrunDict):
+def _verify_trainruns_rule_2_mutual_exclusion(trainrun_dict: TrainrunDict):
+    """Train run consistency rule 2: mutual exclusion."""
     schedule_as_resource_occupations = extract_resource_occupations(schedule=trainrun_dict, release_time=RELEASE_TIME)
     verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations, release_time=RELEASE_TIME)
 
 
-def _verify_trainruns_1_path_consistency(trainrun_dict: TrainrunDict, minimum_runningtime_dict: Dict[int, int]):
+def _verify_trainruns_rule_1_path_consistency(trainrun_dict: TrainrunDict, minimum_runningtime_dict: Dict[int, int]):
+    """Train run consistency rule 1: ensure train runs are scheduled ascending,
+    the train run is non-circular and respects the train's constant speed."""
     for agent_id, trainrun_sparse in trainrun_dict.items():
         minimum_running_time_per_cell = minimum_runningtime_dict[agent_id]
         assert minimum_running_time_per_cell >= 1

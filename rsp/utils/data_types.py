@@ -21,11 +21,11 @@ from pandas import Series
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
-from rsp.route_dag.route_dag import get_paths_for_route_dag_constraints
-from rsp.route_dag.route_dag import RouteDAGConstraints
-from rsp.route_dag.route_dag import RouteDAGConstraintsDict
-from rsp.route_dag.route_dag import ScheduleProblemDescription
-from rsp.route_dag.route_dag import TopoDict
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_for_route_dag_constraints
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 
 SpeedData = Mapping[float, float]
 

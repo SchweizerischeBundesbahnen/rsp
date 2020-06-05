@@ -1,46 +1,12 @@
 import pprint
 from typing import Optional
-from typing import Tuple
-
-from flatland.envs.rail_env import RailEnv
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
-from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
-from rsp.utils.data_types import ExperimentParameters
-
-
-class ASPExperimentSolver():
-    """Implements `ASPExperimentSolver` for ASP."""
-    _pp = pprint.PrettyPrinter(indent=4)
-
-    def gen_schedule(self,
-                     static_rail_env: RailEnv,
-                     experiment_parameters: ExperimentParameters,
-                     verbose: bool = False,
-                     debug: bool = False,
-                     ) -> Tuple[ScheduleProblemDescription, SchedulingExperimentResult]:
-        """A.2.2.
-
-        Create Schedule.
-        """
-        rsp_logger.info("gen_schedule_and_malfunction")
-        tc_schedule_problem = schedule_problem_description_from_rail_env(
-            env=static_rail_env,
-            k=experiment_parameters.number_of_shortest_paths_per_agent
-        )
-        schedule_result = asp_schedule_wrapper(tc_schedule_problem,
-                                               asp_seed_value=experiment_parameters.asp_seed_value,
-                                               debug=debug)
-
-        if verbose:
-            print(f"  **** schedule_solution={schedule_result.trainruns_dict}")
-        return tc_schedule_problem, schedule_result
-
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -70,7 +36,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
     # Produce a full schedule
     # --------------------------------------------------------------------------------------
     schedule_problem = ASPProblemDescription.factory_scheduling(
-        tc=schedule_problem_description,
+        schedule_problem_description=schedule_problem_description,
         asp_seed_value=asp_seed_value,
         no_optimize=no_optimize
     )
@@ -99,7 +65,7 @@ def asp_reschedule_wrapper(
     # Full Re-Scheduling
     # --------------------------------------------------------------------------------------
     full_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-        tc=reschedule_problem_description,
+        schedule_problem_description=reschedule_problem_description,
         asp_seed_value=asp_seed_value
     )
 

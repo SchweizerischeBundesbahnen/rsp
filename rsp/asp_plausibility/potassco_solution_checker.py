@@ -4,7 +4,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.route_dag_constraints import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import _get_asp_solver_details_from_statistics
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -31,7 +31,7 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: s
 
     if problem_suffix == "full":
         schedule_problem: ASPProblemDescription = ASPProblemDescription.factory_scheduling(
-            tc=problem,
+            schedule_problem_description=problem,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
         schedule_result, asp_solution = solve_problem(
@@ -45,7 +45,7 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: s
                         f'{_get_asp_solver_details_from_statistics(elapsed_time=statistics["summary"]["times"]["total"], statistics=statistics)}')
         rsp_logger.info(f"Generating {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=problem,
+            schedule_problem_description=problem,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
         rsp_logger.info(f"Solving {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")

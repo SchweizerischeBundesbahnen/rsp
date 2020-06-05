@@ -3,9 +3,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_sum_running_times_trainruns_dict
-from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.experiments import create_env_pair_for_experiment
+from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
+from rsp.utils.experiments import create_env_from_experiment_parameters
 
 
 def test_scheduling():
@@ -20,7 +20,7 @@ def test_scheduling():
                                            weight_route_change=1,
                                            weight_lateness_seconds=1,
                                            max_window_size_from_earliest=np.inf)
-    static_env, dynamic_env = create_env_pair_for_experiment(params=test_parameters)
+    static_env = create_env_from_experiment_parameters(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -71,11 +71,10 @@ def test_scheduling():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
     assert static_env.rail.grid.tolist() == expected_grid
-    assert dynamic_env.rail.grid.tolist() == expected_grid
 
-    tc_schedule_problem = schedule_problem_description_from_rail_env(static_env, 10)
+    schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, 10)
     schedule_result = asp_schedule_wrapper(
-        schedule_problem_description=tc_schedule_problem,
+        schedule_problem_description=schedule_problem,
         asp_seed_value=94,
         no_optimize=False
     )

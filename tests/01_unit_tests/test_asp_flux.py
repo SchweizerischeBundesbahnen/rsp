@@ -13,7 +13,7 @@ from rsp.experiment_solvers.asp.asp_helper import _asp_helper
 from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
-from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
+from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
 
 
 def test_asp_helper():
@@ -65,8 +65,8 @@ def test_simple_rail_asp_one_agent():
     start_solver = time.time()
 
     k = 1
-    tc = schedule_problem_description_from_rail_env(env, k)
-    problem = ASPProblemDescription.factory_scheduling(tc=tc)
+    tc = _create_schedule_problem_description_from_rail_env(env, k)
+    problem = ASPProblemDescription.factory_scheduling(schedule_problem_description=tc)
 
     print(problem.asp_program)
     models, stats, _, _, _ = flux_helper(problem.asp_program)

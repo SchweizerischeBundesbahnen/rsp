@@ -9,7 +9,7 @@ from importlib_resources import path
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
@@ -137,10 +137,7 @@ def _potassco_write_lp_and_sh_for_experiment(
         solver_program = results.solver_program
         # temporary workaround: data from Erik were produced without the new filed solver_program
         if solver_program is None:
-            asp_model = factory_method(
-                tc=problem,
-                asp_seed_value=results.solver_seed
-            )
+            asp_model = factory_method(problem, results.solver_seed)
             solver_program = asp_model.asp_program
 
         out.write("\n".join(solver_program))

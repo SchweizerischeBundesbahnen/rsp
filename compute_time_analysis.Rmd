@@ -31,7 +31,7 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
-from rsp.route_dag.route_dag import ScheduleProblemEnum
+from rsp.schedule_problem_description.route_dag_constraints import ScheduleProblemEnum
 ```
 
 ```{python}

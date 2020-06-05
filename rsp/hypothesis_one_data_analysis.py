@@ -27,9 +27,9 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_computional_tim
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
-from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.route_dag.route_dag import get_paths_in_route_dag
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
