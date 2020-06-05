@@ -6,12 +6,12 @@ from typing import Tuple
 import numpy as np
 
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagram
+from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
 from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
-from rsp.transmission_chains.transmission_chains import extract_transmission_chains
+from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
-from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import ExperimentResultsAnalysis, SortedResourceOccupationsPerAgent
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -52,18 +52,19 @@ def hypothesis_two_disturbance_propagation_graph(
 
         experiment_result: ExperimentResultsAnalysis = experiment_results_list[i]
 
-        disturbance_propagation_graph_visualization(experiment_result, show=show)
+        # Todo -> This currently does nothing by itself. do we need this at all?
+        compute_disturbance_propagation_graph(experiment_result)
 
 
-def disturbance_propagation_graph_visualization(
-        experiment_result: ExperimentResultsAnalysis,
-        show: bool = True
-) -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
+
+def compute_disturbance_propagation_graph(experiment_result: ExperimentResultsAnalysis) \
+        -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
     """
+    Method to Compute the disturbance propagation in the schedule when there is no dispatching done.
+    This method will return more changed agents than will actually change.
 
     Parameters
     ----------
-    show
     experiment_result
 
     Returns
@@ -71,54 +72,49 @@ def disturbance_propagation_graph_visualization(
     transmission_chains, distance_matrix, weights_matrix, minimal_depth
 
     """
-    # Get full schedule Time-resource-Data
-    schedule = experiment_result.results_full.trainruns_dict
-    malfunction = experiment_result.malfunction
-    malfunction_agent_id = malfunction.agent_id
-    number_of_trains = len(schedule)
-    max_time_schedule = np.max([trainrun[-1].scheduled_at for trainrun in schedule.values()])
 
     # 0. data preparation
     # aggregate occupations of each resource
     schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result)
 
-    schedule_resource_occupations_per_agent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    schedule_resource_occupations_per_resource = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_resource
-    reschedule_full_resource_occupations_per_agent = schedule_plotting.reschedule_full_as_resource_occupations.sorted_resource_occupations_per_agent
-
     # 1. compute the forward-only wave of the malfunction
     # "forward-only" means only agents running at or after the wave hitting them are considered,
     # i.e. agents do not decelerate ahead of the wave!
-    transmission_chains = extract_transmission_chains(malfunction=malfunction,
-                                                      resource_occupations_per_agent=schedule_resource_occupations_per_agent,
-                                                      resource_occupations_per_resource=schedule_resource_occupations_per_resource)
+    transmission_chains = extract_transmission_chains_from_schedule(schedule_plotting=schedule_plotting)
 
-    # 2. visualize the wave in resource-time diagram
-    # TODO remove dirty hack of visualizing wave as additional agent
-    wave_agent_id = number_of_trains
-    fake_resource_occupations = [
-        ResourceOccupation(interval=transmission_chain[-1].hop_off.interval,
-                           resource=transmission_chain[-1].hop_off.resource,
-                           direction=transmission_chain[-1].hop_off.direction,
-                           agent_id=wave_agent_id)
-        for transmission_chain in transmission_chains
-    ]
-
-    schedule_resource_occupations_per_agent[wave_agent_id] = fake_resource_occupations
-    reschedule_full_resource_occupations_per_agent[wave_agent_id] = []
-
-    # get resource
-    changed_agents: Dict[int, bool] = plot_resource_time_diagram(schedule_plotting)
+    # 2. extract time-resources influenced by propagated malfunction
 
     # 3. non-symmetric distance matrix of primary, secondary etc. effects
+    number_of_trains = experiment_result.n_agents
     distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent = distance_matrix_from_tranmission_chains(
         number_of_trains=number_of_trains, transmission_chains=transmission_chains)
-    # 4. visualize
-    _plot_delay_propagation_graph(changed_agents, experiment_result, malfunction, malfunction_agent_id, max_time_schedule, minimal_depth, number_of_trains,
-                                  wave_fronts_reaching_other_agent, weights_matrix)
 
     return transmission_chains, distance_matrix, weights_matrix, minimal_depth
 
+
+def resource_occpuation_from_transmission_chains(transmission_chains: List[TransmissionChain]) -> SortedResourceOccupationsPerAgent:
+    """
+    Method to construct Ressource Occupation from transmition chains.
+    Used to plot the transmission in the resource-time-diagram
+
+    Parameters
+    ----------
+    transmission_chains
+
+    Returns
+    -------
+    Ressource Occupation of a given Transmission Chain
+    """
+    wave_resource_occupations:SortedResourceOccupationsPerAgent = {}
+    wave_plotting_id = -1
+    time_resource_malfunction_wave = [
+        ResourceOccupation(interval=transmission_chain[-1].hop_off.interval,
+                           resource=transmission_chain[-1].hop_off.resource,
+                           direction=transmission_chain[-1].hop_off.direction,
+                           agent_id=wave_plotting_id)
+        for transmission_chain in transmission_chains]
+    wave_resource_occupations[wave_plotting_id] = time_resource_malfunction_wave
+    return wave_resource_occupations
 
 def _plot_delay_propagation_graph(
         changed_agents,
@@ -166,7 +162,6 @@ def _plot_delay_propagation_graph(
         title=f"Encounter Graph for experiment {experiment_result.experiment_id}, {malfunction}",
         file_name=file_name,
         pos=pos)
-
 
 if __name__ == '__main__':
     hypothesis_two_disturbance_propagation_graph(

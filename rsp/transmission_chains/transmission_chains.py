@@ -5,10 +5,8 @@ from typing import Tuple
 
 import numpy as np
 
-from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import SortedResourceOccupationsPerAgent
-from rsp.utils.data_types import SortedResourceOccupationsPerResource
+from rsp.utils.plotting_data_types import SchedulePlotting
 
 TransmissionLeg = NamedTuple('TransmissionLeg', [
     ('hop_on', ResourceOccupation),
@@ -23,23 +21,23 @@ WAVE_PER_AGENT_AND_DEPTH = Dict[int, WAVE_PER_DEPTH]
 
 
 # TODO we probably too much work here!
-def extract_transmission_chains(
-        malfunction: ExperimentMalfunction,
-        resource_occupations_per_agent: SortedResourceOccupationsPerAgent,
-        resource_occupations_per_resource: SortedResourceOccupationsPerResource
-) -> List[TransmissionChain]:
+def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlotting) -> List[TransmissionChain]:
     """Propagation of delay.
 
     Parameters
     ----------
-    malfunction
-    resource_occupations_per_agent
-    resource_occupations_per_resource
+    schedule_plotting
 
     Returns
     -------
+    List of transmission chains
     """
+
+    malfunction = schedule_plotting.malfunction
     malfunction_agent_id = malfunction.agent_id
+    resource_occupations_per_agent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_per_resource = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_resource
+
     open_wave_front: List[Tuple[ResourceOccupation, TransmissionChain]] = []
     transmission_chains: List[TransmissionChain] = []
     closed_wave_front: List[ResourceOccupation] = []

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Tuple
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -31,6 +31,8 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solver_seed', int),
                                          ('solver_program', Optional[List[str]])
                                          ])
+
+
 
 
 def fake_solver_statistics(elapsed_time):
