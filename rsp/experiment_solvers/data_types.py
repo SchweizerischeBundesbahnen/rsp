@@ -1,9 +1,10 @@
-from typing import Callable, Tuple
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
+from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 

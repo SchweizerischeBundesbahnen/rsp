@@ -103,8 +103,7 @@ def validate_transmission_chains(transmission_chains: List[TransmissionChain]):
 def distance_matrix_from_tranmission_chains(
         number_of_trains: int,
         transmission_chains: List[TransmissionChain],
-        cutoff: int = None
-) -> Tuple[np.ndarray, np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
+        cutoff: int = None) -> Tuple[np.ndarray, np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
     """
 
     Parameters

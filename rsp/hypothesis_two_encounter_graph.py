@@ -11,8 +11,9 @@ from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_gr
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
-from rsp.utils.data_types import ExperimentResultsAnalysis, SortedResourceOccupationsPerAgent
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ResourceOccupation
+from rsp.utils.data_types import SortedResourceOccupationsPerAgent
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -59,9 +60,9 @@ def hypothesis_two_disturbance_propagation_graph(
 
 def compute_disturbance_propagation_graph(experiment_result: ExperimentResultsAnalysis) \
         -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
-    """
-    Method to Compute the disturbance propagation in the schedule when there is no dispatching done.
-    This method will return more changed agents than will actually change.
+    """Method to Compute the disturbance propagation in the schedule when there
+    is no dispatching done. This method will return more changed agents than
+    will actually change.
 
     Parameters
     ----------
@@ -70,7 +71,6 @@ def compute_disturbance_propagation_graph(experiment_result: ExperimentResultsAn
     Returns
     -------
     transmission_chains, distance_matrix, weights_matrix, minimal_depth
-
     """
 
     # 0. data preparation
@@ -93,9 +93,8 @@ def compute_disturbance_propagation_graph(experiment_result: ExperimentResultsAn
 
 
 def resource_occpuation_from_transmission_chains(transmission_chains: List[TransmissionChain]) -> SortedResourceOccupationsPerAgent:
-    """
-    Method to construct Ressource Occupation from transmition chains.
-    Used to plot the transmission in the resource-time-diagram
+    """Method to construct Ressource Occupation from transmition chains. Used
+    to plot the transmission in the resource-time-diagram.
 
     Parameters
     ----------

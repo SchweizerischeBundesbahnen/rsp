@@ -7,9 +7,9 @@ jupyter:
       format_version: '1.2'
       jupytext_version: 1.4.1
   kernelspec:
-    display_name: Python 3
+    display_name: Python [conda env:.conda-rsp] *
     language: python
-    name: python3
+    name: conda-env-.conda-rsp-py
 ---
 
 ```{python}
@@ -28,7 +28,7 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
 from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagram
+from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
@@ -105,7 +105,7 @@ schedule_plotting = extract_schedule_plotting(experiment_result=single_exp_resul
 ```
 
 ```{python}
-changed_agents_traces = plot_resource_time_diagram(schedule_plotting = schedule_plotting, with_diff=True)
+changed_agents_traces = plot_resource_time_diagrams(schedule_plotting = schedule_plotting, with_diff=True)
 ```
 
 ```{python}
@@ -199,9 +199,5 @@ visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_
 ```{python}
 from rsp.hypothesis_one_data_analysis import visualize_hypotheses_asp
 visualize_hypotheses_asp(experiment_results_list=experiment_results_list)
-
-```
-
-```{python}
 
 ```

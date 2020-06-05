@@ -1,6 +1,7 @@
-
 # Plotting Data Structures
-from typing import NamedTuple, Dict, Tuple
+from typing import Dict
+from typing import NamedTuple
+from typing import Tuple
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ScheduleAsResourceOccupations

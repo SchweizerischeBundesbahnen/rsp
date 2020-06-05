@@ -37,7 +37,8 @@ from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import render_trainruns
 from rsp.utils.global_constants import RELEASE_TIME
-from rsp.utils.plotting_data_types import PlottingInformation, SchedulePlotting
+from rsp.utils.plotting_data_types import PlottingInformation
+from rsp.utils.plotting_data_types import SchedulePlotting
 
 Trajectories = List[List[Tuple[int, int]]]
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
@@ -795,10 +796,8 @@ def plot_schedule_metrics(schedule_plotting: SchedulePlotting, lateness_delta_af
         number_of_trains=len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent),
         transmission_chains=transmission_chains
     )
-    plot_delay_heat_map(schedule_as_resource_occupations=schedule_plotting.reschedule_delta_as_resource_occupations,
-                        malfunction=schedule_plotting.malfunction,
+    plot_delay_heat_map(plotting_data=schedule_plotting,
                         delay_information=lateness_delta_after_malfunction,
-                        width=schedule_plotting.plotting_information.grid_width,
                         depth_dict=minimal_depth)
 
 
@@ -858,10 +857,8 @@ def plot_resource_occupation_heat_map(
 
 
 def plot_delay_heat_map(
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        malfunction: ExperimentMalfunction,
+        plotting_data: SchedulePlotting,
         delay_information: Dict[int, int],
-        width: int,
         depth_dict: Dict[int, int]):
     """
     Plot agent delay over ressource.
@@ -882,15 +879,15 @@ def plot_delay_heat_map(
     )
     fig = go.Figure(layout=layout)
 
-    # Sort agents according to influence depth for plotting
+    # Sort agents according to influence depth for plotting only plot disturbed agents
     agents = []
     for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
-        if agent in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+        if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
             agents.append(agent)
-    for agent in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-        if agent not in agents:
-            agents.append(agent)
-
+    #for agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+    #    if agent not in agents:
+    #        agents.append(agent)
+    agents.append(plotting_data.malfunction.agent_id)
     # Plot traces of agents
     for agent_id in agents:
         x = []
@@ -900,7 +897,7 @@ def plot_delay_heat_map(
         times = []
         delay = []
         conflict_depth = []
-        for resource_occupation in schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
+        for resource_occupation in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
             time = resource_occupation.interval.from_incl
             malfunction_resource = resource_occupation.resource
             x.append(malfunction_resource[1])
@@ -916,7 +913,7 @@ def plot_delay_heat_map(
         if agent_id in depth_dict:
             color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
-            color = DEPTH_COLOR[-1]
+            color = "red"
         fig.add_trace(go.Scattergl(x=x,
                                    y=y,
                                    mode='markers',
@@ -932,7 +929,8 @@ def plot_delay_heat_map(
                                                  "Influence depth:\t%{customdata[2]}"
                                    ))
     # Plot malfunction
-    malfunction_resource = schedule_as_resource_occupations.resource_occupations_per_agent_and_time_step[(malfunction.agent_id, malfunction.time_step)][
+    malfunction_resource = plotting_data.schedule_as_resource_occupations.resource_occupations_per_agent_and_time_step[
+        (plotting_data.malfunction.agent_id, plotting_data.malfunction.time_step)][
         0].resource
     fig.add_trace(go.Scattergl(x=[malfunction_resource[1]],
                                y=[malfunction_resource[0]],
@@ -947,8 +945,8 @@ def plot_delay_heat_map(
                       width=1000,
                       height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
 
     fig.show()
 

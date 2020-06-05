@@ -90,7 +90,7 @@ plot_time_resource_trajectories(title="Schedule Propagation",trajectories=schedu
 ```
 
 ```{python}
-    
+
 ```
 
 ```{python}
