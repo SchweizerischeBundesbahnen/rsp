@@ -6,7 +6,6 @@ from typing import Tuple
 import numpy as np
 
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
 from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
@@ -57,7 +56,6 @@ def hypothesis_two_disturbance_propagation_graph(
         compute_disturbance_propagation_graph(experiment_result)
 
 
-
 def compute_disturbance_propagation_graph(experiment_result: ExperimentResultsAnalysis) \
         -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
     """Method to Compute the disturbance propagation in the schedule when there
@@ -104,7 +102,7 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
     -------
     Ressource Occupation of a given Transmission Chain
     """
-    wave_resource_occupations:SortedResourceOccupationsPerAgent = {}
+    wave_resource_occupations: SortedResourceOccupationsPerAgent = {}
     wave_plotting_id = -1
     time_resource_malfunction_wave = [
         ResourceOccupation(interval=transmission_chain[-1].hop_off.interval,
@@ -114,6 +112,7 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
         for transmission_chain in transmission_chains]
     wave_resource_occupations[wave_plotting_id] = time_resource_malfunction_wave
     return wave_resource_occupations
+
 
 def _plot_delay_propagation_graph(
         changed_agents,
@@ -161,6 +160,7 @@ def _plot_delay_propagation_graph(
         title=f"Encounter Graph for experiment {experiment_result.experiment_id}, {malfunction}",
         file_name=file_name,
         pos=pos)
+
 
 if __name__ == '__main__':
     hypothesis_two_disturbance_propagation_graph(

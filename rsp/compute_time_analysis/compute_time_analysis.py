@@ -26,7 +26,6 @@ from rsp.transmission_chains.transmission_chains import extract_transmission_cha
 from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
-from rsp.utils.data_types import Resource
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SortedResourceOccupationsPerAgent
@@ -401,8 +400,7 @@ def plot_shared_heatmap(
             fig.show()
 
 
-def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True, malfunction_wave: Optional[ResourceOccupation] = None) -> Dict[
-    int, bool]:
+def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -884,9 +882,8 @@ def plot_delay_heat_map(
     for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
         if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
             agents.append(agent)
-    #for agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-    #    if agent not in agents:
-    #        agents.append(agent)
+
+    # Add the malfunction source agent
     agents.append(plotting_data.malfunction.agent_id)
     # Plot traces of agents
     for agent_id in agents:

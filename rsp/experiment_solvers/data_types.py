@@ -4,7 +4,6 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Set
-from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
@@ -32,8 +31,6 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solver_seed', int),
                                          ('solver_program', Optional[List[str]])
                                          ])
-
-
 
 
 def fake_solver_statistics(elapsed_time):
