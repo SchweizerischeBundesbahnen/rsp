@@ -399,9 +399,10 @@ def plot_shared_heatmap(
         for sh in shared:
             sh = sh.replace('shared', '')
             sh = re.sub('t[0-9]+', '"XXX"', sh)
-            (t0, (wp00, wp01), t1, (wp10, wp11)) = eval(sh)
+            #  the position of each entry waypoint is the cell that will be in conflict
+            (t0, (wp00, _), t1, (wp10, _)) = eval(sh)
             distance_matrix[wp00[0]] += 1
-            distance_matrix[wp01[0]] += 1
+            distance_matrix[wp10[0]] += 1
         distance_matrix /= np.max(distance_matrix)
         fig = plt.figure(figsize=(18, 12), dpi=80)
         fig.suptitle(title, fontsize=16)

@@ -309,11 +309,11 @@ def _generic_route_dag_contraints_for_rescheduling(
 
     Parameters
     ----------
-    schedule_trainruns
+    schedule_trainrun
         the schedule before the malfunction happened
-    minimum_travel_time_dict
+    minimum_travel_time
         the agent's speed (constant for every agent, different among agents)
-    topo_dict
+    topo
         the topos for the agents
     force_freeze
         waypoints the oracle told to pass by

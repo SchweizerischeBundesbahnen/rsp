@@ -3,8 +3,8 @@ from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_experiment_result_without_expanding
 from rsp.utils.experiments import load_schedule_and_malfunction
-from rsp.utils.temporary_dummy_stuff_removal_helpers import remove_dummy_stuff_from_experiment_results_file
-from rsp.utils.temporary_dummy_stuff_removal_helpers import remove_dummy_stuff_from_schedule_and_malfunction_pickle
+from rsp.utils.experiments import remove_dummy_stuff_from_experiment_results_file
+from rsp.utils.experiments import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 
 
 def test_hypothesis_two(remove_dummy: bool = False, re_save: bool = False):
