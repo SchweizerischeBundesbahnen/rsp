@@ -25,12 +25,12 @@ from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_schedule_and_malfunction_from_experiment_parameters
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
+from rsp.utils.experiments import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_from_schedule_and_malfunction
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.utils.experiments import save_schedule_and_malfunction
-from rsp.utils.temporary_dummy_stuff_removal_helpers import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 
 
 def test_created_env_tuple():
