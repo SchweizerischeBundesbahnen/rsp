@@ -4,20 +4,30 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
-from rsp.schedule_problem_description.route_dag_constraints import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import _get_asp_solver_details_from_statistics
+from rsp.utils.experiments import create_experiment_filename
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.utils.experiments import save_experiment_results_to_file
 
 
-def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: str, debug: bool, verbose: bool = False):
+def main(experiment_data_folder_name: str,
+         experiment_id: int,
+         problem_suffix: str,
+         debug: bool,
+         verbose: bool = False,
+         save_output: bool = False):
     """
 
     Parameters
     ----------
+
     experiment_data_folder_name
     experiment_id
-    problem
+    save_output
+    verbose
+    problem_suffix
     debug
     """
     # We filter on a single experiment_id, so there should be only one one element in the list.
@@ -54,6 +64,9 @@ def main(experiment_data_folder_name: str, experiment_id: int, problem_suffix: s
             verbose=verbose,
             debug=debug
         )
+        if save_output:
+            filename = create_experiment_filename(experiment_data_folder_name=experiment_data_folder_name, experiment_id=experiment_id)
+            save_experiment_results_to_file(experiment_results, filename)
         rsp_logger.info(f"Done {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
     else:
         raise ValueError(f"problem={args.which} unknown")
@@ -72,6 +85,11 @@ if __name__ == '__main__':
                         nargs=1)
     parser.add_argument('--debug', action="store_true")
     parser.add_argument('--verbose', action="store_true")
+    parser.add_argument('--save_output', action="store_true")
     args = parser.parse_args()
-    main(experiment_data_folder_name=args.experiment_data_folder_name[0], experiment_id=args.experiment_id[0], problem_suffix=args.problem[0], debug=args.debug,
+    main(experiment_data_folder_name=args.experiment_data_folder_name[0],
+         experiment_id=args.experiment_id[0],
+         problem_suffix=args.problem[0],
+         debug=args.debug,
+         save_output=args.save_output,
          verbose=args.verbose)

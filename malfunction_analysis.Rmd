@@ -33,20 +33,20 @@ from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
 from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
 from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
-from rsp.utils.temporary_dummy_stuff_removal_helpers import remove_dummy_stuff_from_experiment_results_file
 
 
-from rsp.schedule_problem_description.route_dag_constraints import ScheduleProblemEnum
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/'
+experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
+# experiment_base_directory = '../rsp-data/mini_toy_example'
 experiment_of_interest = 0
 ```
 
 ```{python}
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-remove_dummy_stuff_from_experiment_results_file(experiment_data_directory,experiment_of_interest)
+
 experiment_results_list = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],

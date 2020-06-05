@@ -17,6 +17,7 @@ from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_schedule_and_malfunction
+from rsp.utils.experiments import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.utils.experiments import save_schedule_and_malfunction
@@ -90,7 +91,7 @@ def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAn
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
                                            city_range=[10, 10, 1],
-                                           earliest_malfunction=[1, 100, 10],
+                                           earliest_malfunction=[169, 250, 10],
                                            malfunction_duration=[50, 50, 1],
                                            number_of_shortest_paths_per_agent=[10, 10, 1],
                                            max_window_size_from_earliest=[60, 60, 1],
@@ -178,8 +179,21 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
                                           # take only half of avilable cpus so the machine stays responsive
                                           gen_only: bool = False
                                           ):
-    """Run pipeline from A.2 -> C."""
-    # [A.2 -> B]* Experiments: setup, then run
+    """Run pipeline from A.2 -> C.
+
+    [A.2 -> B]* Experiments: setup, then run
+    """
+    if experiment_ids is None:
+        experiment_ids = [exp.experiment_id for exp in experiment_agenda.experiments]
+    # TODO remove again
+
+    if copy_agenda_from_base_directory is not None:
+        for experiment_id in experiment_ids:
+            remove_dummy_stuff_from_schedule_and_malfunction_pickle(
+                experiment_agenda_directory=f"{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
+                experiment_id=experiment_id
+            )
+
     experiment_base_folder_name, _ = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
@@ -229,6 +243,7 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment.experiment_id)
     ]
+
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
         qualitative_analysis_experiment_ids=[],
@@ -239,9 +254,13 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
     )
 
 
-def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agenda_from_base_directory: str,
-                                                                      experiment_parameters: ParameterRangesAndSpeedData = None,
-                                                                      base_experiment_id: int = 0):
+def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
+        copy_agenda_from_base_directory: str,
+        experiment_parameters: ParameterRangesAndSpeedData = None,
+        base_experiment_id: int = 0,
+        experiment_agenda_name: Optional[str] = None,
+        parallel_compute: int = AVAILABLE_CPUS // 2
+):
     """Simple method to run experiments with new parameters without the need to
     generate the schedule.
     Takes the schedule of the `base_experiment_id` and prepares a new agenda with malfunction according from the parameters.
@@ -251,13 +270,14 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agend
 
     Parameters
     ----------
-
     copy_agenda_from_base_directory
         Agenda containing schedule.
     experiment_parameters
         New set of parameters that will be used for the experiments
     base_experiment_id
         The experiment to choose from the original agenda
+    experiment_agenda_name
+    parallel_compute
 
     Returns
     -------
@@ -268,6 +288,13 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agend
     rsp_logger.info("Loading Agenda and Schedule")
     experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     loaded_experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
+
+    if experiment_agenda_name is not None:
+        loaded_experiment_agenda = ExperimentAgenda(
+            experiment_name=experiment_agenda_name,
+            experiments=loaded_experiment_agenda.experiments
+        )
+
     loaded_schedule_and_malfunction = load_schedule_and_malfunction(
         experiment_agenda_directory=experiment_agenda_directory, experiment_id=base_experiment_id)
 
@@ -318,7 +345,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(copy_agend
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=tmp_experiment_folder,
-        parallel_compute=AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
+        parallel_compute=parallel_compute
     )
     # Cleanup files
     shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
@@ -348,7 +375,10 @@ def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRanges
     return experiment_base_folder_name
 
 
-def hypothesis_one_malfunction_analysis(agenda_folder: str = None):
+def hypothesis_one_malfunction_analysis(
+        agenda_folder: str = None,
+        base_experiment_id: int = 0,
+        parallel_compute: int = AVAILABLE_CPUS // 2, ):
     rsp_logger.info(f"MALFUNCTION INVESTIGATION")
     # Generate Schedule
     if agenda_folder is None:
@@ -359,10 +389,19 @@ def hypothesis_one_malfunction_analysis(agenda_folder: str = None):
     # Generate examples with different malfunctions
     parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation(schedule_gen=False)
 
-    hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(experiment_base_folder_name,
-                                                                      experiment_parameters=parameter_ranges_and_speed_data)
+    hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
+        experiment_base_folder_name,
+        experiment_parameters=parameter_ranges_and_speed_data,
+        base_experiment_id=base_experiment_id,
+        experiment_agenda_name=f"agent_{base_experiment_id}_malfunction",
+        parallel_compute=parallel_compute
+    )
 
 
 if __name__ == '__main__':
-    # TODO we should not check in the variations here and in the params!
-    hypothesis_one_malfunction_analysis('../rsp-data/agent_0_malfunction_2020_05_18T11_56_31/')
+    # do not commit your own calls !
+    pass
+    hypothesis_one_malfunction_analysis(
+        agenda_folder='../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/',
+        parallel_compute=1
+    )
