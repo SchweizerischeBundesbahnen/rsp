@@ -14,7 +14,6 @@ from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from matplotlib import pyplot as plt
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
@@ -392,12 +391,17 @@ def plot_shared_heatmap(
             distance_matrix[wp00[0]] += 1
             distance_matrix[wp10[0]] += 1
         distance_matrix /= np.max(distance_matrix)
-        fig = plt.figure(figsize=(18, 12), dpi=80)
-        fig.suptitle(title, fontsize=16)
-        plt.subplot(121)
-        plt.imshow(distance_matrix, cmap='hot', interpolation='nearest')
-        if show:
-            fig.show()
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=distance_matrix,
+                colorscale="Hot"))
+        fig.update_layout(
+            title='Heatmap {}'.format(title),
+            width=700,
+            height=700
+        )
+        fig.update_yaxes(autorange="reversed")
+        fig.show()
 
 
 def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
@@ -824,8 +828,8 @@ def plot_resource_occupation_heat_map(
     fig = go.Figure(layout=layout)
 
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
-        x.append(resource.row)
-        y.append(resource.column)
+        x.append(resource.column)
+        y.append(resource.row)
         size.append((len(resource_occupations)))
         times = np.array(sorted([ro.interval.from_incl for ro in resource_occupations]))
         if len(times) > 1:
@@ -841,7 +845,10 @@ def plot_resource_occupation_heat_map(
                                    color=size,
                                    symbol='square',
                                    showscale=True,
-                                   reversescale=False
+                                   reversescale=False,
+                                   colorbar=dict(
+                                       title="Colorbar"
+                                   ), colorscale="Hot"
                                )))
     fig.update_layout(title_text=f"Train Density at Resources {title_suffix}",
                       autosize=False,
@@ -974,6 +981,8 @@ def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupa
         y.append(nb_agents)
     fig.add_trace(go.Scattergl(x=x, y=y, name="Schedule"))
     fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
+    fig.update_xaxes(title="Time [steps]")
+    fig.update_yaxes(title="Active Agents")
     fig.show()
 
 
