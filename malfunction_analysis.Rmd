@@ -20,25 +20,20 @@ jupyter:
 # %autoreload 2
 import sys
 sys.path.append("./flatland_ckua")
-import pandas as pd
-from IPython.display import Video
 
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
-from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
-from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
-from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
-from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
-from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
 from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories, plot_resource_time_diagrams
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
+from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
 
-from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph, resource_occpuation_from_transmission_chains
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
+from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
+from rsp.hypothesis_two_encounter_graph import resource_occpuation_from_transmission_chains
+from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
+
 ```
 
 ### Load Experiment Data
@@ -61,40 +56,65 @@ single_exp_results = load_and_expand_experiment_results_from_data_folder(
 plotting_data = extract_schedule_plotting(experiment_result=single_exp_results)
 ```
 
-### Disturbance Propagation Graphs
-
-
+### Analyze Experiment Data
 
 Compute the propagation wave from the malfunction with no re-scheduling
 
 ```{python}
 transmission_chains, distance_matrix, weights_matrix, minimal_depth = compute_disturbance_propagation_graph(experiment_result=single_exp_results)
-```
-
-```{python}
 wave_resources = resource_occpuation_from_transmission_chains(transmission_chains)
-```
-
-```{python}
 wave_trajectory = trajectories_from_resource_occupations_per_agent(wave_resources,plotting_data.plotting_information)
 ```
+
+Get ressource occupation and time-space trajectories for initial schedule
 
 ```{python}
 schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
 schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations,plotting_data.plotting_information)
 ```
 
+Get ressource occupation and time-space trajectories for delta reschedule
+
 ```{python}
 reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
 reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,plotting_data.plotting_information)
 ```
 
+### Malfunction spread without interventions from re-scheduling algorithm
+
+Visualize the propagation of the malfunction in the schedule. Only forward propagation is considered and no re-scheduling is assumed. This illustratest the extent of the malfunction if no actions are taken.
+
 ```{python}
-plot_time_resource_trajectories(title="Schedule Propagation",trajectories=schedule_trajectories,ranges=plotting_data.plotting_information.dimensions,malfunction=plotting_data.malfunction,malfunction_wave=wave_trajectory)
+plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",trajectories=schedule_trajectories,ranges=plotting_data.plotting_information.dimensions,malfunction=plotting_data.malfunction,malfunction_wave=wave_trajectory)
+```
+
+Spacially the influence of the malfunction would have spread according to the following plot
+
+```{python}
+plot_delay_propagation_2d(plotting_data=plotting_data,
+                          delay_information=single_exp_results.lateness_delta_after_malfunction,
+                          depth_dict=minimal_depth)
+```
+
+### Re-scheduling to prevent spread of malfunction
+
+Given the actions of the re-scheduling algorithm, the spread can be limited noth in time and space. The figures below show the actual spread after the malfunction when actions where taken to stay close to the initial schedule
+
+```{python}
+changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(trajectories_a=schedule_trajectories, trajectories_b=reschedule_trajectories)
 ```
 
 ```{python}
+plot_time_resource_trajectories(title="Influenced Trains after re-scheduling",trajectories=changed_trajectories,ranges=plotting_data.plotting_information.dimensions,malfunction=plotting_data.malfunction)
+```
 
+The spatial spread of the malfunction can be seen below. The arrows indicate direction of travel, the thickness of the arrow indicates the total delay of an agent. The colors show the depth of influence from the initial agent, meaning if it was directly or indirectly influenced.
+
+```{python}
+plot_delay_propagation_2d(plotting_data=plotting_data,
+                          delay_information=single_exp_results.lateness_delta_after_malfunction, 
+                          depth_dict=minimal_depth,
+                          changed_agents=changed_agents_dict)
 ```
 
 ```{python}

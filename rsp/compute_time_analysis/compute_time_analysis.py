@@ -38,7 +38,7 @@ from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import PlottingInformation
 from rsp.utils.plotting_data_types import SchedulePlotting
 
-Trajectories = Dict[int, List[Tuple[int, int]]] # Int in the dict is the agent handle
+Trajectories = Dict[int, List[Tuple[int, int]]]  # Int in the dict is the agent handle
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
 
@@ -547,7 +547,7 @@ def plot_time_resource_trajectories(
             ))
     else:
         for idx, line in trajectories.items():
-            if len(line) <2 :
+            if len(line) < 2:
                 continue
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
@@ -799,9 +799,9 @@ def plot_schedule_metrics(schedule_plotting: SchedulePlotting, lateness_delta_af
         number_of_trains=len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent),
         transmission_chains=transmission_chains
     )
-    plot_delay_heat_map(plotting_data=schedule_plotting,
-                        delay_information=lateness_delta_after_malfunction,
-                        depth_dict=minimal_depth)
+    plot_delay_propagation_2d(plotting_data=schedule_plotting,
+                              delay_information=lateness_delta_after_malfunction,
+                              depth_dict=minimal_depth)
 
 
 def plot_resource_occupation_heat_map(
@@ -862,10 +862,11 @@ def plot_resource_occupation_heat_map(
     fig.show()
 
 
-def plot_delay_heat_map(
+def plot_delay_propagation_2d(
         plotting_data: SchedulePlotting,
         delay_information: Dict[int, int],
-        depth_dict: Dict[int, int]):
+        depth_dict: Dict[int, int],
+        changed_agents: Optional[Dict[int, bool]] = None):
     """
     Plot agent delay over ressource.
     Parameters
@@ -887,12 +888,19 @@ def plot_delay_heat_map(
 
     # Sort agents according to influence depth for plotting only plot disturbed agents
     agents = []
-    for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
-        if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-            agents.append(agent)
-
+    if changed_agents is None:
+        for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
+            if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+                agents.append(agent)
+    else:
+        for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
+            if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent and changed_agents[agent]:
+                agents.append(agent)
     # Add the malfunction source agent
     agents.append(plotting_data.malfunction.agent_id)
+
+    # Plot only after the malfunciton happend
+    malfunction_time = plotting_data.malfunction.time_step
     # Plot traces of agents
     for agent_id in agents:
         x = []
@@ -904,6 +912,8 @@ def plot_delay_heat_map(
         conflict_depth = []
         for resource_occupation in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
             time = resource_occupation.interval.from_incl
+            if time < malfunction_time:
+                continue
             malfunction_resource = resource_occupation.resource
             x.append(malfunction_resource[1])
             y.append(malfunction_resource[0])
@@ -926,7 +936,7 @@ def plot_delay_heat_map(
                                    marker_symbol=marker,
                                    customdata=list(zip(times, delay, conflict_depth)),
                                    marker_size=size,
-                                   marker_opacity=0.1,
+                                   marker_opacity=0.2,
                                    marker_color=color,
                                    marker_line_color=color,
                                    hovertemplate="Time:\t%{customdata[0]}<br>" +

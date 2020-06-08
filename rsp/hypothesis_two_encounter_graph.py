@@ -114,7 +114,7 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
     return wave_resource_occupations
 
 
-def _plot_delay_propagation_graph(
+def plot_delay_propagation_graph(
         changed_agents,
         experiment_result,
         malfunction,
@@ -126,6 +126,25 @@ def _plot_delay_propagation_graph(
         weights_matrix,
         file_name: str = None,
 ):
+    """
+
+    Parameters
+    ----------
+    changed_agents
+    experiment_result
+    malfunction
+    malfunction_agent_id
+    max_time_schedule
+    minimal_depth
+    number_of_trains
+    wave_fronts_reaching_other_agent
+    weights_matrix
+    file_name
+
+    Returns
+    -------
+
+    """
     # take minimum depth of transmission between and the time reaching the second agent as coordinates
     # TODO is it a good idea to take minimum depth, should it not rather be cumulated distance from the malfunction train?
     pos = {}
