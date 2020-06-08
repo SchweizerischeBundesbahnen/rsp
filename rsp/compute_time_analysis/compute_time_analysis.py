@@ -396,7 +396,7 @@ def plot_shared_heatmap(
                 z=distance_matrix,
                 colorscale="Hot"))
         fig.update_layout(
-            title='Heatmap {}'.format(title),
+            title='Heatmap shared {}'.format(title),
             width=700,
             height=700
         )
