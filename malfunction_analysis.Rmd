@@ -61,7 +61,7 @@ plotting_data = extract_schedule_plotting(experiment_result=single_exp_results)
 Compute the propagation wave from the malfunction with no re-scheduling
 
 ```{python}
-transmission_chains, distance_matrix, weights_matrix, minimal_depth = compute_disturbance_propagation_graph(experiment_result=single_exp_results)
+transmission_chains, distance_matrix, weights_matrix, minimal_depth = compute_disturbance_propagation_graph(schedule_plotting=plotting_data)
 wave_resources = resource_occpuation_from_transmission_chains(transmission_chains)
 wave_trajectory = trajectories_from_resource_occupations_per_agent(wave_resources,plotting_data.plotting_information)
 ```
@@ -118,5 +118,5 @@ plot_delay_propagation_2d(plotting_data=plotting_data,
 ```
 
 ```{python}
-
+plot_delay_propagation_graph
 ```

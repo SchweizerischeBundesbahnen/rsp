@@ -1,5 +1,5 @@
 import pprint
-from typing import Dict
+from typing import Dict, Optional
 from typing import List
 from typing import Tuple
 
@@ -17,6 +17,7 @@ from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.plotting_data_types import SchedulePlotting
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -56,7 +57,7 @@ def hypothesis_two_disturbance_propagation_graph(
         compute_disturbance_propagation_graph(experiment_result)
 
 
-def compute_disturbance_propagation_graph(experiment_result: ExperimentResultsAnalysis) \
+def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
         -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
     """Method to Compute the disturbance propagation in the schedule when there
     is no dispatching done. This method will return more changed agents than
@@ -71,19 +72,11 @@ def compute_disturbance_propagation_graph(experiment_result: ExperimentResultsAn
     transmission_chains, distance_matrix, weights_matrix, minimal_depth
     """
 
-    # 0. data preparation
-    # aggregate occupations of each resource
-    schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result)
-
     # 1. compute the forward-only wave of the malfunction
-    # "forward-only" means only agents running at or after the wave hitting them are considered,
-    # i.e. agents do not decelerate ahead of the wave!
     transmission_chains = extract_transmission_chains_from_schedule(schedule_plotting=schedule_plotting)
 
-    # 2. extract time-resources influenced by propagated malfunction
-
-    # 3. non-symmetric distance matrix of primary, secondary etc. effects
-    number_of_trains = experiment_result.n_agents
+    # 2. non-symmetric distance matrix of primary, secondary etc. effects
+    number_of_trains = len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent)
     distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent = distance_matrix_from_tranmission_chains(
         number_of_trains=number_of_trains, transmission_chains=transmission_chains)
 
@@ -116,27 +109,19 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
 
 def plot_delay_propagation_graph(
         changed_agents,
-        experiment_result,
-        malfunction,
-        malfunction_agent_id,
         max_time_schedule,
         minimal_depth,
-        number_of_trains,
         wave_fronts_reaching_other_agent,
         weights_matrix,
-        file_name: str = None,
+        file_name: Optional[str] = None,
 ):
     """
 
     Parameters
     ----------
     changed_agents
-    experiment_result
-    malfunction
-    malfunction_agent_id
     max_time_schedule
     minimal_depth
-    number_of_trains
     wave_fronts_reaching_other_agent
     weights_matrix
     file_name
@@ -176,7 +161,7 @@ def plot_delay_propagation_graph(
     _plot_encounter_graph_directed(
         weights_matrix=weights_matrix,
         changed_agents=changed_agents,
-        title=f"Encounter Graph for experiment {experiment_result.experiment_id}, {malfunction}",
+        title=f"Delay Propagation Graph",
         file_name=file_name,
         pos=pos)
 

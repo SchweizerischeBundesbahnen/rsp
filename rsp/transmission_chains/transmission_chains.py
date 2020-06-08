@@ -35,6 +35,7 @@ def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlottin
 
     malfunction = schedule_plotting.malfunction
     malfunction_agent_id = malfunction.agent_id
+    delay_time = malfunction.malfunction_duration
     resource_occupations_per_agent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
     resource_occupations_per_resource = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_resource
 
@@ -47,11 +48,11 @@ def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlottin
         if malfunction.time_step < ro.interval.to_excl:
             # TODO should the interval extended by the malfunction duration?
             chain = [TransmissionLeg(malfunction_occupation, ro)]
-            open_wave_front.append((ro, chain))
+            open_wave_front.append((ro, chain, delay_time))
             transmission_chains.append(chain)
     assert len(open_wave_front) > 0
     while len(open_wave_front) > 0:
-        wave_front, history = open_wave_front.pop()
+        wave_front, history, delay_time = open_wave_front.pop()
         wave_front_resource = wave_front.resource
         if wave_front in closed_wave_front:
             continue
@@ -60,12 +61,14 @@ def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlottin
         # the next scheduled train may be impacted!
         # TODO we do not consider decelerate to let pass yet! search backward in radius? would this be another type of chain?
         for ro in resource_occupations_per_resource[wave_front_resource]:
-            if ro.interval.from_incl >= wave_front.interval.to_excl:
+            time_between_agents = ro.interval.from_incl - wave_front.interval.to_excl
+            if ro.interval.from_incl >= wave_front.interval.to_excl and time_between_agents < delay_time:
+                delay_time = delay_time - time_between_agents
                 for subsequent_ro in resource_occupations_per_agent[ro.agent_id]:
                     # hop_on and hop_off may be at the same resource
                     if subsequent_ro.interval.from_incl >= ro.interval.from_incl:
                         chain = history + [TransmissionLeg(ro, subsequent_ro)]
-                        el = (subsequent_ro, chain)
+                        el = (subsequent_ro, chain, delay_time)
                         assert subsequent_ro not in history
                         if ro in closed_wave_front:
                             continue
