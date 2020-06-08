@@ -1,11 +1,11 @@
 import pprint
-from typing import Dict, Optional
+from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
 
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
 from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
@@ -130,6 +130,7 @@ def plot_delay_propagation_graph(
     -------
 
     """
+    # TODO Fix this method!
     # take minimum depth of transmission between and the time reaching the second agent as coordinates
     # TODO is it a good idea to take minimum depth, should it not rather be cumulated distance from the malfunction train?
     pos = {}

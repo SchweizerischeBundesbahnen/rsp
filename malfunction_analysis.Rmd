@@ -70,14 +70,16 @@ Get ressource occupation and time-space trajectories for initial schedule
 
 ```{python}
 schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations,plotting_data.plotting_information)
+schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations
+                                                                         ,plotting_data.plotting_information)
 ```
 
 Get ressource occupation and time-space trajectories for delta reschedule
 
 ```{python}
 reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
-reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,plotting_data.plotting_information)
+reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
+                                                                           plotting_data.plotting_information)
 ```
 
 ### Malfunction spread without interventions from re-scheduling algorithm
@@ -85,7 +87,11 @@ reschedule_trajectories = trajectories_from_resource_occupations_per_agent(resch
 Visualize the propagation of the malfunction in the schedule. Only forward propagation is considered and no re-scheduling is assumed. This illustratest the extent of the malfunction if no actions are taken.
 
 ```{python}
-plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",trajectories=schedule_trajectories,ranges=plotting_data.plotting_information.dimensions,malfunction=plotting_data.malfunction,malfunction_wave=wave_trajectory)
+plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",
+                                trajectories=schedule_trajectories,
+                                ranges=plotting_data.plotting_information.dimensions,
+                                malfunction=plotting_data.malfunction,
+                                malfunction_wave=wave_trajectory)
 ```
 
 Spacially the influence of the malfunction would have spread according to the following plot
@@ -101,22 +107,22 @@ plot_delay_propagation_2d(plotting_data=plotting_data,
 Given the actions of the re-scheduling algorithm, the spread can be limited noth in time and space. The figures below show the actual spread after the malfunction when actions where taken to stay close to the initial schedule
 
 ```{python}
-changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(trajectories_a=schedule_trajectories, trajectories_b=reschedule_trajectories)
+changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(trajectories_a=schedule_trajectories,
+                                                                                      trajectories_b=reschedule_trajectories)
 ```
 
 ```{python}
-plot_time_resource_trajectories(title="Influenced Trains after re-scheduling",trajectories=changed_trajectories,ranges=plotting_data.plotting_information.dimensions,malfunction=plotting_data.malfunction)
+plot_time_resource_trajectories(title="Influenced Trains after re-scheduling",
+                                trajectories=changed_trajectories,
+                                ranges=plotting_data.plotting_information.dimensions,
+                                malfunction=plotting_data.malfunction)
 ```
 
 The spatial spread of the malfunction can be seen below. The arrows indicate direction of travel, the thickness of the arrow indicates the total delay of an agent. The colors show the depth of influence from the initial agent, meaning if it was directly or indirectly influenced.
 
 ```{python}
 plot_delay_propagation_2d(plotting_data=plotting_data,
-                          delay_information=single_exp_results.lateness_delta_after_malfunction, 
+                          delay_information=single_exp_results.lateness_delta_after_malfunction,
                           depth_dict=minimal_depth,
                           changed_agents=changed_agents_dict)
-```
-
-```{python}
-plot_delay_propagation_graph
 ```
