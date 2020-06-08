@@ -38,7 +38,7 @@ from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import PlottingInformation
 from rsp.utils.plotting_data_types import SchedulePlotting
 
-Trajectories = List[List[Tuple[int, int]]]
+Trajectories = Dict[int, List[Tuple[int, int]]] # Int in the dict is the agent handle
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
 
@@ -446,7 +446,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         trajectories=trajectories_schedule)
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
-    trajectories_influenced_agents, changed_agents_dict = _get_difference_in_time_space_trajectories(
+    trajectories_influenced_agents, changed_agents_dict = get_difference_in_time_space_trajectories(
         trajectories_b=trajectories_schedule,
         trajectories_a=trajectories_reschedule_full)
 
@@ -529,7 +529,7 @@ def plot_time_resource_trajectories(
         # Build hovertemplate
         for idx, data_point in enumerate(list_keys):
             hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
-        for idx, line in enumerate(trajectories):
+        for idx, line in trajectories.items():
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
@@ -544,7 +544,7 @@ def plot_time_resource_trajectories(
                 hovertemplate=hovertemplate
             ))
     else:
-        for idx, line in enumerate(trajectories):
+        for idx, line in trajectories.items():
             # skip empty schedule (re-schedle for our ghost agent representing the wave front)
             if len(line) == 0:
                 continue
@@ -567,7 +567,7 @@ def plot_time_resource_trajectories(
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
     if malfunction_wave is not None:
-        x, y = zip(*malfunction_wave[0])
+        x, y = zip(*list(malfunction_wave.values())[0])
         fig.add_trace(
             go.Scattergl(x=x,
                          y=y,
@@ -735,7 +735,7 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
     return Path(video_src_schedule), Path(video_src_reschedule)
 
 
-def _get_difference_in_time_space_trajectories(trajectories_a: Trajectories, trajectories_b: Trajectories) -> SpaceTimeDifference:
+def get_difference_in_time_space_trajectories(trajectories_a: Trajectories, trajectories_b: Trajectories) -> SpaceTimeDifference:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
@@ -748,9 +748,9 @@ def _get_difference_in_time_space_trajectories(trajectories_a: Trajectories, tra
 
     """
     # Detect changes to original schedule
-    traces_influenced_agents: Trajectories = []
+    traces_influenced_agents: Trajectories = {}
     additional_information = dict()
-    for idx, trainrun in enumerate(trajectories_a):
+    for idx, trainrun in trajectories_a.items():
         trainrun_difference = []
         for waypoint in trainrun:
             if waypoint not in trajectories_b[idx]:
@@ -759,10 +759,10 @@ def _get_difference_in_time_space_trajectories(trajectories_a: Trajectories, tra
                 trainrun_difference.append(waypoint)
 
         if len(trainrun_difference) > 0:
-            traces_influenced_agents.append(trainrun_difference)
+            traces_influenced_agents[idx] = trainrun_difference
             additional_information.update({idx: True})
         else:
-            traces_influenced_agents.append([(None, None)])
+            traces_influenced_agents[idx] = [(None, None)]
             additional_information.update({idx: False})
     space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
                                                 additional_information=additional_information)
@@ -1002,8 +1002,8 @@ def trajectories_from_resource_occupations_per_agent(
     """
     resource_sorting = plotting_information.sorting
     width = plotting_information.grid_width
-    schedule_trajectories: Trajectories = []
-    for _, resource_ocupations in resource_occupations_schedule.items():
+    schedule_trajectories: Trajectories = {}
+    for idx, resource_ocupations in resource_occupations_schedule.items():
         train_time_path = []
         for resource_ocupation in resource_ocupations:
             position = coordinate_to_position(width, [resource_ocupation.resource])[0]
@@ -1013,5 +1013,5 @@ def trajectories_from_resource_occupations_per_agent(
             train_time_path.append((resource_sorting[position], resource_ocupation.interval.from_incl))
             train_time_path.append((resource_sorting[position], resource_ocupation.interval.to_excl))
             train_time_path.append((None, None))
-        schedule_trajectories.append(train_time_path)
+        schedule_trajectories[idx] = train_time_path
     return schedule_trajectories
