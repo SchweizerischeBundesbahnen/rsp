@@ -530,6 +530,8 @@ def plot_time_resource_trajectories(
         for idx, data_point in enumerate(list_keys):
             hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
         for idx, line in trajectories.items():
+            if len(line) < 2:
+                continue
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
@@ -545,8 +547,7 @@ def plot_time_resource_trajectories(
             ))
     else:
         for idx, line in trajectories.items():
-            # skip empty schedule (re-schedle for our ghost agent representing the wave front)
-            if len(line) == 0:
+            if len(line) <2 :
                 continue
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
