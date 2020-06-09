@@ -366,9 +366,7 @@ def plot_time_window_resource_trajectories(
         plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
 
 
-def plot_shared_heatmap(
-        experiment_result: ExperimentResultsAnalysis,
-        show: bool = True):
+def plot_shared_heatmap(experiment_result: ExperimentResultsAnalysis):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
