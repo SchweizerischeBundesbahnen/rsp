@@ -665,7 +665,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     )
 
 
-def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, experiment_id: int,
+def render_flatland_env(data_folder: str, experiment_data: ExperimentResultsAnalysis, experiment_id: int,
                         render_schedule: bool = True, render_reschedule: bool = True):
     """
     Method to render the environment for visual inspection
@@ -682,11 +682,6 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
     -------
     File paths to generated videos to render in the notebook
     """
-
-    # Extract data
-    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
-    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
-        experiment_data_series)
 
     # Generate environment for rendering
     rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
