@@ -38,7 +38,8 @@ from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import PlottingInformation
 from rsp.utils.plotting_data_types import SchedulePlotting
 
-Trajectories = Dict[int, List[Tuple[int, int]]]  # Int in the dict is the agent handle
+Trajectory = List[Tuple[int, int]]
+Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
 
@@ -445,8 +446,8 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
     trajectories_influenced_agents, changed_agents_dict = get_difference_in_time_space_trajectories(
-        trajectories_b=trajectories_schedule,
-        trajectories_a=trajectories_reschedule_full)
+        target_trajectories=trajectories_schedule,
+        base_trajectories=trajectories_reschedule_full)
 
     # Printing situation overview
     nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
@@ -528,6 +529,7 @@ def plot_time_resource_trajectories(
         for idx, data_point in enumerate(list_keys):
             hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
         for idx, line in trajectories.items():
+            # Don't plot trains with no paths --> this is just to make plots more readable
             if len(line) < 2:
                 continue
             x, y = zip(*line)
@@ -545,6 +547,7 @@ def plot_time_resource_trajectories(
             ))
     else:
         for idx, line in trajectories.items():
+            # Don't plot trains with no paths --> this is just to make plots more readable
             if len(line) < 2:
                 continue
             x, y = zip(*line)
@@ -728,13 +731,13 @@ def render_flatland_env(data_folder: str, experiment_data: ExperimentResultsAnal
     return Path(video_src_schedule), Path(video_src_reschedule)
 
 
-def get_difference_in_time_space_trajectories(trajectories_a: Trajectories, trajectories_b: Trajectories) -> SpaceTimeDifference:
+def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, target_trajectories: Trajectories) -> SpaceTimeDifference:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
     ----------
-    trajectories_a
-    trajectories_b
+    base_trajectories
+    target_trajectories
 
     Returns
     -------
@@ -743,10 +746,10 @@ def get_difference_in_time_space_trajectories(trajectories_a: Trajectories, traj
     # Detect changes to original schedule
     traces_influenced_agents: Trajectories = {}
     additional_information = dict()
-    for idx, trainrun in trajectories_a.items():
+    for idx, trainrun in base_trajectories.items():
         trainrun_difference = []
         for waypoint in trainrun:
-            if waypoint not in trajectories_b[idx]:
+            if waypoint not in target_trajectories[idx]:
                 if len(trainrun_difference) > 0 and waypoint[0] != trainrun_difference[-1][0]:
                     trainrun_difference.append((None, None))
                 trainrun_difference.append(waypoint)
