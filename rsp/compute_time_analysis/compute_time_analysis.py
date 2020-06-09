@@ -585,7 +585,7 @@ def plot_time_resource_trajectories(
         fig.show()
 
 
-def plot_histogram_from_delay_data(experiment_data_frame: DataFrame, experiment_id: int):
+def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis):
     """
     Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
     Parameters
@@ -597,10 +597,9 @@ def plot_histogram_from_delay_data(experiment_data_frame: DataFrame, experiment_
     -------
 
     """
-    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
 
-    lateness_full_after_malfunction = experiment_data_series.lateness_full_after_malfunction
-    lateness_delta_after_malfunction = experiment_data_series.lateness_delta_after_malfunction
+    lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
+    lateness_delta_after_malfunction = experiment_results.lateness_delta_after_malfunction
     lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
     lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
 

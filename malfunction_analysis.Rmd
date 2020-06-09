@@ -29,6 +29,8 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_t
 from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
 from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
+from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+
 
 from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
 from rsp.hypothesis_two_encounter_graph import resource_occpuation_from_transmission_chains
@@ -125,4 +127,17 @@ plot_delay_propagation_2d(plotting_data=plotting_data,
                           delay_information=single_exp_results.lateness_delta_after_malfunction,
                           depth_dict=minimal_depth,
                           changed_agents=changed_agents_dict)
+```
+
+Figure below shows the histogram of the delay times, giving us a great overview of how strongly trains where affected by the malfunciton
+
+
+Figure below shows the histogram of the delay times, giving us a great overview of how strongly trains where affected by the malfunciton
+
+```{python}
+plot_histogram_from_delay_data(experiment_results=single_exp_results)
+```
+
+```{python}
+
 ```

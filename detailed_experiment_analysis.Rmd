@@ -22,8 +22,10 @@ import pandas as pd
 from IPython.display import Video
 
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
+
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
 from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
@@ -35,6 +37,7 @@ from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_re
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_density
 from rsp.compute_time_analysis.compute_time_analysis import plot_resource_occupation_heat_map
+
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
@@ -62,10 +65,13 @@ resource_occupations_reschedule = time_windows_as_resource_occupations_per_agent
 trajectories = trajectories_from_resource_occupations_per_agent(
     resource_occupations_schedule=resource_occupations_reschedule,
     plotting_information=plotting_data.plotting_information)
+choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_full_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Full Reschedule Problem",
                                 ranges=plotting_data.plotting_information.dimensions,
                                 malfunction=plotting_data.malfunction)
+
 ```
 
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
@@ -75,6 +81,8 @@ resource_occupations_delta_reschedule = time_windows_as_resource_occupations_per
 trajectories = trajectories_from_resource_occupations_per_agent(
     resource_occupations_schedule=resource_occupations_delta_reschedule,
     plotting_information=plotting_data.plotting_information)
+choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_delta_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta Reschedule Problem",
                                 ranges=plotting_data.plotting_information.dimensions,
@@ -98,37 +106,10 @@ plot_resource_occupation_heat_map(
 )
 ```
 
-```{python}
-choices_full_schedule = single_exp_results.results_full.solver_statistics["solving"]["solvers"]["choices"]
-choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-```
-
-```{python}
-experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
-       'n_agents', 'max_num_cities', 'max_rail_between_cities',
-       'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
-       'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
-       'nb_resource_conflicts_full_after_malfunction',
-       'nb_resource_conflicts_delta_after_malfunction']]
-experiment_details['choices_full_schedule'] = choices_full_schedule
-experiment_details['choices_full_reschedule'] = choices_full_reschedule
-experiment_details['choices_delta_reschedule'] = choices_delta_reschedule
-
-```
-
-```{python}
-display(experiment_details.transpose())
-```
-
-```{python}
-plot_schedule_metrics(schedule_plotting=schedule_plotting, lateness_delta_after_malfunction=single_exp_results.lateness_delta_after_malfunction)
-```
-
 #### Histogram of delay per agent after re-scheduling
 
 ```{python}
-plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+single_exp_results._fields
 ```
 
 #### Render the current environment
