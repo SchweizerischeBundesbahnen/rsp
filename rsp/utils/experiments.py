@@ -136,8 +136,8 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
     experiment_agenda_directory
     experiment_id
     re_save
-        used if module path used in pickle has changed;
-        use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
 
 
     Returns
@@ -1004,6 +1004,8 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
         in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     re_save
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
     Returns
     -------
     DataFrame containing the loaded experiment results
@@ -1040,7 +1042,26 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     return experiment_results_list
 
 
-def load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id, re_save: bool = False) -> Tuple[ExperimentResults, str]:
+def load_experiment_result_without_expanding(
+        experiment_data_folder_name: str,
+        experiment_id: int,
+        re_save: bool = False
+) -> Tuple[ExperimentResults, str]:
+    """
+
+    Parameters
+    ----------
+    experiment_data_folder_name
+    experiment_id
+    re_save
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+
+
+    Returns
+    -------
+
+    """
     files = os.listdir(experiment_data_folder_name)
     rsp_logger.info(f"loading experiment results from {experiment_data_folder_name}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
