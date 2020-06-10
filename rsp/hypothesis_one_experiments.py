@@ -228,7 +228,21 @@ def hypothesis_one_main():
     )
 
 
-def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory: str, nb_runs: int = 1):
+def hypothesis_one_rerun_without_regen_schedule(
+        copy_agenda_from_base_directory: str,
+        parallel_compute: int = AVAILABLE_CPUS // 2,
+        nb_runs: int = 1):
+    """
+
+    Parameters
+    ----------
+    copy_agenda_from_base_directory
+        agenda to re-run
+    parallel_compute
+        how many cores?
+    nb_runs
+        how many times should each experiment be re-run? Multiples will be executed under the same `experiment_id`
+    """
     rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
     experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
@@ -249,7 +263,7 @@ def hypothesis_one_rerun_without_regen_schedule(copy_agenda_from_base_directory:
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        parallel_compute=AVAILABLE_CPUS // 2,  # take only half of avilable cpus so the machine stays responsive
+        parallel_compute=parallel_compute,
         experiment_ids=experiment_ids
     )
 
@@ -401,7 +415,8 @@ def hypothesis_one_malfunction_analysis(
 if __name__ == '__main__':
     # do not commit your own calls !
     pass
-    hypothesis_one_malfunction_analysis(
-        agenda_folder='../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/',
+    hypothesis_one_rerun_without_regen_schedule(
+        copy_agenda_from_base_directory='../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/',
+        nb_runs=1,
         parallel_compute=1
     )

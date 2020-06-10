@@ -104,12 +104,6 @@ def flux_helper(
 
     if asp_heuristics:
         for asp_heurisic in asp_heuristics:
-            # TODO SIM-167 switch on heuristics
-            # TODO SIM-167 add "--heur=domain" to args
-            if asp_heurisic in [ASPHeuristics.HEURISTIC_SEQ,
-                                ASPHeuristics.HEURISTIC_DELAY,
-                                ASPHeuristics.HEURISIC_ROUTES]:
-                continue
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
                 paths.append(heuristic_routes_path)
     if asp_objective and not no_optimize:
@@ -126,7 +120,8 @@ def flux_helper(
         nb_threads=nb_threads,
         verbose=verbose,
         debug=debug,
-        no_optimize=no_optimize
+        no_optimize=no_optimize,
+        asp_heuristics=asp_heuristics
     )
 
     return flux_result
@@ -139,6 +134,7 @@ def _asp_helper(encoding_files: List[str],
                 debug: bool = False,
                 nb_threads: int = 2,
                 no_optimize: bool = False,
+                asp_heuristics: List[ASPHeuristics] = None,
                 asp_seed_value: Optional[int] = None) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
     Parameters
@@ -158,13 +154,15 @@ def _asp_helper(encoding_files: List[str],
 
     dl = theory.Theory("clingodl", "clingo-dl")
     dl.configure_propagator("propagate", "partial")
-    # TODO SIM-167   add  "--heur=domain" if we have heuristics
     ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:
         ctl_args.append(f"--seed={asp_seed_value}")
+    if asp_heuristics is not None:
+        ctl_args.append(f"--heur=domain")
 
     ctl = clingo.Control(ctl_args)
+    rsp_logger.info(f"{ctl_args}")
 
     # find optimal model; if not optimizing, find all models!
     ctl.configuration.solve.models = 0
@@ -173,7 +171,7 @@ def _asp_helper(encoding_files: List[str],
     dl.register_propagator(ctl)
 
     if verbose:
-        print("taking encodings from {}".format(encoding_files))
+        rsp_logger.log("taking encodings from {}".format(encoding_files), level=VERBOSE)
         if plain_encoding and debug:
             print("taking plain_encoding={}".format(plain_encoding))
     for enc in encoding_files:

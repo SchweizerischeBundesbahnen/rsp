@@ -96,8 +96,12 @@ PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
 
 
 def plot_computational_times(
-        experiment_data: DataFrame, axis_of_interest: str,
+        experiment_data: DataFrame,
+        axis_of_interest: str,
         columns_of_interest: List[str],
+        experiment_data_baseline: Optional[DataFrame] = None,
+        experiment_data_baseline_suffix: Optional[str] = '_baseline',
+        experiment_data_suffix: Optional[str] = '',
         output_folder: Optional[str] = None,
         y_axis_title: str = "Time[s]",
         title: str = "Computational Times",
@@ -128,6 +132,9 @@ def plot_computational_times(
     # prevent too long file names
     pdf_file = f'{file_name_prefix}_{axis_of_interest}__' + ('_'.join(columns_of_interest))[0:15] + '.pdf'
     plot_computional_times_from_traces(experiment_data=experiment_data,
+                                       experiment_data_baseline=experiment_data_baseline,
+                                       experiment_data_baseline_suffix=experiment_data_baseline_suffix,
+                                       experiment_data_suffix=experiment_data_suffix,
                                        traces=traces,
                                        output_folder=output_folder,
                                        x_axis_title=axis_of_interest,
@@ -136,13 +143,17 @@ def plot_computational_times(
                                        title=f"{title} {axis_of_interest}")
 
 
-def plot_computional_times_from_traces(experiment_data: DataFrame,
-                                       traces: List[Tuple[str, str]],
-                                       x_axis_title: str,
-                                       y_axis_title: str = "Time[s]",
-                                       output_folder: Optional[str] = None,
-                                       pdf_file: Optional[str] = None,
-                                       title: str = "Computational Times"):
+def plot_computional_times_from_traces(
+        experiment_data: DataFrame,
+        traces: List[Tuple[str, str]],
+        x_axis_title: str,
+        y_axis_title: str = "Time[s]",
+        experiment_data_baseline: Optional[DataFrame] = None,
+        experiment_data_baseline_suffix: Optional[str] = '_baseline',
+        experiment_data_suffix: Optional[str] = '',
+        output_folder: Optional[str] = None,
+        pdf_file: Optional[str] = None,
+        title: str = "Computational Times"):
     """Plot the computational times of experiments.
 
     Parameters
@@ -166,7 +177,8 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
     for axis_of_interest, column in traces:
         fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                              y=experiment_data[column],
-                             name=column, pointpos=-1,
+                             name=str(column) + experiment_data_suffix,
+                             pointpos=-1,
                              boxpoints='all',
                              customdata=np.dstack((experiment_data['n_agents'],
                                                    experiment_data['size'],
@@ -178,6 +190,22 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
                                            '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
+        if experiment_data_baseline is not None:
+            fig.add_trace(go.Box(x=experiment_data_baseline[axis_of_interest],
+                                 y=experiment_data_baseline[column],
+                                 name=column + experiment_data_baseline_suffix,
+                                 pointpos=-1,
+                                 boxpoints='all',
+                                 customdata=np.dstack((experiment_data['n_agents'],
+                                                       experiment_data['size'],
+                                                       experiment_data['speed_up']))[0],
+                                 hovertext=experiment_data['experiment_id'],
+                                 hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
+                                               '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                               '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                               '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
+                                               '<b>Experiment id:</b>%{hovertext}',
+                                 marker=dict(size=3)))
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"{title}")
     fig.update_xaxes(title=x_axis_title)
