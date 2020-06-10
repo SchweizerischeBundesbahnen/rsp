@@ -18,11 +18,6 @@ def multiline_eval(expr):
 
 
 def test_notebook_runs_through():
-    # TODO SIM-417 file a follow-up issue
-    # Currently, we do not have a window in continuous integration, so disable this test.
-    # We might need to refactor our code with a global switch to disable opening windows and writing to files instead.
-    if True:
-        return
     base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir)
     notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd")]
     for notebook in notebooks:
@@ -35,9 +30,9 @@ def test_notebook_runs_through():
 
             dest_text = writes(notebook, fmt="py:percent")
 
-            # tweak 1: skip display
-            dest_text = re.sub('^display', "#display", dest_text, flags=re.MULTILINE)
-            # tweak 2: skip plot_route_dag (window has to be closed manually)
-            dest_text = re.sub('^plot_route_dag', "#plot_route_dag", dest_text, flags=re.MULTILINE)
+            # tweak 1: print instead of display
+            dest_text = re.sub('^display', "print", dest_text, flags=re.MULTILINE)
+            # tweak 2: use plot_route_dag with save=True (in order to prevent plt from opening window in ci)
+            dest_text = re.sub('^(plot_route_dag.*)\\)', r'\g<1>, save=True)', dest_text, flags=re.MULTILINE)
             print(dest_text)
             multiline_eval(dest_text)
