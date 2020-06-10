@@ -450,15 +450,11 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         base_trajectories=trajectories_reschedule_full)
 
     # Printing situation overview
+
+    print_situation_overview(schedule_plotting=schedule_plotting, changed_agents_dict=changed_agents_dict)
+
+    # Plot Reschedule Full only if svomething has changed
     nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
-    print(
-        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
-            malfunction.agent_id,
-            malfunction.time_step,
-            malfunction.malfunction_duration,
-            nb_changed_agents,
-            total_delay))
-    # Plot Reschedule Full only if something has changed
     if nb_changed_agents > 0:
         plot_time_resource_trajectories(
             trajectories=trajectories_reschedule_full,
