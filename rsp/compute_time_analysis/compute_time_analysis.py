@@ -702,7 +702,7 @@ def render_flatland_env(data_folder: str,
         title = 'Schedule'
         video_src_schedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
                                           f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
-                                          f"experiment_{experiment_id}_flatland_data_analysis_schedule.mp4")
+                                          f"experiment_{experiment_id}_flatland_data_analysis.mp4")
 
         # Only render if file is not yet created
         if not os.path.exists(video_src_schedule):
@@ -719,7 +719,7 @@ def render_flatland_env(data_folder: str,
         title = 'Reschedule'
         video_src_reschedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
                                             f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
-                                            f"experiment_{experiment_id}_flatland_data_analysis_reschedule.mp4")
+                                            f"experiment_{experiment_id}_flatland_data_analysis.mp4")
         # Only render if file is not yet created
         if not os.path.exists(video_src_reschedule):
             render_trainruns(data_folder=output_folder,
