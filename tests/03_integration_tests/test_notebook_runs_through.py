@@ -36,3 +36,7 @@ def test_notebook_runs_through():
             dest_text = re.sub('^(plot_route_dag.*)\\)', r'\g<1>, save=True)', dest_text, flags=re.MULTILINE)
             print(dest_text)
             multiline_eval(dest_text)
+
+
+if __name__ == '__main__':
+    test_notebook_runs_through()

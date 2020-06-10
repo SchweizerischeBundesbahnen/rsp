@@ -80,7 +80,7 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
                 }
             }
         }
-        stage('pre-commit and pydeps') {
+        stage('pre-commit, pytest and pydeps') {
             when {
                 allOf {
                     // if the build was triggered manually with deploy=true, skip testing
@@ -101,30 +101,16 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
         conda env create --file rsp_environment.yml --force
         conda activate rsp
 
+        xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
+
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
 
+        python -m tox . --recreate -v
+
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
-        """
-                        }
-                )
-            }
-        }
-        stage('test') {
-            when {
-                allOf {
-                    // if the build was triggered manually with deploy=true, skip testing
-                    expression { !params.deploy }
-                }
-            }
-            steps {
-                tox_conda_wrapper(
-                        ENVIRONMENT_YAML: 'rsp_environment.yml',
-                        JENKINS_CLOSURE: {
-                            sh """
-xvfb-run python -m tox . --recreate -v
 """
                         }
                 )
