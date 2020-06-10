@@ -527,7 +527,8 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # 1. Generate malfuntion
     # --------------------------------------------------------------------------------------
-    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at)
+    # ensure malfunction starts only when agent is active
+    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at + 1)
     malfunction = ExperimentMalfunction(
         time_step=malfunction_start,
         malfunction_duration=malfunction_duration,

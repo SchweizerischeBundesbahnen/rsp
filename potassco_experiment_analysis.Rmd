@@ -194,8 +194,10 @@ _print_stats(single_exp_results.results_delta_after_malfunction.solver_statistic
 
 ```{python}
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-experiment_base_directory_baseline = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
-experiment_base_directory_comparison = './agent_0_malfunction_2020_06_10T11_16_14'
+agenda_name_baseline = 'agent_0_malfunction_2020_06_04T19_17_28'
+agenda_name_comparison = 'agent_0_malfunction_2020_06_10T11_16_14'
+experiment_base_directory_baseline = f'../rsp-data/{agenda_name_baseline}/'
+experiment_base_directory_comparison = f'./{agenda_name_comparison}'
 experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
@@ -214,5 +216,10 @@ experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_an
 ```
 
 ```{python}
-hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data_baseline=experiment_data_baseline, experiment_data=experiment_data_comparison)
+hypothesis_one_analysis_visualize_computational_time_comparison(
+    experiment_data_baseline=experiment_data_baseline,
+    experiment_data=experiment_data_comparison,
+    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
+    experiment_data_suffix=f'_{agenda_name_comparison}'
+)
 ```
