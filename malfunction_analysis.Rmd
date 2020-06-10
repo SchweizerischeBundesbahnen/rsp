@@ -64,8 +64,17 @@ Compute the propagation wave from the malfunction with no re-scheduling. We comp
 
 ```{python}
 transmission_chains, distance_matrix, weights_matrix, minimal_depth = compute_disturbance_propagation_graph(schedule_plotting=plotting_data)
-wave_resources = resource_occpuation_from_transmission_chains(transmission_chains)
-wave_trajectory = trajectories_from_resource_occupations_per_agent(wave_resources,plotting_data.plotting_information)
+changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(
+                        base_trajectories=schedule_trajectories,
+                        target_trajectories=reschedule_trajectories)
+true_positives = resource_occpuation_from_transmission_chains(transmission_chains,changed_agents_dict)
+unchanged_agents = {}
+for agent in changed_agents_dict:
+    unchanged_agents[agent] = not changed_agents_dict[agent]
+false_positives = resource_occpuation_from_transmission_chains(transmission_chains,unchanged_agents)
+true_positives_trajectories = trajectories_from_resource_occupations_per_agent(true_positives,plotting_data.plotting_information)
+false_positives_trajectories = trajectories_from_resource_occupations_per_agent(false_positives,plotting_data.plotting_information)
+
 ```
 
 Get resource occupation and time-space trajectories for initial schedule
@@ -93,7 +102,8 @@ plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",
                                 trajectories=schedule_trajectories,
                                 ranges=plotting_data.plotting_information.dimensions,
                                 malfunction=plotting_data.malfunction,
-                                malfunction_wave=wave_trajectory)
+                                true_positives_wave=true_positives_trajectories,
+                                false_positives_wave=false_positives_trajectories)
 ```
 
 Spatially the influence of the malfunction would have spread according to the following plot
@@ -107,12 +117,6 @@ plot_delay_propagation_2d(plotting_data=plotting_data,
 ### Re-scheduling to prevent spread of malfunction
 
 Given the actions of the re-scheduling algorithm, the spread can be limited both in time and space. The figures below show the actual spread after the malfunction when actions were taken to stay close to the initial schedule
-
-```{python}
-changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(
-    base_trajectories=schedule_trajectories,
-    target_trajectories=reschedule_trajectories)
-```
 
 ```{python}
 plot_time_resource_trajectories(title="Influenced Trains after re-scheduling",

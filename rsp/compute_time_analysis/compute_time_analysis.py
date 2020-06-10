@@ -38,7 +38,7 @@ from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import PlottingInformation
 from rsp.utils.plotting_data_types import SchedulePlotting
 
-Trajectory = List[Tuple[int, int]]
+Trajectory = List[Tuple[int, int]]  # Time and sorted ressource
 Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
@@ -486,13 +486,35 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     return changed_agents_dict
 
 
+def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents_dict: Dict):
+    # Printing situation overview
+    malfunction = schedule_plotting.malfunction
+    resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_reschedule_delta: SortedResourceOccupationsPerAgent = \
+        schedule_plotting.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+
+    nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
+    total_delay = sum(
+        max(sorted_resource_occupations_reschedule_delta[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
+        for agent_id, sorted_resource_occupations_reschedule_delta in resource_occupations_reschedule_delta.items()
+    )
+    print(
+        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
+            malfunction.agent_id,
+            malfunction.time_step,
+            malfunction.malfunction_duration,
+            nb_changed_agents,
+            total_delay))
+
+
 def plot_time_resource_trajectories(
         title: str,
         trajectories: Trajectories,
         ranges: Tuple[int, int],
         additional_data: Dict = None,
         malfunction: ExperimentMalfunction = None,
-        malfunction_wave: Trajectories = None,
+        true_positives_wave: Trajectories = None,
+        false_positives_wave: Trajectories = None,
         show: bool = True
 ):
     """
@@ -568,15 +590,26 @@ def plot_time_resource_trajectories(
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction start', line=dict(color='red')))
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
-    if malfunction_wave is not None:
-        x, y = zip(*list(malfunction_wave.values())[0])
+    if true_positives_wave is not None:
+        x, y = zip(*list(true_positives_wave.values())[0])
         fig.add_trace(
             go.Scattergl(x=x,
                          y=y,
                          mode='lines+markers',
                          marker=dict(size=2, color="red"),
                          line=dict(color="red"),
-                         name="Malfunction Wave",
+                         name="True Positives",
+                         hovertemplate=hovertemplate
+                         ))
+    if false_positives_wave is not None:
+        x, y = zip(*list(false_positives_wave.values())[0])
+        fig.add_trace(
+            go.Scattergl(x=x,
+                         y=y,
+                         mode='lines+markers',
+                         marker=dict(size=2, color="yellow"),
+                         line=dict(color="yellow"),
+                         name="False Positives",
                          hovertemplate=hovertemplate
                          ))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)

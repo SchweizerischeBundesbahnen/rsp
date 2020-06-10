@@ -49,23 +49,37 @@ experiment_of_interest = 0
 ```{python}
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
-single_exp_results = load_and_expand_experiment_results_from_data_folder(
+exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
-plotting_data = extract_schedule_plotting(experiment_result=single_exp_results)
+plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest)
+```
+
+### Initial schedule
+
+
+The figure below shows the initial schedule we use as input to our re-scheduling pipeline. It is taken as given as used as target for optimization (minimal delay to initial schedule)
+
+```{python}
+trajectories = trajectories_from_resource_occupations_per_agent(
+    resource_occupations_schedule=plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent,
+    plotting_information=plotting_data.plotting_information)
+plot_time_resource_trajectories(trajectories=trajectories,
+                                title="Initial Schedule",
+                                ranges=plotting_data.plotting_information.dimensions)
 ```
 
 ### Visualize Problem instances as time-resource graphs
 This visualization shows the parameter spaced available to the optimizer to find solutions. Initial schedule is not shown as we have a tabularasa approach with no restrictions. Full rescheduling has the following available parameter space
 
 ```{python}
-resource_occupations_reschedule = time_windows_as_resource_occupations_per_agent(problem=single_exp_results.problem_full_after_malfunction)
+resource_occupations_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_full_after_malfunction)
 trajectories = trajectories_from_resource_occupations_per_agent(
     resource_occupations_schedule=resource_occupations_reschedule,
     plotting_information=plotting_data.plotting_information)
-choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 print("Number of choices the solver has to make was {}".format(choices_full_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Full Reschedule Problem",
@@ -77,11 +91,11 @@ plot_time_resource_trajectories(trajectories=trajectories,
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
 
 ```{python}
-resource_occupations_delta_reschedule = time_windows_as_resource_occupations_per_agent(problem=single_exp_results.problem_delta_after_malfunction)
+resource_occupations_delta_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_after_malfunction)
 trajectories = trajectories_from_resource_occupations_per_agent(
     resource_occupations_schedule=resource_occupations_delta_reschedule,
     plotting_information=plotting_data.plotting_information)
-choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 print("Number of choices the solver has to make was {}".format(choices_delta_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta Reschedule Problem",
@@ -89,10 +103,14 @@ plot_time_resource_trajectories(trajectories=trajectories,
                                 malfunction=plotting_data.malfunction)
 ```
 
+```{python}
+plot_shared_heatmap(experiment_result=exp_results_of_experiment_of_interest)
+```
+
 ### Some metrics about the schedule
 
 
-Number of agents at each time step for the initial schedule
+Number of active agents at each time step for the initial schedule
 
 ```{python}
 plot_time_density(plotting_data.schedule_as_resource_occupations)
@@ -106,16 +124,10 @@ plot_resource_occupation_heat_map(
 )
 ```
 
-#### Histogram of delay per agent after re-scheduling
-
-```{python}
-single_exp_results._fields
-```
-
 #### Render the current environment
 
 ```{python}
-video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data=exp_results_of_experiment_of_interest,experiment_id = experiment_of_interest)
 ```
 
 ```{python}
@@ -126,68 +138,20 @@ Video(video_src_schedule, embed=True)
 Video(video_src_reschedule, embed=True)
 ```
 
-## Find interesting experiments with route alternatives in Delta
-
-```{python}
-for experiment in experiment_results_list:
-#     print(experiment.experiment_id)
-    for agent_id, topo in experiment.problem_delta_after_malfunction.topo_dict.items():
-         for node, in_degree in topo.in_degree:
-                if in_degree > 1 and agent_id != experiment.malfunction.agent_id:
-                     print(f"experiment_id={experiment.experiment_id}, agent_id={agent_id}, node={node}, in_degree={in_degree}")
-```
-
 #### Route DAGs for individual agents
 
 ```{python}
 # %matplotlib inline
 agent_of_interest = 0
-plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
-```
-
-#### Time Resource Window Graph: time windows in scheduling problem per resource
-
-```{python}
-plot_time_window_resource_trajectories(experiment_result=single_exp_results,plotting_information=schedule_plotting.plotting_information)
-```
-
-#### Resource Heat Map: how many potential resource conflicts on this resource?
-
-```{python}
-plot_shared_heatmap(experiment_result=single_exp_results)
-```
-
-### Disturbance Propagation Graphs
-
-
-```{python}
-from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
-```
-
-```{python}
-transmission_chains, distance_matrix, weights_matrix, minimal_depth = compute_disturbance_propagation_graph(experiment_result=single_exp_results)
-```
-
-### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?
-
-```{python}
-from rsp.hypothesis_one_data_analysis import visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
-visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(experiment_results_list=experiment_results_list)
-
-```
-
-```{python}
-from rsp.hypothesis_one_data_analysis import visualize_hypotheses_asp
-visualize_hypotheses_asp(experiment_results_list=experiment_results_list)
-
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```

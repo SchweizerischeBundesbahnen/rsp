@@ -83,7 +83,7 @@ def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
     return transmission_chains, distance_matrix, weights_matrix, minimal_depth
 
 
-def resource_occpuation_from_transmission_chains(transmission_chains: List[TransmissionChain]) -> SortedResourceOccupationsPerAgent:
+def resource_occpuation_from_transmission_chains(transmission_chains: List[TransmissionChain], changed_agents: Dict) -> SortedResourceOccupationsPerAgent:
     """Method to construct Ressource Occupation from transmition chains. Used
     to plot the transmission in the resource-time-diagram.
 
@@ -102,7 +102,8 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
                            resource=transmission_chain[-1].hop_off.resource,
                            direction=transmission_chain[-1].hop_off.direction,
                            agent_id=wave_plotting_id)
-        for transmission_chain in transmission_chains]
+        for transmission_chain in transmission_chains
+        if changed_agents[transmission_chain[-1].hop_off.agent_id]]
     wave_resource_occupations[wave_plotting_id] = time_resource_malfunction_wave
     return wave_resource_occupations
 
