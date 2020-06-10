@@ -124,7 +124,7 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
                         ENVIRONMENT_YAML: 'rsp_environment.yml',
                         JENKINS_CLOSURE: {
                             sh """
-python -m tox . --recreate -v
+xvfb-run python -m tox . --recreate -v
 """
                         }
                 )
@@ -150,6 +150,31 @@ python -m tox . --recreate -v
                             // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
                             dockerDir: '.',
                             dockerfilePath: 'docker/Dockerfile'
+                    )
+                }
+            }
+        }
+        stage("Integration Test Notebooks") {
+            when {
+                allOf {
+                    // if the build was triggered manually with deploy=true, skip image building
+                    expression { !params.deploy }
+                }
+            }
+            steps {
+                script {
+                    cloud_helmchartsDeploy(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project: env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            chart: env.HELM_CHART,
+                            release: 'rsp-ci'
+                    )
+                    cloud_helmchartsTest(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project: env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            release: 'rsp-ci'
                     )
                 }
             }
