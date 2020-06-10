@@ -101,6 +101,7 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
         conda env create --file rsp_environment.yml --force
         conda activate rsp
 
+        export PYTHONPATH=\$PWD:\$PYTHONPATH
         xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
 
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
