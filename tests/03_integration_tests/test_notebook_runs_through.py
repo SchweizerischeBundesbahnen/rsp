@@ -17,9 +17,7 @@ def multiline_eval(expr):
     return eval(compile(eval_expr, 'file', 'eval'))
 
 
-def test_notebook_runs_through():
-    if True:
-        return
+if __name__ == '__main__':
     base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir)
     notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd")]
     for notebook in notebooks:
@@ -42,7 +40,3 @@ def test_notebook_runs_through():
             dest_text = re.sub('^Video', r'#Video', dest_text, flags=re.MULTILINE)
             print(dest_text)
             multiline_eval(dest_text)
-
-
-if __name__ == '__main__':
-    test_notebook_runs_through()

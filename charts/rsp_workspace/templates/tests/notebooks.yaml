@@ -30,32 +30,28 @@ spec:
           #printenv
           export WORKDIR=$PWD
 
-          # set up http proxy for git (used for FLATland pip dependency)
+          # set up http proxy for git (required for pip dependency to FLATland)
           git config --global http.sslVerify false
           git config --global http.proxy $HTTP_PROXY
           git config --global http.postBuffer 524288000
           git config --global http.maxRequestBuffer 524288000
           git config --global core.compression 0
 
-
-          GIT_CURL_VERBOSE=1 git clone http://gitlab.aicrowd.com/flatland/flatland.git
-
-
           # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
           git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
           cd rsp
           git checkout {{ .Values.RspVersion }} --recurse-submodules
           cd $WORKDIR
-          #git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
-          # set up environment
-          conda init bash
-          source ~/.bashrc
+          # activate conda activate
+          # https://docs.anaconda.com/anaconda/install/silent-mode/
+          eval "$(conda shell.bash hook)"
 
           # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
           mkdir -p $WORKDIR/conda
-          conda env create --prefix $WORKDIR/conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
-          conda activate rsp
+          conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
+          conda activate $WORKDIR/rsp-conda
 
           xvfb-run python $WORKDIR/rsp/tests/03_integration_tests/test_notebook_runs_through.py
       resources:

@@ -80,6 +80,7 @@ cat ~/.ssh/*
                 }
             }
         }
+        // TODO SIM-545 re-enable
 //        stage('pre-commit, pytest and pydeps') {
 //            when {
 //                allOf {
@@ -175,7 +176,8 @@ cat ~/.ssh/*
                             cluster: OPENSHIFT_CLUSTER,
                             project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
-                            release: 'rsp-ci'
+                            release: 'rsp-ci',
+                            timeoutInSeconds: 15 * 60
                     )
                     withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
                         sh '''
