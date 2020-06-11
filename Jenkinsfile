@@ -178,17 +178,19 @@ helm delete rsp-ci
                                     RspVersion         : GIT_COMMIT
                             ]
                     )
-                    cloud_helmchartsTest(
-                            cluster: OPENSHIFT_CLUSTER,
-                            project: env.OPENSHIFT_PROJECT,
-                            credentialId: SERVICE_ACCOUNT_TOKEN,
-                            release: 'rsp-ci',
-                            timeoutInSeconds: '900'
-                    )
+                    // TODO temporary workaround because of CLEW-4973
+//                    cloud_helmchartsTest(
+//                            cluster: OPENSHIFT_CLUSTER,
+//                            project: env.OPENSHIFT_PROJECT,
+//                            credentialId: SERVICE_ACCOUNT_TOKEN,
+//                            release: 'rsp-ci',
+//                            timeoutInSeconds: 900
+//                    )
                     withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
+helm test rsp-ci --timeout=15m0s
 helm delete rsp-ci
 '''
                     }
