@@ -75,7 +75,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 script {
                     sh """
 git submodule update --init --recursive
-cat ~/.ssh/id_rsa > id_rsa
+cat ~/.ssh/*
 """
                 }
             }
@@ -235,7 +235,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
 """
         }
         always {
-            archiveArtifacts artifacts: 'rsp_*.png,id_rsa', onlyIfSuccessful: false, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'rsp_*.png', onlyIfSuccessful: true, allowEmptyArchive: true
             cleanWs()
         }
     }

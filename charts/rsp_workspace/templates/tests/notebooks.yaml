@@ -8,7 +8,7 @@ spec:
   restartPolicy: Never
   containers:
     - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
-      imagePullPolicy: IfNotPresent # Always or IfNotPresent
+      imagePullPolicy: Always # Always or IfNotPresent (latest requires pulling always)
       name: "{{ .Release.Name }}"
       env:
         # set GIT_SSH_COMMAND to access the private key mounted
@@ -25,28 +25,44 @@ spec:
           # we need to fix user before cloning https://stackoverflow.com/questions/47706024/docker-set-running-user-while-launch-container/57531352#57531352
           set-ocuser-as-jovyan
 
-          # set http proxy
-          #source set-sbb-proxy
-          printenv
+          # set http proxy for conda
+          source set-sbb-proxy
+          #printenv
+          export WORKDIR=$PWD
+
+          # set up http proxy for git (used for FLATland pip dependency)
+          git config --global http.sslVerify false
+          git config --global https.sslVerify false
+          git config --global http.proxy $HTTP_PROXY
+          git config --global https.proxy $HTTPS_PROXY
+          git config --global http.postBuffer 524288000
+          git config --global https.postBuffer 524288000
+          git config --global http.maxRequestBuffer 524288000
+          git config --global https.maxRequestBuffer 524288000
+          git config --global core.compression 0
+
+          git clone git@gitlab.aicrowd.com:flatland/flatland.git
+
 
           # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
           git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
           cd rsp
           git checkout {{ .Values.RspVersion }} --recurse-submodules
-          cd ..
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          cd $WORKDIR
+          #git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
           # set up environment
-          cd rsp
           conda init bash
           source ~/.bashrc
 
           # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-          conda env create --prefix . --file rsp_environment.yml --force
+          mkdir -p $WORKDIR/conda
+          conda env create --prefix $WORKDIR/conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
           conda activate rsp
 
-          xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
-
+          xvfb-run python $WORKDIR/rsp/tests/03_integration_tests/test_notebook_runs_through.py
+      resources:
+      {{- toYaml .Values.resources | nindent 12 }}
       volumeMounts:
         - mountPath: "/home/jovyan/ssh"
           name: ssh-volume

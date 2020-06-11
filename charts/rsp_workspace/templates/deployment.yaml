@@ -23,7 +23,7 @@ spec:
       restartPolicy: Always
       containers:
         - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
-          imagePullPolicy: IfNotPresent # Always or IfNotPresent
+          imagePullPolicy: Always # Always or IfNotPresent (latest requires pulling always)
           name: "{{ .Release.Name }}"
           # sbb-proxy is set in dskit-jupyter-base ENTRYPOINT https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile
           # If you need to set proxy variables manually, add something along the lines:
@@ -64,6 +64,12 @@ spec:
               source set-sbb-proxy
               printenv
 
+              export WORKDIR=$PWD
+
+              # set up http proxy for git (used for FLATland pip dependency)
+              git config --global http.sslVerify false
+              git config --global http.proxy $HTTP_PROXY
+
               # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
               git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
               cd rsp
@@ -71,13 +77,20 @@ spec:
               cd ..
               git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
-              # set up environment
+              # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
+              git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
               cd rsp
+              git checkout {{ .Values.RspVersion }} --recurse-submodules
+              cd $WORKDIR
+              #git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+
+              # set up environment
               conda init bash
               source ~/.bashrc
 
               # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-              conda env create --prefix . --file rsp_environment.yml --force
+              mkdir -p $WORKDIR/conda
+              conda env create --prefix $WORKDIR/conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
               conda activate rsp
 
               # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!
