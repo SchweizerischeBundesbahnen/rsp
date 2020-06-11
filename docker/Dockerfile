@@ -11,7 +11,7 @@ RUN set -e && \
     apt-get update && \
     apt-get -y upgrade && \
     # install dependencies for FLATland visualization: https://gitlab.aicrowd.com/flatland/flatland/blob/master/.gitlab-ci.yml
-    apt-get -y install  libgl1-mesa-glx xvfb xdg-utils gvfs-dbg libcairo2-dev libjpeg-dev libgif-dev && \
+    apt-get -y install  libgl1-mesa-glx xvfb xdg-utils gvfs libcairo2-dev libjpeg-dev libgif-dev && \
     # install ffmpeg for rsp conversion
     apt-get -y install ffmpeg && \
     # install requirements for plotly/orca, see https://github.com/plotly/orca/blob/3.3-release/deployment/Dockerfile
