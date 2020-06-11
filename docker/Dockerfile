@@ -11,11 +11,13 @@ RUN set -e && \
     apt-get update && \
     apt-get -y upgrade && \
     # install dependencies for FLATland visualization: https://gitlab.aicrowd.com/flatland/flatland/blob/master/.gitlab-ci.yml
-    apt-get -y install  libgl1-mesa-glx xvfb xdg-utils gvfs libcairo2-dev libjpeg-dev libgif-dev && \
+    apt-get -y install  libgl1-mesa-glx xvfb xdg-utils libcairo2-dev libjpeg-dev libgif-dev && \
     # install ffmpeg for rsp conversion
     apt-get -y install ffmpeg && \
     # install requirements for plotly/orca, see https://github.com/plotly/orca/blob/3.3-release/deployment/Dockerfile
     apt-get -y install libgtk-3-0 libgconf-2-4 libnss3 && \
+    # install firefox for plotly showing
+    apt-get -y firefox && \
     # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev && \
