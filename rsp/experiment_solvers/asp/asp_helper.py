@@ -1,5 +1,4 @@
 import json
-import time
 from enum import Enum
 from threading import Timer
 from typing import Dict
@@ -10,11 +9,12 @@ from typing import Set
 
 import clingo
 import numpy as np
+import time
 from importlib_resources import path
 
 from rsp.experiment_solvers.asp import theory
-from rsp.logger import rsp_logger
 from rsp.logger import VERBOSE
+from rsp.logger import rsp_logger
 
 
 class ASPObjective(Enum):
@@ -65,7 +65,7 @@ FluxHelperResult = NamedTuple('FluxHelperResult', [
 def flux_helper(
         asp_data: List[str],
         asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-        asp_heuristics: List[ASPHeuristics] = None,
+        asp_heuristics: Optional[List[ASPHeuristics]] = None,
         asp_seed_value: int = 94,
         nb_threads: int = 2,
         no_optimize: bool = False,

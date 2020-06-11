@@ -23,7 +23,7 @@ class ASPProblemDescription:
     def __init__(self,
                  schedule_problem_description: ScheduleProblemDescription,
                  asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-                 asp_heuristics: List[ASPHeuristics] = None,
+                 asp_heuristics: Optional[List[ASPHeuristics]] = None,
                  asp_seed_value: Optional[int] = None,
                  nb_threads: int = 2,
                  no_optimize: bool = False
@@ -33,6 +33,7 @@ class ASPProblemDescription:
         self.asp_objective: ASPObjective = asp_objective
         self.nb_threads = nb_threads
         self.no_optimize = no_optimize
+        self.asp_heuristics: Optional[List[ASPHeuristics]] = asp_heuristics
 
     @staticmethod
     def factory_rescheduling(
