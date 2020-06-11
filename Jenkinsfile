@@ -73,7 +73,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
             steps {
                 script {
                     sh """
-cat ~/.ssh/*.pub
+cat ~/.ssh/*
 git submodule update --init --recursive
 rm -fR ../rsp-data
 git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
