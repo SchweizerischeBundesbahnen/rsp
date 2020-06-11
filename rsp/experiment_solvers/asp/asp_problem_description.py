@@ -62,7 +62,7 @@ class ASPProblemDescription:
         asp_problem = ASPProblemDescription(
             schedule_problem_description=schedule_problem_description,
             asp_objective=ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-            asp_heuristics=[],
+            asp_heuristics=[ASPHeuristics.HEURISTIC_SEQ],
             asp_seed_value=asp_seed_value,
             no_optimize=no_optimize,
             nb_threads=2  # not deterministic any more!

@@ -442,7 +442,7 @@ def hypothesis_one_malfunction_analysis(
 
 if __name__ == '__main__':
     # do not commit your own calls !
-    if False:
+    if True:
         hypothesis_one_pipeline(
             experiment_name='003_a_bit_more_advanced_schedules_only',
             parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced(),
@@ -450,9 +450,10 @@ if __name__ == '__main__':
             asp_export_experiment_ids=[],
             gen_only=True
         )
-    hypothesis_one_rerun_without_regen_schedule(
-        copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_10T22_05_48//',
-        experiment_name='003_a_bit_more_advanced_2020_06_10T22_05_48_without_SEQ',
-        nb_runs=1,
-        parallel_compute=2
-    )
+    if False:
+        hypothesis_one_rerun_without_regen_schedule(
+            copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_10T22_05_48//',
+            experiment_name='003_a_bit_more_advanced_2020_06_10T22_05_48_without_SEQ',
+            nb_runs=1,
+            parallel_compute=2
+        )
