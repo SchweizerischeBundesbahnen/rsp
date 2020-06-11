@@ -75,8 +75,8 @@ curl --insecure -v --request POST -H "Authorization: token ${
                     sh """
 git submodule update --init --recursive
 # TODO SIM-545 do we need rsp-data in ci still?
-rm -fR ../rsp-data
-git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
+#rm -fR ../rsp-data
+#git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
 """
                 }
             }
