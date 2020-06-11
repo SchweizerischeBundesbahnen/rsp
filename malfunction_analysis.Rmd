@@ -30,6 +30,7 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_d
 from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
 from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.compute_time_analysis.compute_time_analysis import print_situation_overview
 
 
 from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
@@ -63,7 +64,16 @@ plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_exper
 Compute the propagation wave from the malfunction with no re-scheduling. We compute how the malfunction would propagate in the schedule if no re-scheduling actions are taken. This means that between two consecutive trains on the same resource, the delay propagates if their temporal distance is smaller than the duration of the delay. The delay passed on to the next consists of the difference between the duration of the delay and the time between trains.
 
 ```{python}
-transmission_chains, distance_matrix, weights_matrix, minimal_depth = compute_disturbance_propagation_graph(schedule_plotting=plotting_data)
+transmission_chains, distance_matrix, minimal_depth = compute_disturbance_propagation_graph(schedule_plotting=plotting_data)
+# Get resource occupation and time-space trajectories for initial schedule
+schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
+schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations
+                                                                         ,plotting_data.plotting_information)
+# Get resource occupation and time-space trajectories for full reschedule
+
+reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
+                                                                           plotting_data.plotting_information)
 changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(
                         base_trajectories=schedule_trajectories,
                         target_trajectories=reschedule_trajectories)
@@ -72,25 +82,9 @@ unchanged_agents = {}
 for agent in changed_agents_dict:
     unchanged_agents[agent] = not changed_agents_dict[agent]
 false_positives = resource_occpuation_from_transmission_chains(transmission_chains,unchanged_agents)
-true_positives_trajectories = trajectories_from_resource_occupations_per_agent(true_positives,plotting_data.plotting_information)
-false_positives_trajectories = trajectories_from_resource_occupations_per_agent(false_positives,plotting_data.plotting_information)
+true_positives_trajectories = trajectories_from_resource_occupations_per_agent({0:true_positives},plotting_data.plotting_information)
+false_positives_trajectories = trajectories_from_resource_occupations_per_agent({0:false_positives},plotting_data.plotting_information)
 
-```
-
-Get resource occupation and time-space trajectories for initial schedule
-
-```{python}
-schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations
-                                                                         ,plotting_data.plotting_information)
-```
-
-Get resource occupation and time-space trajectories for delta reschedule
-
-```{python}
-reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
-reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
-                                                                           plotting_data.plotting_information)
 ```
 
 ### Malfunction spread without interventions from re-scheduling algorithm
@@ -98,12 +92,15 @@ reschedule_trajectories = trajectories_from_resource_occupations_per_agent(resch
 Visualize the propagation of the malfunction in the schedule. Only forward propagation is considered and no re-scheduling is assumed. This illustrates the extent of the malfunction if no actions are taken.
 
 ```{python}
+print_situation_overview(plotting_data,changed_agents_dict)
+```
+
+```{python}
 plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",
                                 trajectories=schedule_trajectories,
                                 ranges=plotting_data.plotting_information.dimensions,
                                 malfunction=plotting_data.malfunction,
-                                true_positives_wave=true_positives_trajectories,
-                                false_positives_wave=false_positives_trajectories)
+                                malfunction_wave=(true_positives_trajectories,false_positives_trajectories))
 ```
 
 Spatially the influence of the malfunction would have spread according to the following plot
@@ -138,6 +135,16 @@ Figure below shows the histogram of the delay times, giving us a great overview 
 
 ```{python}
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
+```
+
+```{python}
+plot_delay_propagation_graph(changed_agents = changed_agents_dict,
+        minimal_depth = minimal_depth,
+        distance_matrix = distance_matrix)
+```
+
+```{python}
+distance_matrix[2]
 ```
 
 ```{python}

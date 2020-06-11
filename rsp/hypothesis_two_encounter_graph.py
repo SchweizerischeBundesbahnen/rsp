@@ -126,42 +126,49 @@ def plot_delay_propagation_graph(
     )
     fig = go.Figure(layout=layout)
     max_depth = max(list(minimal_depth.values()))
-    agents_per_depth = {}
-    for i in range(max_depth + 1):
-        agents_per_depth[i] = 0
+    agents_per_depth = [[] for _ in range(max_depth + 1)]
+    agent_counter_per_depth = [0 for _ in range(max_depth + 1)]
+    # get agents for each depth
+    for agent, depth in minimal_depth.items():
+        agents_per_depth[depth].append(agent)
     num_agents = len(distance_matrix[:, 0])
-    for from_agent in range(num_agents):
-        node_positions = {}
-        node_line = []
-        if from_agent in minimal_depth.keys():
-            from_agent_depth = minimal_depth[from_agent]
+    node_positions = {}
+    current_depth = 0
+    for depth in range(max_depth + 1):
+        for from_agent in agents_per_depth[depth]:
+            node_line = []
+            from_agent_depth = depth
             if from_agent not in list(node_positions.keys()):
-                node_positions[from_agent] = (from_agent_depth, agents_per_depth[from_agent_depth])
-                agents_per_depth[from_agent_depth] += 10
+                node_positions[from_agent] = (from_agent_depth, 5 * (agent_counter_per_depth[depth] - 0.5 * len(agents_per_depth[depth])))
+                agent_counter_per_depth[depth] += 1
             for to_agent in range(num_agents):
+                if from_agent == to_agent:
+                    continue
                 if to_agent in minimal_depth.keys():
                     to_agent_depth = minimal_depth[to_agent]
-                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth < to_agent_depth:
+                    # TODO: Check why there are hopsto neighbours greater than one! (Depth difference shoul always be 1 no!?)
+                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth == to_agent_depth -1:
                         if to_agent not in list(node_positions.keys()):
-                            node_positions[to_agent] = (to_agent_depth, agents_per_depth[to_agent_depth])
-                            agents_per_depth[to_agent_depth] += 10
+                            node_positions[to_agent] = (
+                            to_agent_depth, 5 * (agent_counter_per_depth[to_agent_depth] - 0.5 * len(agents_per_depth[to_agent_depth])))
+                            agents_per_depth[to_agent_depth][agent_counter_per_depth[to_agent_depth]] = to_agent
+                            agent_counter_per_depth[to_agent_depth] += 1
+
                         node_line.append(node_positions[from_agent])
                         node_line.append(node_positions[to_agent])
                         node_line.append((None, None))
+            x = []
+            y = []
+            for pos in node_line:
+                x.append(pos[1])
+                y.append(pos[0])
+            fig.add_trace(go.Scattergl(
+                x=x,
+                y=y,
+                mode='lines+markers',
+                marker=dict(size=5)
+            ))
 
-
-
-        x = []
-        y = []
-        for pos in node_line:
-            x.append(pos[1])
-            y.append(pos[0])
-        fig.add_trace(go.Scattergl(
-            x=x,
-            y=y,
-            mode='lines+markers',
-            marker=dict(size=5)
-        ))
     fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
 
     fig.show()

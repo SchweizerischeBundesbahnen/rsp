@@ -127,6 +127,7 @@ def distance_matrix_from_tranmission_chains(
     wave_reaching_other_agent: WAVE_PER_AGENT_AND_DEPTH = {agent_id: {} for agent_id in range(number_of_trains)}
     # for each agent, minimum transmission length reaching the other agent from malfunction agent
     minimal_depth: Dict[int, int] = {}
+    minimal_depth[transmission_chains[0][0].hop_off.agent_id] = 0
     for transmission_chain in transmission_chains:
         if len(transmission_chain) < 2:
             # skip transmission chains consisting of only one leg (along the malfunction agent's path)
