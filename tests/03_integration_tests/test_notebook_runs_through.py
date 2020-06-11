@@ -34,9 +34,7 @@ if __name__ == '__main__':
             dest_text = re.sub('^display', "print", dest_text, flags=re.MULTILINE)
             # tweak 2: use plot_route_dag with save=True (in order to prevent plt from opening window in ci)
             dest_text = re.sub('^(plot_route_dag.*)\\)', r'\g<1>, save=True)', dest_text, flags=re.MULTILINE)
-            # tweak 3: do not render video
-            dest_text = re.sub('(.*render_flatland_env)', r'# \g<1>', dest_text, flags=re.MULTILINE)
-            # tweak 4: do not show Video
+            # tweak 3: do not show Video
             dest_text = re.sub('^Video', r'#Video', dest_text, flags=re.MULTILINE)
             print(dest_text)
             multiline_eval(dest_text)
