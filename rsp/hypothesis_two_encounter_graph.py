@@ -145,7 +145,7 @@ def plot_delay_propagation_graph(
                         node_positions[to_agent] = (to_agent_depth, agents_per_depth[to_agent_depth])
                         node_line.append(node_positions[from_agent])
                         node_line.append(node_positions[to_agent])
-                        node_line.append((None,None))
+                        node_line.append((None, None))
 
                         agents_per_depth[to_agent_depth] += 1
 
