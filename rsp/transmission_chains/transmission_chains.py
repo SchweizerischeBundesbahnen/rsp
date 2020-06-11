@@ -10,7 +10,8 @@ from rsp.utils.plotting_data_types import SchedulePlotting
 
 TransmissionLeg = NamedTuple('TransmissionLeg', [
     ('hop_on', ResourceOccupation),
-    ('hop_off', ResourceOccupation)
+    ('hop_off', ResourceOccupation),
+    ('delay_time', int)
 ])
 TransmissionChain = List[TransmissionLeg]
 
@@ -47,12 +48,14 @@ def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlottin
         # N.B. intervals include release times, therefore we can be strict at upper bound!
         if malfunction.time_step < ro.interval.to_excl:
             # TODO should the interval extended by the malfunction duration?
-            chain = [TransmissionLeg(malfunction_occupation, ro)]
-            open_wave_front.append((ro, chain, delay_time))
+            chain = [TransmissionLeg(malfunction_occupation, ro, delay_time)]
+            open_wave_front.append(chain)
             transmission_chains.append(chain)
     assert len(open_wave_front) > 0
     while len(open_wave_front) > 0:
-        wave_front, history, delay_time = open_wave_front.pop()
+        history = open_wave_front.pop()
+        wave_front = history[-1].hop_off
+        delay_time = history[-1].delay_time
         wave_front_resource = wave_front.resource
         if wave_front in closed_wave_front:
             continue
@@ -66,12 +69,11 @@ def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlottin
                 for subsequent_ro in resource_occupations_per_agent[ro.agent_id]:
                     # hop_on and hop_off may be at the same resource
                     if subsequent_ro.interval.from_incl >= ro.interval.from_incl:
-                        chain = history + [TransmissionLeg(ro, subsequent_ro)]
-                        el = (subsequent_ro, chain, delay_time)
+                        chain = history + [TransmissionLeg(ro, subsequent_ro, delay_time)]
                         assert subsequent_ro not in history
                         if ro in closed_wave_front:
                             continue
-                        open_wave_front.append(el)
+                        open_wave_front.append(chain)
                         transmission_chains.append(chain)
                 break
     return transmission_chains

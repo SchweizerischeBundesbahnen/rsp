@@ -22,7 +22,6 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import ResourceOccupation
@@ -433,11 +432,6 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         resource_occupations_schedule=resource_occupations_reschedule_delta,
         plotting_information=plotting_information)
 
-    total_delay = sum(
-        max(resource_occupations_schedule[agent_id][-1].interval.to_excl - sorted_resource_occupations_reschedule_delta[-1].interval.to_excl, 0)
-        for agent_id, sorted_resource_occupations_reschedule_delta in resource_occupations_reschedule_delta.items()
-    )
-
     # Plot Schedule
     plot_time_resource_trajectories(
         title='Schedule',
@@ -509,8 +503,7 @@ def plot_time_resource_trajectories(
         ranges: Tuple[int, int],
         additional_data: Dict = None,
         malfunction: ExperimentMalfunction = None,
-        true_positives_wave: Trajectories = None,
-        false_positives_wave: Trajectories = None,
+        malfunction_wave: Trajectories = None,
         show: bool = True
 ):
     """
@@ -586,8 +579,9 @@ def plot_time_resource_trajectories(
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction start', line=dict(color='red')))
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
-    if true_positives_wave is not None:
-        x, y = zip(*list(true_positives_wave.values())[0])
+
+    if malfunction_wave is not None:
+        x, y = zip(*list(malfunction_wave[0].values())[0])
         fig.add_trace(
             go.Scattergl(x=x,
                          y=y,
@@ -597,8 +591,7 @@ def plot_time_resource_trajectories(
                          name="True Positives",
                          hovertemplate=hovertemplate
                          ))
-    if false_positives_wave is not None:
-        x, y = zip(*list(false_positives_wave.values())[0])
+        x, y = zip(*list(malfunction_wave[1].values())[0])
         fig.add_trace(
             go.Scattergl(x=x,
                          y=y,
@@ -819,7 +812,7 @@ def plot_schedule_metrics(schedule_plotting: SchedulePlotting, lateness_delta_af
 
     # Plot Delay propagation
     transmission_chains = extract_transmission_chains_from_schedule(schedule_plotting)
-    _, _, minimal_depth, _ = distance_matrix_from_tranmission_chains(
+    _, minimal_depth, _ = distance_matrix_from_tranmission_chains(
         number_of_trains=len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent),
         transmission_chains=transmission_chains
     )

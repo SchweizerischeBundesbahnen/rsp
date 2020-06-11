@@ -1,18 +1,16 @@
 import pprint
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Tuple
 
 import numpy as np
+import plotly.graph_objects as go
 
-from rsp.encounter_graph.encounter_graph_visualization import _plot_encounter_graph_directed
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import SortedResourceOccupationsPerAgent
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -77,13 +75,13 @@ def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
 
     # 2. non-symmetric distance matrix of primary, secondary etc. effects
     number_of_trains = len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent)
-    distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent = distance_matrix_from_tranmission_chains(
+    distance_matrix, minimal_depth, wave_fronts_reaching_other_agent = distance_matrix_from_tranmission_chains(
         number_of_trains=number_of_trains, transmission_chains=transmission_chains)
 
-    return transmission_chains, distance_matrix, weights_matrix, minimal_depth
+    return transmission_chains, distance_matrix, minimal_depth
 
 
-def resource_occpuation_from_transmission_chains(transmission_chains: List[TransmissionChain], changed_agents: Dict) ->  List[ResourceOccupation]:
+def resource_occpuation_from_transmission_chains(transmission_chains: List[TransmissionChain], changed_agents: Dict) -> List[ResourceOccupation]:
     """Method to construct Ressource Occupation from transmition chains. Used
     to plot the transmission in the resource-time-diagram.
 
@@ -103,68 +101,68 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
                            agent_id=wave_plotting_id)
         for transmission_chain in transmission_chains
         if changed_agents[transmission_chain[-1].hop_off.agent_id]]
-    wave_resource_occupations:  List[ResourceOccupation] = time_resource_malfunction_wave
+    wave_resource_occupations: List[ResourceOccupation] = time_resource_malfunction_wave
     return wave_resource_occupations
 
 
 def plot_delay_propagation_graph(
         changed_agents,
-        max_time_schedule,
         minimal_depth,
-        wave_fronts_reaching_other_agent,
-        weights_matrix,
-        file_name: Optional[str] = None,
-):
+        distance_matrix):
     """
 
     Parameters
     ----------
     changed_agents
-    max_time_schedule
     minimal_depth
-    wave_fronts_reaching_other_agent
-    weights_matrix
-    file_name
-
+    transmission_chains
+    ToDO: This function is not working properly yet
     Returns
     -------
 
     """
-    # TODO Fix this method!
-    # take minimum depth of transmission between and the time reaching the second agent as coordinates
-    # TODO is it a good idea to take minimum depth, should it not rather be cumulated distance from the malfunction train?
-    pos = {}
-    pos[malfunction.agent_id] = (0, 0)
-    max_depth = 0
-    for to_agent_id in range(number_of_trains):
-        if to_agent_id == malfunction_agent_id or to_agent_id not in minimal_depth:
-            continue
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+    max_depth = max(list(minimal_depth.values()))
+    agents_per_depth = {}
+    for i in range(max_depth + 1):
+        agents_per_depth[i] = 0
+    num_agents = len(distance_matrix[:, 0])
+    for from_agent in range(num_agents):
+        node_positions = {}
+        node_line = []
+        if from_agent in minimal_depth.keys():
+            from_agent_depth = minimal_depth[from_agent]
+            if from_agent not in list(node_positions.keys()):
+                node_positions[from_agent] = (from_agent_depth, agents_per_depth[from_agent_depth])
+                agents_per_depth[from_agent_depth] += 10
+            for to_agent in range(num_agents):
+                if to_agent in minimal_depth.keys():
+                    to_agent_depth = minimal_depth[to_agent]
+                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth < to_agent_depth:
+                        node_positions[to_agent] = (to_agent_depth, agents_per_depth[to_agent_depth])
+                        node_line.append(node_positions[from_agent])
+                        node_line.append(node_positions[to_agent])
+                        node_line.append((None,None))
 
-        #  take minimum depth as row
-        d = minimal_depth[to_agent_id]
+                        agents_per_depth[to_agent_depth] += 1
 
-        # take earliest hop on at minimum depth, might not correspond to minimum distance!!
-        hop_ons = wave_fronts_reaching_other_agent[to_agent_id][d]
-        hop_ons.sort(key=lambda t: t.interval.from_incl)
+        x = []
+        y = []
+        for pos in node_line:
+            x.append(pos[1])
+            y.append(pos[0])
+        fig.add_trace(go.Scattergl(
+            x=x,
+            y=y,
+            mode='lines+markers',
+            marker=dict(size=5)
+        ))
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
 
-        pos[to_agent_id] = (hop_ons[0].interval.from_incl, d)
-        max_depth = max(max_depth, d)
-    # TODO explantion for upward arrows?
-    # TODO why do we have bidirectional arrays? is this a bug?
-    # TODO why jumping over from malfunction agent
-    staengeli_index = 0
-    nb_not_affected = len([agent_id for agent_id in range(number_of_trains) if agent_id not in pos])
-    for agent_id in range(number_of_trains):
-        if agent_id not in pos:
-            # distribute evenly over diagram
-            pos[agent_id] = (staengeli_index * max_time_schedule / nb_not_affected, max_depth + 5)
-            staengeli_index += 1
-    _plot_encounter_graph_directed(
-        weights_matrix=weights_matrix,
-        changed_agents=changed_agents,
-        title=f"Delay Propagation Graph",
-        file_name=file_name,
-        pos=pos)
+    fig.show()
 
 
 if __name__ == '__main__':
