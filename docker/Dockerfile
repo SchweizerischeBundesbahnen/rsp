@@ -20,22 +20,15 @@ RUN set -e && \
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev && \
     # https://stackoverflow.com/questions/58245255/how-to-force-git-to-use-socks-proxy-over-its-ssh-connection
-    apt-get -y install connect-proxy
+    apt-get -y install connect-proxy && \
+    python3 -m pip config set global.cert /etc/ssl/certs/ca-certificates.crt
 
 
-# N.B. we inherit ENTRYPOINT from dskit/jupyter-base, no need to redefine
-#   see https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile?at=refs%2Ftags%2F0.4.0#133-136
-# N.B. we do not re-define CMD since we specify args in deployment.yaml!
-# / TODO HPC-101 -> DSKIT-28  workaround for "fatal: could not create work tree dir 'hpc-quickstart-training': Permission denied"?
-RUN set -e && set -x && export NB_GID=0 && fix-permissions $HOME
 # Switch back to jovyan
 USER $NB_USER
 
 RUN mkdir -p $HOME/data
 
-RUN printenv && \
-    id -u && \
-    id -g && \
-    set-sbb-proxy && \
-    python3 -m pip config set global.cert /etc/ssl/certs/ca-certificates.crt
-# \  TODO HPC-101 -> DSKIT-28
+# N.B. we inherit ENTRYPOINT from dskit/jupyter-base, no need to redefine
+#   see https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile?at=refs%2Ftags%2F0.4.0#133-136
+# N.B. we do not re-define CMD since we specify args in deployment.yaml!

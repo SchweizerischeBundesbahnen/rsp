@@ -77,7 +77,7 @@ spec:
               source ~/.bashrc
 
               # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-              conda env create --file rsp_environment.yml --force
+              conda env create --prefix . --file rsp_environment.yml --force
               conda activate rsp
 
               # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!

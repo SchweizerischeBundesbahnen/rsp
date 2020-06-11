@@ -118,14 +118,15 @@ cat ~/.ssh/id_rsa > id_rsa
 //                )
 //            }
 //        }
-        // TODO SIM-545 remove again
         // if we're on master, tag the docker image with the new semantic version
-        stage("Build and Tag Docker Image if on master TEMP") {
-            when {
-                allOf {
-                    expression { !params.deploy }
-                }
-            }
+        stage("Build and Tag Docker Image if on master") {
+            // TODO SIM-545 re-enable
+//            when {
+//                allOf {
+//                    expression { BRANCH_NAME == 'master' }
+//                    expression { !params.deploy }
+//                }
+//            }
             steps {
                 script {
                     echo """cloud_buildDockerImage()"""
@@ -166,8 +167,7 @@ cat ~/.ssh/id_rsa > id_rsa
                             chart: env.HELM_CHART,
                             release: 'rsp-ci',
                             additionalValues: [
-                                    // TODO SIM-545 release and take latest
-                                    RspWorkspaceVersion: "6298f6ffccfdbde73087a19871f0d451fe3def8e",
+                                    RspWorkspaceVersion: "latest",
                                     RspVersion         : GIT_COMMIT
                             ]
                     )
@@ -184,36 +184,6 @@ oc project $OPENSHIFT_PROJECT
 helm delete rsp-ci
 '''
                     }
-                }
-            }
-        }
-        // if we're on master, tag the docker image with the new semantic version
-        stage("Build and Tag Docker Image if on master") {
-            when {
-                allOf {
-                    expression { BRANCH_NAME == 'master' }
-                    expression { !params.deploy }
-                }
-            }
-            steps {
-                script {
-                    echo """cloud_buildDockerImage()"""
-                    echo """GIT_COMMIT=${env.GIT_COMMIT}"""
-                    cloud_buildDockerImage(
-                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-                            ocApp: env.BASE_IMAGE_NAME,
-                            ocAppVersion: env.GIT_COMMIT,
-                            // we must be able to access rsp_environment.yml from within docker root!
-                            // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
-                            dockerDir: '.',
-                            dockerfilePath: 'docker/Dockerfile'
-                    )
-                    cloud_tagDockerImage(
-                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-                            ocApp: env.BASE_IMAGE_NAME,
-                            tag: env.GIT_COMMIT,
-                            targetTag: "latest"
-                    )
                 }
             }
         }
