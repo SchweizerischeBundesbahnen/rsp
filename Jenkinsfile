@@ -103,17 +103,24 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
 
         export PYTHONPATH=\$PWD:\$PYTHONPATH
         echo PYTHONPATH=\$PYTHONPATH
+
+        # install ffmpeg in workspace and but executable in PATH
         uname -r
         wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
         tar xvf ffmpeg-release-amd64-static.tar.xz
         export  PATH=\$WORKSPACE/ffmpeg-4.2.3-amd64-static:\$PATH
         which ffmpeg
+
+        # TODO SIM-545 fail early
         xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
+        xvfb-run python -m pytest tests
 
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
 
+        # run unit tests within tox
+        # TODO get rid of tox? additional layer without bonus?
         python -m tox . --recreate -v
 
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
