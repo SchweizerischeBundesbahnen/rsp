@@ -101,7 +101,7 @@ def flux_helper(
 
     with path('res.asp.encodings', 'encoding.lp') as encoding_path:
         paths = [encoding_path]
-
+    rsp_logger.info(f"asp_heuristics={asp_heuristics}")
     if asp_heuristics:
         for asp_heurisic in asp_heuristics:
             with path('res.asp.encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:

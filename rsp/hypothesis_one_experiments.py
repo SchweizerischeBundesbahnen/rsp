@@ -452,7 +452,7 @@ if __name__ == '__main__':
         )
     hypothesis_one_rerun_without_regen_schedule(
         copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_10T22_05_48//',
-        experiment_name='003_a_bit_more_advanced_2020_06_10T22_05_48_with_SEQ',
+        experiment_name='003_a_bit_more_advanced_2020_06_10T22_05_48_without_SEQ',
         nb_runs=1,
-        parallel_compute=1
+        parallel_compute=2
     )
