@@ -56,15 +56,28 @@ spec:
               # echo shell commands and fail script on error
               set -e
               set -x
+
+              # we need to fix user before cloning https://stackoverflow.com/questions/47706024/docker-set-running-user-while-launch-container/57531352#57531352
+              set-ocuser-as-jovyan
+
+              # set http proxy
               source set-sbb-proxy
               printenv
 
-              git clone ssh://git@code.sbb.ch:7999/ks_pfi/rsp.git -b {{ .Values.RspWorkspaceVersion }}
+              # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
+              git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
               cd rsp
+              git checkout {{ .Values.RspVersion }} --recurse-submodules
+              cd ..
+              git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
-              # activate conda environment (from Docker image build)
-              # https://docs.anaconda.com/anaconda/install/silent-mode/
-              eval "$(conda shell.bash hook)"
+              # set up environment
+              cd rsp
+              conda init bash
+              source ~/.bashrc
+
+              # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
+              conda env create --file rsp_environment.yml --force
               conda activate rsp
 
               # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!

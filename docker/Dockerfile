@@ -1,6 +1,6 @@
 FROM docker.bin.sbb.ch/dskit/jupyter-base:0.24.0
 LABEL author="Christian Eichenberger <u214892@sbb.ch>"
-LABEL description="rsp jupyter workspace"
+LABEL description="rsp impage for integration test and jupyter workspace"
 
 USER root
 
@@ -22,10 +22,6 @@ RUN set -e && \
     # https://stackoverflow.com/questions/58245255/how-to-force-git-to-use-socks-proxy-over-its-ssh-connection
     apt-get -y install connect-proxy
 
-
-# setup conda env
-ADD rsp_environment.yml /tmp/rsp_environment.yml
-RUN conda env create -f /tmp/rsp_environment.yml
 
 # N.B. we inherit ENTRYPOINT from dskit/jupyter-base, no need to redefine
 #   see https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile?at=refs%2Ftags%2F0.4.0#133-136

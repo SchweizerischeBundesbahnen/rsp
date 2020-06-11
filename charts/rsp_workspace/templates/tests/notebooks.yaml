@@ -13,7 +13,7 @@ spec:
       env:
         # set GIT_SSH_COMMAND to access the private key mounted
         - name: GIT_SSH_COMMAND
-          value: "ssh -o ProxyCommand='connect -S zscaler.sbb.ch:10465 %h %p' -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          value: "ssh -o ProxyCommand='connect -H zscaler.sbb.ch:10465 %h %p' -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
       args:
         - /bin/bash
         - -c
@@ -21,9 +21,19 @@ spec:
           # echo shell commands and fail script on error
           set -e
           set -x
+
+          # we need to fix user before cloning https://stackoverflow.com/questions/47706024/docker-set-running-user-while-launch-container/57531352#57531352
+          set-ocuser-as-jovyan
+
+          # set http proxy
           source set-sbb-proxy
           printenv
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git -b {{ .Values.RspWorkspaceVersion }} --recurse-submodules
+
+          # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
+          cd rsp
+          git checkout {{ .Values.RspVersion }} --recurse-submodules
+          cd ..
           git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
           # set up environment
@@ -32,6 +42,7 @@ spec:
           source ~/.bashrc
 
           # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
+          conda remove --name rsp --all || echo
           conda env create --file rsp_environment.yml --force
           conda activate rsp
 

