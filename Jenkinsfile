@@ -183,7 +183,7 @@ helm delete rsp-ci
                             project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             release: 'rsp-ci',
-                            timeoutInSeconds: 900
+                            timeoutInSeconds: '900'
                     )
                     withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
                         sh '''
