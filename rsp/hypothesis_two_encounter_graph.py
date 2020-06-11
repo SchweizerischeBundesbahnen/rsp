@@ -142,12 +142,14 @@ def plot_delay_propagation_graph(
                 if to_agent in minimal_depth.keys():
                     to_agent_depth = minimal_depth[to_agent]
                     if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth < to_agent_depth:
-                        node_positions[to_agent] = (to_agent_depth, agents_per_depth[to_agent_depth])
+                        if to_agent not in list(node_positions.keys()):
+                            node_positions[to_agent] = (to_agent_depth, agents_per_depth[to_agent_depth])
+                            agents_per_depth[to_agent_depth] += 10
                         node_line.append(node_positions[from_agent])
                         node_line.append(node_positions[to_agent])
                         node_line.append((None, None))
 
-                        agents_per_depth[to_agent_depth] += 1
+
 
         x = []
         y = []
