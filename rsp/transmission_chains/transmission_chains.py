@@ -59,7 +59,6 @@ def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlottin
         closed_wave_front.append(wave_front)
 
         # the next scheduled train may be impacted!
-        # TODO we do not consider decelerate to let pass yet! search backward in radius? would this be another type of chain?
         for ro in resource_occupations_per_resource[wave_front_resource]:
             time_between_agents = ro.interval.from_incl - wave_front.interval.to_excl
             if ro.interval.from_incl >= wave_front.interval.to_excl and time_between_agents < delay_time:
@@ -105,19 +104,17 @@ def validate_transmission_chains(transmission_chains: List[TransmissionChain]):
 
 def distance_matrix_from_tranmission_chains(
         number_of_trains: int,
-        transmission_chains: List[TransmissionChain],
-        cutoff: int = None) -> Tuple[np.ndarray, np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
+        transmission_chains: List[TransmissionChain]) -> Tuple[np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
     """
 
     Parameters
     ----------
     number_of_trains
     transmission_chains
-    cutoff
 
     Returns
     -------
-    distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent
+    distance_matrix, minimal_depth, wave_fronts_reaching_other_agent
 
     """
 
@@ -132,15 +129,6 @@ def distance_matrix_from_tranmission_chains(
         if len(transmission_chain) < 2:
             # skip transmission chains consisting of only one leg (along the malfunction agent's path)
             continue
-        # TODO SIM-511 weighting/damping: take into account number of intermediate steps and their distance!
-        if cutoff is not None:
-            distances = [to_leg.hop_on.interval.from_incl - from_leg.hop_off.interval.to_excl for from_leg, to_leg in
-                         zip(transmission_chain, transmission_chain[1:])]
-            for distance in distances:
-                assert distance >= 0
-            max_distance = np.max(distances)
-            if max_distance >= cutoff:
-                continue
         from_ro = transmission_chain[-2].hop_off
         to_ro = transmission_chain[-1].hop_on
         hop_on_depth = len(transmission_chain) - 1
@@ -160,9 +148,5 @@ def distance_matrix_from_tranmission_chains(
             distance_first_reaching[from_agent_id, to_agent_id] = to_ro.interval.from_incl
         elif distance_before == distance:
             distance_first_reaching[from_agent_id, to_agent_id] = min(distance_first_reaching[from_agent_id, to_agent_id], to_ro.interval.from_incl)
-    # almost-inverse: distance -> weights
-    weights_matrix: np.ndarray = (1 / distance_matrix) + 0.000001
-    # normalize
-    np_max = np.max(weights_matrix)
-    weights_matrix /= np_max
-    return distance_matrix, weights_matrix, minimal_depth, wave_reaching_other_agent
+
+    return distance_matrix, minimal_depth, wave_reaching_other_agent

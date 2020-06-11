@@ -892,7 +892,7 @@ def plot_delay_propagation_2d(
         depth_dict: Dict[int, int],
         changed_agents: Optional[Dict[int, bool]] = None):
     """
-    Plot agent delay over ressource.
+    Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
     ----------
     schedule_ressources
@@ -911,15 +911,15 @@ def plot_delay_propagation_2d(
     fig = go.Figure(layout=layout)
 
     # Sort agents according to influence depth for plotting only plot disturbed agents
-    agents = []
-    if changed_agents is None:
-        for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
-            if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-                agents.append(agent)
+    sorted_agents = []
+    for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
+        if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+            sorted_agents.append(agent)
+    if changed_agents is not None:
+        agents = [agent for agent in sorted_agents if changed_agents[agent]]
     else:
-        for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
-            if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent and changed_agents[agent]:
-                agents.append(agent)
+        agents = sorted_agents
+
     # Add the malfunction source agent
     agents.append(plotting_data.malfunction.agent_id)
 
@@ -1026,7 +1026,7 @@ def trajectories_from_resource_occupations_per_agent(
         plotting_information: PlottingInformation
 ) -> Trajectories:
     """
-
+    Build trajectories for time-resource graph
     Parameters
     ----------
     resource_occupations_schedule
@@ -1038,7 +1038,7 @@ def trajectories_from_resource_occupations_per_agent(
     resource_sorting = plotting_information.sorting
     width = plotting_information.grid_width
     schedule_trajectories: Trajectories = {}
-    for idx, resource_ocupations in resource_occupations_schedule.items():
+    for agent_handle, resource_ocupations in resource_occupations_schedule.items():
         train_time_path = []
         for resource_ocupation in resource_ocupations:
             position = coordinate_to_position(width, [resource_ocupation.resource])[0]
@@ -1048,5 +1048,5 @@ def trajectories_from_resource_occupations_per_agent(
             train_time_path.append((resource_sorting[position], resource_ocupation.interval.from_incl))
             train_time_path.append((resource_sorting[position], resource_ocupation.interval.to_excl))
             train_time_path.append((None, None))
-        schedule_trajectories[idx] = train_time_path
+        schedule_trajectories[agent_handle] = train_time_path
     return schedule_trajectories
