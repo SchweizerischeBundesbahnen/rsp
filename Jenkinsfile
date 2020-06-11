@@ -144,9 +144,11 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
         }
         stage("Integration Test Notebooks") {
             when {
-                allOf {
+                anyOf {
                     // if the build was triggered manually with deploy=true, skip image building
                     expression { !params.deploy }
+                    // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
+                    expression { env.CHANGE_ID == null }
                 }
             }
             steps {
@@ -156,7 +158,11 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
                             project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             chart: env.HELM_CHART,
-                            release: 'rsp-ci'
+                            release: 'rsp-ci',
+                            additionalValues: [
+                                    RspWorkspaceVersion: "latest",
+                                    RspVersion: env.GIT_COMMIT
+                            ]
                     )
                     cloud_helmchartsTest(
                             cluster: OPENSHIFT_CLUSTER,

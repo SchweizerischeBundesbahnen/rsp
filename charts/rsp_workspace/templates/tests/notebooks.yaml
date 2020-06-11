@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ .Release.Name }}-test"
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  restartPolicy: Never
+  containers:
+    - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
+      imagePullPolicy: IfNotPresent # Always or IfNotPresent
+      name: "{{ .Release.Name }}"
+      # sbb-proxy is set in dskit-jupyter-base ENTRYPOINT https://code.sbb.ch/projects/KD_BIGDATA/repos/dskit-jupyter-base/browse/docker/Dockerfile
+      # If you need to set proxy variables manually, add something along the lines:
+      # (On AWS you might need to unset the variables! On OTC/VIAS, you need the proxy to access the internet).
+      #      env:
+      #        - name: HTTP_PROXY
+      #          value: http://zscaler.sbb.ch:10465
+      #        - name: HTTPS_PROXY
+      #          value: http://zscaler.sbb.ch:10465
+      #        - name: NO_PROXY
+      #          value: localhost,127.0.0.1,.svc.cluster.local,.sbb.ch,.cff.ch,.ffs.ch,.adrail.ch,.sbb-wzu.net,.wzu.io,.sbb-aws.net,.sbb-cloud.net,.sbbintra.ch,.swisspass.ch,.sbbcargo.com,.otc.t-systems.com,bin.sbb.ch
+
+      args:
+        - /bin/bash
+        - -c
+        - |
+          # echo shell commands and fail script on error
+          set -e
+          set -x
+          source set-sbb-proxy
+          printenv
+
+          git clone https://code.sbb.ch/scm/ks_pfi/rsp.git -b {{ .Values.RspVersion }} --recurse-submodules
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
+
+{{/*      volumeMounts:*/}}
+{{/*        - mountPath: "/home/jovyan/ssh"*/}}
+{{/*          name: hpc-quickstart-docker-git-ssh-volume*/}}
+{{/*  volumes:*/}}
+{{/*    - name: hpc-quickstart-docker-git-ssh-volume*/}}
+{{/*      secret:*/}}
+{{/*        secretName: hpc-quickstart-git-ssh*/}}
+{{/*        defaultMode: 256*/}}
