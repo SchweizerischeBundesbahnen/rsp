@@ -106,7 +106,8 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
         uname -r
         wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
         tar xvf ffmpeg-release-amd64-static.tar.xz
-        export  PYTHONPATH=\$WORKSPACE/ffmpeg-4.2.3-amd64-static:\$PATH
+        export  PATH=\$WORKSPACE/ffmpeg-4.2.3-amd64-static:\$PATH
+        which ffmpeg
         xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
 
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
