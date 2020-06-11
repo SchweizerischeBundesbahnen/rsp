@@ -4,8 +4,6 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_generators import sparse_rail_generator
 from flatland.envs.schedule_generators import sparse_schedule_generator
 
-from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
-
 
 def dummy_rail_env(observation_builder: ObservationBuilder,
                    number_of_agents: int = 60,
@@ -37,6 +35,7 @@ def dummy_rail_env(observation_builder: ObservationBuilder,
 # TODO SIM-434 should we remove all ckua code?
 def test_ckua_generate_schedule():
     if False:
+        from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
         ckua_generate_schedule(
             env=dummy_rail_env(observation_builder=DummyObservationBuilder()),
             random_seed=94

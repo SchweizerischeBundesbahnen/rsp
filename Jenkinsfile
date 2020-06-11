@@ -73,6 +73,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
             steps {
                 script {
                     sh """
+cat ~/.ssh/*.pub
 git submodule update --init --recursive
 rm -fR ../rsp-data
 git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
@@ -101,7 +102,7 @@ git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
         conda env create --file rsp_environment.yml --force
         conda activate rsp
 
-        export PYTHONPATH=\$PWD:\$PYTHONPATH
+        export PYTHONPATH=\$PWD:\$PWD/flatland_ckua:\$PYTHONPATH
         echo PYTHONPATH=\$PYTHONPATH
 
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)

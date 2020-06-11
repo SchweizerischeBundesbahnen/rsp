@@ -57,7 +57,6 @@ from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
-from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
@@ -465,6 +464,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
     # TODO SIM-443 pull out switch out
     SWITCH_CKUA = False
     if SWITCH_CKUA:
+        from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
         trainrun_dict, elapsed_time = ckua_generate_schedule(
             env=rail_env,
             random_seed=experiment_parameters.flatland_seed_value,
