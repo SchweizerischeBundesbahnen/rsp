@@ -56,6 +56,7 @@ spec:
           # TODO SIM-545 should we move test to different locatioNn?
           export PYTHONPATH=$WORKDIR/rsp:$WORKDIR/rsp/flatland_ckua:$PYTHONPATH
           cd $WORKDIR/rsp
+          export QT_DEBUG_PLUGINS=1
           xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
       resources:
       {{- toYaml .Values.resources | nindent 12 }}
