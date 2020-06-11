@@ -165,6 +165,7 @@ oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
 helm delete rsp-ci
 '''
+                    }
                     cloud_helmchartsDeploy(
                             cluster: OPENSHIFT_CLUSTER,
                             project: env.OPENSHIFT_PROJECT,
