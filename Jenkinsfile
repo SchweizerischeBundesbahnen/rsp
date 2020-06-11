@@ -47,6 +47,7 @@ pipeline {
         //-------------------------------------------------------------
         // https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/browse/src/ch/sbb/util/OcClusters.groovy
         OPENSHIFT_CLUSTER = "otc_prod_gpu"
+        OPENSHIFT_CLUSTER_URL = "https://master.gpu.otc.sbb.ch:8443"
         OPENSHIFT_PROJECT = "pfi-digitaltwin-ci"
         HELM_CHART = 'rsp_workspace'
         // https://ssp.app.ose.sbb-cloud.net/ose/newserviceaccount
@@ -161,8 +162,7 @@ git submodule update --init --recursive
                             chart: env.HELM_CHART,
                             release: 'rsp-ci',
                             additionalValues: [
-                                    RspWorkspaceVersion: "latest",
-                                    RspVersion: env.GIT_COMMIT
+                                    RspWorkspaceVersion: env.GIT_COMMIT
                             ]
                     )
                     cloud_helmchartsTest(
@@ -171,6 +171,13 @@ git submodule update --init --recursive
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             release: 'rsp-ci'
                     )
+                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                        sh '''
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+helm delete rsp-ci
+'''
+                    }
                 }
             }
         }

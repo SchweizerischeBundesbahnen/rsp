@@ -1,4 +1,4 @@
-FROM docker.bin.sbb.ch/dskit/jupyter-base:0.23.0
+FROM docker.bin.sbb.ch/dskit/jupyter-base:0.24.0
 LABEL author="Christian Eichenberger <u214892@sbb.ch>"
 LABEL description="rsp jupyter workspace"
 
@@ -18,7 +18,9 @@ RUN set -e && \
     apt-get -y install libgtk-3-0 libgconf-2-4 libnss3 && \
     # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get -y install --no-install-recommends gcc && \
-    apt-get -y install --no-install-recommends python3-dev
+    apt-get -y install --no-install-recommends python3-dev && \
+    # https://stackoverflow.com/questions/58245255/how-to-force-git-to-use-socks-proxy-over-its-ssh-connection
+    apt-get -y install connect-proxy
 
 
 # setup conda env

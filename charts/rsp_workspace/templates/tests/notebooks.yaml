@@ -13,7 +13,7 @@ spec:
       env:
         # set GIT_SSH_COMMAND to access the private key mounted
         - name: GIT_SSH_COMMAND
-          value: "ssh -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          value: "ssh -o ProxyCommand='connect -S zscaler.sbb.ch:10465 %h %p' -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
       args:
         - /bin/bash
         - -c
@@ -23,7 +23,7 @@ spec:
           set -x
           source set-sbb-proxy
           printenv
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git -b {{ .Values.RspVersion }} --recurse-submodules
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git -b {{ .Values.RspWorkspaceVersion }} --recurse-submodules
           git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
           # set up environment
