@@ -17,7 +17,7 @@ RUN set -e && \
     # install requirements for plotly/orca, see https://github.com/plotly/orca/blob/3.3-release/deployment/Dockerfile
     apt-get -y install libgtk-3-0 libgconf-2-4 libnss3 && \
     # install firefox for plotly showing
-    apt-get -y firefox && \
+    apt-get -y install firefox && \
     # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev && \
