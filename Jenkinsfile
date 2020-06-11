@@ -75,7 +75,6 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 script {
                     sh """
 git submodule update --init --recursive
-cat ~/.ssh/*
 """
                 }
             }
@@ -121,13 +120,12 @@ cat ~/.ssh/*
 //        }
         // if we're on master, tag the docker image with the new semantic version
         stage("Build and Tag Docker Image if on master") {
-            // TODO SIM-545 re-enable
-//            when {
-//                allOf {
-//                    expression { BRANCH_NAME == 'master' }
-//                    expression { !params.deploy }
-//                }
-//            }
+            when {
+                allOf {
+                    expression { BRANCH_NAME == 'master' }
+                    expression { !params.deploy }
+                }
+            }
             steps {
                 script {
                     echo """cloud_buildDockerImage()"""
@@ -161,6 +159,12 @@ cat ~/.ssh/*
             }
             steps {
                 script {
+                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                        sh '''
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+helm delete rsp-ci
+'''
                     cloud_helmchartsDeploy(
                             cluster: OPENSHIFT_CLUSTER,
                             project: env.OPENSHIFT_PROJECT,
@@ -177,7 +181,7 @@ cat ~/.ssh/*
                             project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             release: 'rsp-ci',
-                            timeoutInSeconds: 15 * 60
+                            timeoutInSeconds: 900
                     )
                     withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
                         sh '''

@@ -461,9 +461,10 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         experiment_parameters=experiment_parameters
     )
 
-    # TODO SIM-443 pull out switch out
+    # TODO SIM-566 pull out switch out if ckua stuff not remove
     SWITCH_CKUA = False
     if SWITCH_CKUA:
+        # TODO SIM-566 fix local import if ckua stuff not removed; if we have not setup PYTHONPATH correctly, pipeline fails.
         from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
         trainrun_dict, elapsed_time = ckua_generate_schedule(
             env=rail_env,
