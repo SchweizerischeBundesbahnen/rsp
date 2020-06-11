@@ -37,6 +37,6 @@ if __name__ == '__main__':
             # tweak 3: do not show Video
             dest_text = re.sub('^Video', r'#Video', dest_text, flags=re.MULTILINE)
             # tweak 4: do not even render
-            dest_text = re.sub('^render_flatland_env', r'#render_flatland_env', dest_text, flags=re.MULTILINE)
+            dest_text = re.sub('^(.*render_flatland_env)', r'#\g<1>', dest_text, flags=re.MULTILINE)
             print(dest_text)
             multiline_eval(dest_text)
