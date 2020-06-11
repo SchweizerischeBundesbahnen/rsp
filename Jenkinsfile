@@ -120,7 +120,7 @@ cat ~/.ssh/id_rsa > id_rsa
 //        }
         // TODO SIM-545 remove again
         // if we're on master, tag the docker image with the new semantic version
-        stage("Build and Tag Docker Image if on master") {
+        stage("Build and Tag Docker Image if on master TEMP") {
             when {
                 allOf {
                     expression { !params.deploy }
