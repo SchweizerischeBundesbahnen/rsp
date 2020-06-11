@@ -75,51 +75,48 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 script {
                     sh """
 git submodule update --init --recursive
-# TODO SIM-545 do we need rsp-data in ci still?
-#rm -fR ../rsp-data
-#git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git ../rsp-data
 """
                 }
             }
         }
-        stage('pre-commit, pytest and pydeps') {
-            when {
-                allOf {
-                    // if the build was triggered manually with deploy=true, skip testing
-                    expression { !params.deploy }
-                }
-            }
-            steps {
-                tox_conda_wrapper(
-                        ENVIRONMENT_YAML: 'rsp_environment.yml',
-                        JENKINS_CLOSURE: {
-                            sh """
-
-        # set up shell for conda
-        conda init bash
-        source ~/.bashrc
-
-        # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-        conda env create --file rsp_environment.yml --force
-        conda activate rsp
-
-        export PYTHONPATH=\$PWD:\$PWD/flatland_ckua:\$PYTHONPATH
-        echo PYTHONPATH=\$PYTHONPATH
-
-        # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
-        pre-commit install
-        SKIP=docformatter pre-commit run --all --verbose
-
-        # run unit tests
-        python -m pytest tests
-
-        python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
-        python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
-"""
-                        }
-                )
-            }
-        }
+//        stage('pre-commit, pytest and pydeps') {
+//            when {
+//                allOf {
+//                    // if the build was triggered manually with deploy=true, skip testing
+//                    expression { !params.deploy }
+//                }
+//            }
+//            steps {
+//                tox_conda_wrapper(
+//                        ENVIRONMENT_YAML: 'rsp_environment.yml',
+//                        JENKINS_CLOSURE: {
+//                            sh """
+//
+//        # set up shell for conda
+//        conda init bash
+//        source ~/.bashrc
+//
+//        # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
+//        conda env create --file rsp_environment.yml --force
+//        conda activate rsp
+//
+//        export PYTHONPATH=\$PWD:\$PWD/flatland_ckua:\$PYTHONPATH
+//        echo PYTHONPATH=\$PYTHONPATH
+//
+//        # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
+//        pre-commit install
+//        SKIP=docformatter pre-commit run --all --verbose
+//
+//        # run unit tests
+//        python -m pytest tests
+//
+//        python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+//        python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
+//"""
+//                        }
+//                )
+//            }
+//        }
         // build docker image on every commit with the commit hash as its version so it is unique (modulo re-building)
         stage("Build Docker Image") {
             when {
