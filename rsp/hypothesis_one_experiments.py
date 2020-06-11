@@ -71,7 +71,7 @@ def get_agenda_pipeline_params_002_a_bit_more_advanced() -> ParameterRangesAndSp
 
 def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSpeedData:
     parameter_ranges = ParameterRanges(
-        agent_range=[50, 150, 1],
+        agent_range=[50, 150, 100],
         size_range=[50, 50, 1],
         in_city_rail_range=[3, 3, 1],
         out_city_rail_range=[2, 2, 1],
