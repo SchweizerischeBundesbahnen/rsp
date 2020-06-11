@@ -11,9 +11,9 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
+from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import exists_schedule_and_malfunction
-from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_schedule_and_malfunction
@@ -255,6 +255,7 @@ def hypothesis_one_main():
 
 def hypothesis_one_rerun_without_regen_schedule(
         copy_agenda_from_base_directory: str,
+        experiment_name: Optional[str] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         nb_runs: int = 1):
     """
@@ -272,8 +273,10 @@ def hypothesis_one_rerun_without_regen_schedule(
     experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 
-    experiment_agenda = ExperimentAgenda(experiment_name=experiment_agenda.experiment_name,
-                                         experiments=experiment_agenda.experiments * nb_runs)
+    experiment_agenda = ExperimentAgenda(
+        experiment_name=experiment_agenda.experiment_name if experiment_name is None else experiment_name,
+        experiments=experiment_agenda.experiments * nb_runs
+    )
 
     experiment_ids = [
         experiment.experiment_id
@@ -439,17 +442,17 @@ def hypothesis_one_malfunction_analysis(
 
 if __name__ == '__main__':
     # do not commit your own calls !
-    hypothesis_one_pipeline(
-        experiment_name='003_a_bit_more_advanced_schedules_only',
-        parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced(),
-        qualitative_analysis_experiment_ids=[],
-        asp_export_experiment_ids=[],
-        gen_only=True
-    )
-    # TODO SIM-167
     if False:
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory='../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/',
-            nb_runs=1,
-            parallel_compute=1
+        hypothesis_one_pipeline(
+            experiment_name='003_a_bit_more_advanced_schedules_only',
+            parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced(),
+            qualitative_analysis_experiment_ids=[],
+            asp_export_experiment_ids=[],
+            gen_only=True
         )
+    hypothesis_one_rerun_without_regen_schedule(
+        copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_10T22_05_48//',
+        experiment_name='003_a_bit_more_advanced_2020_06_10T22_05_48_with_SEQ',
+        nb_runs=1,
+        parallel_compute=1
+    )
