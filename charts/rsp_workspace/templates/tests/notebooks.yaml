@@ -32,16 +32,13 @@ spec:
 
           # set up http proxy for git (used for FLATland pip dependency)
           git config --global http.sslVerify false
-          git config --global https.sslVerify false
           git config --global http.proxy $HTTP_PROXY
-          git config --global https.proxy $HTTPS_PROXY
           git config --global http.postBuffer 524288000
-          git config --global https.postBuffer 524288000
           git config --global http.maxRequestBuffer 524288000
-          git config --global https.maxRequestBuffer 524288000
           git config --global core.compression 0
 
-          git clone git@gitlab.aicrowd.com:flatland/flatland.git
+
+          GIT_CURL_VERBOSE=1 git clone http://gitlab.aicrowd.com/flatland/flatland.git
 
 
           # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)

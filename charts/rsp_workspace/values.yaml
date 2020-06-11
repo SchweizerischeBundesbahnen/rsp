@@ -16,7 +16,7 @@ service:
 
 resources:
   requests:
-    cpu: 2
+    cpu: 1
     memory: 4Gi
   limits: # Maximum
     cpu: 4
