@@ -138,7 +138,7 @@ plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_i
 ```
 
 ```{python}
-plot_delay_propagation_graph(changed_agents = changed_agents_dict,
+plot_delay_propagation_graph(
         minimal_depth = minimal_depth,
         distance_matrix = distance_matrix)
 ```

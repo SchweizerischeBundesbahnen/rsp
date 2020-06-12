@@ -105,18 +105,16 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
     return wave_resource_occupations
 
 
-def plot_delay_propagation_graph(
-        changed_agents,
+def plot_delay_propagation_graph(  # noqa: C901
         minimal_depth,
-        distance_matrix):
+        distance_matrix
+):
     """
 
     Parameters
     ----------
-    changed_agents
+    distance_matrix
     minimal_depth
-    transmission_chains
-    ToDO: This function is not working properly yet
     Returns
     -------
 
@@ -133,7 +131,6 @@ def plot_delay_propagation_graph(
         agents_per_depth[depth].append(agent)
     num_agents = len(distance_matrix[:, 0])
     node_positions = {}
-    current_depth = 0
     for depth in range(max_depth + 1):
         for from_agent in agents_per_depth[depth]:
             node_line = []
@@ -147,10 +144,10 @@ def plot_delay_propagation_graph(
                 if to_agent in minimal_depth.keys():
                     to_agent_depth = minimal_depth[to_agent]
                     # TODO: Check why there are hopsto neighbours greater than one! (Depth difference shoul always be 1 no!?)
-                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth == to_agent_depth -1:
+                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth == to_agent_depth - 1:
                         if to_agent not in list(node_positions.keys()):
                             node_positions[to_agent] = (
-                            to_agent_depth, 5 * (agent_counter_per_depth[to_agent_depth] - 0.5 * len(agents_per_depth[to_agent_depth])))
+                                to_agent_depth, 5 * (agent_counter_per_depth[to_agent_depth] - 0.5 * len(agents_per_depth[to_agent_depth])))
                             agents_per_depth[to_agent_depth][agent_counter_per_depth[to_agent_depth]] = to_agent
                             agent_counter_per_depth[to_agent_depth] += 1
 
