@@ -14,7 +14,6 @@ from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from matplotlib import pyplot as plt
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
@@ -22,11 +21,9 @@ from rsp.schedule_problem_description.analysis.route_dag_analysis import visuali
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
-from rsp.transmission_chains.transmission_chains import extract_transmission_chains
-from rsp.utils.data_types import convert_pandas_series_experiment_results_analysis
+from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
-from rsp.utils.data_types import Resource
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SortedResourceOccupationsPerAgent
@@ -37,26 +34,16 @@ from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import render_trainruns
 from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.plotting_data_types import PlottingInformation
+from rsp.utils.plotting_data_types import SchedulePlotting
 
-Trajectories = List[List[Tuple[int, int]]]
+Trajectory = List[Tuple[int, int]]  # Time and sorted ressource
+Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
-ResourceSorting = Dict[Resource, int]
 
 # Information used for plotting time-resource-graphs: Sorting is dict mapping ressource to int value used to sort
 # ressources for nice visualization
-PlottingInformation = NamedTuple('PlottingInformation', [
-    ('sorting', ResourceSorting),
-    ('dimensions', Tuple[int, int]),
-    ('grid_width', int)])
-
-SchedulePlotting = NamedTuple('SchedulePlotting', [
-    ('schedule_as_resource_occupations', ScheduleAsResourceOccupations),
-    ('reschedule_full_as_resource_occupations', ScheduleAsResourceOccupations),
-    ('reschedule_delta_as_resource_occupations', ScheduleAsResourceOccupations),
-    ('malfunction', ExperimentMalfunction),
-    ('plotting_information', PlottingInformation)
-])
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -379,9 +366,7 @@ def plot_time_window_resource_trajectories(
         plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
 
 
-def plot_shared_heatmap(
-        experiment_result: ExperimentResultsAnalysis,
-        show: bool = True):
+def plot_shared_heatmap(experiment_result: ExperimentResultsAnalysis):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
@@ -404,18 +389,20 @@ def plot_shared_heatmap(
             distance_matrix[wp00[0]] += 1
             distance_matrix[wp10[0]] += 1
         distance_matrix /= np.max(distance_matrix)
-        fig = plt.figure(figsize=(18, 12), dpi=80)
-        fig.suptitle(title, fontsize=16)
-        plt.subplot(121)
-        plt.imshow(distance_matrix, cmap='hot', interpolation='nearest')
-        if show:
-            fig.show()
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=distance_matrix,
+                colorscale="Hot"))
+        fig.update_layout(
+            title='Heatmap shared {}'.format(title),
+            width=700,
+            height=700
+        )
+        fig.update_yaxes(autorange="reversed")
+        fig.show()
 
 
-def plot_resource_time_diagram(
-        schedule_plotting: SchedulePlotting,
-        with_diff: bool = True
-) -> Dict[int, bool]:
+def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -445,11 +432,6 @@ def plot_resource_time_diagram(
         resource_occupations_schedule=resource_occupations_reschedule_delta,
         plotting_information=plotting_information)
 
-    total_delay = sum(
-        max(resource_occupations_schedule[agent_id][-1].interval.to_excl - sorted_resource_occupations_reschedule_delta[-1].interval.to_excl, 0)
-        for agent_id, sorted_resource_occupations_reschedule_delta in resource_occupations_reschedule_delta.items()
-    )
-
     # Plot Schedule
     plot_time_resource_trajectories(
         title='Schedule',
@@ -457,20 +439,16 @@ def plot_resource_time_diagram(
         trajectories=trajectories_schedule)
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
-    trajectories_influenced_agents, changed_agents_list = _get_difference_in_time_space_trajectories(
-        trajectories_a=trajectories_schedule,
-        trajectories_b=trajectories_reschedule_full)
+    trajectories_influenced_agents, changed_agents_dict = get_difference_in_time_space_trajectories(
+        target_trajectories=trajectories_schedule,
+        base_trajectories=trajectories_reschedule_full)
 
     # Printing situation overview
-    nb_changed_agents = sum([1 for changed in changed_agents_list.values() if changed])
-    print(
-        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
-            malfunction.agent_id,
-            malfunction.time_step,
-            malfunction.malfunction_duration,
-            nb_changed_agents,
-            total_delay))
-    # Plot Reschedule Full only if something has changed
+
+    print_situation_overview(schedule_plotting=schedule_plotting, changed_agents_dict=changed_agents_dict)
+
+    # Plot Reschedule Full only if svomething has changed
+    nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
     if nb_changed_agents > 0:
         plot_time_resource_trajectories(
             trajectories=trajectories_reschedule_full,
@@ -495,7 +473,28 @@ def plot_resource_time_diagram(
             ranges=plotting_information.dimensions
         )
 
-    return changed_agents_list
+    return changed_agents_dict
+
+
+def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents_dict: Dict):
+    # Printing situation overview
+    malfunction = schedule_plotting.malfunction
+    resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_reschedule_delta: SortedResourceOccupationsPerAgent = \
+        schedule_plotting.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+
+    nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
+    total_delay = sum(
+        max(sorted_resource_occupations_reschedule_delta[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
+        for agent_id, sorted_resource_occupations_reschedule_delta in resource_occupations_reschedule_delta.items()
+    )
+    print(
+        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
+            malfunction.agent_id,
+            malfunction.time_step,
+            malfunction.malfunction_duration,
+            nb_changed_agents,
+            total_delay))
 
 
 def plot_time_resource_trajectories(
@@ -504,6 +503,7 @@ def plot_time_resource_trajectories(
         ranges: Tuple[int, int],
         additional_data: Dict = None,
         malfunction: ExperimentMalfunction = None,
+        malfunction_wave: Trajectories = None,
         show: bool = True
 ):
     """
@@ -539,7 +539,10 @@ def plot_time_resource_trajectories(
         # Build hovertemplate
         for idx, data_point in enumerate(list_keys):
             hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
-        for idx, line in enumerate(trajectories):
+        for idx, line in trajectories.items():
+            # Don't plot trains with no paths --> this is just to make plots more readable
+            if len(line) < 2:
+                continue
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
@@ -554,9 +557,9 @@ def plot_time_resource_trajectories(
                 hovertemplate=hovertemplate
             ))
     else:
-        for idx, line in enumerate(trajectories):
-            # skip empty schedule (re-schedle for our ghost agent representing the wave front)
-            if len(line) == 0:
+        for idx, line in trajectories.items():
+            # Don't plot trains with no paths --> this is just to make plots more readable
+            if len(line) < 2:
                 continue
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
@@ -576,6 +579,28 @@ def plot_time_resource_trajectories(
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction start', line=dict(color='red')))
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
         fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
+
+    if malfunction_wave is not None:
+        x, y = zip(*list(malfunction_wave[0].values())[0])
+        fig.add_trace(
+            go.Scattergl(x=x,
+                         y=y,
+                         mode='lines+markers',
+                         marker=dict(size=2, color="red"),
+                         line=dict(color="red"),
+                         name="True Positives",
+                         hovertemplate=hovertemplate
+                         ))
+        x, y = zip(*list(malfunction_wave[1].values())[0])
+        fig.add_trace(
+            go.Scattergl(x=x,
+                         y=y,
+                         mode='lines+markers',
+                         marker=dict(size=2, color="yellow"),
+                         line=dict(color="yellow"),
+                         name="False Positives",
+                         hovertemplate=hovertemplate
+                         ))
     fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
@@ -583,7 +608,7 @@ def plot_time_resource_trajectories(
         fig.show()
 
 
-def plot_histogram_from_delay_data(experiment_data_frame: DataFrame, experiment_id: int):
+def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis):
     """
     Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
     Parameters
@@ -595,10 +620,9 @@ def plot_histogram_from_delay_data(experiment_data_frame: DataFrame, experiment_
     -------
 
     """
-    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
 
-    lateness_full_after_malfunction = experiment_data_series.lateness_full_after_malfunction
-    lateness_delta_after_malfunction = experiment_data_series.lateness_delta_after_malfunction
+    lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
+    lateness_delta_after_malfunction = experiment_results.lateness_delta_after_malfunction
     lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
     lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
 
@@ -664,33 +688,36 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     )
 
 
-def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, experiment_id: int,
-                        render_schedule: bool = True, render_reschedule: bool = True):
+def render_flatland_env(data_folder: str,
+                        experiment_data: ExperimentResultsAnalysis,
+                        experiment_id: int,
+                        render_schedule: bool = True,
+                        render_reschedule: bool = True):
     """
     Method to render the environment for visual inspection
     Parameters
     ----------
+
     data_folder: str
         Folder name to store and load images from
-    experiment_data_frame: DataFrame
+    experiment_data: ExperimentResultsAnalysis
         experiment data used for visualization
     experiment_id: int
         ID of experiment we like to visualize
+    render_reschedule
+    render_schedule
 
     Returns
     -------
     File paths to generated videos to render in the notebook
     """
 
-    # Extract data
-    experiment_data_series = experiment_data_frame.loc[experiment_data_frame['experiment_id'] == experiment_id].iloc[0]
-    experiment_data: ExperimentResultsAnalysis = convert_pandas_series_experiment_results_analysis(
-        experiment_data_series)
-
     # Generate environment for rendering
     rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
     # Generate aggregated visualization
     output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
+    video_src_schedule = None
+    video_src_reschedule = None
 
     # Generate the Schedule video
     if render_schedule:
@@ -707,10 +734,7 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
                              title=title,
                              rail_env=rail_env,
                              trainruns=experiment_data.solution_full,
-                             malfunction=experiment_data.malfunction,
                              convert_to_mpeg=True)
-    else:
-        video_src_reschedule = None
 
     # Generate the Reschedule video
     if render_reschedule:
@@ -728,40 +752,38 @@ def render_flatland_env(data_folder: str, experiment_data_frame: DataFrame, expe
                              rail_env=rail_env,
                              trainruns=experiment_data.solution_full_after_malfunction,
                              convert_to_mpeg=True)
-    else:
-        video_src_reschedule = None
 
     return Path(video_src_schedule), Path(video_src_reschedule)
 
 
-def _get_difference_in_time_space_trajectories(trajectories_a: Trajectories, trajectories_b: Trajectories) -> SpaceTimeDifference:
+def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, target_trajectories: Trajectories) -> SpaceTimeDifference:
     """
     Compute the difference between schedules and return in plot ready format
     Parameters
     ----------
-    trajectories_a
-    trajectories_b
+    base_trajectories
+    target_trajectories
 
     Returns
     -------
 
     """
     # Detect changes to original schedule
-    traces_influenced_agents: Trajectories = []
+    traces_influenced_agents: Trajectories = {}
     additional_information = dict()
-    for idx, trainrun in enumerate(trajectories_a):
+    for idx, trainrun in base_trajectories.items():
         trainrun_difference = []
         for waypoint in trainrun:
-            if waypoint not in trajectories_b[idx]:
+            if waypoint not in target_trajectories[idx]:
                 if len(trainrun_difference) > 0 and waypoint[0] != trainrun_difference[-1][0]:
                     trainrun_difference.append((None, None))
                 trainrun_difference.append(waypoint)
 
         if len(trainrun_difference) > 0:
-            traces_influenced_agents.append(trainrun_difference)
+            traces_influenced_agents[idx] = trainrun_difference
             additional_information.update({idx: True})
         else:
-            traces_influenced_agents.append([(None, None)])
+            traces_influenced_agents[idx] = [(None, None)]
             additional_information.update({idx: False})
     space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
                                                 additional_information=additional_information)
@@ -777,38 +799,32 @@ def plot_schedule_metrics(schedule_plotting: SchedulePlotting, lateness_delta_af
     lateness_delta_after_malfunction
     """
     # Plot Density over time
-    _plot_time_density(schedule_plotting.schedule_as_resource_occupations)
+    plot_time_density(schedule_plotting.schedule_as_resource_occupations)
 
     # Plot Occupancy over space
-    _plot_resource_occupation_heat_map(
+    plot_resource_occupation_heat_map(
         schedule_as_resource_occupations=schedule_plotting.schedule_as_resource_occupations,
         plotting_information=schedule_plotting.plotting_information,
         title_suffix='Schedule'
     )
-    _plot_resource_occupation_heat_map(
+    plot_resource_occupation_heat_map(
         schedule_as_resource_occupations=schedule_plotting.reschedule_delta_as_resource_occupations,
         plotting_information=schedule_plotting.plotting_information,
         title_suffix='Re-Schedule Delta'
     )
 
     # Plot Delay propagation
-    transmission_chains = extract_transmission_chains(
-        malfunction=schedule_plotting.malfunction,
-        resource_occupations_per_agent=schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent,
-        resource_occupations_per_resource=schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_resource
-    )
-    _, _, minimal_depth, _ = distance_matrix_from_tranmission_chains(
+    transmission_chains = extract_transmission_chains_from_schedule(schedule_plotting)
+    _, minimal_depth, _ = distance_matrix_from_tranmission_chains(
         number_of_trains=len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent),
         transmission_chains=transmission_chains
     )
-    _plot_delay_heat_map(schedule_as_resource_occupations=schedule_plotting.reschedule_delta_as_resource_occupations,
-                         malfunction=schedule_plotting.malfunction,
-                         delay_information=lateness_delta_after_malfunction,
-                         width=schedule_plotting.plotting_information.grid_width,
-                         depth_dict=minimal_depth)
+    plot_delay_propagation_2d(plotting_data=schedule_plotting,
+                              delay_information=lateness_delta_after_malfunction,
+                              depth_dict=minimal_depth)
 
 
-def _plot_resource_occupation_heat_map(
+def plot_resource_occupation_heat_map(
         schedule_as_resource_occupations: ScheduleAsResourceOccupations,
         plotting_information: PlottingInformation,
         title_suffix: str = ''
@@ -833,8 +849,8 @@ def _plot_resource_occupation_heat_map(
     fig = go.Figure(layout=layout)
 
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
-        x.append(resource.row)
-        y.append(resource.column)
+        x.append(resource.column)
+        y.append(resource.row)
         size.append((len(resource_occupations)))
         times = np.array(sorted([ro.interval.from_incl for ro in resource_occupations]))
         if len(times) > 1:
@@ -850,7 +866,10 @@ def _plot_resource_occupation_heat_map(
                                    color=size,
                                    symbol='square',
                                    showscale=True,
-                                   reversescale=False
+                                   reversescale=False,
+                                   colorbar=dict(
+                                       title="Colorbar"
+                                   ), colorscale="Hot"
                                )))
     fig.update_layout(title_text=f"Train Density at Resources {title_suffix}",
                       autosize=False,
@@ -863,14 +882,13 @@ def _plot_resource_occupation_heat_map(
     fig.show()
 
 
-def _plot_delay_heat_map(
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        malfunction: ExperimentMalfunction,
+def plot_delay_propagation_2d(
+        plotting_data: SchedulePlotting,
         delay_information: Dict[int, int],
-        width: int,
-        depth_dict: Dict[int, int]):
+        depth_dict: Dict[int, int],
+        changed_agents: Optional[Dict[int, bool]] = None):
     """
-    Plot agent delay over ressource.
+    Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
     ----------
     schedule_ressources
@@ -888,15 +906,21 @@ def _plot_delay_heat_map(
     )
     fig = go.Figure(layout=layout)
 
-    # Sort agents according to influence depth for plotting
-    agents = []
+    # Sort agents according to influence depth for plotting only plot disturbed agents
+    sorted_agents = []
     for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
-        if agent in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-            agents.append(agent)
-    for agent in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-        if agent not in agents:
-            agents.append(agent)
+        if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+            sorted_agents.append(agent)
+    if changed_agents is not None:
+        agents = [agent for agent in sorted_agents if changed_agents[agent]]
+    else:
+        agents = sorted_agents
 
+    # Add the malfunction source agent
+    agents.append(plotting_data.malfunction.agent_id)
+
+    # Plot only after the malfunciton happend
+    malfunction_time = plotting_data.malfunction.time_step
     # Plot traces of agents
     for agent_id in agents:
         x = []
@@ -906,8 +930,10 @@ def _plot_delay_heat_map(
         times = []
         delay = []
         conflict_depth = []
-        for resource_occupation in schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
+        for resource_occupation in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
             time = resource_occupation.interval.from_incl
+            if time < malfunction_time:
+                continue
             malfunction_resource = resource_occupation.resource
             x.append(malfunction_resource[1])
             y.append(malfunction_resource[0])
@@ -922,7 +948,7 @@ def _plot_delay_heat_map(
         if agent_id in depth_dict:
             color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
-            color = DEPTH_COLOR[-1]
+            color = "red"
         fig.add_trace(go.Scattergl(x=x,
                                    y=y,
                                    mode='markers',
@@ -930,7 +956,7 @@ def _plot_delay_heat_map(
                                    marker_symbol=marker,
                                    customdata=list(zip(times, delay, conflict_depth)),
                                    marker_size=size,
-                                   marker_opacity=0.1,
+                                   marker_opacity=0.2,
                                    marker_color=color,
                                    marker_line_color=color,
                                    hovertemplate="Time:\t%{customdata[0]}<br>" +
@@ -938,7 +964,8 @@ def _plot_delay_heat_map(
                                                  "Influence depth:\t%{customdata[2]}"
                                    ))
     # Plot malfunction
-    malfunction_resource = schedule_as_resource_occupations.resource_occupations_per_agent_and_time_step[(malfunction.agent_id, malfunction.time_step)][
+    malfunction_resource = plotting_data.schedule_as_resource_occupations.resource_occupations_per_agent_and_time_step[
+        (plotting_data.malfunction.agent_id, plotting_data.malfunction.time_step)][
         0].resource
     fig.add_trace(go.Scattergl(x=[malfunction_resource[1]],
                                y=[malfunction_resource[0]],
@@ -953,13 +980,13 @@ def _plot_delay_heat_map(
                       width=1000,
                       height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
 
     fig.show()
 
 
-def _plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations):
+def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations):
     """Plot agent density over time.
 
     Parameters
@@ -985,6 +1012,8 @@ def _plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccup
         y.append(nb_agents)
     fig.add_trace(go.Scattergl(x=x, y=y, name="Schedule"))
     fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
+    fig.update_xaxes(title="Time [steps]")
+    fig.update_yaxes(title="Active Agents")
     fig.show()
 
 
@@ -993,7 +1022,7 @@ def trajectories_from_resource_occupations_per_agent(
         plotting_information: PlottingInformation
 ) -> Trajectories:
     """
-
+    Build trajectories for time-resource graph
     Parameters
     ----------
     resource_occupations_schedule
@@ -1004,8 +1033,8 @@ def trajectories_from_resource_occupations_per_agent(
     """
     resource_sorting = plotting_information.sorting
     width = plotting_information.grid_width
-    schedule_trajectories: Trajectories = []
-    for _, resource_ocupations in resource_occupations_schedule.items():
+    schedule_trajectories: Trajectories = {}
+    for agent_handle, resource_ocupations in resource_occupations_schedule.items():
         train_time_path = []
         for resource_ocupation in resource_ocupations:
             position = coordinate_to_position(width, [resource_ocupation.resource])[0]
@@ -1015,5 +1044,5 @@ def trajectories_from_resource_occupations_per_agent(
             train_time_path.append((resource_sorting[position], resource_ocupation.interval.from_incl))
             train_time_path.append((resource_sorting[position], resource_ocupation.interval.to_excl))
             train_time_path.append((None, None))
-        schedule_trajectories.append(train_time_path)
+        schedule_trajectories[agent_handle] = train_time_path
     return schedule_trajectories
