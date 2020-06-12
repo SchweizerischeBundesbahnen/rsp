@@ -51,7 +51,7 @@ experiment_of_interest = 0
 ```{python}
 print("BB2")
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
