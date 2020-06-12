@@ -16,8 +16,10 @@ RUN set -e && \
     apt-get -y install ffmpeg && \
     # install requirements for plotly/orca, see https://github.com/plotly/orca/blob/3.3-release/deployment/Dockerfile
     apt-get -y install libgtk-3-0 libgconf-2-4 libnss3 && \
-    # install firefox for plotly showing
-    apt-get -y install firefox && \
+    # install firefox etc. for plotly showing
+    # https://askubuntu.com/questions/308128/failed-to-load-platform-plugin-xcb-while-launching-qt5-app-on-linux-without
+    # https://github.com/conda-forge/libxkbcommon-feedstock/issues/3
+    apt-get -y install firefox pyqt5-dev-tools pyqt5-dev && \
     # install python3-dev because of https://github.com/giampaolo/psutil/issues/1714
     apt-get -y install --no-install-recommends gcc && \
     apt-get -y install --no-install-recommends python3-dev && \
