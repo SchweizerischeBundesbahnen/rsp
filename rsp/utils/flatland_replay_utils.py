@@ -174,7 +174,6 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
     renderer = init_renderer_for_env(rail_env)
 
     for time_step in range(max_episode_steps):
-        # TODO malfunction
         for agent_id, train_schedule in train_schedule_dict.items():
             waypoint = train_schedule.get(time_step, None)
             if waypoint is None:
@@ -187,6 +186,8 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
             malfunction_end = malfunction_start + malfunction.malfunction_duration
             if malfunction_start <= time_step < malfunction_end:
                 rail_env.agents[malfunction.agent_id].malfunction_data["malfunction"] = malfunction_end - time_step
+            else:
+                rail_env.agents[malfunction.agent_id].malfunction_data["malfunction"] = 0
         # TODO SIM-516  simplify: test_id, solver_name???
         render_env(renderer,
                    test_id=0,
