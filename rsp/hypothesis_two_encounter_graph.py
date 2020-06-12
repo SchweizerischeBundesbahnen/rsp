@@ -6,6 +6,7 @@ from typing import Tuple
 import numpy as np
 import plotly.graph_objects as go
 
+from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
@@ -31,7 +32,6 @@ def hypothesis_two_disturbance_propagation_graph(
     ----------
     experiment_base_directory
     experiment_ids
-    width
     show
     """
     experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
@@ -51,8 +51,7 @@ def hypothesis_two_disturbance_propagation_graph(
 
         experiment_result: ExperimentResultsAnalysis = experiment_results_list[i]
 
-        # Todo -> This currently does nothing by itself. do we need this at all?
-        compute_disturbance_propagation_graph(experiment_result)
+        compute_disturbance_propagation_graph(extract_schedule_plotting(experiment_result))
 
 
 def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
@@ -63,7 +62,7 @@ def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
 
     Parameters
     ----------
-    experiment_result
+    schedule_plotting
 
     Returns
     -------
