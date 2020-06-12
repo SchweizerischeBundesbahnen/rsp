@@ -164,7 +164,7 @@ git submodule update --init --recursive
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci
+helm delete rsp-ci | echo
 '''
                     }
                     cloud_helmchartsDeploy(
@@ -191,7 +191,7 @@ helm delete rsp-ci
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
 helm test rsp-ci --timeout=15m0s
-helm delete rsp-ci
+helm delete rsp-ci | echo
 '''
                     }
                 }
