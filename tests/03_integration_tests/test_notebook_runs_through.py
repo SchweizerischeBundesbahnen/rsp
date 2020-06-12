@@ -36,9 +36,8 @@ if __name__ == '__main__':
             dest_text = re.sub('^(plot_route_dag.*)\\)', r'\g<1>, save=True)', dest_text, flags=re.MULTILINE)
             # tweak 3: do not show Video
             dest_text = re.sub('^Video', r'#Video', dest_text, flags=re.MULTILINE)
-            # tweak 4: do not use function that use plotlib
-            if False:
-                dest_text = re.sub('^(.*plot_route_dag)', r'#\g<1>', dest_text, flags=re.MULTILINE)
+            # tweak 4: skip disturbance_propagation_graph_visualization which uses matplotlib window?
+            # TODO SIM-545 have a closer look what happens here. Does it still not with Eriks pr?
             dest_text = re.sub('^(.*disturbance_propagation_graph_visualization)', r'#\g<1>', dest_text, flags=re.MULTILINE)
 
             print(dest_text)
