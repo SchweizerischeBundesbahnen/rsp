@@ -205,7 +205,7 @@ def _asp_loop(ctl: clingo.Control,  # noqa: C901
               no_optimize: bool = False,
               verbose: bool = False,
               debug: bool = False,
-              timeout: int = 60 * 60):
+              timeout: int = 120 * 60):
     """Loop over models coming from the ASP solve call until optimal one found
     and return the first optimal.
 
