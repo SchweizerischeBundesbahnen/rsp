@@ -119,12 +119,13 @@ git submodule update --init --recursive
         }
         // if we're on master, tag the docker image with the new semantic version
         stage("Build and Tag Docker Image if on master") {
-            when {
-                allOf {
-                    expression { BRANCH_NAME == 'master' }
-                    expression { !params.deploy }
-                }
-            }
+// TODO SIM-545 after pr is merged, take latest from master and skip building docker image on every feature branch
+//            when {
+//                allOf {
+//                    expression { BRANCH_NAME == 'master' }
+//                    expression { !params.deploy }
+//                }
+//            }
             steps {
                 script {
                     echo """cloud_buildDockerImage()"""
