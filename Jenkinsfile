@@ -220,7 +220,7 @@ helm delete rsp-ci
                     )
                     echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
                 }
-            }
+            }$WORKSPACE/helmcache
         }
     }
     post {

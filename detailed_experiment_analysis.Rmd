@@ -23,6 +23,7 @@ sys.path.append("./flatland_ckua")
 import pandas as pd
 from IPython.display import Video
 
+from rsp.logger import rsp_logger
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -42,31 +43,30 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```
 
 ```{python}
-print("BB1")
+rsp_logger.info("BB1")
 experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
 #experiment_base_directory = '../rsp-data/mini_toy_example'
 experiment_of_interest = 0
 ```
 
 ```{python}
-print("BB2")
-from rsp.logger import rsp_logger
+rsp_logger.info("BB2")
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 rsp_logger.info("BB2.0")
-load_and_expand_experiment_results_from_data_folder(
+experiment_results_list=load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )
-print("BB2.1")
+rsp_logger.info(("BB2.1")
 experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-print("BB2.2")
+rsp_logger.info(("BB2.2")
 ```
 
 ### Visualize Weg-Zeit-Diagram of specific experiment
 
 ```{python}
-print("BB3")
+rsp_logger.info("BB3")
 single_experiment_dataframe = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest].iloc[0]
 single_exp_results = convert_pandas_series_experiment_results_analysis(single_experiment_dataframe)
 choices_full_schedule = single_exp_results.results_full.solver_statistics["solving"]["solvers"]["choices"]
@@ -75,7 +75,7 @@ choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.so
 ```
 
 ```{python}
-print("BB4")
+rsp_logger.info("BB4")
 experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
        'n_agents', 'max_num_cities', 'max_rail_between_cities',
        'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
@@ -89,12 +89,12 @@ experiment_details['choices_delta_reschedule'] = choices_delta_reschedule
 ```
 
 ```{python}
-print("BB5")
+rsp_logger.info("BB5")
 display(experiment_details.transpose())
 ```
 
 ```{python}
-print("BB5")
+rsp_logger.info("BB5")
 from rsp.experiment_solvers.asp.asp_helper import _print_stats
 # print("=================================================================================")
 # print(f"= {experiment_base_directory} results_full_after_malfunction ")
@@ -107,58 +107,58 @@ from rsp.experiment_solvers.asp.asp_helper import _print_stats
 ```
 
 ```{python}
-print("BB6")
+rsp_logger.info("BB6")
 #    list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full.solver_result))
 ```
 
 ```{python}
-print("BB7")
+rsp_logger.info("BB7")
 schedule_plotting = extract_schedule_plotting(experiment_result=single_exp_results)
 ```
 
 ```{python}
-print("BB8")
+rsp_logger.info("BB8")
 changed_agents_traces = plot_resource_time_diagram(schedule_plotting = schedule_plotting, with_diff=True)
 ```
 
 ```{python}
-print("BB9")
+rsp_logger.info("BB9")
 changed_agents = {a: True for a in [*changed_agents_traces]}
 ```
 
 ```{python}
-print("BB10")
+rsp_logger.info("BB10")
 plot_schedule_metrics(schedule_plotting=schedule_plotting, lateness_delta_after_malfunction=single_exp_results.lateness_delta_after_malfunction)
 ```
 
 #### Histogram of delay per agent after re-scheduling
 
 ```{python}
-print("BB11")
+rsp_logger.info("BB11")
 plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 #### Render the current environment
 
 ```{python}
-print("BB12")
+rsp_logger.info("BB12")
 video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
 ```
 
 ```{python}
-print("BB13")
+rsp_logger.info("BB13")
 Video(video_src_schedule, embed=True)
 ```
 
 ```{python}
-print("BB14")
+rsp_logger.info("BB14")
 Video(video_src_reschedule, embed=True)
 ```
 
 ## Find interesting experiments with route alternatives in Delta
 
 ```{python}
-print("BB15")
+rsp_logger.info("BB15")
 for experiment in experiment_results_list:
 #     print(experiment.experiment_id)
     for agent_id, topo in experiment.problem_delta_after_malfunction.topo_dict.items():
@@ -171,34 +171,34 @@ for experiment in experiment_results_list:
 
 ```{python}
 # %matplotlib inline
-print("BB16")
+rsp_logger.info("BB16")
 agent_of_interest = 0
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
 ```{python}
 # %matplotlib inline
-print("BB17")
+rsp_logger.info("BB17")
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
 ```
 
 ```{python}
 # %matplotlib inline
-print("BB18")
+rsp_logger.info("BB18")
 plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```
 
 #### Time Resource Window Graph: time windows in scheduling problem per resource
 
 ```{python}
-print("BB19")
+rsp_logger.info("BB19")
 plot_time_window_resource_trajectories(experiment_result=single_exp_results,plotting_information=schedule_plotting.plotting_information)
 ```
 
 #### Resource Heat Map: how many potential resource conflicts on this resource?
 
 ```{python}
-print("BB20")
+rsp_logger.info("BB20")
 plot_shared_heatmap(experiment_result=single_exp_results)
 ```
 
@@ -210,21 +210,21 @@ from rsp.hypothesis_two_encounter_graph import disturbance_propagation_graph_vis
 ```
 
 ```{python}
-print("BB21")
+rsp_logger.info("BB21")
 transmission_chains, distance_matrix, weights_matrix, minimal_depth = disturbance_propagation_graph_visualization(experiment_result=single_exp_results)
 ```
 
 ### Visualize Hypothesis 009 Do rescheduling  times grow exponentially in the number of time window overlaps?
 
 ```{python}
-print("BB22")
+rsp_logger.info("BB22")
 from rsp.hypothesis_one_data_analysis import visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps
 visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(experiment_results_list=experiment_results_list)
 
 ```
 
 ```{python}
-print("BB23")
+rsp_logger.info("BB23")
 from rsp.hypothesis_one_data_analysis import visualize_hypotheses_asp
 visualize_hypotheses_asp(experiment_results_list=experiment_results_list)
 
