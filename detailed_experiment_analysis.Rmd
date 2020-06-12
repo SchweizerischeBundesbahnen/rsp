@@ -58,9 +58,9 @@ experiment_results_list=load_and_expand_experiment_results_from_data_folder(
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )
-rsp_logger.info(("BB2.1")
+rsp_logger.info("BB2.1")
 experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-rsp_logger.info(("BB2.2")
+rsp_logger.info("BB2.2")
 ```
 
 ### Visualize Weg-Zeit-Diagram of specific experiment
