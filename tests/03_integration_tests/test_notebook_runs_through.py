@@ -19,7 +19,7 @@ def multiline_eval(expr):
 
 if __name__ == '__main__':
     base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir)
-    notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd")]
+    notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd") and 'detailed' not in f]
     for notebook in notebooks:
         print("*****************************************************************")
         print("Converting and running {}".format(notebook))
