@@ -688,18 +688,24 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     )
 
 
-def render_flatland_env(data_folder: str, experiment_data: ExperimentResultsAnalysis, experiment_id: int,
-                        render_schedule: bool = True, render_reschedule: bool = True):
+def render_flatland_env(data_folder: str,
+                        experiment_data: ExperimentResultsAnalysis,
+                        experiment_id: int,
+                        render_schedule: bool = True,
+                        render_reschedule: bool = True):
     """
     Method to render the environment for visual inspection
     Parameters
     ----------
+
     data_folder: str
         Folder name to store and load images from
-    experiment_data_frame: DataFrame
+    experiment_data: ExperimentResultsAnalysis
         experiment data used for visualization
     experiment_id: int
         ID of experiment we like to visualize
+    render_reschedule
+    render_schedule
 
     Returns
     -------
@@ -710,6 +716,8 @@ def render_flatland_env(data_folder: str, experiment_data: ExperimentResultsAnal
     rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
     # Generate aggregated visualization
     output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
+    video_src_schedule = None
+    video_src_reschedule = None
 
     # Generate the Schedule video
     if render_schedule:
@@ -726,10 +734,7 @@ def render_flatland_env(data_folder: str, experiment_data: ExperimentResultsAnal
                              title=title,
                              rail_env=rail_env,
                              trainruns=experiment_data.solution_full,
-                             malfunction=experiment_data.malfunction,
                              convert_to_mpeg=True)
-    else:
-        video_src_reschedule = None
 
     # Generate the Reschedule video
     if render_reschedule:
@@ -747,8 +752,6 @@ def render_flatland_env(data_folder: str, experiment_data: ExperimentResultsAnal
                              rail_env=rail_env,
                              trainruns=experiment_data.solution_full_after_malfunction,
                              convert_to_mpeg=True)
-    else:
-        video_src_reschedule = None
 
     return Path(video_src_schedule), Path(video_src_reschedule)
 
