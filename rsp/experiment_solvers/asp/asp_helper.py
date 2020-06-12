@@ -1,4 +1,5 @@
 import json
+import time
 from enum import Enum
 from threading import Timer
 from typing import Dict
@@ -9,12 +10,11 @@ from typing import Set
 
 import clingo
 import numpy as np
-import time
 from importlib_resources import path
 
 from rsp.experiment_solvers.asp import theory
-from rsp.logger import VERBOSE
 from rsp.logger import rsp_logger
+from rsp.logger import VERBOSE
 
 
 class ASPObjective(Enum):
