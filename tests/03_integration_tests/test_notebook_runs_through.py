@@ -36,11 +36,9 @@ if __name__ == '__main__':
             dest_text = re.sub('^(plot_route_dag.*)\\)', r'\g<1>, save=True)', dest_text, flags=re.MULTILINE)
             # tweak 3: do not show Video
             dest_text = re.sub('^Video', r'#Video', dest_text, flags=re.MULTILINE)
-            # tweak 4: do not even render
+            # tweak 4: do not use function that use plotlib
             if False:
-                dest_text = re.sub('^(.*render_flatland_env)', r'#\g<1>', dest_text, flags=re.MULTILINE)
-            # tweak 5: do not use function that use plotlib
-            dest_text = re.sub('^(.*plot_route_dag)', r'#\g<1>', dest_text, flags=re.MULTILINE)
+                dest_text = re.sub('^(.*plot_route_dag)', r'#\g<1>', dest_text, flags=re.MULTILINE)
             dest_text = re.sub('^(.*disturbance_propagation_graph_visualization)', r'#\g<1>', dest_text, flags=re.MULTILINE)
 
             print(dest_text)
