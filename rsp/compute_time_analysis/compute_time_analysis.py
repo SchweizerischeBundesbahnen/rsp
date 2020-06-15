@@ -10,7 +10,7 @@ from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
-from flatland.core.grid.grid_utils import coordinate_to_position
+from flatland.core.grid.grid_utils import coordinate_to_position, position_to_coordinate
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
@@ -340,7 +340,7 @@ def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescr
 
 def plot_time_window_resource_trajectories(
         experiment_result: ExperimentResultsAnalysis,
-        plotting_information: PlottingInformation,
+        schedule_plotting: SchedulePlotting,
         show: bool = True):
     """Plot time-window -- resource diagram for all three problems.
 
@@ -350,7 +350,7 @@ def plot_time_window_resource_trajectories(
     plotting_information
     show
     """
-    ranges = (len(plotting_information.sorting),
+    ranges = (len(schedule_plotting.plotting_information.sorting),
               max(experiment_result.problem_full.max_episode_steps,
                   experiment_result.problem_full_after_malfunction.max_episode_steps,
                   experiment_result.problem_delta_after_malfunction.max_episode_steps))
@@ -362,7 +362,7 @@ def plot_time_window_resource_trajectories(
         resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
         trajectories = trajectories_from_resource_occupations_per_agent(
             resource_occupations_schedule=resource_occupations_schedule,
-            plotting_information=plotting_information)
+            plotting_information=schedule_plotting.plotting_information)
         plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
 
 
@@ -435,7 +435,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     # Plot Schedule
     plot_time_resource_trajectories(
         title='Schedule',
-        ranges=plotting_information.dimensions,
+        schedule_plotting=schedule_plotting,
         trajectories=trajectories_schedule)
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
@@ -453,15 +453,13 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         plot_time_resource_trajectories(
             trajectories=trajectories_reschedule_full,
             title='Full Reschedule',
-            malfunction=malfunction,
-            ranges=plotting_information.dimensions
+            schedule_plotting=schedule_plotting
         )
 
     # Plot Reschedule Delta with additional data
     plot_time_resource_trajectories(
-        title='Delta Reschedule', ranges=plotting_information.dimensions,
+        title='Delta Reschedule', schedule_plotting=schedule_plotting,
         trajectories=trajectories_reschedule_delta,
-        malfunction=malfunction
     )
 
     # Plot difference if asked for
@@ -469,8 +467,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         plot_time_resource_trajectories(
             trajectories=trajectories_influenced_agents,
             title='Changed Agents',
-            malfunction=malfunction,
-            ranges=plotting_information.dimensions
+            ranges=schedule_plotting
         )
 
     return changed_agents_dict
@@ -500,9 +497,8 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
 def plot_time_resource_trajectories(
         title: str,
         trajectories: Trajectories,
-        ranges: Tuple[int, int],
+        schedule_plotting: SchedulePlotting,
         additional_data: Dict = None,
-        malfunction: ExperimentMalfunction = None,
         malfunction_wave: Trajectories = None,
         show: bool = True
 ):
@@ -531,6 +527,11 @@ def plot_time_resource_trajectories(
         plot_bgcolor='rgba(46,49,49,1)'
     )
     fig = go.Figure(layout=layout)
+    ranges = schedule_plotting.plotting_information.dimensions
+    malfunction = schedule_plotting.malfunction
+    ticks = [position_to_coordinate(schedule_plotting.plotting_information.grid_width, [key])[0] for key in
+             schedule_plotting.plotting_information.sorting.keys()]
+
     # Get keys and information to add to hover data
     hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
     if additional_data is not None:
@@ -601,8 +602,14 @@ def plot_time_resource_trajectories(
                          name="False Positives",
                          hovertemplate=hovertemplate
                          ))
-    fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
-    fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
+    fig.update_layout(title_text=title, xaxis_showgrid=False, yaxis_showgrid=False,
+                      xaxis=dict(
+                          tickmode='array',
+                          tickvals=np.arange(len(ticks)),
+                          ticktext=ticks,
+                          tickangle=270))
+    fig.update_xaxes(title="Ressource Coordinates", range=[0, ranges[0]])
+
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
     if show:
         fig.show()

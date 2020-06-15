@@ -68,7 +68,7 @@ trajectories = trajectories_from_resource_occupations_per_agent(
     plotting_information=plotting_data.plotting_information)
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Initial Schedule",
-                                ranges=plotting_data.plotting_information.dimensions)
+                                schedule_plotting=plotting_data)
 ```
 
 ### Visualize Problem instances as time-resource graphs
@@ -83,8 +83,7 @@ choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_aft
 print("Number of choices the solver has to make was {}".format(choices_full_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Full Reschedule Problem",
-                                ranges=plotting_data.plotting_information.dimensions,
-                                malfunction=plotting_data.malfunction)
+                                schedule_plotting=plotting_data)
 
 ```
 
@@ -99,8 +98,7 @@ choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_a
 print("Number of choices the solver has to make was {}".format(choices_delta_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta Reschedule Problem",
-                                ranges=plotting_data.plotting_information.dimensions,
-                                malfunction=plotting_data.malfunction)
+                                schedule_plotting=plotting_data)
 ```
 
 ```{python}
