@@ -10,13 +10,13 @@ from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
-from flatland.core.grid.grid_utils import coordinate_to_position, position_to_coordinate
+from flatland.core.grid.grid_utils import coordinate_to_position
+from flatland.core.grid.grid_utils import position_to_coordinate
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
 
-from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
@@ -233,7 +233,8 @@ def plot_speed_up(
 
 
 def extract_schedule_plotting(
-        experiment_result: ExperimentResultsAnalysis) -> SchedulePlotting:
+        experiment_result: ExperimentResultsAnalysis,
+        sorting_agent_id: Optional[int] = None) -> SchedulePlotting:
     """Extract the scheduling information from a experiment data for plotting.
 
     Parameters
@@ -263,7 +264,8 @@ def extract_schedule_plotting(
                                             release_time=RELEASE_TIME)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
-        grid_depth=experiment_result.experiment_parameters.width)
+        grid_depth=experiment_result.experiment_parameters.width,
+        sorting_agent_id=sorting_agent_id)
     return SchedulePlotting(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
         reschedule_full_as_resource_occupations=reschedule_full_as_resource_occupations,
@@ -275,7 +277,8 @@ def extract_schedule_plotting(
 
 def extract_plotting_information(
         schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        grid_depth: int) -> PlottingInformation:
+        grid_depth: int,
+        sorting_agent_id: Optional[int] = None) -> PlottingInformation:
     """Extract plotting information.
 
     Parameters
@@ -283,7 +286,8 @@ def extract_plotting_information(
     schedule_as_resource_occupations:
     grid_depth
         Ranges of the window to be shown, used for consistent plotting
-
+    sorting_agent_id
+        agent id to be used for sorting the ressources
     Returns
     -------
     PlottingInformation
@@ -291,21 +295,31 @@ def extract_plotting_information(
     """
     sorted_index = 0
     max_time = 0
-    max_ressource = 0
     sorting = {}
+    # If specified, sort according to path of agent with sorting_agent_id
+    if sorting_agent_id is not None:
+        for resource_occupation in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent[sorting_agent_id]):
+            position = coordinate_to_position(grid_depth, [resource_occupation.resource])
+            time = resource_occupation.interval.to_excl
+            if time > max_time:
+                max_time = time
+            if position[0] not in sorting:
+                sorting[position[0]] = sorted_index
+                sorted_index += 1
 
+    # Sort the rest of the resources according to agent handle sorting
     for _, sorted_resource_occupations in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent.items()):
         for resource_occupation in sorted_resource_occupations:
             resource_occupation: ResourceOccupation = resource_occupation
-            time = resource_occupation.interval.from_incl
+            time = resource_occupation.interval.to_excl
             if time > max_time:
                 max_time = time
             position = coordinate_to_position(grid_depth, [resource_occupation.resource])
             if position[0] not in sorting:
                 sorting[position[0]] = sorted_index
                 sorted_index += 1
-            if sorted_index > max_ressource:
-                max_ressource = sorted_index
+    max_ressource = max(list(sorting.values()))
+    print(max_ressource)
     plotting_information = PlottingInformation(sorting=sorting, dimensions=(max_ressource, max_time), grid_width=grid_depth)
     return plotting_information
 
@@ -415,7 +429,6 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     -------
         List of agent ids that changed between schedule an reschedule full
     """
-    malfunction = schedule_plotting.malfunction
     plotting_information = schedule_plotting.plotting_information
     resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
     resource_occupations_reschedule_full: SortedResourceOccupationsPerAgent = \
