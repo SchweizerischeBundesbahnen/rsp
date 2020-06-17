@@ -135,13 +135,11 @@ Figure below shows the histogram of the delay times, giving us a great overview 
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
+The below figure shows the propagation of the malfunction within the schedule, when there are no actions taken. The progation is projected to show the influence from an agent to the next agent.
+
 ```{python}
 plot_delay_propagation_graph(minimal_depth = minimal_depth,
         distance_matrix = distance_matrix)
-```
-
-```{python}
-distance_matrix[2]
 ```
 
 ```{python}

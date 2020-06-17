@@ -382,7 +382,7 @@ def plot_time_window_resource_trajectories(
         plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
 
 
-def plot_shared_heatmap(experiment_result: ExperimentResultsAnalysis):
+def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
@@ -390,32 +390,63 @@ def plot_shared_heatmap(experiment_result: ExperimentResultsAnalysis):
     experiment_result
     show
     """
+    layout = go.Layout(
+        plot_bgcolor='rgba(46,49,49,1)'
+    )
+    fig = go.Figure(layout=layout)
+    plotting_information = schedule_plotting.plotting_information
     for title, result in {
         'Schedule': experiment_result.results_full,
         'Full Re-Schedule': experiment_result.results_full_after_malfunction,
         'Delta Re-Schedule': experiment_result.results_delta_after_malfunction
     }.items():
         shared = list(filter(lambda s: s.startswith('shared'), result.solver_result))
-        distance_matrix = np.zeros((experiment_result.experiment_parameters.height, experiment_result.experiment_parameters.width))
+        shared_per_resource = {}
         for sh in shared:
             sh = sh.replace('shared', '')
             sh = re.sub('t[0-9]+', '"XXX"', sh)
             #  the position of each entry waypoint is the cell that will be in conflict
             (t0, (wp00, _), t1, (wp10, _)) = eval(sh)
-            distance_matrix[wp00[0]] += 1
-            distance_matrix[wp10[0]] += 1
-        distance_matrix /= np.max(distance_matrix)
-        fig = go.Figure(
-            data=go.Heatmap(
-                z=distance_matrix,
-                colorscale="Hot"))
-        fig.update_layout(
-            title='Heatmap shared {}'.format(title),
-            width=700,
-            height=700
-        )
-        fig.update_yaxes(autorange="reversed")
-        fig.show()
+            if wp00[0] not in shared_per_resource:
+                shared_per_resource[wp00[0]] = 1
+            else:
+                shared_per_resource[wp00[0]] += 1
+            if wp10[0] not in shared_per_resource:
+                shared_per_resource[wp10[0]] = 1
+            else:
+                shared_per_resource[wp10[0]] += 1
+        x = []
+        y = []
+        z = []
+        for resource, occupancy in shared_per_resource.items():
+            x.append(resource[0])
+            y.append(resource[1])
+            z.append(occupancy)
+
+        fig.add_trace(go.Scattergl(
+            x=x,
+            y=y,
+            mode='markers',
+            name=title,
+            marker=dict(
+                color=z,
+                size=15,
+                symbol='square',
+                showscale=True,
+                reversescale=False,
+                colorbar=dict(
+                    title="Number of shared", len=0.75
+                ), colorscale="Hot"
+            )))
+
+    fig.update_yaxes(autorange="reversed")
+    fig.update_layout(title_text="Shared Resources",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.show()
 
 
 def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
@@ -876,7 +907,7 @@ def plot_resource_occupation_heat_map(
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
         x.append(resource.column)
         y.append(resource.row)
-        size.append((len(resource_occupations)))
+        size.append(len(resource_occupations))
 
     # Generate diff between schedule and re-schedule
     x_r = []
@@ -925,7 +956,7 @@ def plot_resource_occupation_heat_map(
                                    showscale=True,
                                    reversescale=False,
                                    colorbar=dict(
-                                       title="Colorbar", len=0.75
+                                       title="Resource Occupations", len=0.75
                                    ), colorscale="Hot"
                                )))
 
@@ -941,7 +972,7 @@ def plot_resource_occupation_heat_map(
                                    showscale=True,
                                    reversescale=False,
                                    colorbar=dict(
-                                       title="Colorbar", len=0.75
+                                       title="Resource Occupations", len=0.75
                                    ), colorscale="Hot"
                                )))
 
@@ -950,6 +981,8 @@ def plot_resource_occupation_heat_map(
                                y=y_st,
                                mode='markers',
                                name="Schedule Start-Targets",
+                               hovertext=size_st,
+                               hovertemplate="Nr. Agents %{hovertext}",
                                marker=dict(
                                    color=size_st,
                                    size=100 * size_st,
@@ -957,7 +990,12 @@ def plot_resource_occupation_heat_map(
                                    sizeref=2. * max(size) / (40. ** 2),
                                    sizemin=4,
                                    symbol='circle',
-                                   opacity=1.
+                                   opacity=1.,
+                                   showscale=True,
+                                   reversescale=False,
+                                   colorbar=dict(
+                                       title="Targets", len=0.75
+                                   ), colorscale="Hot"
                                )))
 
     fig.update_layout(title_text=f"Train Density at Resources {title_suffix}",

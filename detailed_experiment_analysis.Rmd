@@ -54,7 +54,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
-plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest)
+plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=5)
 ```
 
 ### Initial schedule
@@ -102,7 +102,7 @@ plot_time_resource_trajectories(trajectories=trajectories,
 ```
 
 ```{python}
-plot_shared_heatmap(experiment_result=exp_results_of_experiment_of_interest)
+plot_shared_heatmap(schedule_plotting=plotting_data,experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 ### Some metrics about the schedule

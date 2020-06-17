@@ -7,6 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.compute_time_analysis.compute_time_analysis import PLOTLY_COLORLIST
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
@@ -143,7 +144,7 @@ def plot_delay_propagation_graph(  # noqa: C901
                 if to_agent in minimal_depth.keys():
                     to_agent_depth = minimal_depth[to_agent]
                     # TODO: Check why there are hops to neighbours greater than one! (Depth difference shoul always be 1 no!?)
-                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth == to_agent_depth - 1:
+                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth < to_agent_depth:
                         if to_agent not in list(node_positions.keys()):
                             rel_pos = node_positions[from_agent][1]
                             node_positions[to_agent] = (
@@ -163,10 +164,12 @@ def plot_delay_propagation_graph(  # noqa: C901
                 x=x,
                 y=y,
                 mode='lines+markers',
-                marker=dict(size=5)
+                name="Agent {}".format(from_agent),
+                marker=dict(size=5, color=PLOTLY_COLORLIST[from_agent])
             ))
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=0, dtick=1, gridcolor='Grey', title="Influence Depth")
+    fig.update_xaxes(zeroline=False, showgrid=False, ticks=None, visible=False)
 
     fig.show()
 
