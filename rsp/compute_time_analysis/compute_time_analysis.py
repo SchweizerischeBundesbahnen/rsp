@@ -1,6 +1,7 @@
 """Rendering methods to use with jupyter notebooks."""
 import os.path
 import re
+from copy import copy
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -24,6 +25,7 @@ from rsp.transmission_chains.transmission_chains import distance_matrix_from_tra
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
+from rsp.utils.data_types import Resource
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SortedResourceOccupationsPerAgent
@@ -520,6 +522,7 @@ def plot_time_resource_trajectories(
     Parameters
     ----------
 
+    malfunction_wave
     title: str
         Title of the plot
     trajectories:
@@ -845,10 +848,9 @@ def plot_schedule_metrics(schedule_plotting: SchedulePlotting, lateness_delta_af
 
 
 def plot_resource_occupation_heat_map(
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
+        schedule_plotting: SchedulePlotting,
         plotting_information: PlottingInformation,
-        title_suffix: str = ''
-):
+        title_suffix: str = ''):
     """Plot agent density over resource.
 
     Parameters
@@ -862,35 +864,102 @@ def plot_resource_occupation_heat_map(
     x = []
     y = []
     size = []
-    color = []
     layout = go.Layout(
         plot_bgcolor='rgba(46,49,49,1)'
     )
     fig = go.Figure(layout=layout)
 
+    schedule_as_resource_occupations = schedule_plotting.schedule_as_resource_occupations
+    reschedule_as_resource_occupations = schedule_plotting.reschedule_delta_as_resource_occupations
+
+    # Count agents per resource for full episode
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
         x.append(resource.column)
         y.append(resource.row)
         size.append((len(resource_occupations)))
-        times = np.array(sorted([ro.interval.from_incl for ro in resource_occupations]))
-        if len(times) > 1:
-            mean_temp_dist = np.mean(np.clip(times[1:] - times[:-1], 0, 50))
-            color.append(mean_temp_dist)
+
+    # Generate diff between schedule and re-schedule
+    x_r = []
+    y_r = []
+    size_r = []
+    for resource, resource_occupations in reschedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
+        x_r.append(resource.column)
+        y_r.append(resource.row)
+        size_r.append(np.abs((len(resource_occupations)) - len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource])))
+
+    # Count start-target occupations
+    starts_target = {}
+    for agent in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+        curr_start = schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent][0].resource
+        curr_target = schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent][-1].resource
+
+        if curr_start not in starts_target:
+            starts_target[curr_start] = 1
         else:
-            color.append(50)
-    fig.add_trace(go.Scattergl(x=x,
-                               y=y,
+            starts_target[curr_start] += 1
+
+        if curr_target not in starts_target:
+            starts_target[curr_target] = 1
+        else:
+            starts_target[curr_target] += 1
+
+    # Condense to fewer city points for better overviw
+    cities = _condense_to_cities(starts_target)
+    x_st = []
+    y_st = []
+    size_st = []
+    for start, tmp_size in cities.items():
+        x_st.append(start.column)
+        y_st.append(start.row)
+        size_st.append(tmp_size)
+
+    # Plot resource occupations diff
+    fig.add_trace(go.Scattergl(x=x_r,
+                               y=y_r,
                                mode='markers',
-                               name="Schedule",
+                               name="Resources Occupation Diff",
                                marker=dict(
-                                   color=size,
+                                   color=size_r,
+                                   size=15,
                                    symbol='square',
                                    showscale=True,
                                    reversescale=False,
                                    colorbar=dict(
-                                       title="Colorbar"
+                                       title="Colorbar", len=0.75
                                    ), colorscale="Hot"
                                )))
+
+    # Plot resource occupations
+    fig.add_trace(go.Scattergl(x=x,
+                               y=y,
+                               mode='markers',
+                               name="Schedule Resources",
+                               marker=dict(
+                                   color=size,
+                                   size=15,
+                                   symbol='square',
+                                   showscale=True,
+                                   reversescale=False,
+                                   colorbar=dict(
+                                       title="Colorbar", len=0.75
+                                   ), colorscale="Hot"
+                               )))
+
+    # Plot targets and starts
+    fig.add_trace(go.Scattergl(x=x_st,
+                               y=y_st,
+                               mode='markers',
+                               name="Schedule Start-Targets",
+                               marker=dict(
+                                   color=size_st,
+                                   size=100 * size_st,
+                                   sizemode='area',
+                                   sizeref=2. * max(size) / (40. ** 2),
+                                   sizemin=4,
+                                   symbol='circle',
+                                   opacity=1.
+                               )))
+
     fig.update_layout(title_text=f"Train Density at Resources {title_suffix}",
                       autosize=False,
                       width=1000,
@@ -900,6 +969,42 @@ def plot_resource_occupation_heat_map(
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
 
     fig.show()
+
+
+def _condense_to_cities(positions: dict) -> dict:
+    """Condenses start or targets points to a city point.
+
+    Parameters
+    ----------
+    positions
+        original positions of starts or targets with occupation counts
+
+    Returns
+    -------
+    dict containing the new coordinates and occupations
+    """
+    cluster = copy(positions)
+    # inefficient and dirty way to do this
+    old_len_cluster = 0
+    while old_len_cluster != len(cluster):
+        cluster_copy = copy(cluster)
+        old_len_cluster = len(cluster)
+        for resource, occupation in cluster_copy.items():
+            for neighb_reource, neighb_occupation in cluster_copy.items():
+                if neighb_reource != resource:
+                    if _euclidean_distance(resource, neighb_reource) < 5:
+                        new_column = (resource.column + neighb_reource.column) // 2
+                        new_row = (resource.row + neighb_reource.row) // 2
+                        city = Resource(column=new_column, row=new_row)
+                        cluster.pop(resource, None)
+                        cluster.pop(neighb_reource, None)
+                        cluster[city] = occupation + neighb_occupation
+
+    return cluster
+
+
+def _euclidean_distance(x, y):
+    return np.sqrt(np.square(x[0] - y[0]) + np.square(x[1] - y[1]))
 
 
 def plot_delay_propagation_2d(

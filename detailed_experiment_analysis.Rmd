@@ -116,7 +116,7 @@ plot_time_density(plotting_data.schedule_as_resource_occupations)
 
 ```{python}
 plot_resource_occupation_heat_map(
-    schedule_as_resource_occupations=plotting_data.schedule_as_resource_occupations,
+    schedule_plotting=plotting_data,
     plotting_information=plotting_data.plotting_information,
     title_suffix='Schedule'
 )
