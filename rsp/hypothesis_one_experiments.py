@@ -257,6 +257,7 @@ def hypothesis_one_rerun_without_regen_schedule(
         copy_agenda_from_base_directory: str,
         experiment_name: Optional[str] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
+        experiment_ids: List[int] = None,
         nb_runs: int = 1):
     """
 
@@ -283,7 +284,8 @@ def hypothesis_one_rerun_without_regen_schedule(
         for experiment in experiment_agenda.experiments
         if exists_schedule_and_malfunction(
             experiment_agenda_directory=experiment_agenda_directory,
-            experiment_id=experiment.experiment_id)
+            experiment_id=experiment.experiment_id
+        ) and (experiment_ids is None or experiment.experiment_id in experiment_ids)
     ]
 
     hypothesis_one_pipeline_without_setup(
@@ -442,18 +444,4 @@ def hypothesis_one_malfunction_analysis(
 
 if __name__ == '__main__':
     # do not commit your own calls !
-    if True:
-        hypothesis_one_pipeline(
-            experiment_name='003_a_bit_more_advanced_schedules_only',
-            parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced(),
-            qualitative_analysis_experiment_ids=[],
-            asp_export_experiment_ids=[],
-            gen_only=True
-        )
-    if False:
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_10T22_05_48//',
-            experiment_name='003_a_bit_more_advanced_2020_06_10T22_05_48_without_SEQ',
-            nb_runs=1,
-            parallel_compute=2
-        )
+    pass
