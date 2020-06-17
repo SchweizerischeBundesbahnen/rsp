@@ -1,2 +1,9 @@
-# TODO add to to experiment_agenda?
+# TODO add these constants to to experiment_agenda?
+from rsp.experiment_solvers.asp.asp_helper import ASPHeuristics
 RELEASE_TIME = 1
+
+SCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]
+RESCHEDULE_HEURISTICS = []
+DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY = 60
+DELAY_MODEL_PENALTY_AFTER_LINEAR = 5000000
+DELAY_MODEL_RESOLUTION = 1

@@ -263,6 +263,8 @@ def hypothesis_one_rerun_without_regen_schedule(
 
     Parameters
     ----------
+    experiment_ids
+    experiment_name
     copy_agenda_from_base_directory
         agenda to re-run
     parallel_compute

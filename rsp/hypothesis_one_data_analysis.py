@@ -43,6 +43,8 @@ from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
+from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
+from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
 
 
 def _derive_numbers_for_correlation_analysis(
@@ -239,12 +241,11 @@ def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]
     Returns
     -------
     """
-    # TODO hard-coded constants for delay model, same as in delay_linear_within_one_minute.lp
-    PENALTY_LEAP_AT = 60
+    PENALTY_LEAP_AT = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
     PENALTY_LEAP = 5000000 + PENALTY_LEAP_AT * weight_lateness_seconds
     return sum([(PENALTY_LEAP
                  if lateness > PENALTY_LEAP_AT
-                 else lateness * weight_lateness_seconds)
+                 else (lateness // DELAY_MODEL_RESOLUTION) * DELAY_MODEL_RESOLUTION * weight_lateness_seconds)
                 for agent_id, lateness in lateness_dict.items()])
 
 
