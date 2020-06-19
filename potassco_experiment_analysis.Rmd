@@ -113,7 +113,6 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 # Visualize Solution of specific experiment
 
 ```{python}
-
 choices_full_schedule = exp_results_of_experiment_of_interest.results_full.solver_statistics["solving"]["solvers"]["choices"]
 choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
@@ -150,8 +149,6 @@ changed_agents = {a: True for a in [*changed_agents_traces]}
 plot_schedule_metrics(schedule_plotting=plotting_data, lateness_delta_after_malfunction=exp_results_of_experiment_of_interest.lateness_delta_after_malfunction)
 ```
 
-#### Histogram of delay per agent after re-scheduling
-
 ```{python}
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
 ```
@@ -170,7 +167,7 @@ Video(video_src_schedule, embed=True)
 Video(video_src_reschedule, embed=True)
 ```
 
-# ASP solver stats
+# ASP solver stats of specific experiment
 
 
 ```{python}
@@ -187,38 +184,4 @@ _print_stats(exp_results_of_experiment_of_interest.results_delta_after_malfuncti
 
 ```{python}
 #    list(filter(lambda s: s.startswith('shared'), exp_results_of_experiment_of_interest.results_full.solver_result))
-```
-
-# Visualize effect of SEQ heuristics
-
-```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
-agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_with_SEQ_2020_06_17T22_09_06'
-experiment_base_directory_baseline = f'./{agenda_name_baseline}/'
-experiment_base_directory_comparison = f'./{agenda_name_comparison}'
-experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_problem_and_results=True
-)
-experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
-
-experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_comparison,
-    nonify_problem_and_results=True
-)
-experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
-
-
-```
-
-```{python}
-hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data_baseline=experiment_data_baseline,
-    experiment_data=experiment_data_comparison,
-    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
-    experiment_data_suffix=f'_{agenda_name_comparison}'
-)
 ```
