@@ -1014,7 +1014,7 @@ def plot_resource_occupation_heat_map(
     fig.show()
 
 
-def _condense_to_cities(positions: dict[Resource, int]) -> dict[Resource, int]:
+def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
     """Condenses start or targets points to a city point.
 
     Parameters
