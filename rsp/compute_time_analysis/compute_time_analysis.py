@@ -7,6 +7,7 @@ from typing import Dict
 from typing import List
 from typing import NamedTuple
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import numpy as np
@@ -39,7 +40,7 @@ from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import PlottingInformation
 from rsp.utils.plotting_data_types import SchedulePlotting
 
-Trajectory = List[Tuple[Optional[int], Optional[int]]]  # Time and sorted ressource
+Trajectory = List[Tuple[Optional[int], Optional[int]]]  # Time and sorted ressource, optional
 Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
@@ -835,9 +836,22 @@ def render_flatland_env(data_folder: str,
     return Path(video_src_schedule), Path(video_src_reschedule)
 
 
+def explode_trajectories(trajectories: Trajectories) -> Dict[int, Set[Tuple[int, int]]]:
+    exploded = {agent_id: set() for agent_id in trajectories.keys()}
+    for agent_id, trajectory in trajectories.items():
+        # ensure we have triplets (resource,from_time), (resource,to_time), (None,None)
+        assert len(trajectory) % 3 == 0
+        while len(trajectory) > 0:
+            (resource, from_time), (resource, to_time), (_, _) = trajectory[:3]
+            for time in range(from_time, to_time + 1):
+                exploded[agent_id].add((resource, time))
+            trajectory = trajectory[3:]
+    return exploded
+
+
 def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, target_trajectories: Trajectories) -> SpaceTimeDifference:
     """
-    Compute the difference between schedules and return in plot ready format
+    Compute the difference between schedules and return in plot ready format (in base but not in target)
     Parameters
     ----------
     base_trajectories
@@ -850,20 +864,24 @@ def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, t
     # Detect changes to original schedule
     traces_influenced_agents: Trajectories = {}
     additional_information = dict()
-    for idx, trainrun in base_trajectories.items():
-        trainrun_difference = []
-        for waypoint in trainrun:
-            if waypoint not in target_trajectories[idx]:
-                if len(trainrun_difference) > 0 and waypoint[0] != trainrun_difference[-1][0]:
-                    trainrun_difference.append((None, None))
-                trainrun_difference.append(waypoint)
+    base_trajectories_exploded = explode_trajectories(base_trajectories)
+    target_trajectories_exploded = explode_trajectories(target_trajectories)
+    for agent_id in base_trajectories.keys():
+        difference_exploded = base_trajectories_exploded[agent_id] - target_trajectories_exploded[agent_id]
 
-        if len(trainrun_difference) > 0:
-            traces_influenced_agents[idx] = trainrun_difference
-            additional_information.update({idx: True})
+        if len(difference_exploded) > 0:
+            trace = []
+            for (resource, time_step) in difference_exploded:
+                # TODO we draw one-dot strokes, should we collapse to longer strokes?
+                #  We want to keep the triplet structure in the trajectories in order not to have to distinguish between cases!
+                trace.append((resource, time_step))
+                trace.append((resource, time_step))
+                trace.append((None, None))
+            traces_influenced_agents[agent_id] = trace
+            additional_information.update({agent_id: True})
         else:
-            traces_influenced_agents[idx] = [(None, None)]
-            additional_information.update({idx: False})
+            traces_influenced_agents[agent_id] = [(None, None)]
+            additional_information.update({agent_id: False})
     space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
                                                 additional_information=additional_information)
     return space_time_difference

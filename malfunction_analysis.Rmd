@@ -149,6 +149,22 @@ plot_delay_propagation_graph(minimal_depth = minimal_depth,
         distance_matrix = distance_matrix)
 ```
 
-```{python}
+# Transmission Chains Time Window
 
+```{python}
+from rsp.hypothesis_two_encounter_graph import extract_transmission_chains_time_window,plot_transmission_chains_time_window
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
+```
+
+```{python}
+plot_time_window_resource_trajectories(experiment_result=exp_results_of_experiment_of_interest,schedule_plotting=plotting_data)
+
+```
+
+```{python}
+transmission_chains_time_window = extract_transmission_chains_time_window(experiment_result=exp_results_of_experiment_of_interest)
+```
+
+```{python}
+plot_transmission_chains_time_window(exp_results_of_experiment_of_interest, transmission_chains_time_window)
 ```
