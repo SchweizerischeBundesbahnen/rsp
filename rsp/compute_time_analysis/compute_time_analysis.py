@@ -1,6 +1,7 @@
 """Rendering methods to use with jupyter notebooks."""
 import os.path
 import re
+from copy import copy
 from pathlib import Path
 from typing import Dict
 from typing import List
@@ -11,12 +12,12 @@ from typing import Tuple
 import numpy as np
 import plotly.graph_objects as go
 from flatland.core.grid.grid_utils import coordinate_to_position
+from flatland.core.grid.grid_utils import position_to_coordinate
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
 
-from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
@@ -24,6 +25,7 @@ from rsp.transmission_chains.transmission_chains import distance_matrix_from_tra
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
+from rsp.utils.data_types import Resource
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SortedResourceOccupationsPerAgent
@@ -43,7 +45,7 @@ SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Tr
                                                            ('additional_information', Dict)])
 
 # Information used for plotting time-resource-graphs: Sorting is dict mapping ressource to int value used to sort
-# ressources for nice visualization
+# resources for nice visualization
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -81,10 +83,16 @@ PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'violet', 'wheat', 'white', 'whitesmoke', 'yellow',
                     'yellowgreen']
 
+GREY_BACKGROUND_COLOR = 'rgba(46,49,49,1)'
+
 
 def plot_computational_times(
-        experiment_data: DataFrame, axis_of_interest: str,
+        experiment_data: DataFrame,
+        axis_of_interest: str,
         columns_of_interest: List[str],
+        experiment_data_baseline: Optional[DataFrame] = None,
+        experiment_data_baseline_suffix: Optional[str] = '_baseline',
+        experiment_data_suffix: Optional[str] = '',
         output_folder: Optional[str] = None,
         y_axis_title: str = "Time[s]",
         title: str = "Computational Times",
@@ -115,6 +123,9 @@ def plot_computational_times(
     # prevent too long file names
     pdf_file = f'{file_name_prefix}_{axis_of_interest}__' + ('_'.join(columns_of_interest))[0:15] + '.pdf'
     plot_computional_times_from_traces(experiment_data=experiment_data,
+                                       experiment_data_baseline=experiment_data_baseline,
+                                       experiment_data_baseline_suffix=experiment_data_baseline_suffix,
+                                       experiment_data_suffix=experiment_data_suffix,
                                        traces=traces,
                                        output_folder=output_folder,
                                        x_axis_title=axis_of_interest,
@@ -123,13 +134,17 @@ def plot_computational_times(
                                        title=f"{title} {axis_of_interest}")
 
 
-def plot_computional_times_from_traces(experiment_data: DataFrame,
-                                       traces: List[Tuple[str, str]],
-                                       x_axis_title: str,
-                                       y_axis_title: str = "Time[s]",
-                                       output_folder: Optional[str] = None,
-                                       pdf_file: Optional[str] = None,
-                                       title: str = "Computational Times"):
+def plot_computional_times_from_traces(
+        experiment_data: DataFrame,
+        traces: List[Tuple[str, str]],
+        x_axis_title: str,
+        y_axis_title: str = "Time[s]",
+        experiment_data_baseline: Optional[DataFrame] = None,
+        experiment_data_baseline_suffix: Optional[str] = '_baseline',
+        experiment_data_suffix: Optional[str] = '',
+        output_folder: Optional[str] = None,
+        pdf_file: Optional[str] = None,
+        title: str = "Computational Times"):
     """Plot the computational times of experiments.
 
     Parameters
@@ -153,7 +168,8 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
     for axis_of_interest, column in traces:
         fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                              y=experiment_data[column],
-                             name=column, pointpos=-1,
+                             name=str(column) + experiment_data_suffix,
+                             pointpos=-1,
                              boxpoints='all',
                              customdata=np.dstack((experiment_data['n_agents'],
                                                    experiment_data['size'],
@@ -165,6 +181,22 @@ def plot_computional_times_from_traces(experiment_data: DataFrame,
                                            '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3)))
+        if experiment_data_baseline is not None:
+            fig.add_trace(go.Box(x=experiment_data_baseline[axis_of_interest],
+                                 y=experiment_data_baseline[column],
+                                 name=column + experiment_data_baseline_suffix,
+                                 pointpos=-1,
+                                 boxpoints='all',
+                                 customdata=np.dstack((experiment_data['n_agents'],
+                                                       experiment_data['size'],
+                                                       experiment_data['speed_up']))[0],
+                                 hovertext=experiment_data['experiment_id'],
+                                 hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
+                                               '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                               '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                               '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
+                                               '<b>Experiment id:</b>%{hovertext}',
+                                 marker=dict(size=3)))
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"{title}")
     fig.update_xaxes(title=x_axis_title)
@@ -233,13 +265,16 @@ def plot_speed_up(
 
 
 def extract_schedule_plotting(
-        experiment_result: ExperimentResultsAnalysis) -> SchedulePlotting:
+        experiment_result: ExperimentResultsAnalysis,
+        sorting_agent_id: Optional[int] = None) -> SchedulePlotting:
     """Extract the scheduling information from a experiment data for plotting.
 
     Parameters
     ----------
-    experiment_result
-
+    experiment_result: ExperimentResultsAnalysis
+        Experiment results used for Plotting
+    sorting_agent_id: int
+        Agent handle according to which the resources will be sorted
     Returns
     -------
     """
@@ -263,7 +298,8 @@ def extract_schedule_plotting(
                                             release_time=RELEASE_TIME)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
-        grid_depth=experiment_result.experiment_parameters.width)
+        grid_depth=experiment_result.experiment_parameters.width,
+        sorting_agent_id=sorting_agent_id)
     return SchedulePlotting(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
         reschedule_full_as_resource_occupations=reschedule_full_as_resource_occupations,
@@ -275,7 +311,8 @@ def extract_schedule_plotting(
 
 def extract_plotting_information(
         schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        grid_depth: int) -> PlottingInformation:
+        grid_depth: int,
+        sorting_agent_id: Optional[int] = None) -> PlottingInformation:
     """Extract plotting information.
 
     Parameters
@@ -283,7 +320,8 @@ def extract_plotting_information(
     schedule_as_resource_occupations:
     grid_depth
         Ranges of the window to be shown, used for consistent plotting
-
+    sorting_agent_id
+        agent id to be used for sorting the resources
     Returns
     -------
     PlottingInformation
@@ -291,21 +329,30 @@ def extract_plotting_information(
     """
     sorted_index = 0
     max_time = 0
-    max_ressource = 0
     sorting = {}
+    # If specified, sort according to path of agent with sorting_agent_id
+    if sorting_agent_id is not None and sorting_agent_id in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+        for resource_occupation in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent[sorting_agent_id]):
+            position = coordinate_to_position(grid_depth, [resource_occupation.resource])[0]
+            time = resource_occupation.interval.to_excl
+            if time > max_time:
+                max_time = time
+            if position not in sorting:
+                sorting[position] = sorted_index
+                sorted_index += 1
 
+    # Sort the rest of the resources according to agent handle sorting
     for _, sorted_resource_occupations in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent.items()):
         for resource_occupation in sorted_resource_occupations:
             resource_occupation: ResourceOccupation = resource_occupation
-            time = resource_occupation.interval.from_incl
+            time = resource_occupation.interval.to_excl
             if time > max_time:
                 max_time = time
-            position = coordinate_to_position(grid_depth, [resource_occupation.resource])
-            if position[0] not in sorting:
-                sorting[position[0]] = sorted_index
+            position = coordinate_to_position(grid_depth, [resource_occupation.resource])[0]
+            if position not in sorting:
+                sorting[position] = sorted_index
                 sorted_index += 1
-            if sorted_index > max_ressource:
-                max_ressource = sorted_index
+    max_ressource = max(list(sorting.values()))
     plotting_information = PlottingInformation(sorting=sorting, dimensions=(max_ressource, max_time), grid_width=grid_depth)
     return plotting_information
 
@@ -340,7 +387,7 @@ def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescr
 
 def plot_time_window_resource_trajectories(
         experiment_result: ExperimentResultsAnalysis,
-        plotting_information: PlottingInformation,
+        schedule_plotting: SchedulePlotting,
         show: bool = True):
     """Plot time-window -- resource diagram for all three problems.
 
@@ -350,7 +397,7 @@ def plot_time_window_resource_trajectories(
     plotting_information
     show
     """
-    ranges = (len(plotting_information.sorting),
+    ranges = (len(schedule_plotting.plotting_information.sorting),
               max(experiment_result.problem_full.max_episode_steps,
                   experiment_result.problem_full_after_malfunction.max_episode_steps,
                   experiment_result.problem_delta_after_malfunction.max_episode_steps))
@@ -362,11 +409,11 @@ def plot_time_window_resource_trajectories(
         resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
         trajectories = trajectories_from_resource_occupations_per_agent(
             resource_occupations_schedule=resource_occupations_schedule,
-            plotting_information=plotting_information)
+            plotting_information=schedule_plotting.plotting_information)
         plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
 
 
-def plot_shared_heatmap(experiment_result: ExperimentResultsAnalysis):
+def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
@@ -374,32 +421,63 @@ def plot_shared_heatmap(experiment_result: ExperimentResultsAnalysis):
     experiment_result
     show
     """
+    layout = go.Layout(
+        plot_bgcolor=GREY_BACKGROUND_COLOR
+    )
+    fig = go.Figure(layout=layout)
+    plotting_information = schedule_plotting.plotting_information
     for title, result in {
         'Schedule': experiment_result.results_full,
         'Full Re-Schedule': experiment_result.results_full_after_malfunction,
         'Delta Re-Schedule': experiment_result.results_delta_after_malfunction
     }.items():
         shared = list(filter(lambda s: s.startswith('shared'), result.solver_result))
-        distance_matrix = np.zeros((experiment_result.experiment_parameters.height, experiment_result.experiment_parameters.width))
+        shared_per_resource = {}
         for sh in shared:
             sh = sh.replace('shared', '')
             sh = re.sub('t[0-9]+', '"XXX"', sh)
             #  the position of each entry waypoint is the cell that will be in conflict
             (t0, (wp00, _), t1, (wp10, _)) = eval(sh)
-            distance_matrix[wp00[0]] += 1
-            distance_matrix[wp10[0]] += 1
-        distance_matrix /= np.max(distance_matrix)
-        fig = go.Figure(
-            data=go.Heatmap(
-                z=distance_matrix,
-                colorscale="Hot"))
-        fig.update_layout(
-            title='Heatmap shared {}'.format(title),
-            width=700,
-            height=700
-        )
-        fig.update_yaxes(autorange="reversed")
-        fig.show()
+            if wp00[0] not in shared_per_resource:
+                shared_per_resource[wp00[0]] = 1
+            else:
+                shared_per_resource[wp00[0]] += 1
+            if wp10[0] not in shared_per_resource:
+                shared_per_resource[wp10[0]] = 1
+            else:
+                shared_per_resource[wp10[0]] += 1
+        x = []
+        y = []
+        z = []
+        for resource, occupancy in shared_per_resource.items():
+            x.append(resource[0])
+            y.append(resource[1])
+            z.append(occupancy)
+
+        fig.add_trace(go.Scattergl(
+            x=x,
+            y=y,
+            mode='markers',
+            name=title,
+            marker=dict(
+                color=z,
+                size=15,
+                symbol='square',
+                showscale=True,
+                reversescale=False,
+                colorbar=dict(
+                    title="Number of shared", len=0.75
+                ), colorscale="Hot"
+            )))
+
+    fig.update_yaxes(autorange="reversed")
+    fig.update_layout(title_text="Shared Resources",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.show()
 
 
 def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
@@ -415,7 +493,6 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     -------
         List of agent ids that changed between schedule an reschedule full
     """
-    malfunction = schedule_plotting.malfunction
     plotting_information = schedule_plotting.plotting_information
     resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
     resource_occupations_reschedule_full: SortedResourceOccupationsPerAgent = \
@@ -435,7 +512,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     # Plot Schedule
     plot_time_resource_trajectories(
         title='Schedule',
-        ranges=plotting_information.dimensions,
+        schedule_plotting=schedule_plotting,
         trajectories=trajectories_schedule)
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
@@ -453,15 +530,13 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         plot_time_resource_trajectories(
             trajectories=trajectories_reschedule_full,
             title='Full Reschedule',
-            malfunction=malfunction,
-            ranges=plotting_information.dimensions
+            schedule_plotting=schedule_plotting
         )
 
     # Plot Reschedule Delta with additional data
     plot_time_resource_trajectories(
-        title='Delta Reschedule', ranges=plotting_information.dimensions,
+        title='Delta Reschedule', schedule_plotting=schedule_plotting,
         trajectories=trajectories_reschedule_delta,
-        malfunction=malfunction
     )
 
     # Plot difference if asked for
@@ -469,8 +544,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         plot_time_resource_trajectories(
             trajectories=trajectories_influenced_agents,
             title='Changed Agents',
-            malfunction=malfunction,
-            ranges=plotting_information.dimensions
+            ranges=schedule_plotting
         )
 
     return changed_agents_dict
@@ -500,9 +574,8 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
 def plot_time_resource_trajectories(
         title: str,
         trajectories: Trajectories,
-        ranges: Tuple[int, int],
+        schedule_plotting: SchedulePlotting,
         additional_data: Dict = None,
-        malfunction: ExperimentMalfunction = None,
         malfunction_wave: Trajectories = None,
         show: bool = True
 ):
@@ -511,6 +584,7 @@ def plot_time_resource_trajectories(
     Parameters
     ----------
 
+    malfunction_wave
     title: str
         Title of the plot
     trajectories:
@@ -528,11 +602,16 @@ def plot_time_resource_trajectories(
 
     """
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
+    ranges = schedule_plotting.plotting_information.dimensions
+    malfunction = schedule_plotting.malfunction
+    ticks = [position_to_coordinate(schedule_plotting.plotting_information.grid_width, [key])[0]
+             for key in schedule_plotting.plotting_information.sorting.keys()]
+
     # Get keys and information to add to hover data
-    hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
+    hovertemplate = '<b>Resource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
     if additional_data is not None:
         list_keys = [k for k in additional_data]
         list_values = [v for v in additional_data.values()]
@@ -601,8 +680,14 @@ def plot_time_resource_trajectories(
                          name="False Positives",
                          hovertemplate=hovertemplate
                          ))
-    fig.update_layout(title_text=title, xaxis_showgrid=True, yaxis_showgrid=False)
-    fig.update_xaxes(title="Sorted resources", range=[0, ranges[0]])
+    fig.update_layout(title_text=title, xaxis_showgrid=False, yaxis_showgrid=False,
+                      xaxis=dict(
+                          tickmode='array',
+                          tickvals=np.arange(len(ticks)),
+                          ticktext=ticks,
+                          tickangle=270))
+    fig.update_xaxes(title="Resource Coordinates", range=[0, ranges[0]])
+
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
     if show:
         fig.show()
@@ -825,10 +910,9 @@ def plot_schedule_metrics(schedule_plotting: SchedulePlotting, lateness_delta_af
 
 
 def plot_resource_occupation_heat_map(
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
+        schedule_plotting: SchedulePlotting,
         plotting_information: PlottingInformation,
-        title_suffix: str = ''
-):
+        title_suffix: str = ''):
     """Plot agent density over resource.
 
     Parameters
@@ -842,35 +926,111 @@ def plot_resource_occupation_heat_map(
     x = []
     y = []
     size = []
-    color = []
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
 
+    schedule_as_resource_occupations = schedule_plotting.schedule_as_resource_occupations
+    reschedule_as_resource_occupations = schedule_plotting.reschedule_delta_as_resource_occupations
+
+    # Count agents per resource for full episode
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
         x.append(resource.column)
         y.append(resource.row)
-        size.append((len(resource_occupations)))
-        times = np.array(sorted([ro.interval.from_incl for ro in resource_occupations]))
-        if len(times) > 1:
-            mean_temp_dist = np.mean(np.clip(times[1:] - times[:-1], 0, 50))
-            color.append(mean_temp_dist)
+        size.append(len(resource_occupations))
+
+    # Generate diff between schedule and re-schedule
+    # TODO Update this to account for ressources not occupied in both schedule and re-schedule
+    x_r = []
+    y_r = []
+    size_r = []
+    for resource, resource_occupations in reschedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
+        x_r.append(resource.column)
+        y_r.append(resource.row)
+        size_r.append((len(resource_occupations)) - len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource]))
+
+    # Count start-target occupations
+    starts_target = {}
+    for agent in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
+        curr_start = schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent][0].resource
+        curr_target = schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent][-1].resource
+
+        if curr_start not in starts_target:
+            starts_target[curr_start] = 1
         else:
-            color.append(50)
-    fig.add_trace(go.Scattergl(x=x,
-                               y=y,
+            starts_target[curr_start] += 1
+
+        if curr_target not in starts_target:
+            starts_target[curr_target] = 1
+        else:
+            starts_target[curr_target] += 1
+
+    # Condense to fewer city points for better overview
+    # all variables here are abbreviated with _st meaning start-target
+    cities = _condense_to_cities(starts_target)
+    x_st = []
+    y_st = []
+    size_st = []
+    for start, city_size in cities.items():
+        x_st.append(start.column)
+        y_st.append(start.row)
+        size_st.append(city_size)
+
+    # Plot resource occupations diff
+    fig.add_trace(go.Scattergl(x=x_r,
+                               y=y_r,
                                mode='markers',
-                               name="Schedule",
+                               name="Resources Occupation Diff",
                                marker=dict(
-                                   color=size,
+                                   color=size_r,
+                                   size=15,
                                    symbol='square',
                                    showscale=True,
                                    reversescale=False,
                                    colorbar=dict(
-                                       title="Colorbar"
+                                       title="Resource Occupations", len=0.75
                                    ), colorscale="Hot"
                                )))
+
+    # Plot resource occupations
+    fig.add_trace(go.Scattergl(x=x,
+                               y=y,
+                               mode='markers',
+                               name="Schedule Resources",
+                               marker=dict(
+                                   color=size,
+                                   size=15,
+                                   symbol='square',
+                                   showscale=True,
+                                   reversescale=False,
+                                   colorbar=dict(
+                                       title="Resource Occupations", len=0.75
+                                   ), colorscale="Hot"
+                               )))
+
+    # Plot targets and starts
+    fig.add_trace(go.Scattergl(x=x_st,
+                               y=y_st,
+                               mode='markers',
+                               name="Schedule Start-Targets",
+                               hovertext=size_st,
+                               hovertemplate="Nr. Agents %{hovertext}",
+                               marker=dict(
+                                   color=size_st,
+                                   size=100 * size_st,
+                                   sizemode='area',
+                                   sizeref=2. * max(size) / (40. ** 2),
+                                   sizemin=4,
+                                   symbol='circle',
+                                   opacity=1.,
+                                   showscale=True,
+                                   reversescale=False,
+                                   colorbar=dict(
+                                       title="Targets", len=0.75
+                                   ), colorscale="Hot"
+                               )))
+
     fig.update_layout(title_text=f"Train Density at Resources {title_suffix}",
                       autosize=False,
                       width=1000,
@@ -882,6 +1042,38 @@ def plot_resource_occupation_heat_map(
     fig.show()
 
 
+def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
+    """Condenses start or targets points to a city point.
+
+    Parameters
+    ----------
+    positions
+        original positions of starts or targets with occupation counts
+
+    Returns
+    -------
+    dict containing the new coordinates and occupations
+    """
+    cluster = copy(positions)
+    # inefficient and dirty way to do this
+    old_len_cluster = 0
+    while old_len_cluster != len(cluster):
+        cluster_copy = copy(cluster)
+        old_len_cluster = len(cluster)
+        for resource, occupation in cluster_copy.items():
+            for neighb_resource, neighb_occupation in cluster_copy.items():
+                if neighb_resource != resource:
+                    if np.linalg.norm(resource - neighb_resource) < 5:
+                        new_column = (resource.column + neighb_resource.column) // 2
+                        new_row = (resource.row + neighb_resource.row) // 2
+                        city = Resource(column=new_column, row=new_row)
+                        cluster.pop(resource, None)
+                        cluster.pop(neighb_resource, None)
+                        cluster[city] = occupation + neighb_occupation
+
+    return cluster
+
+
 def plot_delay_propagation_2d(
         plotting_data: SchedulePlotting,
         delay_information: Dict[int, int],
@@ -891,8 +1083,8 @@ def plot_delay_propagation_2d(
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
     ----------
-    schedule_ressources
-        Dict containing all the times and agent handles for all ressources
+    schedule_resources
+        Dict containing all the times and agent handles for all resources
 
     Returns
     -------
@@ -902,7 +1094,7 @@ def plot_delay_propagation_2d(
     MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
     DEPTH_COLOR = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
 
@@ -999,7 +1191,7 @@ def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupa
     x = []
     y = []
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
 

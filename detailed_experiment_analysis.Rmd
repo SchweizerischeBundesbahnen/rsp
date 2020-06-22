@@ -43,6 +43,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
 experiment_of_interest = 0
+agent_of_interest = 0
 ```
 
 ```{python}
@@ -53,7 +54,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
-plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest)
+plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
 ### Initial schedule
@@ -67,7 +68,7 @@ trajectories = trajectories_from_resource_occupations_per_agent(
     plotting_information=plotting_data.plotting_information)
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Initial Schedule",
-                                ranges=plotting_data.plotting_information.dimensions)
+                                schedule_plotting=plotting_data)
 ```
 
 ### Visualize Problem instances as time-resource graphs
@@ -82,8 +83,7 @@ choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_aft
 print("Number of choices the solver has to make was {}".format(choices_full_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Full Reschedule Problem",
-                                ranges=plotting_data.plotting_information.dimensions,
-                                malfunction=plotting_data.malfunction)
+                                schedule_plotting=plotting_data)
 
 ```
 
@@ -98,12 +98,11 @@ choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_a
 print("Number of choices the solver has to make was {}".format(choices_delta_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta Reschedule Problem",
-                                ranges=plotting_data.plotting_information.dimensions,
-                                malfunction=plotting_data.malfunction)
+                                schedule_plotting=plotting_data)
 ```
 
 ```{python}
-plot_shared_heatmap(experiment_result=exp_results_of_experiment_of_interest)
+plot_shared_heatmap(schedule_plotting=plotting_data,experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 ### Some metrics about the schedule
@@ -115,9 +114,11 @@ Number of active agents at each time step for the initial schedule
 plot_time_density(plotting_data.schedule_as_resource_occupations)
 ```
 
+Below we plot the resource occupation for the schedule and the difference between to the re-schedule as well as an indication of where agents start and where they travel. THe circles represent number of agents that either start or end at the city location.
+
 ```{python}
 plot_resource_occupation_heat_map(
-    schedule_as_resource_occupations=plotting_data.schedule_as_resource_occupations,
+    schedule_plotting=plotting_data,
     plotting_information=plotting_data.plotting_information,
     title_suffix='Schedule'
 )
@@ -141,7 +142,6 @@ Video(video_src_reschedule, embed=True)
 
 ```{python}
 # %matplotlib inline
-agent_of_interest = 0
 plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 

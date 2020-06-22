@@ -128,9 +128,15 @@ HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = ['time_full', 'time_full_after_malfunction'
 
 def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data: DataFrame,
+        experiment_data_baseline: Optional[DataFrame] = None,
+        experiment_data_baseline_suffix: Optional[str] = '_baseline',
+        experiment_data_suffix: Optional[str] = '',
         output_folder: str = None):
     for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
         plot_computational_times(experiment_data=experiment_data,
+                                 experiment_data_baseline=experiment_data_baseline,
+                                 experiment_data_baseline_suffix=experiment_data_baseline_suffix,
+                                 experiment_data_suffix=experiment_data_suffix,
                                  axis_of_interest=axis_of_interest,
                                  columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
                                  output_folder=output_folder)

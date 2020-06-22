@@ -44,6 +44,7 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ```{python}
 experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
 experiment_of_interest = 0
+agent_of_interest = 0
 ```
 
 Extract data and aggregate plotting data
@@ -56,7 +57,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
-plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest)
+plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
 ### Analyze Experiment Data
@@ -98,8 +99,7 @@ print_situation_overview(plotting_data,changed_agents_dict)
 ```{python}
 plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",
                                 trajectories=schedule_trajectories,
-                                ranges=plotting_data.plotting_information.dimensions,
-                                malfunction=plotting_data.malfunction,
+                                schedule_plotting=plotting_data,
                                 malfunction_wave=(true_positives_trajectories,false_positives_trajectories))
 ```
 
@@ -118,8 +118,7 @@ Given the actions of the re-scheduling algorithm, the spread can be limited both
 ```{python}
 plot_time_resource_trajectories(title="Influenced Trains after re-scheduling",
                                 trajectories=changed_trajectories,
-                                ranges=plotting_data.plotting_information.dimensions,
-                                malfunction=plotting_data.malfunction)
+                                schedule_plotting=plotting_data)
 ```
 
 The spatial spread of the malfunction can be seen below. The arrows indicate direction of travel, the thickness of the arrow indicates the total delay of an agent. The colors show the depth of influence from the initial agent, meaning if it was directly or indirectly influenced.
@@ -137,14 +136,17 @@ Figure below shows the histogram of the delay times, giving us a great overview 
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
-```{python}
-plot_delay_propagation_graph(
-        minimal_depth = minimal_depth,
-        distance_matrix = distance_matrix)
-```
+The below figure shows the propagation of the malfunction within the schedule, when there are no actions taken. The progation is projected to show the influence from an agent to the next agent.
+
+Given that the influence from one agent to the next can follow different delay propagaions through the system and we only plot the lowest influence depth recorded, connected agents might have larger than 1 difference in influence depth.
+
+Furthermore we don't show backwards propagations. E.g. we don't show connections from deeper influence agents to lower ones. We chose this in such a way to keep visualization simple. Also we believe that the shallower propagation of the disturbance has a more imminent effect than the deeper ones.
+
+THe figure below is a simplified projection which should only help to visualize how different agents have vastly different effects on the propagation of the delay
 
 ```{python}
-distance_matrix[2]
+plot_delay_propagation_graph(minimal_depth = minimal_depth,
+        distance_matrix = distance_matrix)
 ```
 
 ```{python}
