@@ -1187,3 +1187,75 @@ def _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_di
         dummy_nodes_visit = [v for v in constraints.freeze_visit if v.direction == 5]
         for v in dummy_nodes_visit:
             constraints.freeze_visit.remove(v)
+
+# --------------------------------------------------------------
+# Agenda tweaking methods
+# --------------------------------------------------------------
+
+def tweak_name(
+        agenda_null: ExperimentAgenda,
+        alt_index: Optional[int],
+        experiment_name: str) -> ExperimentAgenda:
+    """Produce a new `ExperimentAgenda` under a "tweaked" name.
+
+    Parameters
+    ----------
+    agenda_null
+    alt_index
+    experiment_name
+
+    Returns
+    -------
+    """
+    suffix = _make_suffix(alt_index)
+    return ExperimentAgenda(
+        experiment_name=f"{experiment_name}_{suffix}",
+        experiments=agenda_null.experiments
+    )
+
+def tweak_agenda_parameters(
+        agenda_null: ExperimentAgenda,
+        seed: int,
+        tweaked_param_values: Dict[str,List],
+        experiment_name: str,
+) -> ExperimentAgenda:
+    """Produce a new `ExperimentAgenda` with `asp_seed_value` "tweaked".
+
+    Parameters
+    ----------
+    agenda_null
+    seed
+    alt_index
+    experiment_name
+
+    Returns
+    -------
+    """
+    suffix = _make_suffix(alt_index)
+    for experiment in agenda_null.experiments:
+        new_params = dict(experiment._asdict())
+        for parameter, ranges in tweaked_param_values.items():
+            new_params = dict()
+    return ExperimentAgenda(
+        experiment_name=f"{experiment_name}_{suffix}",
+        experiments=[
+            ExperimentParameters(**dict(experiment._asdict(),
+                                        **{'asp_seed_value': seed}))
+            for experiment in agenda_null.experiments]
+    )
+
+def _make_suffix(alt_index: Optional[int]) -> str:
+    """Make suffix for experiment name: either "null" if `alt_index` is `None`,
+    else `alt{alt_index:03d}`
+
+    Parameters
+    ----------
+    alt_index
+
+    Returns
+    -------
+    """
+    suffix = "null"
+    if alt_index is not None:
+        suffix = f"alt{alt_index:03d}"
+    return suffix
