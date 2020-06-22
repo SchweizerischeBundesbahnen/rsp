@@ -9,12 +9,12 @@ from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.logger import rsp_logger
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import SchedulingProblemInTimeWindows
-from rsp.utils.data_types import SortedResourceOccupationsPerAgent
-from rsp.utils.data_types import SortedResourceOccupationsPerResource
+from rsp.utils.plotting_data_types import SchedulePlotting
 
 TransmissionLeg = NamedTuple('TransmissionLeg', [
     ('hop_on', ResourceOccupation),
-    ('hop_off', ResourceOccupation)
+    ('hop_off', ResourceOccupation),
+    ('delay_time', int)
 ])
 TransmissionChain = List[TransmissionLeg]
 
@@ -77,24 +77,25 @@ def extract_transmission_chains_from_time_windows(  # noqa: C901
 
 
 # TODO we probably too much work here!
-def extract_transmission_chains(
-        malfunction: ExperimentMalfunction,
-        resource_occupations_per_agent: SortedResourceOccupationsPerAgent,
-        resource_occupations_per_resource: SortedResourceOccupationsPerResource
-) -> List[TransmissionChain]:
+def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlotting) -> List[TransmissionChain]:
     """Propagation of delay.
 
     Parameters
     ----------
-    malfunction
-    resource_occupations_per_agent
-    resource_occupations_per_resource
+    schedule_plotting
 
     Returns
     -------
+    List of transmission chains
     """
+
+    malfunction = schedule_plotting.malfunction
     malfunction_agent_id = malfunction.agent_id
-    open_wave_front: List[TransmissionChain] = []
+    delay_time = malfunction.malfunction_duration
+    resource_occupations_per_agent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_per_resource = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_resource
+
+    open_wave_front: List[Tuple[ResourceOccupation, TransmissionChain]] = []
     transmission_chains: List[TransmissionChain] = []
     closed_wave_front: List[ResourceOccupation] = []
     malfunction_occupation = next(ro for ro in resource_occupations_per_agent[malfunction_agent_id] if malfunction.time_step < ro.interval.to_excl)
@@ -102,26 +103,28 @@ def extract_transmission_chains(
         # N.B. intervals include release times, therefore we can be strict at upper bound!
         if malfunction.time_step < ro.interval.to_excl:
             # TODO should the interval extended by the malfunction duration?
-            chain = [TransmissionLeg(malfunction_occupation, ro)]
+            chain = [TransmissionLeg(malfunction_occupation, ro, delay_time)]
             open_wave_front.append(chain)
             transmission_chains.append(chain)
     assert len(open_wave_front) > 0
     while len(open_wave_front) > 0:
         history = open_wave_front.pop()
         wave_front = history[-1].hop_off
+        delay_time = history[-1].delay_time
         wave_front_resource = wave_front.resource
         if wave_front in closed_wave_front:
             continue
         closed_wave_front.append(wave_front)
 
         # the next scheduled train may be impacted!
-        # TODO we do not consider decelerate to let pass yet! search backward in radius? would this be another type of chain?
         for ro in resource_occupations_per_resource[wave_front_resource]:
-            if ro.interval.from_incl >= wave_front.interval.to_excl:
+            time_between_agents = ro.interval.from_incl - wave_front.interval.to_excl
+            if ro.interval.from_incl >= wave_front.interval.to_excl and time_between_agents < delay_time:
+                delay_time = delay_time - time_between_agents
                 for subsequent_ro in resource_occupations_per_agent[ro.agent_id]:
                     # hop_on and hop_off may be at the same resource
                     if subsequent_ro.interval.from_incl >= ro.interval.from_incl:
-                        chain = history + [TransmissionLeg(ro, subsequent_ro)]
+                        chain = history + [TransmissionLeg(ro, subsequent_ro, delay_time)]
                         assert subsequent_ro not in history
                         if ro in closed_wave_front:
                             continue
@@ -189,20 +192,17 @@ def validate_transmission_chain_time_window(transmission_chain: TransmissionChai
 
 def distance_matrix_from_tranmission_chains(
         number_of_trains: int,
-        transmission_chains: List[TransmissionChain],
-        cutoff: int = None
-) -> Tuple[np.ndarray, np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
+        transmission_chains: List[TransmissionChain]) -> Tuple[np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
     """
 
     Parameters
     ----------
     number_of_trains
     transmission_chains
-    cutoff
 
     Returns
     -------
-    distance_matrix, weights_matrix, minimal_depth, wave_fronts_reaching_other_agent
+    distance_matrix, minimal_depth, wave_fronts_reaching_other_agent
 
     """
 
@@ -213,19 +213,11 @@ def distance_matrix_from_tranmission_chains(
     wave_reaching_other_agent: WAVE_PER_AGENT_AND_DEPTH = {agent_id: {} for agent_id in range(number_of_trains)}
     # for each agent, minimum transmission length reaching the other agent from malfunction agent
     minimal_depth: Dict[int, int] = {}
+    minimal_depth[transmission_chains[0][0].hop_off.agent_id] = 0
     for transmission_chain in transmission_chains:
         if len(transmission_chain) < 2:
             # skip transmission chains consisting of only one leg (along the malfunction agent's path)
             continue
-        # TODO SIM-511 weighting/damping: take into account number of intermediate steps and their distance!
-        if cutoff is not None:
-            distances = [to_leg.hop_on.interval.from_incl - from_leg.hop_off.interval.to_excl for from_leg, to_leg in
-                         zip(transmission_chain, transmission_chain[1:])]
-            for distance in distances:
-                assert distance >= 0
-            max_distance = np.max(distances)
-            if max_distance >= cutoff:
-                continue
         from_ro = transmission_chain[-2].hop_off
         to_ro = transmission_chain[-1].hop_on
         hop_on_depth = len(transmission_chain) - 1
@@ -245,9 +237,5 @@ def distance_matrix_from_tranmission_chains(
             distance_first_reaching[from_agent_id, to_agent_id] = to_ro.interval.from_incl
         elif distance_before == distance:
             distance_first_reaching[from_agent_id, to_agent_id] = min(distance_first_reaching[from_agent_id, to_agent_id], to_ro.interval.from_incl)
-    # almost-inverse: distance -> weights
-    weights_matrix: np.ndarray = (1 / distance_matrix) + 0.000001
-    # normalize
-    np_max = np.max(weights_matrix)
-    weights_matrix /= np_max
-    return distance_matrix, weights_matrix, minimal_depth, wave_reaching_other_agent
+
+    return distance_matrix, minimal_depth, wave_reaching_other_agent

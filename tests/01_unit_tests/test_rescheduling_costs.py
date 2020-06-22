@@ -6,9 +6,10 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
-from rsp.route_dag.generators.route_dag_generator_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
+from rsp.utils.global_constants import RELEASE_TIME
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -38,7 +39,7 @@ def test_costs_forced_rerouting_one_agent():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, _ = solve_problem(problem=reschedule_problem)
         print(solution.trainruns_dict[0])
@@ -79,7 +80,7 @@ def test_costs_forced_delay_one_agent():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
@@ -132,7 +133,7 @@ def test_costs_forced_delay_two_agents():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
@@ -151,7 +152,7 @@ def test_costs_forced_delay_two_agents():
                 solution.trainruns_dict[agent_id]
             }
         #  the expected costs are only the delay (which is minimum_travel_time + 1 for release time)
-        expected_costs = minimum_travel_time + 1
+        expected_costs = minimum_travel_time + RELEASE_TIME
         assert solution.optimization_costs == expected_costs, f"actual costs {solution.optimization_costs}, expected {expected_costs}"
         assert len(asp_solution.extract_list_of_lates()) == expected_costs
         assert len(asp_solution.extract_list_of_active_penalty()) == 0
@@ -187,7 +188,7 @@ def test_costs_forced_rerouting_two_agents():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            tc=schedule_problem_description
+            schedule_problem_description=schedule_problem_description
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
@@ -294,7 +295,7 @@ def _make_topo2(dummy_offset: int) -> nx.DiGraph:
     Parameters
     ----------
     dummy_offset
-        change the postion of the dummy source and sink to make them not use the same resource as
+        change the postion of the dummy source and sink to make them not use the same resource.
 
     Returns
     -------

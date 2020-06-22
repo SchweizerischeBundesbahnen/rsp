@@ -8,8 +8,8 @@ from typing import Set
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
-from rsp.route_dag.route_dag import RouteDAGConstraintsDict
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 
 ExperimentMalfunction = NamedTuple('ExperimentMalfunction', [
     ('time_step', int),

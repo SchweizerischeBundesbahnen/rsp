@@ -12,68 +12,63 @@ from rsp.experiment_solvers.asp.asp_helper import ASPHeuristics
 from rsp.experiment_solvers.asp.asp_helper import ASPObjective
 from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
-from rsp.route_dag.generators.route_dag_generator_schedule import RouteDAGConstraints
-from rsp.route_dag.route_dag import get_sinks_for_topo
-from rsp.route_dag.route_dag import get_sources_for_topo
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_schedule import RouteDAGConstraints
 
 
-class ASPProblemDescription():
+class ASPProblemDescription:
 
     def __init__(self,
-                 tc: ScheduleProblemDescription,
+                 schedule_problem_description: ScheduleProblemDescription,
                  asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-                 asp_heuristics: List[ASPHeuristics] = None,
+                 asp_heuristics: Optional[List[ASPHeuristics]] = None,
                  asp_seed_value: Optional[int] = None,
                  nb_threads: int = 2,
                  no_optimize: bool = False
                  ):
-        self.tc = tc
+        self.schedule_problem_description = schedule_problem_description
         self.asp_seed_value = asp_seed_value
         self.asp_objective: ASPObjective = asp_objective
         self.nb_threads = nb_threads
         self.no_optimize = no_optimize
-        if asp_heuristics is None:
-            self.asp_heuristics: List[ASPHeuristics] = [ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ]
-        else:
-            self.asp_heuristics: List[ASPHeuristics] = asp_heuristics
+        self.asp_heuristics: Optional[List[ASPHeuristics]] = asp_heuristics
 
     @staticmethod
     def factory_rescheduling(
-            tc: ScheduleProblemDescription,
+            schedule_problem_description: ScheduleProblemDescription,
             asp_seed_value: Optional[int] = None
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
-            tc=tc,
+            schedule_problem_description=schedule_problem_description,
             asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
-            # TODO SIM-167 switch on heuristics
-            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
+            asp_heuristics=[],
             asp_seed_value=asp_seed_value,
             no_optimize=False
         )
         asp_problem._build_asp_program(
-            tc=tc,
+            schedule_problem_description=schedule_problem_description,
             add_minimumrunnigtime_per_agent=False
         )
         return asp_problem
 
     @staticmethod
     def factory_scheduling(
-            tc: ScheduleProblemDescription,
+            schedule_problem_description: ScheduleProblemDescription,
             asp_seed_value: Optional[int] = None,
             no_optimize: bool = False
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
-            tc=tc,
+            schedule_problem_description=schedule_problem_description,
             asp_objective=ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-            # TODO SIM-167 switch on heuristics
-            asp_heuristics=[ASPHeuristics.HEURISIC_ROUTES, ASPHeuristics.HEURISTIC_SEQ, ASPHeuristics.HEURISTIC_DELAY],
+            asp_heuristics=[ASPHeuristics.HEURISTIC_SEQ],
             asp_seed_value=asp_seed_value,
             no_optimize=no_optimize,
             nb_threads=2  # not deterministic any more!
         )
         asp_problem._build_asp_program(
-            tc=tc,
+            schedule_problem_description=schedule_problem_description,
             # minimize_total_sum_of_running_times.lp requires minimumrunningtime(agent_id,<minimumrunningtime)
             add_minimumrunnigtime_per_agent=True
         )
@@ -210,7 +205,7 @@ class ASPProblemDescription():
                                    nb_threads=self.nb_threads,
                                    no_optimize=self.no_optimize,
                                    verbose=verbose)
-        return ASPSolutionDescription(asp_solution=asp_solution, tc=self.tc)
+        return ASPSolutionDescription(asp_solution=asp_solution, schedule_problem_description=self.schedule_problem_description)
 
     @staticmethod
     def convert_position_and_entry_direction_to_waypoint(r: int, c: int, d: int) -> Waypoint:
@@ -232,7 +227,7 @@ class ASPProblemDescription():
                         direction=int(d))  # convert Grid4TransitionsEnum to int so it can be used as int in ASP!
 
     def _build_asp_program(self,
-                           tc: ScheduleProblemDescription,
+                           schedule_problem_description: ScheduleProblemDescription,
                            add_minimumrunnigtime_per_agent: bool = False,
                            ):
         # preparation
@@ -252,10 +247,10 @@ class ASPProblemDescription():
         self.asp_program.append("act_penalty_for_train(0,0,0).")
 
         # add trains
-        for agent_id, topo in tc.topo_dict.items():
+        for agent_id, topo in schedule_problem_description.topo_dict.items():
             sources = get_sources_for_topo(topo)
             sinks = get_sinks_for_topo(topo)
-            freeze = tc.route_dag_constraints_dict[agent_id]
+            freeze = schedule_problem_description.route_dag_constraints_dict[agent_id]
 
             self._implement_train(agent_id=agent_id,
                                   start_vertices=sources,
@@ -270,26 +265,26 @@ class ASPProblemDescription():
                         entry_waypoint=entry_waypoint,
                         exit_waypoint=exit_waypoint,
                         resource_id=entry_waypoint.position,
-                        minimum_travel_time=tc.minimum_travel_time_dict[agent_id],
-                        route_section_penalty=tc.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
+                        minimum_travel_time=schedule_problem_description.minimum_travel_time_dict[agent_id],
+                        route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
 
             _new_asp_program += self._translate_route_dag_constraints_to_ASP(
                 agent_id=agent_id,
-                topo=tc.topo_dict[agent_id],
+                topo=schedule_problem_description.topo_dict[agent_id],
                 freeze=freeze)
 
         if add_minimumrunnigtime_per_agent:
-            for agent_id in self.tc.minimum_travel_time_dict:
-                agent_sink = list(get_sinks_for_topo(self.tc.topo_dict[agent_id]))[0]
-                agent_source = list(get_sources_for_topo(self.tc.topo_dict[agent_id]))[0]
-                earliest_arrival = self.tc.route_dag_constraints_dict[agent_id].freeze_earliest[agent_sink]
-                earliest_departure = self.tc.route_dag_constraints_dict[agent_id].freeze_earliest[agent_source]
+            for agent_id in self.schedule_problem_description.minimum_travel_time_dict:
+                agent_sink = list(get_sinks_for_topo(self.schedule_problem_description.topo_dict[agent_id]))[0]
+                agent_source = list(get_sources_for_topo(self.schedule_problem_description.topo_dict[agent_id]))[0]
+                earliest_arrival = self.schedule_problem_description.route_dag_constraints_dict[agent_id].freeze_earliest[agent_sink]
+                earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].freeze_earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
 
         # inject weight lateness
         if self.asp_objective == ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED:
-            _new_asp_program.append(f"#const weight_lateness_seconds = {tc.weight_lateness_seconds}.")
+            _new_asp_program.append(f"#const weight_lateness_seconds = {schedule_problem_description.weight_lateness_seconds}.")
 
         # cleanup
         return _new_asp_program

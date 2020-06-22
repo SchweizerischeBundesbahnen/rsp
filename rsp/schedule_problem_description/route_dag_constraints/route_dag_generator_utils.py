@@ -10,9 +10,9 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.route_dag.route_dag import get_sinks_for_topo
-from rsp.route_dag.route_dag import get_sources_for_topo
-from rsp.route_dag.route_dag import RouteDAGConstraints
+from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.utils.data_types import ExperimentMalfunction
 
 
@@ -236,8 +236,8 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
     """
 
     all_waypoints = topo.nodes
-    agent_sink = list(get_sinks_for_topo(topo))[0]
-    agent_source = list(get_sources_for_topo(topo))[0]
+    agent_sinks = list(get_sinks_for_topo(topo))
+    agent_sources = list(get_sources_for_topo(topo))
 
     # 0. assert all referenced waypoints are in topo
     for waypoint in route_dag_constraints.freeze_banned:
@@ -305,18 +305,18 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
 
     # 5. verify that every node in freeze_visit has predecessor and successor not banned
     for waypoint in route_dag_constraints.freeze_visit:
-        if waypoint != agent_source:
+        if waypoint not in agent_sources:
             done = False
             for predecessor in topo.predecessors(waypoint):
                 if predecessor not in route_dag_constraints.freeze_banned:
                     done = True
-            assert done, f"waypoint {waypoint} must be visited and not source, but no predecessor that is not banned"
+            assert done, f"agent {agent_id} waypoint {waypoint} must be visited and not source, but no predecessor that is not banned"
         done = False
-        if waypoint != agent_sink:
+        if waypoint not in agent_sinks:
             for successor in topo.successors(waypoint):
                 if successor not in route_dag_constraints.freeze_banned:
                     done = True
-            assert done, f"waypoint {waypoint} must be visited, but no successor that is not banned"
+            assert done, f"agent {agent_id} waypoint {waypoint} must be visited, but no successor that is not banned"
 
     # 6. verify that latest-earliest <= max_window_size_from_earliest
     for waypoint in route_dag_constraints.freeze_earliest:

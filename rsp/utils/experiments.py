@@ -45,6 +45,7 @@ from typing import Tuple
 import numpy as np
 import tqdm as tqdm
 from flatland.envs.rail_env import RailEnv
+from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
@@ -54,17 +55,19 @@ from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
-from rsp.experiment_solvers.experiment_solver import ASPExperimentSolver
+from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import rsp_logger
-from rsp.route_dag.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
-from rsp.route_dag.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
-from rsp.route_dag.generators.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
-from rsp.route_dag.generators.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
-from rsp.route_dag.generators.route_dag_generator_schedule import schedule_problem_description_from_rail_env
-from rsp.route_dag.route_dag import apply_weight_route_change
-from rsp.route_dag.route_dag import ScheduleProblemDescription
+from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
+from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
+from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
+from rsp.schedule_problem_description.data_types_and_utils import apply_weight_route_change
+from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -73,7 +76,6 @@ from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
-from rsp.utils.experiment_env_generators import create_flatland_environment_with_malfunction
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
@@ -127,12 +129,17 @@ def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment
     return os.path.isfile(schedule_and_malfunction_file_name)
 
 
-def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> ScheduleAndMalfunction:
+def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> ScheduleAndMalfunction:
     """Load a persisted `ScheduleAndMalfunction` from a file.
     Parameters
     ----------
     experiment_agenda_directory
     experiment_id
+    re_save
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+
+
     Returns
     -------
     """
@@ -141,23 +148,28 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
 
     with open(schedule_and_malfunction_file_name, 'rb') as handle:
         file_data: ScheduleAndMalfunction = pickle.load(handle)
-        return file_data
+
+    # used if module path used in pickle has changed
+    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+    if re_save:
+        with open(schedule_and_malfunction_file_name, 'wb') as handle:
+            pickle.dump(ScheduleAndMalfunction(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
+    return file_data
 
 
-def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
-                   experiment_parameters: ExperimentParameters,
-                   experiment_base_directory: str,
-                   show_results_without_details: bool = True,
-                   verbose: bool = False,
-                   debug: bool = False,
-                   gen_only: bool = False,
-                   ) -> ExperimentResults:
+def run_experiment(
+        experiment_parameters: ExperimentParameters,
+        experiment_base_directory: str,
+        show_results_without_details: bool = True,
+        verbose: bool = False,
+        debug: bool = False,
+        gen_only: bool = False,
+) -> ExperimentResults:
     """
     Run a single experiment with a given solver and ExperimentParameters
     Parameters
     ----------
-    solver: ASPExperimentSolver
-        Solver from the class ASPExperimentSolver that should be solving the experiments
+    experiment_base_directory
     experiment_parameters: ExperimentParameters
         Parameter set of the data form ExperimentParameters
     Returns
@@ -190,7 +202,6 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
         schedule_and_malfunction = load_schedule_and_malfunction(
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)
-        _, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
 
         if debug:
             _render_route_dags_from_data(experiment_base_directory=experiment_base_directory,
@@ -200,10 +211,10 @@ def run_experiment(solver: ASPExperimentSolver,  # noqa: C901
 
     else:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
-        schedule_and_malfunction = create_schedule_and_malfunction(
+
+        schedule_and_malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
             debug=debug,
             experiment_parameters=experiment_parameters,
-            solver=solver,
             verbose=verbose)
         if experiment_agenda_directory is not None:
             save_schedule_and_malfunction(
@@ -302,19 +313,19 @@ def run_experiment_from_schedule_and_malfunction(
     ExperimentResults
     """
     rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
-    tc_schedule_problem, schedule_result, malfunction = schedule_and_malfunction
+    schedule_problem, schedule_result, malfunction = schedule_and_malfunction
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # --------------------------------------------------------------------------------------
     # 2. Re-schedule Full
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
-    reduced_topo_dict = tc_schedule_problem.topo_dict
+    reduced_topo_dict = schedule_problem.topo_dict
     full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
-        minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
-        latest_arrival=tc_schedule_problem.max_episode_steps,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        latest_arrival=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         topo_dict=reduced_topo_dict
     )
@@ -353,10 +364,10 @@ def run_experiment_from_schedule_and_malfunction(
     delta_reschedule_problem = perfect_oracle(
         full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
         malfunction=malfunction,
-        max_episode_steps=tc_schedule_problem.max_episode_steps,
+        max_episode_steps=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
         schedule_topo_dict=reduced_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
-        minimum_travel_time_dict=tc_schedule_problem.minimum_travel_time_dict,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
     )
     delta_reschedule_problem = apply_weight_route_change(
@@ -380,7 +391,7 @@ def run_experiment_from_schedule_and_malfunction(
     current_results = ExperimentResults(
         experiment_parameters=experiment_parameters,
         malfunction=malfunction,
-        problem_full=tc_schedule_problem,
+        problem_full=schedule_problem,
         problem_full_after_malfunction=full_reschedule_problem,
         problem_delta_after_malfunction=delta_reschedule_problem,
         results_full=schedule_result,
@@ -429,37 +440,8 @@ def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dic
     )
 
 
-def create_schedule_and_malfunction(
+def gen_schedule_and_malfunction_from_experiment_parameters(
         experiment_parameters: ExperimentParameters,
-        solver: ASPExperimentSolver,
-        verbose: bool = False,
-        debug: bool = False
-) -> ScheduleAndMalfunction:
-    """A.2 Create schedule and malfunction from experiment parameters.
-    Parameters
-    ----------
-    experiment_parameters
-    solver
-    debug
-    verbose
-    Returns
-    -------
-    malfunction_rail_env, schedule_and_malfunction
-    """
-    static_rail_env, malfunction_rail_env = create_env_pair_for_experiment(experiment_parameters)
-
-    return gen_schedule_and_malfunction_from_rail_env(
-        experiment_parameters=experiment_parameters,
-        static_rail_env=static_rail_env,
-        solver=solver,
-        verbose=verbose,
-        debug=debug)
-
-
-def gen_schedule_and_malfunction_from_rail_env(
-        experiment_parameters: ExperimentParameters,
-        static_rail_env: RailEnv,
-        solver: ASPExperimentSolver,
         verbose: bool = False,
         debug: bool = False
 
@@ -469,31 +451,30 @@ def gen_schedule_and_malfunction_from_rail_env(
     Parameters
     ----------
     experiment_parameters
-    static_rail_env
-    solver
     verbose
     debug
 
     Returns
     -------
     """
+
+    schedule_problem, rail_env = create_schedule_full_problem_description_from_experiment_parameters(
+        experiment_parameters=experiment_parameters
+    )
+
     # TODO SIM-443 pull out switch out
     SWITCH_CKUA = False
     if SWITCH_CKUA:
-        tc_schedule_problem = schedule_problem_description_from_rail_env(
-            env=static_rail_env,
-            k=experiment_parameters.number_of_shortest_paths_per_agent
-        )
         trainrun_dict, elapsed_time = ckua_generate_schedule(
-            env=static_rail_env,
+            env=rail_env,
             random_seed=experiment_parameters.flatland_seed_value,
             rendering=False,
             show=False
         )
         verify_trainrun_dict_for_schedule_problem(
-            schedule_problem=tc_schedule_problem,
+            schedule_problem=schedule_problem,
             trainrun_dict=trainrun_dict,
-            expected_route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict
+            expected_route_dag_constraints=schedule_problem.route_dag_constraints_dict
         )
         schedule_result = SchedulingExperimentResult(
             total_reward=-np.inf,
@@ -502,7 +483,7 @@ def gen_schedule_and_malfunction_from_rail_env(
             build_problem_time=-np.inf,
             nb_conflicts=-np.inf,
             trainruns_dict=trainrun_dict,
-            route_dag_constraints=tc_schedule_problem.route_dag_constraints_dict,
+            route_dag_constraints=schedule_problem.route_dag_constraints_dict,
             solver_statistics=fake_solver_statistics(elapsed_time),
             solver_result={},
             solver_configuration={},
@@ -510,10 +491,9 @@ def gen_schedule_and_malfunction_from_rail_env(
             solver_program=None
         )
     else:
-        tc_schedule_problem, schedule_result = solver.gen_schedule(
-            static_rail_env=static_rail_env,
-            experiment_parameters=experiment_parameters,
-            verbose=verbose,
+        schedule_result = asp_schedule_wrapper(
+            schedule_problem_description=schedule_problem,
+            asp_seed_value=experiment_parameters.asp_seed_value,
             debug=debug
         )
     malfunction = gen_malfunction(
@@ -521,7 +501,7 @@ def gen_schedule_and_malfunction_from_rail_env(
         malfunction_duration=experiment_parameters.malfunction_duration,
         schedule_trainruns=schedule_result.trainruns_dict
     )
-    schedule_and_malfunction = ScheduleAndMalfunction(tc_schedule_problem, schedule_result, malfunction)
+    schedule_and_malfunction = ScheduleAndMalfunction(schedule_problem, schedule_result, malfunction)
     return schedule_and_malfunction
 
 
@@ -547,9 +527,8 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # 1. Generate malfuntion
     # --------------------------------------------------------------------------------------
-    # TODO SIM-517 Erik do we need to handle the exception if malfunctions happens later than the train is running in the env?
-    # TODO SIM-517 Erik: what do we do if the malfunction happens after the agent has already finished its path?
-    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at)
+    # ensure malfunction starts only when agent is active
+    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at + 1)
     malfunction = ExperimentMalfunction(
         time_step=malfunction_start,
         malfunction_duration=malfunction_duration,
@@ -575,21 +554,17 @@ def _write_sha_txt(folder_name: str):
 
 
 def run_and_save_one_experiment(current_experiment_parameters: ExperimentParameters,
-                                solver: ASPExperimentSolver,
                                 verbose: bool,
                                 show_results_without_details: bool,
                                 experiment_base_directory: str,
-                                rendering: bool = False,
                                 gen_only: bool = False):
     """B. Run and save one experiment from experiment parameters.
     Parameters
     ----------
     current_experiment_parameters
-    solver
     verbose
     show_results_without_details
     experiment_base_directory
-    rendering
     gen_only
     """
     rsp_logger.info(f"start experiment {current_experiment_parameters.experiment_id}")
@@ -605,12 +580,12 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         check_create_folder(experiment_data_directory)
 
         filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
-        experiment_results: ExperimentResults = run_experiment(solver=solver,
-                                                               experiment_parameters=current_experiment_parameters,
-                                                               verbose=verbose,
-                                                               experiment_base_directory=experiment_base_directory,
-                                                               show_results_without_details=show_results_without_details,
-                                                               gen_only=gen_only)
+        experiment_results: ExperimentResults = run_experiment(
+            experiment_parameters=current_experiment_parameters,
+            verbose=verbose,
+            experiment_base_directory=experiment_base_directory,
+            show_results_without_details=show_results_without_details,
+            gen_only=gen_only)
         save_experiment_results_to_file(experiment_results, filename)
         return os.getpid()
     except Exception as e:
@@ -629,7 +604,6 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           run_experiments_parallel: int = AVAILABLE_CPUS // 2,
                           # take only half of avilable cpus so the machine stays responsive
                           show_results_without_details: bool = True,
-                          rendering: bool = False,
                           verbose: bool = False,
                           gen_only: bool = False
                           ) -> (str, str):
@@ -685,8 +659,6 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
     save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
 
-    solver = ASPExperimentSolver()
-
     # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
     # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
     # N.B. even with parallelization degree 1, we want to run each experiment in a new process
@@ -699,7 +671,6 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     newline_and_flush_stdout_and_stderr()
     run_and_save_one_experiment_partial = partial(
         run_and_save_one_experiment,
-        solver=solver,
         verbose=verbose,
         show_results_without_details=show_results_without_details,
         experiment_base_directory=experiment_base_directory,
@@ -877,7 +848,7 @@ def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
     return full_params
 
 
-def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEnv, RailEnv]:
+def create_env_from_experiment_parameters(params: ExperimentParameters) -> RailEnv:
     """
     Parameters
     ----------
@@ -885,9 +856,8 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
         Parameter set that we pass to the constructor of the RailEenv
     Returns
     -------
-    Tuple[RailEnv, RailEnv]
-        First env is a static environment where no malfunction occurs
-        Second env is an environment with exactly one malfunction
+    RailEnv
+        Static environment where no malfunction occurs
     """
 
     number_of_agents = params.number_of_agents
@@ -898,8 +868,6 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
     grid_mode = params.grid_mode
     max_rails_between_cities = params.max_rail_between_cities
     max_rails_in_city = params.max_rail_in_city
-    earliest_malfunction = params.earliest_malfunction
-    malfunction_duration = params.malfunction_duration
     speed_data = params.speed_data
 
     # Generate static environment for initial schedule generation
@@ -914,20 +882,49 @@ def create_env_pair_for_experiment(params: ExperimentParameters) -> Tuple[RailEn
                                              speed_data=speed_data)
     env_static.reset(random_seed=flatland_seed_value)
 
-    # Generate dynamic environment with single malfunction
-    env_malfunction = create_flatland_environment_with_malfunction(number_of_agents=number_of_agents,
-                                                                   width=width,
-                                                                   height=height,
-                                                                   flatland_seed_value=flatland_seed_value,
-                                                                   max_num_cities=max_num_cities,
-                                                                   grid_mode=grid_mode,
-                                                                   max_rails_between_cities=max_rails_between_cities,
-                                                                   max_rails_in_city=max_rails_in_city,
-                                                                   malfunction_duration=malfunction_duration,
-                                                                   earliest_malfunction=earliest_malfunction,
-                                                                   speed_data=speed_data)
-    env_malfunction.reset(random_seed=flatland_seed_value)
-    return env_static, env_malfunction
+    return env_static
+
+
+def create_schedule_full_problem_description_from_experiment_parameters(
+        experiment_parameters: ExperimentParameters
+) -> Tuple[ScheduleProblemDescription, RailEnv]:
+    env = create_env_from_experiment_parameters(params=experiment_parameters)
+
+    schedule_problem_description = _create_schedule_problem_description_from_rail_env(env, k=experiment_parameters.number_of_shortest_paths_per_agent)
+
+    return schedule_problem_description, env
+
+
+def _create_schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> ScheduleProblemDescription:
+    agents_paths_dict = {
+        # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
+        i: get_k_shortest_paths(env,
+                                agent.initial_position,
+                                agent.initial_direction,
+                                agent.target,
+                                k)
+        for i, agent in enumerate(env.agents)
+    }
+    minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
+                                for agent in env.agents}
+    topo_dict = _get_topology_from_agents_path_dict(agents_paths_dict)
+    # TODO should we set max_episode_steps in agenda and take if from there?
+    max_episode_steps = env._max_episode_steps
+    schedule_problem_description = ScheduleProblemDescription(
+        route_dag_constraints_dict={
+            agent_id: _get_route_dag_constraints_for_scheduling(
+                minimum_travel_time=minimum_travel_time_dict[agent_id],
+                topo=topo_dict[agent_id],
+                source_waypoint=next(get_sources_for_topo(topo_dict[agent_id])),
+                latest_arrival=max_episode_steps)
+            for agent_id, topo in topo_dict.items()},
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        topo_dict=topo_dict,
+        max_episode_steps=max_episode_steps,
+        route_section_penalties={agent_id: {} for agent_id in topo_dict.keys()},
+        weight_lateness_seconds=1
+    )
+    return schedule_problem_description
 
 
 def save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name: str, experiment_agenda: ExperimentAgenda):
@@ -955,8 +952,6 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
     ----------
     experiment_folder_name: str
         Folder name of experiment where all experiment files and agenda are stored
-    experiment_agenda: ExperimentAgenda
-        The experiment agenda to save
     """
     file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
     with open(file_name, 'rb') as handle:
@@ -995,13 +990,13 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
 
 def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name: str,
                                                         experiment_ids: List[int] = None,
-                                                        nonify_problem_and_results: bool = False
+                                                        nonify_problem_and_results: bool = False,
+                                                        re_save: bool = False
                                                         ) -> \
         List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
     Parameters
     ----------
-
     experiment_data_folder_name: str
         Folder name of experiment where all experiment files are stored
     experiment_ids
@@ -1009,6 +1004,9 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     nonify_problem_and_results
         in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
+    re_save
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
     Returns
     -------
     DataFrame containing the loaded experiment results
@@ -1031,15 +1029,40 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
             continue
         with open(file_name, 'rb') as handle:
             file_data: ExperimentResults = pickle.load(handle)
-            experiment_results_list.append(expand_experiment_results_for_analysis(file_data,
-                                                                                  nonify_problem_and_results=nonify_problem_and_results))
+        if re_save:
+            with open(file_name, 'wb') as handle:
+                file_data = ExperimentResults(**file_data._asdict())
+                pickle.dump(file_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            remove_dummy_stuff_from_experiment_results_file(experiment_data_folder_name=experiment_data_folder_name, experiment_id=exp_id)
+        experiment_results_list.append(expand_experiment_results_for_analysis(
+            file_data,
+            nonify_problem_and_results=nonify_problem_and_results))
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
     return experiment_results_list
 
 
-def load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id) -> Tuple[ExperimentResults, str]:
+def load_experiment_result_without_expanding(
+        experiment_data_folder_name: str,
+        experiment_id: int,
+        re_save: bool = False
+) -> Tuple[ExperimentResults, str]:
+    """
+
+    Parameters
+    ----------
+    experiment_data_folder_name
+    experiment_id
+    re_save
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+
+
+    Returns
+    -------
+
+    """
     files = os.listdir(experiment_data_folder_name)
     rsp_logger.info(f"loading experiment results from {experiment_data_folder_name}")
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
@@ -1054,7 +1077,10 @@ def load_experiment_result_without_expanding(experiment_data_folder_name, experi
             continue
         with open(file_name, 'rb') as handle:
             experiment_result: ExperimentResults = pickle.load(handle)
-            return experiment_result, file_name
+        if re_save:
+            with open(file_name, 'wb') as handle:
+                pickle.dump(ExperimentResults(**experiment_result._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
+        return experiment_result, file_name
 
 
 def load_without_average(data_folder: str) -> DataFrame:
@@ -1083,3 +1109,79 @@ def delete_experiment_folder(experiment_folder_name: str):
     -------
     """
     shutil.rmtree(experiment_folder_name)
+
+
+# TODO SIM-558 remove remove_dummy_stuff*
+def remove_dummy_stuff_from_experiment_results_file(experiment_data_folder_name: str,
+                                                    experiment_id: int):
+    experiment_results, file_name = load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id)
+
+    for topo_dict in [
+        experiment_results.problem_full.topo_dict,
+        experiment_results.problem_full_after_malfunction.topo_dict,
+        experiment_results.problem_delta_after_malfunction.topo_dict,
+    ]:
+        _remove_dummy_stuff_from_topo_dict(topo_dict=topo_dict)
+    for route_dag_constraints_dict in [
+        experiment_results.problem_full.route_dag_constraints_dict,
+        experiment_results.problem_full_after_malfunction.route_dag_constraints_dict,
+        experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict,
+        experiment_results.results_full.route_dag_constraints,
+        experiment_results.results_full_after_malfunction.route_dag_constraints,
+        experiment_results.results_delta_after_malfunction.route_dag_constraints,
+    ]:
+        _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_dict=route_dag_constraints_dict)
+    for trainrun_dict in [
+        experiment_results.results_full.trainruns_dict,
+        experiment_results.results_full_after_malfunction.trainruns_dict,
+        experiment_results.results_delta_after_malfunction.trainruns_dict,
+    ]:
+        _remove_dummy_stuff_from_trainrun_dict(trainrun_dict=trainrun_dict)
+
+    save_experiment_results_to_file(experiment_results=experiment_results, file_name=file_name)
+
+
+# TODO SIM-558 remove remove_dummy_stuff*
+def remove_dummy_stuff_from_schedule_and_malfunction_pickle(
+        experiment_agenda_directory: str,
+        experiment_id: int):
+    schedule_and_malfunction: ScheduleAndMalfunction = load_schedule_and_malfunction(experiment_agenda_directory=experiment_agenda_directory,
+                                                                                     experiment_id=experiment_id)
+    topo_dict = schedule_and_malfunction.schedule_problem_description.topo_dict
+    _remove_dummy_stuff_from_topo_dict(topo_dict)
+    for route_dag_constraints_dict in [
+        schedule_and_malfunction.schedule_problem_description.route_dag_constraints_dict,
+        schedule_and_malfunction.schedule_experiment_result.route_dag_constraints
+    ]:
+        _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_dict)
+    trainrun_dict = schedule_and_malfunction.schedule_experiment_result.trainruns_dict
+    _remove_dummy_stuff_from_trainrun_dict(trainrun_dict)
+    save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction, experiment_agenda_directory=experiment_agenda_directory,
+                                  experiment_id=experiment_id)
+
+
+# TODO SIM-558 remove remove_dummy_stuff*
+def _remove_dummy_stuff_from_topo_dict(topo_dict):
+    for _, topo in topo_dict.items():
+        dummy_nodes = [v for v in topo.nodes if v.direction == 5]
+        topo.remove_nodes_from(dummy_nodes)
+
+
+# TODO SIM-558 remove remove_dummy_stuff*
+def _remove_dummy_stuff_from_trainrun_dict(trainrun_dict):
+    for agent_id in trainrun_dict:
+        trainrun = trainrun_dict[agent_id]
+        trainrun_tweaked = [trainrun_waypoint for trainrun_waypoint in trainrun if trainrun_waypoint.waypoint.direction != 5]
+        trainrun_dict[agent_id] = trainrun_tweaked
+
+
+# TODO SIM-558 remove remove_dummy_stuff*
+def _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_dict):
+    for _, constraints in route_dag_constraints_dict.items():
+        dummy_nodes_earliest_latest = [v for v in constraints.freeze_earliest.keys() if v.direction == 5]
+        for v in dummy_nodes_earliest_latest:
+            del constraints.freeze_earliest[v]
+            del constraints.freeze_latest[v]
+        dummy_nodes_visit = [v for v in constraints.freeze_visit if v.direction == 5]
+        for v in dummy_nodes_visit:
+            constraints.freeze_visit.remove(v)
