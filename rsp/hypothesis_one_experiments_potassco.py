@@ -37,18 +37,28 @@ def enable_propagate_partial(enable: bool = True):
 
 
 def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_from_base_directory: Optional[str] = None):
+    """
+
+    Parameters
+    ----------
+    gen_schedule
+        generate schedule? If `False`, `copy_agenda_from_base_directory` must be provided.
+    run_experiments
+        run experiments after schedule generation
+    copy_agenda_from_base_directory
+    """
     if gen_schedule:
         copy_agenda_from_base_directory = hypothesis_one_pipeline(
             experiment_name='003_a_bit_more_advanced_schedules_only',
             parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced(),
             qualitative_analysis_experiment_ids=[],
-            asp_export_experiment_ids=list(range(40, 100)),
+            asp_export_experiment_ids=[],
+            experiment_ids=None,
             gen_only=True
         )
     if run_experiments and copy_agenda_from_base_directory is not None:
         nb_runs = 5
-        copy_agenda_from_base_directory = copy_agenda_from_base_directory
-        experiment_name_prefix = copy_agenda_from_base_directory
+        experiment_name_prefix = copy_agenda_from_base_directory + "_"
         parallel_compute = 2
         experiment_ids = None
         # effect of SEQ heuristic (SIM-167)
@@ -107,4 +117,10 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
 
 
 if __name__ == '__main__':
-    main(run_experiments=False)
+    pass
+    # TODO calls should not be checked into source code!
+    main(
+        gen_schedule=False,
+        run_experiments=True,
+        copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16'
+    )
