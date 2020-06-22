@@ -93,35 +93,35 @@ def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSp
     return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 
-def get_agenda_pipeline_malfunction_variation(schedule_gen) -> ParameterRangesAndSpeedData:
+def get_agenda_pipeline_malfunction_variation(schedule_gen: bool) -> ParameterRangesAndSpeedData:
     if schedule_gen:
         parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
-                                           size_range=[50, 50, 1],
+                                           size_range=[100, 100, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
-                                           city_range=[10, 10, 1],
+                                           city_range=[20, 20, 1],
                                            earliest_malfunction=[1, 1, 1],
                                            malfunction_duration=[50, 50, 1],
                                            number_of_shortest_paths_per_agent=[10, 10, 1],
-                                           max_window_size_from_earliest=[60, 60, 1],
+                                           max_window_size_from_earliest=[100, 100, 1],
                                            asp_seed_value=[94, 94, 1],
                                            # route change is penalized the same as 1 second delay
-                                           weight_route_change=[30, 30, 1],
+                                           weight_route_change=[20, 20, 1],
                                            weight_lateness_seconds=[1, 1, 1]
                                            )
     else:
         parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
-                                           size_range=[50, 50, 1],
+                                           size_range=[100, 100, 1],
                                            in_city_rail_range=[3, 3, 1],
                                            out_city_rail_range=[2, 2, 1],
-                                           city_range=[10, 10, 1],
-                                           earliest_malfunction=[169, 250, 10],
+                                           city_range=[20, 20, 1],
+                                           earliest_malfunction=[1, 200, 48],
                                            malfunction_duration=[50, 50, 1],
                                            number_of_shortest_paths_per_agent=[10, 10, 1],
-                                           max_window_size_from_earliest=[60, 60, 1],
+                                           max_window_size_from_earliest=[100, 100, 1],
                                            asp_seed_value=[94, 94, 1],
                                            # route change is penalized the same as 1 second delay
-                                           weight_route_change=[30, 30, 1],
+                                           weight_route_change=[20, 20, 1],
                                            weight_lateness_seconds=[1, 1, 1]
                                            )
     # Define the desired speed profiles
@@ -302,6 +302,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         copy_agenda_from_base_directory: str,
         experiment_parameters: ParameterRangesAndSpeedData = None,
         base_experiment_id: int = 0,
+        malfunction_agent_id: int = 0,
         experiment_agenda_name: Optional[str] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2
 ):
@@ -367,7 +368,8 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         malfunction = gen_malfunction(
             malfunction_duration=experiment.malfunction_duration,
             earliest_malfunction=experiment.earliest_malfunction,
-            schedule_trainruns=loaded_schedule_and_malfunction.schedule_experiment_result.trainruns_dict)
+            schedule_trainruns=loaded_schedule_and_malfunction.schedule_experiment_result.trainruns_dict,
+            malfunction_agent_id=malfunction_agent_id)
         rsp_logger.info("Generated malfunction for agent {} at time {} for {} steps".format(malfunction.agent_id,
                                                                                             malfunction.time_step,
                                                                                             malfunction.malfunction_duration))
@@ -422,6 +424,7 @@ def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRanges
 def hypothesis_one_malfunction_analysis(
         agenda_folder: str = None,
         base_experiment_id: int = 0,
+        malfunction_agent_id: int = 0,
         parallel_compute: int = AVAILABLE_CPUS // 2, ):
     rsp_logger.info(f"MALFUNCTION INVESTIGATION")
     # Generate Schedule
@@ -440,8 +443,3 @@ def hypothesis_one_malfunction_analysis(
         experiment_agenda_name=f"agent_{base_experiment_id}_malfunction",
         parallel_compute=parallel_compute
     )
-
-
-if __name__ == '__main__':
-    # do not commit your own calls !
-    pass
