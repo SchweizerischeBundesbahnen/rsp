@@ -1,0 +1,215 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.1
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+# %autosave 0
+# %matplotlib notebook
+# %matplotlib qt4
+# %load_ext autoreload
+# %autoreload 2
+import sys
+sys.path.append("./flatland_ckua")
+import pandas as pd
+from IPython.display import Video
+
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
+from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
+from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
+from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
+```
+
+```{python}
+experiments_of_interest = None
+experiment_base_directory = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
+
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
+    experiment_ids=experiments_of_interest,
+    nonify_problem_and_results=True
+)
+
+```
+
+```{python}
+import pandas as pd
+experiment_data = pd.DataFrame(
+    [exp._asdict() for exp in experiment_results_list],
+    columns=['experiment_id','malfunction','size',
+       'n_agents', 'max_num_cities', 'max_rail_between_cities',
+       'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
+       'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
+       'nb_resource_conflicts_full_after_malfunction',
+       'nb_resource_conflicts_delta_after_malfunction'])
+
+display(experiment_data)
+```
+
+```{python}
+axis_of_interest = 'n_agents'
+columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
+```
+
+# Visualize Compuational time comparison
+
+```{python}
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+# display(experiment_data.dtypes)
+
+hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
+
+
+
+# for exploration, use:
+# plot_computational_times(experiment_data=experiment_data,
+#                                   axis_of_interest=axis_of_interest,
+#                                   columns_of_interest=columns_of_interest)
+```
+
+# Visualize Speed Up factors for experiments
+
+```{python}
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_speed_up
+hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
+
+# for exploration, use:
+# plot_speed_up(experiment_data=experiment_data,
+#                        axis_of_interest=axis_of_interest)
+```
+
+
+# Visualize ASP solver stats (TODO)
+
+```{python}
+from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
+visualize_hypotheses_asp(experiment_results_list)
+```
+
+# Visualize effect of SEQ heuristics (SIM-167)
+
+```{python}
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_with_SEQ_2020_06_17T22_09_06'
+experiment_base_directory_baseline = f'./{agenda_name_baseline}/'
+experiment_base_directory_comparison = f'./{agenda_name_comparison}'
+experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_baseline,
+    nonify_problem_and_results=True
+)
+experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
+
+experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_comparison,
+    nonify_problem_and_results=True
+)
+experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
+
+
+```
+
+```{python}
+hypothesis_one_analysis_visualize_computational_time_comparison(
+    experiment_data_baseline=experiment_data_baseline,
+    experiment_data=experiment_data_comparison,
+    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
+    experiment_data_suffix=f'_{agenda_name_comparison}'
+)
+```
+
+# Visualize effect of delay model resolution (SIM-542)
+
+```{python}
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_with_delay_model_resolution_2_2020_06_18T11_33_24'
+experiment_base_directory_baseline = f'./{agenda_name_baseline}/'
+experiment_base_directory_comparison = f'./{agenda_name_comparison}'
+experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_baseline,
+    nonify_problem_and_results=True
+)
+experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
+
+experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_comparison,
+    nonify_problem_and_results=True
+)
+experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
+
+
+```
+
+```{python}
+hypothesis_one_analysis_visualize_computational_time_comparison(
+    experiment_data_baseline=experiment_data_baseline,
+    experiment_data=experiment_data_comparison,
+    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
+    experiment_data_suffix=f'_{agenda_name_comparison}'
+)
+```
+
+# Visualize effect of --propagate (SIM-543)
+
+```{python}
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_propagate_partial_2020_06_19T10_29_55'
+experiment_base_directory_baseline = f'./{agenda_name_baseline}/'
+experiment_base_directory_comparison = f'./{agenda_name_comparison}'
+experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_baseline,
+    nonify_problem_and_results=True
+)
+experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
+
+experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_comparison,
+    nonify_problem_and_results=True
+)
+experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
+
+
+```
+
+```{python}
+hypothesis_one_analysis_visualize_computational_time_comparison(
+    experiment_data_baseline=experiment_data_baseline,
+    experiment_data=experiment_data_comparison,
+    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
+    experiment_data_suffix=f'_{agenda_name_comparison}'
+)
+```
+
+# Visualize effect of different time window sizes (TODO)
+
+```{python}
+
+```
+
+# Visualize effect of different ASP solver seeds (TODO)
+
+```{python}
+
+```
