@@ -527,6 +527,8 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # 1. Generate malfuntion
     # --------------------------------------------------------------------------------------
+    # The malfunction is chosen to start relative to the start time of the malfunction_agent_id
+    # This relative malfunction time makes it easier to run malfunciton-time variation experiments
     malfunction_start = min(schedule_trainruns[malfunction_agent_id][0].scheduled_at + earliest_malfunction,
                             schedule_trainruns[malfunction_agent_id][-1].scheduled_at)
     malfunction = ExperimentMalfunction(
