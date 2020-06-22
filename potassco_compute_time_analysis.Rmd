@@ -50,12 +50,39 @@ experiment_results_list = load_and_expand_experiment_results_from_data_folder(
 import pandas as pd
 experiment_data = pd.DataFrame(
     [exp._asdict() for exp in experiment_results_list],
-    columns=['experiment_id','malfunction','size',
-       'n_agents', 'max_num_cities', 'max_rail_between_cities',
-       'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
-       'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
-       'nb_resource_conflicts_full_after_malfunction',
-       'nb_resource_conflicts_delta_after_malfunction'])
+    columns=['experiment_id','malfunction','size', 'size_used',
+            'n_agents', 'max_num_cities', 'max_rail_between_cities',
+            'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
+            'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
+            'nb_resource_conflicts_full_after_malfunction',
+            'nb_resource_conflicts_delta_after_malfunction',
+            'costs_full',
+            'solve_total_ratio_full',
+            'solve_time_full',
+            'total_time_full',
+            'choice_conflict_ratio_full',
+            'choices_full',
+            'conflicts_full',
+            'user_accu_propagations_full',
+            'user_step_propagations_full',
+            'costs_full_after_malfunction',
+            'solve_total_ratio_full_after_malfunction',
+            'solve_time_full_after_malfunction',
+            'total_time_full_after_malfunction',
+            'choice_conflict_ratio_full_after_malfunction',
+            'choices_full_after_malfunction',
+            'conflicts_full_after_malfunction',
+            'user_accu_propagations_full_after_malfunction',
+            'user_step_propagations_full_after_malfunction',
+            'costs_delta_after_malfunction',
+            'solve_total_ratio_delta_after_malfunction',
+            'solve_time_delta_after_malfunction',
+            'total_time_delta_after_malfunction',
+            'choice_conflict_ratio_delta_after_malfunction',
+            'choices_delta_after_malfunction',
+            'conflicts_delta_after_malfunction',
+            'user_accu_propagations_delta_after_malfunction',
+            'user_step_propagations_delta_after_malfunction'])
 
 display(experiment_data)
 ```
@@ -97,7 +124,7 @@ hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
 
 ```{python}
 from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
-visualize_hypotheses_asp(experiment_results_list)
+visualize_hypotheses_asp(experiment_data=experiment_data)
 ```
 
 # Visualize effect of SEQ heuristics (SIM-167)

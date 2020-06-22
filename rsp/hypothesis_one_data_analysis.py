@@ -188,8 +188,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     _run_plausibility_tests_on_experiment_data(experiment_results_list)
 
     # convert to data frame for statistical analysis
-    if save_as_tsv or analysis_2d:
-        experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
 
     if save_as_tsv:
         # save experiment data to .tsv for Excel inspection
@@ -212,7 +211,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
             output_folder=f'{experiment_analysis_directory}/plausi'
         )
         visualize_hypotheses_asp(
-            experiment_results_list=experiment_results_list,
+            experiment_data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/plausi'
         )
 
