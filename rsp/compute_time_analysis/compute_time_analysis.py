@@ -242,7 +242,9 @@ def extract_schedule_plotting(
     Parameters
     ----------
     experiment_result
-
+        Experiment results for plotting
+    sorting_agent_id
+        Agent according to which trainrun the resources will be sorted
     Returns
     -------
     """
@@ -299,7 +301,7 @@ def extract_plotting_information(
     max_time = 0
     sorting = {}
     # If specified, sort according to path of agent with sorting_agent_id
-    if sorting_agent_id is not None:
+    if sorting_agent_id is not None and sorting_agent_id in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
         for resource_occupation in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent[sorting_agent_id]):
             position = coordinate_to_position(grid_depth, [resource_occupation.resource])
             time = resource_occupation.interval.to_excl
