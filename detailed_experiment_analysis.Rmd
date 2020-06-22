@@ -44,6 +44,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
 experiment_of_interest = 0
+agent_of_interest = 0
 ```
 
 ```{python}
@@ -54,7 +55,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
-plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=5)
+plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
 ### Initial schedule
@@ -114,6 +115,8 @@ Number of active agents at each time step for the initial schedule
 plot_time_density(plotting_data.schedule_as_resource_occupations)
 ```
 
+Below we plot the resource occupation for the schedule and the difference between to the re-schedule as well as an indication of where agents start and where they travel. THe circles represent number of agents that either start or end at the city location.
+
 ```{python}
 plot_resource_occupation_heat_map(
     schedule_plotting=plotting_data,
@@ -140,7 +143,6 @@ Video(video_src_reschedule, embed=True)
 
 ```{python}
 # %matplotlib inline
-agent_of_interest = 0
 plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
