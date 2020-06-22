@@ -394,23 +394,19 @@ def plot_time_window_resource_trajectories(
     Parameters
     ----------
     experiment_result
-    plotting_information
+    schedule_plotting
     show
     """
-    ranges = (len(schedule_plotting.plotting_information.sorting),
-              max(experiment_result.problem_full.max_episode_steps,
-                  experiment_result.problem_full_after_malfunction.max_episode_steps,
-                  experiment_result.problem_delta_after_malfunction.max_episode_steps))
-    for title, (problem, malfunction) in {
-        'Schedule': (experiment_result.problem_full, None),
-        'Full Re-Schedule': (experiment_result.problem_full_after_malfunction, experiment_result.malfunction),
-        'Delta Re-Schedule': (experiment_result.problem_delta_after_malfunction, experiment_result.malfunction)
+    for title, problem in {
+        'Schedule': experiment_result.problem_full,
+        'Full Re-Schedule': experiment_result.problem_full_after_malfunction,
+        'Delta Re-Schedule': experiment_result.problem_delta_after_malfunction
     }.items():
         resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
         trajectories = trajectories_from_resource_occupations_per_agent(
             resource_occupations_schedule=resource_occupations_schedule,
             plotting_information=schedule_plotting.plotting_information)
-        plot_time_resource_trajectories(trajectories=trajectories, title=title, ranges=ranges, show=show, malfunction=malfunction)
+        plot_time_resource_trajectories(trajectories=trajectories, title=title, schedule_plotting=schedule_plotting)
 
 
 def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis):
@@ -584,6 +580,7 @@ def plot_time_resource_trajectories(
     Parameters
     ----------
 
+    schedule_plotting
     malfunction_wave
     title: str
         Title of the plot
@@ -591,9 +588,6 @@ def plot_time_resource_trajectories(
         Data to be shown, contains tuples for all occupied resources during train run
     additional_data
         Dict containing additional data. Each additional data must have the same dimensins as time_resource_data
-    ranges
-        Ranges of the window to be shown, used for consistent plotting
-    malfunction: ExperimentMalfunction
 
     show: bool
 

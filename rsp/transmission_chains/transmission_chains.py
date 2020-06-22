@@ -38,7 +38,7 @@ def extract_transmission_chains_from_time_windows(  # noqa: C901
     for hop_on in time_windows_per_agent[malfunction_agent_id]:
         # TODO is this correct?
         if malfunction.time_step < hop_on.interval.to_excl:
-            chain = [TransmissionLeg(malfunction_time_window, hop_on)]
+            chain = [TransmissionLeg(malfunction_time_window, hop_on, delay_time=-1)]
             open_wave_front.append(chain)
             transmission_chains.append(chain)
     assert len(open_wave_front) > 0
@@ -70,7 +70,7 @@ def extract_transmission_chains_from_time_windows(  # noqa: C901
                     continue
                 if hop_off.interval.from_incl <= hop_on.interval.from_incl:
                     continue
-                chain = history + [TransmissionLeg(hop_on, hop_off)]
+                chain = history + [TransmissionLeg(hop_on, hop_off, delay_time=-1)]
                 open_wave_front.append(chain)
                 transmission_chains.append(chain)
     return transmission_chains
