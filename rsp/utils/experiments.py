@@ -59,6 +59,7 @@ from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import add_file_handler_to_rsp_logger
+from rsp.logger import remove_file_handler_from_rsp_logger
 from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
@@ -572,8 +573,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     # add logging file handler in this thread
     stdout_log_file = os.path.join(experiment_data_directory, f"log.txt")
     stderr_log_file = os.path.join(experiment_data_directory, f"err.txt")
-    add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
-    add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
+    stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
+    stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
 
     rsp_logger.info(f"start experiment {current_experiment_parameters.experiment_id}")
     try:
@@ -594,7 +595,8 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:
-        # remove tees
+        remove_file_handler_from_rsp_logger(stdout_log_fh)
+        remove_file_handler_from_rsp_logger(stderr_log_fh)
         rsp_logger.info(f"end experiment {current_experiment_parameters.experiment_id}")
 
 
@@ -643,53 +645,57 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     # tee stdout to log file
     stdout_log_file = os.path.join(experiment_data_directory, "log.txt")
     stderr_log_file = os.path.join(experiment_data_directory, "err.txt")
-    add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
-    add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
+    stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
+    stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
+    try:
 
-    if copy_agenda_from_base_directory is not None:
-        _copy_agenda_from_base_directory(copy_agenda_from_base_directory, experiment_agenda_directory)
+        if copy_agenda_from_base_directory is not None:
+            _copy_agenda_from_base_directory(copy_agenda_from_base_directory, experiment_agenda_directory)
 
-    if experiment_ids is not None:
-        filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
-        experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
-        experiment_agenda = ExperimentAgenda(
-            experiment_name=experiment_agenda.experiment_name,
-            experiments=list(experiments_filtered)
+        if experiment_ids is not None:
+            filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
+            experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+            experiment_agenda = ExperimentAgenda(
+                experiment_name=experiment_agenda.experiment_name,
+                experiments=list(experiments_filtered)
+            )
+
+        save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
+
+        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+        # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
+        # N.B. even with parallelization degree 1, we want to run each experiment in a new process
+        #      in order to get around https://github.com/potassco/clingo/issues/203
+        pool = multiprocessing.Pool(
+            processes=run_experiments_parallel,
+            maxtasksperchild=1)
+        rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+        newline_and_flush_stdout_and_stderr()
+        run_and_save_one_experiment_partial = partial(
+            run_and_save_one_experiment,
+            verbose=verbose,
+            show_results_without_details=show_results_without_details,
+            experiment_base_directory=experiment_base_directory,
+            gen_only=gen_only
         )
 
-    save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
+        for pid_done in tqdm.tqdm(
+                pool.imap_unordered(
+                    run_and_save_one_experiment_partial,
+                    experiment_agenda.experiments
+                ),
+                total=len(experiment_agenda.experiments)):
+            # unsafe use of inner API
+            procs = [f"{str(proc)}={proc.pid}" for proc in pool._pool]
+            rsp_logger.info(f'pid {pid_done} done. Pool: {procs}')
 
-    # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
-    # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
-    # N.B. even with parallelization degree 1, we want to run each experiment in a new process
-    #      in order to get around https://github.com/potassco/clingo/issues/203
-    pool = multiprocessing.Pool(
-        processes=run_experiments_parallel,
-        maxtasksperchild=1)
-    rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
-    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-    newline_and_flush_stdout_and_stderr()
-    run_and_save_one_experiment_partial = partial(
-        run_and_save_one_experiment,
-        verbose=verbose,
-        show_results_without_details=show_results_without_details,
-        experiment_base_directory=experiment_base_directory,
-        gen_only=gen_only
-    )
-
-    for pid_done in tqdm.tqdm(
-            pool.imap_unordered(
-                run_and_save_one_experiment_partial,
-                experiment_agenda.experiments
-            ),
-            total=len(experiment_agenda.experiments)):
-        # unsafe use of inner API
-        procs = [f"{str(proc)}={proc.pid}" for proc in pool._pool]
-        rsp_logger.info(f'pid {pid_done} done. Pool: {procs}')
-
-    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE)
-    newline_and_flush_stdout_and_stderr()
-    _print_error_summary(experiment_data_directory)
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE)
+        newline_and_flush_stdout_and_stderr()
+        _print_error_summary(experiment_data_directory)
+    finally:
+        remove_file_handler_from_rsp_logger(stdout_log_fh)
+        remove_file_handler_from_rsp_logger(stderr_log_fh)
 
     return experiment_base_directory, experiment_data_directory
 
