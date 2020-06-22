@@ -115,6 +115,8 @@ Number of active agents at each time step for the initial schedule
 plot_time_density(plotting_data.schedule_as_resource_occupations)
 ```
 
+Below we plot the resource occupation for the schedule and the difference between to the re-schedule as well as an indication of where agents start and where they travel. THe circles represent number of agents that either start or end at the city location.
+
 ```{python}
 plot_resource_occupation_heat_map(
     schedule_plotting=plotting_data,

@@ -45,7 +45,7 @@ SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Tr
                                                            ('additional_information', Dict)])
 
 # Information used for plotting time-resource-graphs: Sorting is dict mapping ressource to int value used to sort
-# ressources for nice visualization
+# resources for nice visualization
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -82,6 +82,8 @@ PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise',
                     'violet', 'wheat', 'white', 'whitesmoke', 'yellow',
                     'yellowgreen']
+
+GREY_BACKGROUND_COLOR = 'rgba(46,49,49,1)'
 
 
 def plot_computational_times(
@@ -319,7 +321,7 @@ def extract_plotting_information(
     grid_depth
         Ranges of the window to be shown, used for consistent plotting
     sorting_agent_id
-        agent id to be used for sorting the ressources
+        agent id to be used for sorting the resources
     Returns
     -------
     PlottingInformation
@@ -331,12 +333,12 @@ def extract_plotting_information(
     # If specified, sort according to path of agent with sorting_agent_id
     if sorting_agent_id is not None and sorting_agent_id in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
         for resource_occupation in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent[sorting_agent_id]):
-            position = coordinate_to_position(grid_depth, [resource_occupation.resource])
+            position = coordinate_to_position(grid_depth, [resource_occupation.resource])[0]
             time = resource_occupation.interval.to_excl
             if time > max_time:
                 max_time = time
-            if position[0] not in sorting:
-                sorting[position[0]] = sorted_index
+            if position not in sorting:
+                sorting[position] = sorted_index
                 sorted_index += 1
 
     # Sort the rest of the resources according to agent handle sorting
@@ -346,12 +348,11 @@ def extract_plotting_information(
             time = resource_occupation.interval.to_excl
             if time > max_time:
                 max_time = time
-            position = coordinate_to_position(grid_depth, [resource_occupation.resource])
-            if position[0] not in sorting:
-                sorting[position[0]] = sorted_index
+            position = coordinate_to_position(grid_depth, [resource_occupation.resource])[0]
+            if position not in sorting:
+                sorting[position] = sorted_index
                 sorted_index += 1
     max_ressource = max(list(sorting.values()))
-    print(max_ressource)
     plotting_information = PlottingInformation(sorting=sorting, dimensions=(max_ressource, max_time), grid_width=grid_depth)
     return plotting_information
 
@@ -421,7 +422,7 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     show
     """
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
     plotting_information = schedule_plotting.plotting_information
@@ -601,16 +602,16 @@ def plot_time_resource_trajectories(
 
     """
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
     ranges = schedule_plotting.plotting_information.dimensions
     malfunction = schedule_plotting.malfunction
-    ticks = [position_to_coordinate(schedule_plotting.plotting_information.grid_width, [key])[0] for key in
-             schedule_plotting.plotting_information.sorting.keys()]
+    ticks = [position_to_coordinate(schedule_plotting.plotting_information.grid_width, [key])[0]
+             for key in schedule_plotting.plotting_information.sorting.keys()]
 
     # Get keys and information to add to hover data
-    hovertemplate = '<b>Ressource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
+    hovertemplate = '<b>Resource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
     if additional_data is not None:
         list_keys = [k for k in additional_data]
         list_values = [v for v in additional_data.values()]
@@ -685,7 +686,7 @@ def plot_time_resource_trajectories(
                           tickvals=np.arange(len(ticks)),
                           ticktext=ticks,
                           tickangle=270))
-    fig.update_xaxes(title="Ressource Coordinates", range=[0, ranges[0]])
+    fig.update_xaxes(title="Resource Coordinates", range=[0, ranges[0]])
 
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
     if show:
@@ -926,7 +927,7 @@ def plot_resource_occupation_heat_map(
     y = []
     size = []
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
 
@@ -940,13 +941,14 @@ def plot_resource_occupation_heat_map(
         size.append(len(resource_occupations))
 
     # Generate diff between schedule and re-schedule
+    # TODO Update this to account for ressources not occupied in both schedule and re-schedule
     x_r = []
     y_r = []
     size_r = []
     for resource, resource_occupations in reschedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
         x_r.append(resource.column)
         y_r.append(resource.row)
-        size_r.append(np.abs((len(resource_occupations)) - len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource])))
+        size_r.append((len(resource_occupations)) - len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource]))
 
     # Count start-target occupations
     starts_target = {}
@@ -964,15 +966,16 @@ def plot_resource_occupation_heat_map(
         else:
             starts_target[curr_target] += 1
 
-    # Condense to fewer city points for better overviw
+    # Condense to fewer city points for better overview
+    # all variables here are abbreviated with _st meaning start-target
     cities = _condense_to_cities(starts_target)
     x_st = []
     y_st = []
     size_st = []
-    for start, tmp_size in cities.items():
+    for start, city_size in cities.items():
         x_st.append(start.column)
         y_st.append(start.row)
-        size_st.append(tmp_size)
+        size_st.append(city_size)
 
     # Plot resource occupations diff
     fig.add_trace(go.Scattergl(x=x_r,
@@ -1039,7 +1042,7 @@ def plot_resource_occupation_heat_map(
     fig.show()
 
 
-def _condense_to_cities(positions: dict) -> dict:
+def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
     """Condenses start or targets points to a city point.
 
     Parameters
@@ -1058,21 +1061,17 @@ def _condense_to_cities(positions: dict) -> dict:
         cluster_copy = copy(cluster)
         old_len_cluster = len(cluster)
         for resource, occupation in cluster_copy.items():
-            for neighb_reource, neighb_occupation in cluster_copy.items():
-                if neighb_reource != resource:
-                    if _euclidean_distance(resource, neighb_reource) < 5:
-                        new_column = (resource.column + neighb_reource.column) // 2
-                        new_row = (resource.row + neighb_reource.row) // 2
+            for neighb_resource, neighb_occupation in cluster_copy.items():
+                if neighb_resource != resource:
+                    if np.linalg.norm(resource - neighb_resource) < 5:
+                        new_column = (resource.column + neighb_resource.column) // 2
+                        new_row = (resource.row + neighb_resource.row) // 2
                         city = Resource(column=new_column, row=new_row)
                         cluster.pop(resource, None)
-                        cluster.pop(neighb_reource, None)
+                        cluster.pop(neighb_resource, None)
                         cluster[city] = occupation + neighb_occupation
 
     return cluster
-
-
-def _euclidean_distance(x, y):
-    return np.sqrt(np.square(x[0] - y[0]) + np.square(x[1] - y[1]))
 
 
 def plot_delay_propagation_2d(
@@ -1084,8 +1083,8 @@ def plot_delay_propagation_2d(
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
     ----------
-    schedule_ressources
-        Dict containing all the times and agent handles for all ressources
+    schedule_resources
+        Dict containing all the times and agent handles for all resources
 
     Returns
     -------
@@ -1095,7 +1094,7 @@ def plot_delay_propagation_2d(
     MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
     DEPTH_COLOR = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
 
@@ -1192,7 +1191,7 @@ def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupa
     x = []
     y = []
     layout = go.Layout(
-        plot_bgcolor='rgba(46,49,49,1)'
+        plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
 
