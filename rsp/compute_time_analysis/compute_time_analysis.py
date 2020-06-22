@@ -272,10 +272,10 @@ def extract_schedule_plotting(
 
     Parameters
     ----------
-    experiment_result: ExperimentResultsAnalysis
-        Experiment results used for Plotting
-    sorting_agent_id: int
-        Agent handle according to which the resources will be sorted
+    experiment_result
+        Experiment results for plotting
+    sorting_agent_id
+        Agent according to which trainrun the resources will be sorted
     Returns
     -------
     """

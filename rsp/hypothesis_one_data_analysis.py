@@ -43,6 +43,8 @@ from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
+from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
+from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
 
 
 def _derive_numbers_for_correlation_analysis(
@@ -154,6 +156,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
                                  analysis_2d: bool = False,
                                  asp_export_experiment_ids: List[int] = None,
                                  qualitative_analysis_experiment_ids: List[int] = None,
+                                 save_as_tsv: bool = False
                                  ):
     """
 
@@ -185,12 +188,15 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     _run_plausibility_tests_on_experiment_data(experiment_results_list)
 
     # convert to data frame for statistical analysis
-    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+    if save_as_tsv or analysis_2d:
+        experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
 
-    # save experiment data to .tsv for Excel inspection
-    experiment_data.to_csv(f"{experiment_data_directory}/data.tsv", sep="\t")
+    if save_as_tsv:
+        # save experiment data to .tsv for Excel inspection
+        experiment_data.to_csv(f"{experiment_data_directory}/data.tsv", sep="\t")
 
     # quantitative analysis
+    # TODO should we remove analysis_2d in favor of notebooks which are tested in ci?
     if analysis_2d:
         # main results
         hypothesis_one_analysis_visualize_computational_time_comparison(
@@ -210,6 +216,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
             output_folder=f'{experiment_analysis_directory}/plausi'
         )
 
+    # TODO should we remove qualitative_analysis_experiment_ids in favor of notebooks which are tested in ci?
     if qualitative_analysis_experiment_ids:
         for experiment_result in experiment_results_list:
             if experiment_result.experiment_id not in qualitative_analysis_experiment_ids:
@@ -222,6 +229,7 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
                 flatland_rendering=False
             )
 
+    # TODO do we still need this? we have rsp-data now.
     if asp_export_experiment_ids:
         potassco_export(experiment_potassco_directory=experiment_potassco_directory,
                         experiment_results_list=experiment_results_list,
@@ -239,12 +247,11 @@ def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]
     Returns
     -------
     """
-    # TODO hard-coded constants for delay model, same as in delay_linear_within_one_minute.lp
-    PENALTY_LEAP_AT = 60
+    PENALTY_LEAP_AT = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
     PENALTY_LEAP = 5000000 + PENALTY_LEAP_AT * weight_lateness_seconds
     return sum([(PENALTY_LEAP
                  if lateness > PENALTY_LEAP_AT
-                 else lateness * weight_lateness_seconds)
+                 else (lateness // DELAY_MODEL_RESOLUTION) * DELAY_MODEL_RESOLUTION * weight_lateness_seconds)
                 for agent_id, lateness in lateness_dict.items()])
 
 
