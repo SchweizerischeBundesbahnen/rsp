@@ -263,6 +263,8 @@ def hypothesis_one_rerun_without_regen_schedule(
 
     Parameters
     ----------
+    experiment_ids
+    experiment_name
     copy_agenda_from_base_directory
         agenda to re-run
     parallel_compute
@@ -287,6 +289,7 @@ def hypothesis_one_rerun_without_regen_schedule(
             experiment_id=experiment.experiment_id
         ) and (experiment_ids is None or experiment.experiment_id in experiment_ids)
     ]
+    rsp_logger.info(f"Experiment agenda {experiment_agenda.experiment_name} has {len(experiment_ids)} experiments.")
 
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
