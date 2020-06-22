@@ -7,6 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.compute_time_analysis.compute_time_analysis import PLOTLY_COLORLIST
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
@@ -121,6 +122,7 @@ def plot_delay_propagation_graph(  # noqa: C901
     layout = go.Layout(
         plot_bgcolor='rgba(46,49,49,1)'
     )
+    x_scaling = 5
     fig = go.Figure(layout=layout)
     max_depth = max(list(minimal_depth.values()))
     agents_per_depth = [[] for _ in range(max_depth + 1)]
@@ -135,18 +137,19 @@ def plot_delay_propagation_graph(  # noqa: C901
             node_line = []
             from_agent_depth = depth
             if from_agent not in list(node_positions.keys()):
-                node_positions[from_agent] = (from_agent_depth, 5 * (agent_counter_per_depth[depth] - 0.5 * len(agents_per_depth[depth])))
+                node_positions[from_agent] = (from_agent_depth, x_scaling * (agent_counter_per_depth[depth] - 0.5 * len(agents_per_depth[depth])))
                 agent_counter_per_depth[depth] += 1
             for to_agent in range(num_agents):
                 if from_agent == to_agent:
                     continue
                 if to_agent in minimal_depth.keys():
                     to_agent_depth = minimal_depth[to_agent]
-                    # TODO: Check why there are hopsto neighbours greater than one! (Depth difference shoul always be 1 no!?)
-                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth == to_agent_depth - 1:
+                    # Check if the agents are connected and only draw lines from lower to deeper influence depth
+                    if 1. / distance_matrix[from_agent, to_agent] > 0.001 and from_agent_depth < to_agent_depth:
                         if to_agent not in list(node_positions.keys()):
+                            rel_pos = node_positions[from_agent][1]
                             node_positions[to_agent] = (
-                                to_agent_depth, 5 * (agent_counter_per_depth[to_agent_depth] - 0.5 * len(agents_per_depth[to_agent_depth])))
+                                to_agent_depth, rel_pos + x_scaling * (agent_counter_per_depth[to_agent_depth] - 0.5 * len(agents_per_depth[to_agent_depth])))
                             agents_per_depth[to_agent_depth][agent_counter_per_depth[to_agent_depth]] = to_agent
                             agent_counter_per_depth[to_agent_depth] += 1
 
@@ -162,10 +165,12 @@ def plot_delay_propagation_graph(  # noqa: C901
                 x=x,
                 y=y,
                 mode='lines+markers',
-                marker=dict(size=5)
+                name="Agent {}".format(from_agent),
+                marker=dict(size=5, color=PLOTLY_COLORLIST[from_agent])
             ))
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=0, dtick=1, gridcolor='Grey', title="Influence Depth")
+    fig.update_xaxes(zeroline=False, showgrid=False, ticks=None, visible=False)
 
     fig.show()
 
