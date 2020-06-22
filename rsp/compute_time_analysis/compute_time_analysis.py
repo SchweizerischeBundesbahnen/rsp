@@ -1063,7 +1063,7 @@ def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
         for resource, occupation in cluster_copy.items():
             for neighb_resource, neighb_occupation in cluster_copy.items():
                 if neighb_resource != resource:
-                    if np.linalg.norm(resource - neighb_resource) < 5:
+                    if np.linalg.norm(np.array(resource) - np.array(neighb_resource)) < 5:
                         new_column = (resource.column + neighb_resource.column) // 2
                         new_row = (resource.row + neighb_resource.row) // 2
                         city = Resource(column=new_column, row=new_row)
