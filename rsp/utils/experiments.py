@@ -325,7 +325,7 @@ def run_experiment_from_schedule_and_malfunction(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        latest_arrival=schedule_problem.max_episode_steps,
+        latest_arrival=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         topo_dict=reduced_topo_dict
     )
@@ -364,7 +364,7 @@ def run_experiment_from_schedule_and_malfunction(
     delta_reschedule_problem = perfect_oracle(
         full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
         malfunction=malfunction,
-        max_episode_steps=schedule_problem.max_episode_steps,
+        max_episode_steps=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
         schedule_topo_dict=reduced_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
@@ -527,7 +527,8 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # 1. Generate malfuntion
     # --------------------------------------------------------------------------------------
-    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at)
+    # ensure malfunction starts only when agent is active
+    malfunction_start = max(earliest_malfunction, schedule_trainruns[malfunction_agent_id][0].scheduled_at + 1)
     malfunction = ExperimentMalfunction(
         time_step=malfunction_start,
         malfunction_duration=malfunction_duration,
