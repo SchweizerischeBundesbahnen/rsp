@@ -26,8 +26,7 @@ spec:
           set-ocuser-as-jovyan
 
           # set http proxy for conda
-          # TODO all of a sudden, we get 403 when using proxy -> temporarily commented out
-          # source set-sbb-proxy
+          source set-sbb-proxy
           printenv
           export WORKDIR=$PWD
 
@@ -43,14 +42,14 @@ spec:
           cd rsp
           git checkout {{ .Values.RspVersion }} --recurse-submodules
           cd $WORKDIR
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          # TODO de-uncomment again
+          #git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
           # activate conda activate
           # https://docs.anaconda.com/anaconda/install/silent-mode/
           eval "$(conda shell.bash hook)"
 
           # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-          mkdir -p $WORKDIR/conda
           conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
           conda activate $WORKDIR/rsp-conda
 

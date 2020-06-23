@@ -87,7 +87,7 @@ def visualize_hypotheses_asp(
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
         traces=[('total_time_' + item, 'conflicts_' + item) for item in suffixes],
-        title=f'XXX_choices_are_good_predictor_of_longer_solution_time_than_expected: '
+        title=f'XXX_conflicts_are_good_predictor_of_longer_solution_time_than_expected: '
               'Conflicts represent the number of routing alternatives and .\n'
               f'How much are conflicts and solution times correlated?',
         output_folder=output_folder,
