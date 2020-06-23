@@ -21,6 +21,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 MAGIC_DIRECTION_FOR_SOURCE_TARGET = 5
 
 
+# TODO SIM-566 remove ckua stuff?
 def ckua_generate_schedule(  # noqa:C901
         env: RailEnv,
         random_seed: int,

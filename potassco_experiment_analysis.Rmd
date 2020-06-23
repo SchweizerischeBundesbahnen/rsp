@@ -32,7 +32,6 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_d
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
-from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
@@ -55,7 +54,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
-plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest)
+schedule_plotting = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 
@@ -79,13 +78,13 @@ for experiment in experiment_results_list:
 #### Time Resource Window Graph: time windows in scheduling problem per resource
 
 ```{python}
-plot_time_window_resource_trajectories(experiment_result=exp_results_of_experiment_of_interest,plotting_information=plotting_data.plotting_information)
+plot_time_window_resource_trajectories(experiment_result=exp_results_of_experiment_of_interest,schedule_plotting=schedule_plotting)
 ```
 
 #### Resource Heat Map: how many potential resource conflicts on this resource?
 
 ```{python}
-plot_shared_heatmap(experiment_result=exp_results_of_experiment_of_interest)
+plot_shared_heatmap(experiment_result=exp_results_of_experiment_of_interest,schedule_plotting=schedule_plotting)
 ```
 
 #### Route DAGs for individual agents
@@ -138,7 +137,7 @@ display(experiment_details.transpose())
 
 
 ```{python}
-changed_agents_traces = plot_resource_time_diagrams(schedule_plotting = plotting_data, with_diff=True)
+changed_agents_traces = plot_resource_time_diagrams(schedule_plotting = schedule_plotting, with_diff=True)
 ```
 
 ```{python}
@@ -146,7 +145,7 @@ changed_agents = {a: True for a in [*changed_agents_traces]}
 ```
 
 ```{python}
-plot_schedule_metrics(schedule_plotting=plotting_data, lateness_delta_after_malfunction=exp_results_of_experiment_of_interest.lateness_delta_after_malfunction)
+plot_shared_heatmap(schedule_plotting=schedule_plotting,experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 ```{python}

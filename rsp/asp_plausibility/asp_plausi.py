@@ -1,66 +1,18 @@
-from typing import List
 from typing import Optional
 
 import pandas as pd
 
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
 from rsp.compute_time_analysis.compute_time_analysis import plot_computional_times_from_traces
-from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
-
-
-def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, suffix: str):
-    return {
-        f'solve_total_ratio_{suffix}':
-            catch_zero_division_error_as_minus_one(
-                lambda:
-                r.solver_statistics["summary"]["times"]["solve"] /
-                r.solver_statistics["summary"]["times"]["total"]
-            ),
-        f'solve_time_{suffix}':
-            r.solver_statistics["summary"]["times"]["solve"],
-        f'total_time_{suffix}':
-            r.solver_statistics["summary"]["times"]["total"],
-        f'choice_conflict_ratio_{suffix}':
-            catch_zero_division_error_as_minus_one(
-                lambda:
-                r.solver_statistics["solving"]["solvers"]["choices"] /
-                r.solver_statistics["solving"]["solvers"]["conflicts"]
-            ),
-        f'choices_{suffix}':
-            r.solver_statistics["solving"]["solvers"]["choices"],
-        f'conflicts_{suffix}':
-            r.solver_statistics["solving"]["solvers"]["conflicts"],
-        # scheduling without optimization has no empty costs array
-        f'costs_{suffix}': r.solver_statistics["summary"]["costs"][0] if len(r.solver_statistics["summary"]["costs"]) > 0 else -1,
-        f'user_accu_propagations_{suffix}':
-            sum(map(lambda d: d["Propagation(s)"],
-                    r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
-        f'user_step_propagations_{suffix}':
-            sum(map(lambda d: d["Propagation(s)"],
-                    r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
-    }
 
 
 def visualize_hypotheses_asp(
-        experiment_results_list: List[ExperimentResultsAnalysis],
+        experiment_data: pd.DataFrame,
         output_folder: Optional[str] = None):
-    data_frame = pd.DataFrame(data=[
-        {
-            **r._asdict(),
-            **_expand_asp_solver_statistics_for_asp_plausi(r=r.results_full, suffix="full"),
-            **_expand_asp_solver_statistics_for_asp_plausi(r=r.results_full_after_malfunction,
-                                                           suffix="full_after_malfunction"),
-            **_expand_asp_solver_statistics_for_asp_plausi(r=r.results_delta_after_malfunction,
-                                                           suffix="delta_after_malfunction"),
-
-        }
-        for r in experiment_results_list])
     suffixes = ['full', 'full_after_malfunction', 'delta_after_malfunction']
     # 003_ratio_asp_grounding_solving: solver should spend most of the time solving: compare solve and total times
     plot_computational_times(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solve_total_ratio_' + item for item in suffixes],
         title='003_ratio_asp_grounding_solving:\n'
@@ -71,7 +23,7 @@ def visualize_hypotheses_asp(
     )
     # 002_asp_absolute_total_solver_times
     plot_computational_times(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solve_time_' + item for item in suffixes] + [f'total_time_' + item for item in suffixes],
         title=f'002_asp_absolute_total_solver_times:\n'
@@ -81,7 +33,7 @@ def visualize_hypotheses_asp(
     )
     # 004_ratio_asp_solve_propagation: propagation times should be low in comparison to solve times
     plot_computational_times(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'user_accu_propagations_' + item for item in suffixes] + [f'solve_time_' + item for item
                                                                                         in suffixes],
@@ -93,7 +45,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="004"
     )
     plot_computational_times(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'user_step_propagations_' + item for item in suffixes] + [f'solve_time_' + item for item
                                                                                         in suffixes],
@@ -108,7 +60,7 @@ def visualize_hypotheses_asp(
     # 005_ratio_asp_conflict_choice: choice conflict ratio should be close to 1;
     # if the ratio is high, the problem might be large, but not difficult
     plot_computational_times(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'choice_conflict_ratio_' + item for item in suffixes],
         title=f'005_ratio_asp_conflict_choice: choice conflict ratio should be close to 1; '
@@ -121,7 +73,7 @@ def visualize_hypotheses_asp(
 
     # Choices
     plot_computional_times_from_traces(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         traces=[('total_time_' + item, 'choices_' + item) for item in suffixes],
         title=f'XXX_choices_are_good_predictor_of_solution_time: '
               'Choices represent the size of the solution space (how many routing alternatives, '
@@ -133,20 +85,31 @@ def visualize_hypotheses_asp(
     )
     # Conflicts
     plot_computional_times_from_traces(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         traces=[('total_time_' + item, 'conflicts_' + item) for item in suffixes],
-        title=f'XXX_choices_are_good_predictor_of_longer_solution_time_than_expected: '
+        title=f'XXX_conflicts_are_good_predictor_of_longer_solution_time_than_expected: '
               'Conflicts represent the number of routing alternatives and .\n'
               f'How much are conflicts and solution times correlated?',
         output_folder=output_folder,
         pdf_file="XXX_conflicts.pdf",
         x_axis_title="conflicts"
     )
+    # Shared
+    plot_computional_times_from_traces(
+        experiment_data=experiment_data,
+        traces=[('total_time_' + item, 'nb_resource_conflicts_' + item) for item in suffixes],
+        title=f'XXX_shared_are_good_predictor_of_longer_solution_time_than_expected: '
+              'Shared are resource conflicts of time windows.\n'
+              f'How much does number of resource conflicts predict solution times?',
+        output_folder=output_folder,
+        pdf_file="XXX_shared.pdf",
+        x_axis_title="shared"
+    )
 
     # Optimization progress
     # TODO SIM-376 for the time being only plot final costs
     plot_computational_times(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'costs_' + item for item in suffixes],
         title=f'XXX_low_cost_optimal_solutions_may_be_harder_to_find:\n'
@@ -156,7 +119,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="XXX"
     )
     plot_computional_times_from_traces(
-        experiment_data=data_frame,
+        experiment_data=experiment_data,
         traces=[('total_time_' + item, 'costs_' + item) for item in suffixes],
         title=f'XXX_low_cost_optimal_solutions_may_be_harder_to_find\n'
               f'Are solver times and optimization costs correlated? '
