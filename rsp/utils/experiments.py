@@ -665,7 +665,16 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
         save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
 
-        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"RUNNING AGENDA {experiment_agenda.experiment_name} -> {experiment_base_directory}")
+        rsp_logger.info(f"============================================================================================================")
+        for file_name in ["rsp/experiment_solvers/asp/asp_helper.py", "rsp/experiment_solvers/asp/asp_helper.py"]:
+            with open(file_name, "r") as content:
+                rsp_logger.info(f"{file_name}: {content}")
+        rsp_logger.info(f"============================================================================================================")
+
+
+# use processes in pool only once because of https://github.com/potassco/clingo/issues/203
         # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
         # N.B. even with parallelization degree 1, we want to run each experiment in a new process
         #      in order to get around https://github.com/potassco/clingo/issues/203

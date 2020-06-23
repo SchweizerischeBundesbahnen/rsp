@@ -10,8 +10,8 @@ def enable_seq(enable=True):
     off = "RESCHEDULE_HEURISTICS = []"
     on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
     file_name = "rsp/utils/global_constants.py"
-    with open(file_name, "r") as input:
-        output_str = input.read().replace(off if enable else on, on if enable else off)
+    with open(file_name, "r") as fh:
+        output_str = fh.read().replace(off if enable else on, on if enable else off)
     with open(file_name, "w") as output:
         output.write(output_str)
 
@@ -19,19 +19,17 @@ def enable_seq(enable=True):
 # TODO pass arguments instead of hacky file editing
 def set_delay_model_resolution(resolution=1):
     file_name = "rsp/utils/global_constants.py"
-    with open(file_name, "r") as input:
-        output_str = input.read().replace("DELAY_MODEL_RESOLUTION = .*", f"DELAY_MODEL_RESOLUTION = {resolution}")
+    with open(file_name, "r") as fh:
+        output_str = fh.read().replace("DELAY_MODEL_RESOLUTION = .*", f"DELAY_MODEL_RESOLUTION = {resolution}")
     with open(file_name, "w") as output:
         output.write(output_str)
 
 
 # TODO pass arguments instead of hacky file editing
 def enable_propagate_partial(enable: bool = True):
-    file_name = "rsp/experiment_solvers/asp/asp_helper.py"
-    off = "#dl.configure_propagator"
-    on = "dl.configure_propagator"
-    with open(file_name, "r") as input:
-        output_str = input.read().replace(off if enable else on, on if enable else off)
+    file_name = "rsp/utils/global_constants.py"
+    with open(file_name, "r") as fh:
+        output_str = fh.read().replace("DL_PROPAGATE_PARTIAL = .*", f"DL_PROPAGATE_PARTIAL = True" if enable else f"DL_PROPAGATE_PARTIAL = False")
     with open(file_name, "w") as output:
         output.write(output_str)
 
@@ -105,6 +103,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             experiment_ids=experiment_ids
         )
         # effect of --propagate (SIM-543)
+        set_delay_model_resolution(1)
         enable_propagate_partial(enable=False)
         hypothesis_one_rerun_without_regen_schedule(
             copy_agenda_from_base_directory=copy_agenda_from_base_directory,

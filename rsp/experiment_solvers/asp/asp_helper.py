@@ -15,6 +15,7 @@ from importlib_resources import path
 from rsp.experiment_solvers.asp import theory
 from rsp.logger import rsp_logger
 from rsp.logger import VERBOSE
+from rsp.utils.global_constants import DL_PROPAGATE_PARTIAL
 
 
 class ASPObjective(Enum):
@@ -128,7 +129,7 @@ def flux_helper(
 
 
 # snippets from https://code.sbb.ch/projects/TP_TMS_PAS/repos/kapaplan-asp/browse/src/solver/clingo_controller.py
-def _asp_helper(encoding_files: List[str],
+def _asp_helper(encoding_files: List[str],  # noqa: C901
                 plain_encoding: Optional[str] = None,
                 verbose: bool = False,
                 debug: bool = False,
@@ -153,7 +154,8 @@ def _asp_helper(encoding_files: List[str],
     rsp_logger.log(VERBOSE, f"no_optimize={no_optimize}")
 
     dl = theory.Theory("clingodl", "clingo-dl")
-    dl.configure_propagator("propagate", "partial")
+    if DL_PROPAGATE_PARTIAL:
+        dl.configure_propagator("propagate", "partial")
     ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:

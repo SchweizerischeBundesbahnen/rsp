@@ -272,7 +272,10 @@ def hypothesis_one_rerun_without_regen_schedule(
     nb_runs
         how many times should each experiment be re-run? Multiples will be executed under the same `experiment_id`
     """
+    rsp_logger.info(f"============================================================================================================")
     rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
+    rsp_logger.info(f"============================================================================================================")
+
     experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 
