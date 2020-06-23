@@ -55,7 +55,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             gen_only=True
         )
     if run_experiments and copy_agenda_from_base_directory is not None:
-        nb_runs = 5
+        nb_runs = 3
         experiment_name_prefix = copy_agenda_from_base_directory + "_"
         parallel_compute = 2
         experiment_ids = None
