@@ -26,8 +26,9 @@ spec:
           set-ocuser-as-jovyan
 
           # set http proxy for conda
-          source set-sbb-proxy
-          #printenv
+          # TODO all of a sudden, we get 403 when using proxy -> temporarily commented out
+          # source set-sbb-proxy
+          printenv
           export WORKDIR=$PWD
 
           # set up http proxy for git (required for pip dependency to FLATland)
