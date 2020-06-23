@@ -94,6 +94,17 @@ def visualize_hypotheses_asp(
         pdf_file="XXX_conflicts.pdf",
         x_axis_title="conflicts"
     )
+    # Shared
+    plot_computional_times_from_traces(
+        experiment_data=experiment_data,
+        traces=[('total_time_' + item, 'nb_resource_conflicts_' + item) for item in suffixes],
+        title=f'XXX_shared_are_good_predictor_of_longer_solution_time_than_expected: '
+              'Shared are resource conflicts of time windows.\n'
+              f'How much does number of resource conflicts predict solution times?',
+        output_folder=output_folder,
+        pdf_file="XXX_shared.pdf",
+        x_axis_title="shared"
+    )
 
     # Optimization progress
     # TODO SIM-376 for the time being only plot final costs

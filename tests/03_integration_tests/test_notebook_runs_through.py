@@ -19,7 +19,8 @@ def multiline_eval(expr):
 
 if __name__ == '__main__':
     base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir)
-    notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd")]
+    # TODO SIM-571 activate potassco notebooks when data is added to rsp-data
+    notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd") and 'potassco' not in f]
     for notebook in notebooks:
         print("*****************************************************************")
         print("Converting and running {}".format(notebook))

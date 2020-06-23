@@ -42,8 +42,7 @@ spec:
           cd rsp
           git checkout {{ .Values.RspVersion }} --recurse-submodules
           cd $WORKDIR
-          # TODO de-uncomment again
-          #git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
           # activate conda activate
           # https://docs.anaconda.com/anaconda/install/silent-mode/
