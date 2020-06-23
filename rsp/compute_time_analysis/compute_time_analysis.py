@@ -22,8 +22,6 @@ from pandas import DataFrame
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
-from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
-from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import Resource
@@ -541,7 +539,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         plot_time_resource_trajectories(
             trajectories=trajectories_influenced_agents,
             title='Changed Agents',
-            ranges=schedule_plotting
+            schedule_plotting=schedule_plotting
         )
 
     return changed_agents_dict
@@ -887,40 +885,6 @@ def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, t
     return space_time_difference
 
 
-def plot_schedule_metrics(schedule_plotting: SchedulePlotting, lateness_delta_after_malfunction: Dict[int, int]):
-    """
-
-    Parameters
-    ----------
-    schedule_plotting
-    lateness_delta_after_malfunction
-    """
-    # Plot Density over time
-    plot_time_density(schedule_plotting.schedule_as_resource_occupations)
-
-    # Plot Occupancy over space
-    plot_resource_occupation_heat_map(
-        schedule_as_resource_occupations=schedule_plotting.schedule_as_resource_occupations,
-        plotting_information=schedule_plotting.plotting_information,
-        title_suffix='Schedule'
-    )
-    plot_resource_occupation_heat_map(
-        schedule_as_resource_occupations=schedule_plotting.reschedule_delta_as_resource_occupations,
-        plotting_information=schedule_plotting.plotting_information,
-        title_suffix='Re-Schedule Delta'
-    )
-
-    # Plot Delay propagation
-    transmission_chains = extract_transmission_chains_from_schedule(schedule_plotting)
-    _, minimal_depth, _ = distance_matrix_from_tranmission_chains(
-        number_of_trains=len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent),
-        transmission_chains=transmission_chains
-    )
-    plot_delay_propagation_2d(plotting_data=schedule_plotting,
-                              delay_information=lateness_delta_after_malfunction,
-                              depth_dict=minimal_depth)
-
-
 def plot_resource_occupation_heat_map(
         schedule_plotting: SchedulePlotting,
         plotting_information: PlottingInformation,
@@ -929,7 +893,7 @@ def plot_resource_occupation_heat_map(
 
     Parameters
     ----------
-    schedule_as_resource_occupations
+    schedule_plotting
     plotting_information : PlottingInformation
 
     Returns
@@ -1075,7 +1039,7 @@ def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
         for resource, occupation in cluster_copy.items():
             for neighb_resource, neighb_occupation in cluster_copy.items():
                 if neighb_resource != resource:
-                    if np.linalg.norm(resource - neighb_resource) < 5:
+                    if np.linalg.norm(np.array(resource) - np.array(neighb_resource)) < 5:
                         new_column = (resource.column + neighb_resource.column) // 2
                         new_row = (resource.row + neighb_resource.row) // 2
                         city = Resource(column=new_column, row=new_row)

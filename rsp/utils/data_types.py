@@ -26,6 +26,7 @@ from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstr
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
+from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
 
 SpeedData = Mapping[float, float]
 
@@ -137,6 +138,30 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
     ('vertex_eff_lateness_delta_after_malfunction', Dict[Waypoint, int]),
     ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
+    ('solve_total_ratio_full', float),
+    ('solve_time_full', float),
+    ('total_time_full', float),
+    ('choice_conflict_ratio_full', float),
+    ('choices_full', float),
+    ('conflicts_full', float),
+    ('user_accu_propagations_full', float),
+    ('user_step_propagations_full', float),
+    ('solve_total_ratio_full_after_malfunction', float),
+    ('solve_time_full_after_malfunction', float),
+    ('total_time_full_after_malfunction', float),
+    ('choice_conflict_ratio_full_after_malfunction', float),
+    ('choices_full_after_malfunction', float),
+    ('conflicts_full_after_malfunction', float),
+    ('user_accu_propagations_full_after_malfunction', float),
+    ('user_step_propagations_full_after_malfunction', float),
+    ('solve_total_ratio_delta_after_malfunction', float),
+    ('solve_time_delta_after_malfunction', float),
+    ('total_time_delta_after_malfunction', float),
+    ('choice_conflict_ratio_delta_after_malfunction', float),
+    ('choices_delta_after_malfunction', float),
+    ('conflicts_delta_after_malfunction', float),
+    ('user_accu_propagations_delta_after_malfunction', float),
+    ('user_step_propagations_delta_after_malfunction', float),
 ])
 
 if COMPATIBILITY_MODE:
@@ -413,7 +438,12 @@ def expand_experiment_results_for_analysis(
                    'results_full': None,
                    'results_full_after_malfunction': None,
                    'results_delta_after_malfunction': None,
-               } if nonify_problem_and_results else {})
+               } if nonify_problem_and_results else {}),
+            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full, suffix="full"),
+            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full_after_malfunction,
+                                                           suffix="full_after_malfunction"),
+            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_delta_after_malfunction,
+                                                           suffix="delta_after_malfunction"),
 
         ),
         experiment_id=experiment_parameters.experiment_id,
@@ -429,7 +459,9 @@ def expand_experiment_results_for_analysis(
         solution_full=experiment_results.results_full.trainruns_dict,
         solution_full_after_malfunction=experiment_results.results_full_after_malfunction.trainruns_dict,
         solution_delta_after_malfunction=experiment_results.results_delta_after_malfunction.trainruns_dict,
-        costs_full=experiment_results.results_full.optimization_costs,
+        # scheduling without optimization has no empty costs array
+        costs_full=(experiment_results.results_full.solver_statistics["summary"]["costs"][0]
+                    if len(experiment_results.results_full.solver_statistics["summary"]["costs"]) > 0 else -1),
         costs_full_after_malfunction=experiment_results.results_full_after_malfunction.optimization_costs,
         costs_delta_after_malfunction=experiment_results.results_delta_after_malfunction.optimization_costs,
         nb_resource_conflicts_full=experiment_results.results_full.nb_conflicts,
@@ -451,6 +483,37 @@ def expand_experiment_results_for_analysis(
         vertex_eff_lateness_delta_after_malfunction=vertex_eff_lateness_delta_after_malfunction,
         edge_eff_route_penalties_delta_after_malfunction=edge_eff_route_penalties_delta_after_malfunction,
     )
+
+
+def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, suffix: str):
+    return {
+        f'solve_total_ratio_{suffix}':
+            catch_zero_division_error_as_minus_one(
+                lambda:
+                r.solver_statistics["summary"]["times"]["solve"] /
+                r.solver_statistics["summary"]["times"]["total"]
+            ),
+        f'solve_time_{suffix}':
+            r.solver_statistics["summary"]["times"]["solve"],
+        f'total_time_{suffix}':
+            r.solver_statistics["summary"]["times"]["total"],
+        f'choice_conflict_ratio_{suffix}':
+            catch_zero_division_error_as_minus_one(
+                lambda:
+                r.solver_statistics["solving"]["solvers"]["choices"] /
+                r.solver_statistics["solving"]["solvers"]["conflicts"]
+            ),
+        f'choices_{suffix}':
+            r.solver_statistics["solving"]["solvers"]["choices"],
+        f'conflicts_{suffix}':
+            r.solver_statistics["solving"]["solvers"]["conflicts"],
+        f'user_accu_propagations_{suffix}':
+            sum(map(lambda d: d["Propagation(s)"],
+                    r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
+        f'user_step_propagations_{suffix}':
+            sum(map(lambda d: d["Propagation(s)"],
+                    r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
+    }
 
 
 def convert_experiment_results_analysis_to_data_frame(experiment_results: ExperimentResultsAnalysis) -> DataFrame:

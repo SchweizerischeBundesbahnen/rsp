@@ -57,7 +57,6 @@ from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
-from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
 from rsp.logger import add_file_handler_to_rsp_logger
 from rsp.logger import remove_file_handler_from_rsp_logger
 from rsp.logger import rsp_logger
@@ -462,9 +461,11 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         experiment_parameters=experiment_parameters
     )
 
-    # TODO SIM-443 pull out switch out
+    # TODO SIM-566 pull out switch out if ckua stuff not remove
     SWITCH_CKUA = False
     if SWITCH_CKUA:
+        # TODO SIM-566 fix local import if ckua stuff not removed; if we have not setup PYTHONPATH correctly, pipeline fails.
+        from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
         trainrun_dict, elapsed_time = ckua_generate_schedule(
             env=rail_env,
             random_seed=experiment_parameters.flatland_seed_value,
@@ -664,7 +665,16 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
         save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
 
-        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"RUNNING AGENDA {experiment_agenda.experiment_name} -> {experiment_base_directory}")
+        rsp_logger.info(f"============================================================================================================")
+        for file_name in ["rsp/experiment_solvers/asp/asp_helper.py", "rsp/experiment_solvers/asp/asp_helper.py"]:
+            with open(file_name, "r") as content:
+                rsp_logger.info(f"{file_name}: {content}")
+        rsp_logger.info(f"============================================================================================================")
+
+
+# use processes in pool only once because of https://github.com/potassco/clingo/issues/203
         # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
         # N.B. even with parallelization degree 1, we want to run each experiment in a new process
         #      in order to get around https://github.com/potassco/clingo/issues/203

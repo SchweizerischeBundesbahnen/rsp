@@ -18,10 +18,9 @@ jupyter:
 # %autoreload 2
 import sys
 sys.path.append("./flatland_ckua")
-import pandas as pd
 from IPython.display import Video
 
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame, convert_pandas_series_experiment_results_analysis
+from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -29,6 +28,7 @@ from rsp.utils.experiments import load_and_expand_experiment_results_from_data_f
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
 from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
 from rsp.compute_time_analysis.compute_time_analysis import time_windows_as_resource_occupations_per_agent
