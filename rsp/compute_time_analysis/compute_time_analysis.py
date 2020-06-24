@@ -835,6 +835,17 @@ def render_flatland_env(data_folder: str,
 
 
 def explode_trajectories(trajectories: Trajectories) -> Dict[int, Set[Tuple[int, int]]]:
+    """Return for each agent the pairs of `(resource,time)` corresponding to
+    the trajectories.
+
+    Parameters
+    ----------
+    trajectories
+
+    Returns
+    -------
+    Dict indexed by `agent_id`, containing `(resource,time_step)` pairs.
+    """
     exploded = {agent_id: set() for agent_id in trajectories.keys()}
     for agent_id, trajectory in trajectories.items():
         # ensure we have triplets (resource,from_time), (resource,to_time), (None,None)
@@ -862,6 +873,7 @@ def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, t
     # Detect changes to original schedule
     traces_influenced_agents: Trajectories = {}
     additional_information = dict()
+    # explode trajectories in order to be able to do point-wise diff!
     base_trajectories_exploded = explode_trajectories(base_trajectories)
     target_trajectories_exploded = explode_trajectories(target_trajectories)
     for agent_id in base_trajectories.keys():

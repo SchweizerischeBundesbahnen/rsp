@@ -22,6 +22,17 @@ def extract_time_windows(
         minimum_travel_time_dict: Dict[int, int],
         release_time: int
 ) -> SchedulingProblemInTimeWindows:
+    """Derive time windows from constraints.
+
+    Parameters
+    ----------
+    route_dag_constraints_dict
+    minimum_travel_time_dict
+    release_time
+
+    Returns
+    -------
+    """
     time_windows_per_resource_and_time_step: TimeWindowsPerResourceAndTimeStep = {}
     time_windows_per_agent_sorted_by_lower_bound: TimeWindowsPerAgentSortedByLowerBound = {}
 

@@ -28,6 +28,16 @@ def extract_transmission_chains_from_time_windows(  # noqa: C901
         malfunction: ExperimentMalfunction,
         time_windows: SchedulingProblemInTimeWindows
 ) -> List[TransmissionChain]:
+    """Derive transmission chains happening by time window overlap.
+
+    Parameters
+    ----------
+    malfunction
+    time_windows
+
+    Returns
+    -------
+    """
     time_windows_per_agent = time_windows.time_windows_per_agent_sorted_by_lower_bound
     time_windows_per_resource_and_time_step = time_windows.time_windows_per_resource_and_time_step
     malfunction_agent_id = malfunction.agent_id

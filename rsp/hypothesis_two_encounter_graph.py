@@ -24,9 +24,6 @@ from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import SchedulingProblemInTimeWindows
 from rsp.utils.data_types_converters_and_validators import extract_time_windows
-from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import SchedulePlotting
 
@@ -176,8 +173,9 @@ def extract_trajectories_from_transmission_chains_time_window(
     return trajectories_from_transmission_chains_time_window
 
 
-def extract_transmission_chains_time_window(experiment_result: ExperimentResultsAnalysis) -> List[TransmissionChain]:
-    """
+def extract_time_windows_and_transmission_chains(experiment_result: ExperimentResultsAnalysis) -> List[TransmissionChain]:
+    """Extract time windows from scheduling problem and derive transmission
+    chains from them.
 
     Parameters
     ----------
@@ -185,7 +183,6 @@ def extract_transmission_chains_time_window(experiment_result: ExperimentResults
 
     Returns
     -------
-
     """
     rsp_logger.info("start extract_time_windows")
     malfunction = experiment_result.malfunction
@@ -270,16 +267,3 @@ def plot_delay_propagation_graph(  # noqa: C901
     fig.update_xaxes(zeroline=False, showgrid=False, ticks=None, visible=False)
 
     fig.show()
-
-
-if __name__ == '__main__':
-    experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28'
-    experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/'
-
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
-        experiment_data_folder_name=experiment_data_directory,
-        experiment_ids=[0])
-    experiment_result = experiment_results_list[0]
-    transmission_chains_time_window = extract_transmission_chains_time_window(experiment_result=experiment_result)
-    plot_transmission_chains_time_window(experiment_result, transmission_chains_time_window)

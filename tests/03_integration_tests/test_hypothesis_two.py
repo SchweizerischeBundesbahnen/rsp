@@ -1,6 +1,6 @@
 from typing import List
 
-from rsp.hypothesis_two_encounter_graph import extract_transmission_chains_time_window
+from rsp.hypothesis_two_encounter_graph import extract_time_windows_and_transmission_chains
 from rsp.hypothesis_two_encounter_graph import plot_transmission_chains_time_window
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
@@ -32,5 +32,5 @@ def test_hypothesis_two(remove_dummy: bool = False, re_save: bool = False):
         experiment_data_folder_name=experiment_data_directory,
         experiment_ids=[0])
     experiment_result = experiment_results_list[0]
-    transmission_chains_time_window = extract_transmission_chains_time_window(experiment_result=experiment_result)
+    transmission_chains_time_window = extract_time_windows_and_transmission_chains(experiment_result=experiment_result)
     plot_transmission_chains_time_window(experiment_result, transmission_chains_time_window)
