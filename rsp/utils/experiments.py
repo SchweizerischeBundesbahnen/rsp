@@ -601,6 +601,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
 
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
+                          parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
                           experiment_ids: Optional[List[int]] = None,
                           copy_agenda_from_base_directory: Optional[str] = None,
                           run_experiments_parallel: int = AVAILABLE_CPUS // 2,
@@ -613,6 +614,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     trying to find bugs in code.
     Parameters
     ----------
+    parameter_ranges_and_speed_data: ParameterRangesAndSpeedData
+        Initial parameters used to create the agenda
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_ids: Optional[List[int]]
@@ -659,8 +662,10 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             experiments=list(experiments_filtered)
         )
 
+    # Save agenda, initial parameter ranges and speed data
     save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
-
+    save_parameter_ranges_and_speed_data(parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                         experiment_agenda_folder_name=experiment_agenda_directory)
     # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
     # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
     # N.B. even with parallelization degree 1, we want to run each experiment in a new process
@@ -960,6 +965,46 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
         file_data: ExperimentAgenda = pickle.load(handle)
         return file_data
 
+def save_parameter_ranges_and_speed_data(experiment_agenda_folder_name: str, parameter_ranges_and_speed_data: ParameterRangesAndSpeedData):
+    """
+    Save experiment parameters and speed data to allow for easier modification after reloading
+    Parameters
+    ----------
+    experiment_agenda_folder_name
+        Folder to store parameter ranges and speed data
+    parameter_ranges_and_speed_data
+        Data to store
+
+    Returns
+    -------
+
+    """
+    if parameter_ranges_and_speed_data is None:
+        return
+
+    file_name = os.path.join(experiment_agenda_folder_name, "parameter_ranges_and_speed_data.pkl")
+    check_create_folder(experiment_agenda_folder_name)
+    with open(file_name, 'wb') as handle:
+        pickle.dump(parameter_ranges_and_speed_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+def load_parameter_ranges_and_speed_data(experiment_folder_name: str) -> ParameterRangesAndSpeedData:
+    """
+    Load experiment parameters and speed data to allow simpler modificaion
+    Parameters
+    ----------
+    experiment_folder_name
+
+    Returns
+    -------
+    Patameterranges and speed data of saved experiment
+    """
+    file_name = os.path.join(experiment_folder_name, "parameter_ranges_and_speed_data.pkl")
+    if os.path.exists(file_name):
+        with open(file_name, 'rb') as handle:
+            file_data: ParameterRangesAndSpeedData = pickle.load(handle)
+            return file_data
+    else:
+        return None
 
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
@@ -1188,9 +1233,9 @@ def _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_di
         for v in dummy_nodes_visit:
             constraints.freeze_visit.remove(v)
 
-# --------------------------------------------------------------
+# -----------------------
 # Agenda tweaking methods
-# --------------------------------------------------------------
+# -----------------------
 
 def tweak_name(
         agenda_null: ExperimentAgenda,
@@ -1217,7 +1262,7 @@ def tweak_agenda_parameters(
         agenda_null: ExperimentAgenda,
         seed: int,
         tweaked_param_values: Dict[str,List],
-        experiment_name: str,
+        experiment_name: str
 ) -> ExperimentAgenda:
     """Produce a new `ExperimentAgenda` with `asp_seed_value` "tweaked".
 
@@ -1231,11 +1276,15 @@ def tweak_agenda_parameters(
     Returns
     -------
     """
+    alt_index = 1
     suffix = _make_suffix(alt_index)
+    experiments = []
     for experiment in agenda_null.experiments:
         new_params = dict(experiment._asdict())
+        print(new_params)
         for parameter, ranges in tweaked_param_values.items():
             new_params = dict()
+        experiments.append(ExperimentParameters(**dict(new_params)))
     return ExperimentAgenda(
         experiment_name=f"{experiment_name}_{suffix}",
         experiments=[

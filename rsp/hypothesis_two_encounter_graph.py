@@ -1,5 +1,5 @@
 import pprint
-from typing import Dict
+from typing import Dict, Optional
 from typing import List
 from typing import Tuple
 
@@ -107,7 +107,9 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
 
 def plot_delay_propagation_graph(  # noqa: C901
         minimal_depth,
-        distance_matrix
+        distance_matrix,
+        changed_agents,
+        file_name: Optional[str] = None
 ):
     """
 
@@ -161,19 +163,26 @@ def plot_delay_propagation_graph(  # noqa: C901
             for pos in node_line:
                 x.append(pos[1])
                 y.append(pos[0])
+            if changed_agents[from_agent]:
+                color = "red"
+            else:
+                color = "yellow"
             fig.add_trace(go.Scattergl(
                 x=x,
                 y=y,
                 mode='lines+markers',
                 name="Agent {}".format(from_agent),
-                marker=dict(size=5, color=PLOTLY_COLORLIST[from_agent])
+                marker=dict(size=5, color=color)
             ))
-
+    for agent in changed_agents:
+        if changed_agents[agent] and agent not in minimal_depth:
+            print("Missed agent {}".format(agent))
     fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=0, dtick=1, gridcolor='Grey', title="Influence Depth")
     fig.update_xaxes(zeroline=False, showgrid=False, ticks=None, visible=False)
-
-    fig.show()
-
+    if file_name is None:
+        fig.show()
+    else:
+        fig.write_image(file_name)
 
 if __name__ == '__main__':
     hypothesis_two_disturbance_propagation_graph(

@@ -1063,7 +1063,7 @@ def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
         for resource, occupation in cluster_copy.items():
             for neighb_resource, neighb_occupation in cluster_copy.items():
                 if neighb_resource != resource:
-                    if np.linalg.norm(resource - neighb_resource) < 5:
+                    if np.linalg.norm(np.array(resource) - np.array(neighb_resource)) < 5:
                         new_column = (resource.column + neighb_resource.column) // 2
                         new_row = (resource.row + neighb_resource.row) // 2
                         city = Resource(column=new_column, row=new_row)
@@ -1078,7 +1078,8 @@ def plot_delay_propagation_2d(
         plotting_data: SchedulePlotting,
         delay_information: Dict[int, int],
         depth_dict: Dict[int, int],
-        changed_agents: Optional[Dict[int, bool]] = None):
+        changed_agents: Optional[Dict[int, bool]] = None,
+        file_name: Optional[str] = None):
     """
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
@@ -1174,8 +1175,10 @@ def plot_delay_propagation_2d(
 
     fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
-
-    fig.show()
+    if file_name is None:
+        fig.show()
+    else:
+        fig.write_image(file_name)
 
 
 def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations):
