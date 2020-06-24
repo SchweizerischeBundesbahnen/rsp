@@ -1,13 +1,13 @@
 import pprint
-from typing import Dict, Optional
+from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
 
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import PLOTLY_COLORLIST
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
@@ -183,6 +183,7 @@ def plot_delay_propagation_graph(  # noqa: C901
         fig.show()
     else:
         fig.write_image(file_name)
+
 
 if __name__ == '__main__':
     hypothesis_two_disturbance_propagation_graph(

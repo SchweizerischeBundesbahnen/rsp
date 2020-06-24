@@ -1,7 +1,11 @@
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting, get_difference_in_time_space_trajectories, plot_delay_propagation_2d, \
-    trajectories_from_resource_occupations_per_agent
-from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph, compute_disturbance_propagation_graph
-from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
+from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
+from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 
 experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_22T11_48_47/'
 agent_of_interest = 26
@@ -26,8 +30,7 @@ for experiment_id in range(48):
 
     transmission_chains, distance_matrix, minimal_depth = compute_disturbance_propagation_graph(schedule_plotting=plotting_data)
     schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations
-                                                                             , plotting_data.plotting_information)
+    schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations, plotting_data.plotting_information)
 
     reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
     reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,

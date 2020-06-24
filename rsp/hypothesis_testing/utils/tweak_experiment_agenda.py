@@ -1,8 +1,11 @@
-from typing import List, Dict
+from typing import Dict
+from typing import List
 from typing import Optional
 
-from rsp.utils.data_types import ExperimentAgenda, ParameterRangesAndSpeedData, ParameterRanges
+from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.data_types import ParameterRanges
+from rsp.utils.data_types import ParameterRangesAndSpeedData
 
 
 def tweak_name(
@@ -89,7 +92,7 @@ def tweak_experiment_agenda_parameters(
         suffix: Optional[str],
         experiment_name: str) -> ExperimentAgenda:
     """Produce a new `ExperimentAgenda` with tweaked parameter "new_parameters"
-    This returns an agenda with the same experiments but changed parameters
+    This returns an agenda with the same experiments but changed parameters.
 
     Parameters
     ----------
@@ -117,7 +120,7 @@ def tweak_experiment_agenda_parameters(
 def tweak_parameter_ranges(
         original_ranges_and_data: ParameterRangesAndSpeedData,
         new_parameter_ranges: Dict) -> ParameterRangesAndSpeedData:
-    """ Change parameter ranges and speed data
+    """Change parameter ranges and speed data.
 
     Parameters
     ----------

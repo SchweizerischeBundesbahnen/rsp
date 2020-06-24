@@ -965,6 +965,7 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
         file_data: ExperimentAgenda = pickle.load(handle)
         return file_data
 
+
 def save_parameter_ranges_and_speed_data(experiment_agenda_folder_name: str, parameter_ranges_and_speed_data: ParameterRangesAndSpeedData):
     """
     Save experiment parameters and speed data to allow for easier modification after reloading
@@ -987,6 +988,7 @@ def save_parameter_ranges_and_speed_data(experiment_agenda_folder_name: str, par
     with open(file_name, 'wb') as handle:
         pickle.dump(parameter_ranges_and_speed_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+
 def load_parameter_ranges_and_speed_data(experiment_folder_name: str) -> ParameterRangesAndSpeedData:
     """
     Load experiment parameters and speed data to allow simpler modificaion
@@ -1005,6 +1007,7 @@ def load_parameter_ranges_and_speed_data(experiment_folder_name: str) -> Paramet
             return file_data
     else:
         return None
+
 
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
@@ -1233,6 +1236,7 @@ def _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_di
         for v in dummy_nodes_visit:
             constraints.freeze_visit.remove(v)
 
+
 # -----------------------
 # Agenda tweaking methods
 # -----------------------
@@ -1258,40 +1262,6 @@ def tweak_name(
         experiments=agenda_null.experiments
     )
 
-def tweak_agenda_parameters(
-        agenda_null: ExperimentAgenda,
-        seed: int,
-        tweaked_param_values: Dict[str,List],
-        experiment_name: str
-) -> ExperimentAgenda:
-    """Produce a new `ExperimentAgenda` with `asp_seed_value` "tweaked".
-
-    Parameters
-    ----------
-    agenda_null
-    seed
-    alt_index
-    experiment_name
-
-    Returns
-    -------
-    """
-    alt_index = 1
-    suffix = _make_suffix(alt_index)
-    experiments = []
-    for experiment in agenda_null.experiments:
-        new_params = dict(experiment._asdict())
-        print(new_params)
-        for parameter, ranges in tweaked_param_values.items():
-            new_params = dict()
-        experiments.append(ExperimentParameters(**dict(new_params)))
-    return ExperimentAgenda(
-        experiment_name=f"{experiment_name}_{suffix}",
-        experiments=[
-            ExperimentParameters(**dict(experiment._asdict(),
-                                        **{'asp_seed_value': seed}))
-            for experiment in agenda_null.experiments]
-    )
 
 def _make_suffix(alt_index: Optional[int]) -> str:
     """Make suffix for experiment name: either "null" if `alt_index` is `None`,
