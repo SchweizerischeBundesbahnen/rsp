@@ -1,69 +1,75 @@
-apiVersion: v1
-kind: Pod
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: "{{ .Release.Name }}-test"
   annotations:
     "helm.sh/hook": test-success
+    helm.sh/hook-delete-policy: hook-succeeded
 spec:
-  restartPolicy: Never
-  containers:
-    - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
-      imagePullPolicy: Always # Always or IfNotPresent (latest requires pulling always)
-      name: "{{ .Release.Name }}"
-      env:
-        # set GIT_SSH_COMMAND to access the private key mounted
-        - name: GIT_SSH_COMMAND
-          value: "ssh -o ProxyCommand='connect -H zscaler.sbb.ch:10465 %h %p' -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-      args:
-        - /bin/bash
-        - -c
-        - |
-          # echo shell commands and fail script on error
-          set -e
-          set -x
+  parallelism: 1
+  completions: 1
+  backoffLimit: 6 {{/*  The number of retries for a job.*/}}
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
+          imagePullPolicy: Always # Always or IfNotPresent (latest requires pulling always)
+          name: "{{ .Release.Name }}"
+          env:
+            # set GIT_SSH_COMMAND to access the private key mounted
+            - name: GIT_SSH_COMMAND
+              value: "ssh -o ProxyCommand='connect -H zscaler.sbb.ch:10465 %h %p' -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          args:
+            - /bin/bash
+            - -c
+            - |
+              # echo shell commands and fail script on error
+              set -e
+              set -x
 
-          # we need to fix user before cloning https://stackoverflow.com/questions/47706024/docker-set-running-user-while-launch-container/57531352#57531352
-          set-ocuser-as-jovyan
+              # we need to fix user before cloning https://stackoverflow.com/questions/47706024/docker-set-running-user-while-launch-container/57531352#57531352
+              set-ocuser-as-jovyan
 
-          # set http proxy for conda
-          source set-sbb-proxy
-          printenv
-          export WORKDIR=$PWD
+              # set http proxy for conda
+              source set-sbb-proxy
+              printenv
+              export WORKDIR=$PWD
 
-          # set up http proxy for git (required for pip dependency to FLATland)
-          git config --global http.sslVerify false
-          git config --global http.proxy $HTTP_PROXY
-          git config --global http.postBuffer 524288000
-          git config --global http.maxRequestBuffer 524288000
-          git config --global core.compression 0
+              # set up http proxy for git (required for pip dependency to FLATland)
+              git config --global http.sslVerify false
+              git config --global http.proxy $HTTP_PROXY
+              git config --global http.postBuffer 524288000
+              git config --global http.maxRequestBuffer 524288000
+              git config --global core.compression 0
 
-          # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
-          cd rsp
-          git checkout {{ .Values.RspVersion }} --recurse-submodules
-          cd $WORKDIR
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+              # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
+              git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
+              cd rsp
+              git checkout {{ .Values.RspVersion }} --recurse-submodules
+              cd $WORKDIR
+              git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
 
-          # activate conda activate
-          # https://docs.anaconda.com/anaconda/install/silent-mode/
-          eval "$(conda shell.bash hook)"
+              # activate conda activate
+              # https://docs.anaconda.com/anaconda/install/silent-mode/
+              eval "$(conda shell.bash hook)"
 
-          # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-          conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
-          conda activate $WORKDIR/rsp-conda
+              # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
+              conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
+              conda activate $WORKDIR/rsp-conda
 
-          # TODO SIM-545 should we move test to different locatioNn?
-          export PYTHONPATH=$WORKDIR/rsp:$WORKDIR/rsp/flatland_ckua:$PYTHONPATH
-          cd $WORKDIR/rsp
-          export QT_DEBUG_PLUGINS=1
-          xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
-      resources:
-      {{- toYaml .Values.resources | nindent 12 }}
-      volumeMounts:
-        - mountPath: "/home/jovyan/ssh"
-          name: ssh-volume
-  volumes:
-    - name: ssh-volume
-      secret:
-        secretName: jenkins-master-key
-        defaultMode: 256
+              # TODO SIM-545 should we move test to different locatioNn?
+              export PYTHONPATH=$WORKDIR/rsp:$WORKDIR/rsp/flatland_ckua:$PYTHONPATH
+              cd $WORKDIR/rsp
+              export QT_DEBUG_PLUGINS=1
+              xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: "/home/jovyan/ssh"
+              name: ssh-volume
+      volumes:
+        - name: ssh-volume
+          secret:
+            secretName: jenkins-master-key
+            defaultMode: 256
