@@ -341,10 +341,12 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
             experiments=loaded_experiment_agenda.experiments
         )
 
+    # Load the appropriate schedule and malfunction. Malfunction will be overwriten by new malfunctions
+    # New parameter ranges are provided as input to this method
     loaded_schedule_and_malfunction = load_schedule_and_malfunction(
         experiment_agenda_directory=experiment_agenda_directory, experiment_id=base_experiment_id)
 
-    # Create new experiment agenda
+    # Create new experiment agenda with malfunction variation
     rsp_logger.info("Creating New Agenda")
     experiment_agenda = create_experiment_agenda(
         experiment_name=loaded_experiment_agenda.experiment_name,
@@ -352,7 +354,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         experiments_per_grid_element=1,
     )
 
-    # Save the new agenda into a tmp folder
+    # Save the new agenda and paramter ranges into a tmp folder
     rsp_logger.info("Saving New Agenda")
     tmp_experiment_folder = './tmp_experiment_folder'
     shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
@@ -381,6 +383,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
             schedule_problem_description=loaded_schedule_and_malfunction.schedule_problem_description,
             schedule_experiment_result=loaded_schedule_and_malfunction.schedule_experiment_result,
             experiment_malfunction=malfunction)
+
         # Save the newly generated schedule malfunction pairs
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
                                       experiment_agenda_directory=tmp_experiment_agenda_directory,
@@ -396,7 +399,8 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         copy_agenda_from_base_directory=tmp_experiment_folder,
         parallel_compute=parallel_compute
     )
-    # Cleanup files
+
+    # Cleanup tmp files
     shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
 
 
@@ -434,23 +438,25 @@ def hypothesis_one_malfunction_analysis(
         malfunction_ranges: Dict = None,
         parallel_compute: int = AVAILABLE_CPUS // 2, ):
     rsp_logger.info(f"MALFUNCTION INVESTIGATION")
+
     # Generate Schedule
     if agenda_folder is None:
         experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data, experiment_name=experiment_name)
         experiment_name = experiment_base_folder_name
+    # Use existing Schedule
     else:
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = load_parameter_ranges_and_speed_data(experiment_folder_name=agenda_folder)
         if parameter_ranges_and_speed_data is None:
-            print("No parameters found. Reverting to default!")
+            rsp_logger.info("No parameters found. Reverting to default!")
             parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = get_agenda_pipeline_malfunction_variation()
 
         experiment_base_folder_name = agenda_folder
-    # Generate examples with different malfunctions
 
+    # Update the loaded or provided parameters with the new malfunction parameters
     parameter_ranges_and_speed_data = tweak_parameter_ranges(original_ranges_and_data=parameter_ranges_and_speed_data, new_parameter_ranges=malfunction_ranges)
 
     hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
-        experiment_base_folder_name,
+        copy_agenda_from_base_directory=experiment_base_folder_name,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         base_experiment_id=base_experiment_id,
         experiment_agenda_name=f"agent_{malfunction_agent_id}_malfunction",
