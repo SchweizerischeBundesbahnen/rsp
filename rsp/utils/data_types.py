@@ -197,6 +197,18 @@ ScheduleAsResourceOccupations = NamedTuple('ScheduleAsResourceOccupations', [
     ('resource_occupations_per_agent_and_time_step', ResourceOccupationPerAgentAndTimeStep),
 ])
 
+TimeWindow = ResourceOccupation
+# list of time windows per resource sorted by lower bound; time windows may overlap!
+TimeWindowsPerResourceAndTimeStep = Dict[Tuple[Resource, int], List[TimeWindow]]
+
+# sorted list of time windows per agent
+TimeWindowsPerAgentSortedByLowerBound = Dict[int, List[TimeWindow]]
+
+SchedulingProblemInTimeWindows = NamedTuple('SchedulingProblemInTimeWindows', [
+    ('time_windows_per_resource_and_time_step', TimeWindowsPerResourceAndTimeStep),
+    ('time_windows_per_agent_sorted_by_lower_bound', TimeWindowsPerAgentSortedByLowerBound),
+])
+
 
 def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
                                              experiment_parameters: ExperimentParameters) -> Dict:
