@@ -1,4 +1,5 @@
 import shutil
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -97,11 +98,11 @@ def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSp
 
 
 def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
-    parameter_ranges = ParameterRanges(agent_range=[20, 20, 1],
+    parameter_ranges = ParameterRanges(agent_range=[120, 120, 1],
                                        size_range=[100, 100, 1],
                                        in_city_rail_range=[3, 3, 1],
                                        out_city_rail_range=[2, 2, 1],
-                                       city_range=[5, 5, 1],
+                                       city_range=[10, 10, 1],
                                        earliest_malfunction=[1, 1, 1],
                                        malfunction_duration=[50, 50, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
@@ -405,11 +406,12 @@ def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: st
     )
 
 
-def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None):
+def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None, experiment_name: str = "exp_hypothesis_one"):
     rsp_logger.info("GEN SCHEDULE ONLY")
 
     experiment_base_folder_name = hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+        experiment_name=experiment_name,
         gen_only=True,
         experiment_ids=None,
         parallel_compute=1,
@@ -422,12 +424,13 @@ def hypothesis_one_malfunction_analysis(
         experiment_name: str = None,
         base_experiment_id: int = 0,
         malfunction_agent_id: int = 0,
+        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
+        malfunction_ranges: Dict = None,
         parallel_compute: int = AVAILABLE_CPUS // 2, ):
     rsp_logger.info(f"MALFUNCTION INVESTIGATION")
     # Generate Schedule
     if agenda_folder is None:
-        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = get_agenda_pipeline_malfunction_variation()
-        experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data)
+        experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data, experiment_name=experiment_name)
         experiment_name = experiment_base_folder_name
     else:
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = load_parameter_ranges_and_speed_data(experiment_folder_name=agenda_folder)
@@ -437,8 +440,6 @@ def hypothesis_one_malfunction_analysis(
 
         experiment_base_folder_name = agenda_folder
     # Generate examples with different malfunctions
-    malfunction_ranges = {'earliest_malfunction': [1, 200, 20],
-                          'malfunction_duration': [50, 50, 1]}
 
     parameter_ranges_and_speed_data = tweak_parameter_ranges(original_ranges_and_data=parameter_ranges_and_speed_data, new_parameter_ranges=malfunction_ranges)
 
