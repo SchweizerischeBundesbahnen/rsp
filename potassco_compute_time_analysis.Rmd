@@ -156,7 +156,10 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 )
 ```
 
-# Visualize effect of delay model resolution 1/2 (SIM-542)
+# Visualize effect of delay model resolution (SIM-542)
+
+
+## delay resolution 1 -> 2
 
 ```{python}
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
@@ -182,6 +185,57 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 )
 ```
 
+## delay resolution 1 -> 5
+
+```{python}
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16_with_delay_model_resolution_2_2020_06_24T15_15_46'
+experiment_base_directory_comparison = f'../rsp-data/{agenda_name_comparison}'
+experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+
+experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_comparison,
+    nonify_problem_and_results=True
+)
+experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
+
+
+```
+
+```{python}
+hypothesis_one_analysis_visualize_computational_time_comparison(
+    experiment_data_baseline=experiment_data_baseline,
+    experiment_data=experiment_data_comparison,
+    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
+    experiment_data_suffix=f'_{agenda_name_comparison}'
+)
+```
+
+## delay resolution 5 -> 10
+
+```{python}
+from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16_with_delay_model_resolution_2_2020_06_24T15_15_46'
+experiment_base_directory_comparison = f'../rsp-data/{agenda_name_comparison}'
+experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+
+experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_comparison,
+    nonify_problem_and_results=True
+)
+experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
+
+```
+
+```{python}
+hypothesis_one_analysis_visualize_computational_time_comparison(
+    experiment_data_baseline=experiment_data_baseline,
+    experiment_data=experiment_data_comparison,
+    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
+    experiment_data_suffix=f'_{agenda_name_comparison}'
+)
+```
+
 # Visualize effect of --propagate (SIM-543)
 
 ```{python}
@@ -195,8 +249,6 @@ experiment_results_list_comparison = load_and_expand_experiment_results_from_dat
     nonify_problem_and_results=True
 )
 experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
-
-
 ```
 
 ```{python}

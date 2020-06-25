@@ -1,14 +1,64 @@
 from itertools import chain
+from typing import Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import Resource
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ResourceOccupationPerAgentAndTimeStep
 from rsp.utils.data_types import ScheduleAsResourceOccupations
+from rsp.utils.data_types import SchedulingProblemInTimeWindows
 from rsp.utils.data_types import SortedResourceOccupationsPerAgent
 from rsp.utils.data_types import SortedResourceOccupationsPerResource
+from rsp.utils.data_types import TimeWindow
+from rsp.utils.data_types import TimeWindowsPerAgentSortedByLowerBound
+from rsp.utils.data_types import TimeWindowsPerResourceAndTimeStep
+
+
+def extract_time_windows(
+        route_dag_constraints_dict: RouteDAGConstraintsDict,
+        minimum_travel_time_dict: Dict[int, int],
+        release_time: int
+) -> SchedulingProblemInTimeWindows:
+    """Derive time windows from constraints.
+
+    Parameters
+    ----------
+    route_dag_constraints_dict
+    minimum_travel_time_dict
+    release_time
+
+    Returns
+    -------
+    """
+    time_windows_per_resource_and_time_step: TimeWindowsPerResourceAndTimeStep = {}
+    time_windows_per_agent_sorted_by_lower_bound: TimeWindowsPerAgentSortedByLowerBound = {}
+
+    for agent_id, route_dag_constraints in route_dag_constraints_dict.items():
+        for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+            # TODO actually, we should take latest leaving event for resource!
+            latest = route_dag_constraints.freeze_latest[waypoint] + minimum_travel_time_dict[agent_id] + release_time
+            resource = Resource(*waypoint.position)
+            time_window = TimeWindow(
+                interval=LeftClosedInterval(earliest, latest),
+                resource=resource,
+                direction=waypoint.direction,
+                agent_id=agent_id
+            )
+            for time_step in range(earliest, latest):
+                time_windows_per_resource_and_time_step.setdefault((resource, time_step), [])
+                # TODO duplicates because of different directions?
+                if time_window not in time_windows_per_resource_and_time_step:
+                    time_windows_per_resource_and_time_step[(resource, time_step)].append(time_window)
+            time_windows_per_agent_sorted_by_lower_bound.setdefault(agent_id, []).append(time_window)
+    for _, time_windows in time_windows_per_agent_sorted_by_lower_bound.items():
+        time_windows.sort(key=lambda t_w: t_w.interval.from_incl, )
+
+    return SchedulingProblemInTimeWindows(
+        time_windows_per_agent_sorted_by_lower_bound=time_windows_per_agent_sorted_by_lower_bound,
+        time_windows_per_resource_and_time_step=time_windows_per_resource_and_time_step)
 
 
 def extract_resource_occupations(
