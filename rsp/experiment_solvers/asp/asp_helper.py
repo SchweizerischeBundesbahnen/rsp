@@ -1,6 +1,5 @@
 import json
 import time
-from enum import Enum
 from threading import Timer
 from typing import Dict
 from typing import List
@@ -15,41 +14,9 @@ from importlib_resources import path
 from rsp.experiment_solvers.asp import theory
 from rsp.logger import rsp_logger
 from rsp.logger import VERBOSE
-
-
-class ASPObjective(Enum):
-    """enum value (key arbitrary) must be the same as encoding to be
-    included."""
-
-    # minimize_total_sum_of_running_times.lp
-    MINIMIZE_SUM_RUNNING_TIMES = "minimize_total_sum_of_running_times"
-
-    # minimize delay with respect to earliest constraints
-    MINIMIZE_DELAY = "minimize_delay"
-
-    # minimize route section penalties
-    MINIMIZE_ROUTES = "minimize_routes"
-
-    # minimize linear combination of route section penalties and delay
-    MINIMIZE_DELAY_ROUTES_COMBINED = "minimize_delay_and_routes_combined"
-
-
-class ASPHeuristics(Enum):
-    """enum value (key arbitrary) must be the same as encoding to be
-    included."""
-
-    # avoiding delay at earlier nodes in the paths.
-    # NOT USED YET (we do not give the data in re-scheduling yet)
-    HEURISTIC_DELAY = "heuristic_DELAY"
-
-    # tries to avoid routes where there is a penalty.
-    # NOT USED YET (we do not give the data in re-scheduling yet)
-    HEURISIC_ROUTES = "heuristic_ROUTES"
-
-    # attempts to order conflicting trains by their possible arrival times at the edges where the conflict is located.
-    # NOT USED YET (we do not give the data in re-scheduling yet)
-    HEURISTIC_SEQ = "heuristic_SEQ"
-
+from rsp.utils.global_constants import ASPHeuristics
+from rsp.utils.global_constants import ASPObjective
+from rsp.utils.global_constants import DL_PROPAGATE_PARTIAL
 
 FluxHelperResult = NamedTuple('FluxHelperResult', [
     # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
@@ -128,7 +95,7 @@ def flux_helper(
 
 
 # snippets from https://code.sbb.ch/projects/TP_TMS_PAS/repos/kapaplan-asp/browse/src/solver/clingo_controller.py
-def _asp_helper(encoding_files: List[str],
+def _asp_helper(encoding_files: List[str],  # noqa: C901
                 plain_encoding: Optional[str] = None,
                 verbose: bool = False,
                 debug: bool = False,
@@ -153,7 +120,8 @@ def _asp_helper(encoding_files: List[str],
     rsp_logger.log(VERBOSE, f"no_optimize={no_optimize}")
 
     dl = theory.Theory("clingodl", "clingo-dl")
-    dl.configure_propagator("propagate", "partial")
+    if DL_PROPAGATE_PARTIAL:
+        dl.configure_propagator("propagate", "partial")
     ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:
@@ -205,7 +173,7 @@ def _asp_loop(ctl: clingo.Control,  # noqa: C901
               no_optimize: bool = False,
               verbose: bool = False,
               debug: bool = False,
-              timeout: int = 12 * 60 * 60):
+              timeout: int = 10 * 60 * 60):
     """Loop over models coming from the ASP solve call until optimal one found
     and return the first optimal.
 

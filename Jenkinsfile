@@ -47,6 +47,7 @@ pipeline {
         //-------------------------------------------------------------
         // https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/browse/src/ch/sbb/util/OcClusters.groovy
         OPENSHIFT_CLUSTER = "otc_prod_gpu"
+        OPENSHIFT_CLUSTER_URL = "https://master.gpu.otc.sbb.ch:8443"
         OPENSHIFT_PROJECT = "pfi-digitaltwin-ci"
         HELM_CHART = 'rsp_workspace'
         // https://ssp.app.ose.sbb-cloud.net/ose/newserviceaccount
@@ -78,7 +79,7 @@ git submodule update --init --recursive
                 }
             }
         }
-        stage('pre-commit and pydeps') {
+        stage('pre-commit, pytest and pydeps') {
             when {
                 allOf {
                     // if the build was triggered manually with deploy=true, skip testing
@@ -99,43 +100,32 @@ git submodule update --init --recursive
         conda env create --file rsp_environment.yml --force
         conda activate rsp
 
+        export PYTHONPATH=\$PWD:\$PWD/flatland_ckua:\$PYTHONPATH
+        echo PYTHONPATH=\$PYTHONPATH
+
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
 
+        # run unit tests
+        python -m pytest tests
+
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
-        """
-                        }
-                )
-            }
-        }
-        stage('test') {
-            when {
-                allOf {
-                    // if the build was triggered manually with deploy=true, skip testing
-                    expression { !params.deploy }
-                }
-            }
-            steps {
-                tox_conda_wrapper(
-                        ENVIRONMENT_YAML: 'rsp_environment.yml',
-                        JENKINS_CLOSURE: {
-                            sh """
-python -m tox . --recreate -v
 """
                         }
                 )
             }
         }
-        // build docker image on every commit with the commit hash as its version so it is unique (modulo re-building)
-        stage("Build Docker Image") {
-            when {
-                allOf {
-                    // if the build was triggered manually with deploy=true, skip image building
-                    expression { !params.deploy }
-                }
-            }
+        // if we're on master, tag the docker image with the new semantic version
+        stage("Build and Tag Docker Image if on master") {
+// TODO SIM-545 after pr is merged, take latest from master and skip building docker image on every feature branch
+//            when {
+//                allOf {
+//                    expression { BRANCH_NAME == 'master' }
+//                    expression { !params.deploy }
+//                }
+//            }
             steps {
                 script {
                     echo """cloud_buildDockerImage()"""
@@ -149,25 +139,61 @@ python -m tox . --recreate -v
                             dockerDir: '.',
                             dockerfilePath: 'docker/Dockerfile'
                     )
-                }
-            }
-        }
-        // if we're on master, tag the docker image with the new semantic version
-        stage("Tag Docker Image if on master") {
-            when {
-                allOf {
-                    expression { BRANCH_NAME == 'master' }
-                    expression { !params.deploy }
-                }
-            }
-            steps {
-                script {
                     cloud_tagDockerImage(
                             artifactoryProject: env.ARTIFACTORY_PROJECT,
                             ocApp: env.BASE_IMAGE_NAME,
                             tag: env.GIT_COMMIT,
                             targetTag: "latest"
                     )
+                }
+            }
+        }
+        stage("Integration Test Notebooks") {
+            when {
+                anyOf {
+                    // if the build was triggered manually with deploy=true, skip image building
+                    expression { !params.deploy }
+                    // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
+                    expression { env.CHANGE_ID == null }
+                }
+            }
+            steps {
+                script {
+                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                        sh '''
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+helm delete rsp-ci | echo
+'''
+                    }
+                    cloud_helmchartsDeploy(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project: env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            chart: env.HELM_CHART,
+                            release: 'rsp-ci',
+                            additionalValues: [
+                                    // TODO the docker image should be extracted from this repo since they have independent lifecycles!
+                                    RspWorkspaceVersion: "latest",
+                                    RspVersion         : GIT_COMMIT
+                            ]
+                    )
+                    // TODO temporary workaround because of CLEW-4973
+//                    cloud_helmchartsTest(
+//                            cluster: OPENSHIFT_CLUSTER,
+//                            project: env.OPENSHIFT_PROJECT,
+//                            credentialId: SERVICE_ACCOUNT_TOKEN,
+//                            release: 'rsp-ci',
+//                            timeoutInSeconds: 900
+//                    )
+                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                        sh '''
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+helm test rsp-ci --timeout=15m0s
+helm delete rsp-ci | echo
+'''
+                    }
                 }
             }
         }
@@ -188,7 +214,8 @@ python -m tox . --recreate -v
                             chart: env.HELM_CHART,
                             release: params.helm_release_name,
                             additionalValues: [
-                                    RspWorkspaceVersion: "${params.version}"
+                                    RspWorkspaceVersion: "${params.version}",
+                                    RspVersion         : GIT_COMMIT
                             ]
                     )
                     echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"

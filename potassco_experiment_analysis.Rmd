@@ -28,11 +28,10 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
 from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagram
+from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
 from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
-from rsp.compute_time_analysis.compute_time_analysis import plot_schedule_metrics
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
@@ -49,18 +48,23 @@ experiment_of_interest = 0
 
 ```{python}
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+
+exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
-)
-experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+)[0]
+schedule_plotting = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 
 # Select specific experiment
 
 ```{python}
+experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory,
+    nonify_problem_and_results=False
+)
 for experiment in experiment_results_list:
 #     print(experiment.experiment_id)
     for agent_id, topo in experiment.problem_delta_after_malfunction.topo_dict.items():
@@ -69,24 +73,18 @@ for experiment in experiment_results_list:
                      print(f"experiment_id={experiment.experiment_id}, agent_id={agent_id}, node={node}, in_degree={in_degree}")
 ```
 
-```{python}
-single_experiment_dataframe = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest].iloc[0]
-single_exp_results = convert_pandas_series_experiment_results_analysis(single_experiment_dataframe)
-schedule_plotting = extract_schedule_plotting(experiment_result=single_exp_results)
-```
-
 # Visualize problem for specific experiment
 
 #### Time Resource Window Graph: time windows in scheduling problem per resource
 
 ```{python}
-plot_time_window_resource_trajectories(experiment_result=single_exp_results,plotting_information=schedule_plotting.plotting_information)
+plot_time_window_resource_trajectories(experiment_result=exp_results_of_experiment_of_interest,schedule_plotting=schedule_plotting)
 ```
 
 #### Resource Heat Map: how many potential resource conflicts on this resource?
 
 ```{python}
-plot_shared_heatmap(experiment_result=single_exp_results)
+plot_shared_heatmap(experiment_result=exp_results_of_experiment_of_interest,schedule_plotting=schedule_plotting)
 ```
 
 #### Route DAGs for individual agents
@@ -94,17 +92,17 @@ plot_shared_heatmap(experiment_result=single_exp_results)
 ```{python}
 # %matplotlib inline
 agent_of_interest = 0
-plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
 ```
 
 
@@ -114,33 +112,32 @@ plot_route_dag(single_exp_results,agent_of_interest, ScheduleProblemEnum.PROBLEM
 # Visualize Solution of specific experiment
 
 ```{python}
-
-choices_full_schedule = single_exp_results.results_full.solver_statistics["solving"]["solvers"]["choices"]
-choices_full_reschedule = single_exp_results.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-choices_delta_reschedule = single_exp_results.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_full_schedule = exp_results_of_experiment_of_interest.results_full.solver_statistics["solving"]["solvers"]["choices"]
+choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 ```
 
 ```{python}
-experiment_details = experiment_data.loc[experiment_data['experiment_id'] == experiment_of_interest,['experiment_id','malfunction','size',
+import pandas as pd
+experiment_details = pd.DataFrame([exp_results_of_experiment_of_interest._asdict()],columns=['experiment_id','malfunction','size',
        'n_agents', 'max_num_cities', 'max_rail_between_cities',
        'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
        'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
        'nb_resource_conflicts_full_after_malfunction',
-       'nb_resource_conflicts_delta_after_malfunction']]
+       'nb_resource_conflicts_delta_after_malfunction'])
+
 experiment_details['choices_full_schedule'] = choices_full_schedule
 experiment_details['choices_full_reschedule'] = choices_full_reschedule
 experiment_details['choices_delta_reschedule'] = choices_delta_reschedule
-```
-
-```{python}
 display(experiment_details.transpose())
 ```
 
 
 
 
+
 ```{python}
-changed_agents_traces = plot_resource_time_diagram(schedule_plotting = schedule_plotting, with_diff=True)
+changed_agents_traces = plot_resource_time_diagrams(schedule_plotting = schedule_plotting, with_diff=True)
 ```
 
 ```{python}
@@ -148,19 +145,17 @@ changed_agents = {a: True for a in [*changed_agents_traces]}
 ```
 
 ```{python}
-plot_schedule_metrics(schedule_plotting=schedule_plotting, lateness_delta_after_malfunction=single_exp_results.lateness_delta_after_malfunction)
+plot_shared_heatmap(schedule_plotting=schedule_plotting,experiment_result=exp_results_of_experiment_of_interest)
 ```
 
-#### Histogram of delay per agent after re-scheduling
-
 ```{python}
-plot_histogram_from_delay_data(experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
 #### Render the current environment
 
 ```{python}
-video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data_frame=experiment_data,experiment_id = experiment_of_interest)
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data=exp_results_of_experiment_of_interest,experiment_id = experiment_of_interest)
 ```
 
 ```{python}
@@ -171,7 +166,7 @@ Video(video_src_schedule, embed=True)
 Video(video_src_reschedule, embed=True)
 ```
 
-# ASP solver stats
+# ASP solver stats of specific experiment
 
 
 ```{python}
@@ -179,47 +174,13 @@ from rsp.experiment_solvers.asp.asp_helper import _print_stats
 print("=================================================================================")
 print(f"= {experiment_base_directory} results_full_after_malfunction ")
 print("=================================================================================")
-_print_stats(single_exp_results.results_full_after_malfunction.solver_statistics)
+_print_stats(exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics)
 print("=================================================================================")
 print(f"= {experiment_base_directory} results_delta_after_malfunction ")
 print("=================================================================================")
-_print_stats(single_exp_results.results_delta_after_malfunction.solver_statistics)
+_print_stats(exp_results_of_experiment_of_interest.results_delta_after_malfunction.solver_statistics)
 ```
 
 ```{python}
-#    list(filter(lambda s: s.startswith('shared'), single_exp_results.results_full.solver_result))
-```
-
-# Visualize effect of SEQ heuristics
-
-```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_baseline = 'agent_0_malfunction_2020_06_04T19_17_28'
-agenda_name_comparison = 'agent_0_malfunction_2020_06_10T11_16_14'
-experiment_base_directory_baseline = f'../rsp-data/{agenda_name_baseline}/'
-experiment_base_directory_comparison = f'./{agenda_name_comparison}'
-experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_problem_and_results=True
-)
-experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
-
-experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_comparison,
-    nonify_problem_and_results=True
-)
-experiment_data_comparison: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison)
-
-
-```
-
-```{python}
-hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data_baseline=experiment_data_baseline,
-    experiment_data=experiment_data_comparison,
-    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
-    experiment_data_suffix=f'_{agenda_name_comparison}'
-)
+#    list(filter(lambda s: s.startswith('shared'), exp_results_of_experiment_of_interest.results_full.solver_result))
 ```

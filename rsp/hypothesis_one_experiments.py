@@ -255,6 +255,8 @@ def hypothesis_one_rerun_without_regen_schedule(
 
     Parameters
     ----------
+    experiment_ids
+    experiment_name
     copy_agenda_from_base_directory
         agenda to re-run
     parallel_compute
@@ -262,7 +264,10 @@ def hypothesis_one_rerun_without_regen_schedule(
     nb_runs
         how many times should each experiment be re-run? Multiples will be executed under the same `experiment_id`
     """
+    rsp_logger.info(f"============================================================================================================")
     rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
+    rsp_logger.info(f"============================================================================================================")
+
     experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 
@@ -279,6 +284,7 @@ def hypothesis_one_rerun_without_regen_schedule(
             experiment_id=experiment.experiment_id
         ) and (experiment_ids is None or experiment.experiment_id in experiment_ids)
     ]
+    rsp_logger.info(f"Experiment agenda {experiment_agenda.experiment_name} has {len(experiment_ids)} experiments.")
 
     hypothesis_one_pipeline_without_setup(
         experiment_agenda=experiment_agenda,
