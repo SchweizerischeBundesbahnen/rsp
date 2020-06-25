@@ -10,6 +10,36 @@ def visualize_hypotheses_asp(
         experiment_data: pd.DataFrame,
         output_folder: Optional[str] = None):
     suffixes = ['full', 'full_after_malfunction', 'delta_after_malfunction']
+
+    # problem reduction in terms of shared, conflicts, choices
+    plot_computational_times(
+        experiment_data=experiment_data,
+        axis_of_interest='experiment_id',
+        columns_of_interest=[f'nb_resource_conflicts_' + item for item in suffixes],
+        title='problem reduction in terms of resource conflicts (shared)',
+        y_axis_title="shared[-]",
+        file_name_prefix="shared",
+        output_folder=output_folder
+    )
+    plot_computational_times(
+        experiment_data=experiment_data,
+        axis_of_interest='experiment_id',
+        columns_of_interest=[f'conflicts_' + item for item in suffixes],
+        title='problem reduction in terms of resource conflicts in the model',
+        y_axis_title="conflicts[-]",
+        file_name_prefix="conflicts",
+        output_folder=output_folder
+    )
+    plot_computational_times(
+        experiment_data=experiment_data,
+        axis_of_interest='experiment_id',
+        columns_of_interest=[f'choices_' + item for item in suffixes],
+        title='problem reduction in terms of resource choices during solving',
+        y_axis_title="choices[-]",
+        file_name_prefix="choices",
+        output_folder=output_folder
+    )
+
     # 003_ratio_asp_grounding_solving: solver should spend most of the time solving: compare solve and total times
     plot_computational_times(
         experiment_data=experiment_data,
@@ -71,7 +101,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="005"
     )
 
-    # Choices
+    # Choices as predictor?
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
         traces=[('total_time_' + item, 'choices_' + item) for item in suffixes],
@@ -81,9 +111,9 @@ def visualize_hypotheses_asp(
               f'How much are choices and solution times correlated?',
         output_folder=output_folder,
         x_axis_title="choices",
-        pdf_file="XXX_choices.pdf"
+        pdf_file="XXX_choices_as_predictor.pdf"
     )
-    # Conflicts
+    # Conflicts as predictor?
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
         traces=[('total_time_' + item, 'conflicts_' + item) for item in suffixes],
@@ -91,10 +121,10 @@ def visualize_hypotheses_asp(
               'Conflicts represent the number of routing alternatives and .\n'
               f'How much are conflicts and solution times correlated?',
         output_folder=output_folder,
-        pdf_file="XXX_conflicts.pdf",
+        pdf_file="XXX_conflicts_as_predictor.pdf",
         x_axis_title="conflicts"
     )
-    # Shared
+    # Shared as predictor?
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
         traces=[('total_time_' + item, 'nb_resource_conflicts_' + item) for item in suffixes],
@@ -102,7 +132,7 @@ def visualize_hypotheses_asp(
               'Shared are resource conflicts of time windows.\n'
               f'How much does number of resource conflicts predict solution times?',
         output_folder=output_folder,
-        pdf_file="XXX_shared.pdf",
+        pdf_file="XXX_shared_as_predictor.pdf",
         x_axis_title="shared"
     )
 
@@ -116,7 +146,7 @@ def visualize_hypotheses_asp(
               f'final optimization costs per experiment_id',
         y_axis_title="Costs[??]",
         output_folder=output_folder,
-        file_name_prefix="XXX"
+        file_name_prefix="XXX_low_cost_optimal_solutions_may_be_harder_to_find"
     )
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
@@ -126,5 +156,5 @@ def visualize_hypotheses_asp(
               f'Final optimization costs per total_time',
         output_folder=output_folder,
         x_axis_title="costs",
-        pdf_file="XXX_costs.pdf",
+        pdf_file="XXX_low_cost_optimal_solutions_may_be_harder_to_find.pdf",
     )

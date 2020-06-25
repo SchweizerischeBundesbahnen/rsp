@@ -119,13 +119,12 @@ git submodule update --init --recursive
         }
         // if we're on master, tag the docker image with the new semantic version
         stage("Build and Tag Docker Image if on master") {
-// TODO SIM-545 after pr is merged, take latest from master and skip building docker image on every feature branch
-//            when {
-//                allOf {
-//                    expression { BRANCH_NAME == 'master' }
-//                    expression { !params.deploy }
-//                }
-//            }
+            when {
+                allOf {
+                    expression { BRANCH_NAME == 'master' }
+                    expression { !params.deploy }
+                }
+            }
             steps {
                 script {
                     echo """cloud_buildDockerImage()"""
@@ -163,7 +162,7 @@ git submodule update --init --recursive
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci | echo
+helm delete rsp-ci-$GIT_COMMIT | echo
 '''
                     }
                     cloud_helmchartsDeploy(
@@ -171,13 +170,14 @@ helm delete rsp-ci | echo
                             project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             chart: env.HELM_CHART,
-                            release: 'rsp-ci',
+                            release: 'rsp-ci-' + GIT_COMMIT,
                             additionalValues: [
                                     // TODO the docker image should be extracted from this repo since they have independent lifecycles!
                                     RspWorkspaceVersion: "latest",
                                     RspVersion         : GIT_COMMIT
                             ]
                     )
+                    echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT?tab=logs"
                     // TODO temporary workaround because of CLEW-4973
 //                    cloud_helmchartsTest(
 //                            cluster: OPENSHIFT_CLUSTER,
@@ -190,8 +190,8 @@ helm delete rsp-ci | echo
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm test rsp-ci --timeout=15m0s
-helm delete rsp-ci | echo
+helm test rsp-ci-$GIT_COMMIT --timeout=15m0s
+helm delete rsp-ci-$GIT_COMMIT | echo
 '''
                     }
                 }

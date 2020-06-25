@@ -12,10 +12,10 @@ import numpy as np
 from importlib_resources import path
 
 from rsp.experiment_solvers.asp import theory
+from rsp.experiment_solvers.asp.data_types import ASPHeuristics
+from rsp.experiment_solvers.asp.data_types import ASPObjective
 from rsp.logger import rsp_logger
 from rsp.logger import VERBOSE
-from rsp.utils.global_constants import ASPHeuristics
-from rsp.utils.global_constants import ASPObjective
 from rsp.utils.global_constants import DL_PROPAGATE_PARTIAL
 
 FluxHelperResult = NamedTuple('FluxHelperResult', [
@@ -121,7 +121,10 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
 
     dl = theory.Theory("clingodl", "clingo-dl")
     if DL_PROPAGATE_PARTIAL:
+        rsp_logger.info("running with --propagate=partial")
         dl.configure_propagator("propagate", "partial")
+    else:
+        rsp_logger.info("running with --propagate=partial")
     ctl_args = [f"-t{nb_threads}", "--lookahead=no"]
 
     if asp_seed_value is not None:

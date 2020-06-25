@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 from rsp.hypothesis_one_experiments import get_agenda_pipeline_params_003_a_bit_more_advanced
@@ -20,7 +21,8 @@ def enable_seq(enable=True):
 def set_delay_model_resolution(resolution=1):
     file_name = "rsp/utils/global_constants.py"
     with open(file_name, "r") as fh:
-        output_str = fh.read().replace("DELAY_MODEL_RESOLUTION = .*", f"DELAY_MODEL_RESOLUTION = {resolution}")
+        regex = re.compile("DELAY_MODEL_RESOLUTION = .*")
+        output_str = regex.sub(f"DELAY_MODEL_RESOLUTION = {resolution}", fh.read())
     with open(file_name, "w") as output:
         output.write(output_str)
 
@@ -29,9 +31,16 @@ def set_delay_model_resolution(resolution=1):
 def enable_propagate_partial(enable: bool = True):
     file_name = "rsp/utils/global_constants.py"
     with open(file_name, "r") as fh:
-        output_str = fh.read().replace("DL_PROPAGATE_PARTIAL = .*", f"DL_PROPAGATE_PARTIAL = True" if enable else f"DL_PROPAGATE_PARTIAL = False")
+        regex = re.compile("DL_PROPAGATE_PARTIAL = .*")
+        output_str = regex.sub(f"DL_PROPAGATE_PARTIAL = True" if enable else f"DL_PROPAGATE_PARTIAL = False", fh.read())
     with open(file_name, "w") as output:
         output.write(output_str)
+
+
+def set_defaults():
+    enable_seq(False)
+    set_delay_model_resolution(1)
+    enable_propagate_partial(enable=True)
 
 
 def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_from_base_directory: Optional[str] = None):
@@ -55,64 +64,77 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             gen_only=True
         )
     if run_experiments and copy_agenda_from_base_directory is not None:
-        nb_runs = 3
-        experiment_name_prefix = copy_agenda_from_base_directory + "_"
-        parallel_compute = 2
-        experiment_ids = None
-        # effect of SEQ heuristic (SIM-167)
-        enable_seq(False)
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-            experiment_name=('%sbaseline' % experiment_name_prefix),
-            nb_runs=nb_runs,
-            parallel_compute=parallel_compute,
-            experiment_ids=experiment_ids
-        )
-        enable_seq(True)
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-            experiment_name=('%swith_SEQ' % experiment_name_prefix),
-            nb_runs=nb_runs,
-            parallel_compute=parallel_compute,
-            experiment_ids=experiment_ids
-        )
-        # effect of delay model resolution (SIM-542)
-        enable_seq(False)
-        set_delay_model_resolution(2)
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-            experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
-            nb_runs=nb_runs,
-            parallel_compute=parallel_compute,
-            experiment_ids=experiment_ids
-        )
-        set_delay_model_resolution(5)
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-            experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
-            nb_runs=nb_runs,
-            parallel_compute=parallel_compute,
-            experiment_ids=experiment_ids
-        )
-        set_delay_model_resolution(10)
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-            experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
-            nb_runs=nb_runs,
-            parallel_compute=parallel_compute,
-            experiment_ids=experiment_ids
-        )
-        # effect of --propagate (SIM-543)
-        set_delay_model_resolution(1)
-        enable_propagate_partial(enable=False)
-        hypothesis_one_rerun_without_regen_schedule(
-            copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-            experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
-            nb_runs=nb_runs,
-            parallel_compute=parallel_compute,
-            experiment_ids=experiment_ids
-        )
-        enable_propagate_partial(enable=True)
+        try:
+            nb_runs = 3
+            experiment_name_prefix = copy_agenda_from_base_directory + "_"
+            parallel_compute = 2
+            experiment_ids = None
+            # baseline with defaults
+            set_defaults()
+            hypothesis_one_rerun_without_regen_schedule(
+                copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+                experiment_name=('%sbaseline' % experiment_name_prefix),
+                nb_runs=nb_runs,
+                parallel_compute=parallel_compute,
+                experiment_ids=experiment_ids,
+                run_analysis=False
+            )
+            if False:
+                # effect of SEQ heuristic (SIM-167)
+                set_defaults()
+                enable_seq(True)
+                hypothesis_one_rerun_without_regen_schedule(
+                    copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+                    experiment_name=('%swith_SEQ' % experiment_name_prefix),
+                    nb_runs=nb_runs,
+                    parallel_compute=parallel_compute,
+                    experiment_ids=experiment_ids,
+                    run_analysis=False
+                )
+                # effect of delay model resolution (SIM-542)
+                set_defaults()
+                set_delay_model_resolution(2)
+                hypothesis_one_rerun_without_regen_schedule(
+                    copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+                    experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
+                    nb_runs=nb_runs,
+                    parallel_compute=parallel_compute,
+                    experiment_ids=experiment_ids,
+                    run_analysis=False
+                )
+                set_defaults()
+                set_delay_model_resolution(5)
+                hypothesis_one_rerun_without_regen_schedule(
+                    copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+                    experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
+                    nb_runs=nb_runs,
+                    parallel_compute=parallel_compute,
+                    experiment_ids=experiment_ids,
+                    run_analysis=False
+                )
+                set_defaults()
+                set_delay_model_resolution(10)
+                hypothesis_one_rerun_without_regen_schedule(
+                    copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+                    experiment_name=('%swith_delay_model_resolution_10' % experiment_name_prefix),
+                    nb_runs=nb_runs,
+                    parallel_compute=parallel_compute,
+                    experiment_ids=experiment_ids,
+                    run_analysis=False
+                )
+                # # effect of --propagate (SIM-543)
+                set_defaults()
+                enable_propagate_partial(enable=False)
+                hypothesis_one_rerun_without_regen_schedule(
+                    copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+                    experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
+                    nb_runs=nb_runs,
+                    parallel_compute=parallel_compute,
+                    experiment_ids=experiment_ids,
+                    run_analysis=False
+                )
+        finally:
+            set_defaults()
 
 
 if __name__ == '__main__':

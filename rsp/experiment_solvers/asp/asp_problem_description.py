@@ -10,12 +10,12 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
+from rsp.experiment_solvers.asp.data_types import ASPHeuristics
+from rsp.experiment_solvers.asp.data_types import ASPObjective
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_schedule import RouteDAGConstraints
-from rsp.utils.global_constants import ASPHeuristics
-from rsp.utils.global_constants import ASPObjective
 from rsp.utils.global_constants import DELAY_MODEL_PENALTY_AFTER_LINEAR
 from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
 from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY

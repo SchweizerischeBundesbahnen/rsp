@@ -36,14 +36,16 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 
 ```{python}
 experiments_of_interest = None
-experiment_base_directory = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
+agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16_baseline_2020_06_23T20_36_43'
+experiment_base_directory_baseline = f'../rsp-data/{agenda_name_baseline}'
+experiment_data_directory_baseline = f'../rsp-data/{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
-experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
-    experiment_ids=experiments_of_interest,
+experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
+    experiment_data_folder_name=experiment_data_directory_baseline,
     nonify_problem_and_results=True
 )
-
+experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
+experiment_results_list = experiment_results_list_baseline
 ```
 
 ```{python}
@@ -132,17 +134,9 @@ visualize_hypotheses_asp(experiment_data=experiment_data)
 
 ```{python}
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
-agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_with_SEQ_2020_06_17T22_09_06'
-experiment_base_directory_baseline = f'./{agenda_name_baseline}/'
-experiment_base_directory_comparison = f'./{agenda_name_comparison}'
-experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16_with_SEQ_2020_06_24T04_10_47'
+experiment_base_directory_comparison = f'../rsp-data/{agenda_name_comparison}'
 experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_problem_and_results=True
-)
-experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
 
 experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison,
@@ -162,21 +156,13 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 )
 ```
 
-# Visualize effect of delay model resolution (SIM-542)
+# Visualize effect of delay model resolution 1/2 (SIM-542)
 
 ```{python}
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
-agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_with_delay_model_resolution_2_2020_06_18T11_33_24'
-experiment_base_directory_baseline = f'./{agenda_name_baseline}/'
-experiment_base_directory_comparison = f'./{agenda_name_comparison}'
-experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16_with_delay_model_resolution_2_2020_06_24T15_15_46'
+experiment_base_directory_comparison = f'../rsp-data/{agenda_name_comparison}'
 experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_problem_and_results=True
-)
-experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
 
 experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison,
@@ -200,17 +186,9 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 
 ```{python}
 from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_SEQ_2020_06_17T20_46_35'
-agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_without_propagate_partial_2020_06_19T10_29_55'
-experiment_base_directory_baseline = f'./{agenda_name_baseline}/'
-experiment_base_directory_comparison = f'./{agenda_name_comparison}'
-experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+agenda_name_comparison = '003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16_without_propagate_partial_2020_06_24T18_49_21'
+experiment_base_directory_comparison = f'../rsp-data/{agenda_name_comparison}'
 experiment_data_directory_comparison = f'{experiment_base_directory_comparison}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_problem_and_results=True
-)
-experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
 
 experiment_results_list_comparison = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison,
