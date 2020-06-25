@@ -190,7 +190,7 @@ helm delete rsp-ci | echo
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm test rsp-ci --timeout=15m0s
+helm test rsp-ci --timeout=1800
 helm delete rsp-ci | echo
 '''
                     }
