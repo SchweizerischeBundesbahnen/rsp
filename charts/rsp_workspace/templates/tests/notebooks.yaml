@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "{{ .Release.Name }}-test"
+  name: "{{ .Release.Name }}-test-job"
   annotations:
     "helm.sh/hook": test-success
     helm.sh/hook-delete-policy: hook-succeeded
