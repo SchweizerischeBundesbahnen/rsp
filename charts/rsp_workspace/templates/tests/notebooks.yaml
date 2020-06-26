@@ -1,11 +1,12 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ .Release.Name }}-test"
+  name: "{{ .Release.Name }}-test-pod"
   annotations:
     "helm.sh/hook": test-success
+    "helm.sh/hook-delete-policy": hook-succeeded
 spec:
-  restartPolicy: Never
+  restartPolicy: OnFailure
   containers:
     - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
       imagePullPolicy: Always # Always or IfNotPresent (latest requires pulling always)

@@ -6,53 +6,28 @@ from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
+import tqdm
+from flatland.core.grid.grid_utils import coordinate_to_position
 
 from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.compute_time_analysis.compute_time_analysis import time_windows_as_resource_occupations_per_agent
+from rsp.compute_time_analysis.compute_time_analysis import Trajectories
+from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.logger import rsp_logger
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
+from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_time_windows
 from rsp.transmission_chains.transmission_chains import TransmissionChain
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.utils.file_utils import check_create_folder
+from rsp.utils.data_types import SchedulingProblemInTimeWindows
+from rsp.utils.data_types_converters_and_validators import extract_time_windows
+from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import SchedulePlotting
 
 _pp = pprint.PrettyPrinter(indent=4)
-
-
-def hypothesis_two_disturbance_propagation_graph(
-        experiment_base_directory: str,
-        experiment_ids: List[int] = None,
-        show: bool = True
-):
-    """
-
-    Parameters
-    ----------
-    experiment_base_directory
-    experiment_ids
-    show
-    """
-    experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/'
-
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
-        experiment_data_folder_name=experiment_data_directory,
-        experiment_ids=experiment_ids)
-
-    for i in list(range(len(experiment_results_list))):
-        experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_ids[i]:04d}_analysis"
-        encounter_graph_folder = f"{experiment_output_folder}/encounter_graphs"
-
-        # Check and create the folders
-        check_create_folder(experiment_output_folder)
-        check_create_folder(encounter_graph_folder)
-
-        experiment_result: ExperimentResultsAnalysis = experiment_results_list[i]
-
-        compute_disturbance_propagation_graph(extract_schedule_plotting(experiment_result))
 
 
 def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
@@ -103,6 +78,125 @@ def resource_occpuation_from_transmission_chains(transmission_chains: List[Trans
         if changed_agents[transmission_chain[-1].hop_off.agent_id]]
     wave_resource_occupations: List[ResourceOccupation] = time_resource_malfunction_wave
     return wave_resource_occupations
+
+
+def plot_transmission_chains_time_window(
+        experiment_result: ExperimentResultsAnalysis,
+        transmission_chains_time_window: List[TransmissionChain]):
+    """
+
+    Parameters
+    ----------
+    experiment_result
+    transmission_chains_time_window
+
+    Returns
+    -------
+
+    """
+    schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result)
+    reschedule_full_resource_occupations_per_agent = schedule_plotting.reschedule_full_as_resource_occupations.sorted_resource_occupations_per_agent
+    num_agents = len(experiment_result.results_full.trainruns_dict.keys())
+    plotting_information = schedule_plotting.plotting_information
+
+    prediction = extract_trajectories_from_transmission_chains_time_window(num_agents, plotting_information, transmission_chains_time_window)
+    plot_time_resource_trajectories(
+        trajectories=prediction,
+        title='Time Window Prediction',
+        schedule_plotting=schedule_plotting
+    )
+
+    # TODO sanity check:
+    trajectories_reschedule_full_time_windows = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=time_windows_as_resource_occupations_per_agent(problem=experiment_result.problem_full_after_malfunction),
+        plotting_information=schedule_plotting.plotting_information)
+    sanity_false_positives, _ = get_difference_in_time_space_trajectories(
+        base_trajectories=prediction,
+        target_trajectories=trajectories_reschedule_full_time_windows)
+    plot_time_resource_trajectories(
+        trajectories=sanity_false_positives,
+        title='Sanity false positives (in prediction, but not in re-schedule full time windows): should be empty',
+        schedule_plotting=schedule_plotting
+    )
+    sanity_false_negatives, _ = get_difference_in_time_space_trajectories(
+        target_trajectories=prediction,
+        base_trajectories=trajectories_reschedule_full_time_windows)
+    plot_time_resource_trajectories(
+        trajectories=sanity_false_negatives,
+        title='Sanity false negatives (not in prediction but in re-schedule full time windows): reduction by prediction - any?',
+        schedule_plotting=schedule_plotting
+    )
+    # Get trajectories for reschedule full
+    trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=reschedule_full_resource_occupations_per_agent,
+        plotting_information=plotting_information)
+
+    # Plot difference with prediction
+    false_negatives, _ = get_difference_in_time_space_trajectories(
+        base_trajectories=trajectories_reschedule_full,
+        target_trajectories=prediction)
+    plot_time_resource_trajectories(
+        trajectories=false_negatives,
+        # TODO SIM-549 is there something wrong because release times are not contained in time windows?
+        title='False negatives (in re-schedule full but not in prediction)',
+        schedule_plotting=schedule_plotting
+    )
+    false_positives, _ = get_difference_in_time_space_trajectories(
+        base_trajectories=prediction,
+        target_trajectories=trajectories_reschedule_full)
+    plot_time_resource_trajectories(
+        trajectories=false_positives,
+        title='False positives (in prediction but not in re-schedule full)',
+        schedule_plotting=schedule_plotting
+    )
+    # TODO SIM-549 damping: probabilistic delay propagation?
+
+
+def extract_trajectories_from_transmission_chains_time_window(
+        num_agents,
+        plotting_information,
+        transmission_chains_time_window,
+        release_time: int = RELEASE_TIME):
+    trajectories_from_transmission_chains_time_window: Trajectories = {agent_id: [] for agent_id in range(num_agents)}
+    for transmission_chain in tqdm.tqdm(transmission_chains_time_window):
+        last_time_window = transmission_chain[-1].hop_off
+        position = coordinate_to_position(plotting_information.grid_width, [last_time_window.resource])[0]
+        # TODO dirty hack: add positions from re-scheduling to resource_sorting in the first place instead of workaround here!
+        if position not in plotting_information.sorting:
+            plotting_information.sorting[position] = len(plotting_information.sorting)
+
+        agent_id = last_time_window.agent_id
+        train_time_path = trajectories_from_transmission_chains_time_window[agent_id]
+        train_time_path.append((plotting_information.sorting[position], last_time_window.interval.from_incl))
+        train_time_path.append((plotting_information.sorting[position], last_time_window.interval.to_excl + release_time))
+        train_time_path.append((None, None))
+    return trajectories_from_transmission_chains_time_window
+
+
+def extract_time_windows_and_transmission_chains(experiment_result: ExperimentResultsAnalysis) -> List[TransmissionChain]:
+    """Extract time windows from scheduling problem and derive transmission
+    chains from them.
+
+    Parameters
+    ----------
+    experiment_result
+
+    Returns
+    -------
+    """
+    rsp_logger.info("start extract_time_windows")
+    malfunction = experiment_result.malfunction
+    re_schedule_full_time_windows: SchedulingProblemInTimeWindows = extract_time_windows(
+        route_dag_constraints_dict=experiment_result.problem_full_after_malfunction.route_dag_constraints_dict,
+        minimum_travel_time_dict=experiment_result.problem_full_after_malfunction.minimum_travel_time_dict,
+        release_time=RELEASE_TIME)
+    rsp_logger.info("end extract_time_windows")
+    rsp_logger.info("start extract_transmission_chains_from_time_windows")
+    transmission_chains_time_window: List[TransmissionChain] = extract_transmission_chains_from_time_windows(
+        time_windows=re_schedule_full_time_windows,
+        malfunction=malfunction)
+    rsp_logger.info("end extract_transmission_chains_from_time_windows")
+    return transmission_chains_time_window
 
 
 def plot_delay_propagation_graph(  # noqa: C901
@@ -183,10 +277,3 @@ def plot_delay_propagation_graph(  # noqa: C901
         fig.show()
     else:
         fig.write_image(file_name)
-
-
-if __name__ == '__main__':
-    hypothesis_two_disturbance_propagation_graph(
-        experiment_base_directory='../rsp-data/agent_0_malfunction_2020_05_18T11_56_31',
-        experiment_ids=list(range(1))
-    )
