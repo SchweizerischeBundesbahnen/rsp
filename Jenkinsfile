@@ -177,7 +177,7 @@ helm delete rsp-ci-$GIT_COMMIT | echo
                                     RspVersion         : GIT_COMMIT
                             ]
                     )
-                    echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT?tab=logs"
+                    echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
                     // TODO temporary workaround because of CLEW-4973
 //                    cloud_helmchartsTest(
 //                            cluster: OPENSHIFT_CLUSTER,
