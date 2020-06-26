@@ -50,7 +50,7 @@ class ASPProblemDescription:
             asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
             asp_heuristics=RESCHEDULE_HEURISTICS,
             asp_seed_value=asp_seed_value,
-            no_optimize=True  # Optimize if set to False
+            no_optimize=False  # Optimize if set to False
         )
         asp_problem._build_asp_program(
             schedule_problem_description=schedule_problem_description,
