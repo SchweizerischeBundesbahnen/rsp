@@ -160,10 +160,26 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
 
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
+    experiment_data['speed_up_solve_time'] = \
+        experiment_data['solve_time_full_after_malfunction'] / \
+        experiment_data['solve_time_delta_after_malfunction']
+    experiment_data['speed_up_non_solve_time'] = \
+        (experiment_data['total_time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
+        (experiment_data['total_time_delta_after_malfunction'] - experiment_data['solve_time_delta_after_malfunction'])
+
     for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
-        plot_speed_up(experiment_data=experiment_data,
-                      axis_of_interest=axis_of_interest,
-                      output_folder=output_folder)
+        for speed_up_col, y_axis_title in [
+            ('speed_up', 'total solver time'),
+            ('speed_up_solve_time', 'solver time solving only'),
+            ('speed_up_non_solve_time', 'solver time non-processing (grounding etc.)'),
+        ]:
+            plot_speed_up(
+                experiment_data=experiment_data,
+                axis_of_interest=axis_of_interest,
+                output_folder=output_folder,
+                col=speed_up_col,
+                y_axis_title=y_axis_title
+            )
 
 
 def hypothesis_one_data_analysis(experiment_base_directory: str,

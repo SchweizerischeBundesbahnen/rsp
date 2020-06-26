@@ -12,6 +12,11 @@ def visualize_hypotheses_asp(
     suffixes = ['full', 'full_after_malfunction', 'delta_after_malfunction']
 
     # problem reduction in terms of shared, conflicts, choices
+    for column_prefix in ['nb_resource_conflicts', 'conflicts', 'choices']:
+        experiment_data[f'{column_prefix}_ratio'] = \
+            experiment_data[f'{column_prefix}_full_after_malfunction'] / \
+            experiment_data[f'{column_prefix}_delta_after_malfunction']
+
     plot_computational_times(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
@@ -24,9 +29,27 @@ def visualize_hypotheses_asp(
     plot_computational_times(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
+        columns_of_interest=[f'nb_resource_conflicts_ratio'],
+        title='problem reduction in terms of resource conflicts (shared)',
+        y_axis_title="shared ratio[-]",
+        file_name_prefix="shared_ratio",
+        output_folder=output_folder
+    )
+    plot_computational_times(
+        experiment_data=experiment_data,
+        axis_of_interest='experiment_id',
         columns_of_interest=[f'conflicts_' + item for item in suffixes],
-        title='problem reduction in terms of resource conflicts in the model',
+        title='problem reduction ratio in terms of conflicts in the model',
         y_axis_title="conflicts[-]",
+        file_name_prefix="nb_resource_conflicts_ratio",
+        output_folder=output_folder
+    )
+    plot_computational_times(
+        experiment_data=experiment_data,
+        axis_of_interest='experiment_id',
+        columns_of_interest=[f'conflicts_ratio'],
+        title='problem reduction in terms of conflicts in the model',
+        y_axis_title="conflicts ratio[-]",
         file_name_prefix="conflicts",
         output_folder=output_folder
     )
@@ -34,9 +57,18 @@ def visualize_hypotheses_asp(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'choices_' + item for item in suffixes],
-        title='problem reduction in terms of resource choices during solving',
+        title='problem reduction in terms of choices during solving',
         y_axis_title="choices[-]",
         file_name_prefix="choices",
+        output_folder=output_folder
+    )
+    plot_computational_times(
+        experiment_data=experiment_data,
+        axis_of_interest='experiment_id',
+        columns_of_interest=[f'choices_ratio'],
+        title='problem reduction in terms of choices during solving',
+        y_axis_title="choices ratio[-]",
+        file_name_prefix="choices ratio",
         output_folder=output_folder
     )
 
@@ -93,7 +125,7 @@ def visualize_hypotheses_asp(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'choice_conflict_ratio_' + item for item in suffixes],
-        title=f'005_ratio_asp_conflict_choice: choice conflict ratio should be close to 1; '
+        title=f'005_ratio_asp_conflict_choice: choice conflict ratio should be small; '
               f'if the ratio is high, the problem might be large, but not difficult; '
               f'choice conflict ratio',
         y_axis_title="Ratio[-]",
