@@ -107,7 +107,7 @@ def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
                                        malfunction_duration=[50, 50, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
                                        max_window_size_from_earliest=[100, 100, 1],
-                                       asp_seed_value=[94, 94, 1],
+                                       asp_seed_value=[1, 1, 1],
                                        # route change is penalized the same as 1 second delay
                                        weight_route_change=[20, 20, 1],
                                        weight_lateness_seconds=[1, 1, 1]
@@ -416,7 +416,8 @@ def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: st
     )
 
 
-def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None, experiment_name: str = "exp_hypothesis_one"):
+def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
+                                experiment_name: str = "exp_hypothesis_one"):
     rsp_logger.info("GEN SCHEDULE ONLY")
 
     experiment_base_folder_name = hypothesis_one_pipeline(

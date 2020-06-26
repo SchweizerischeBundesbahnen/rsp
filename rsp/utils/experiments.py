@@ -678,8 +678,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                 rsp_logger.info(f"{file_name}: {content}")
         rsp_logger.info(f"============================================================================================================")
 
-
-# use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
         # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
         # N.B. even with parallelization degree 1, we want to run each experiment in a new process
         #      in order to get around https://github.com/potassco/clingo/issues/203
@@ -696,7 +695,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             experiment_base_directory=experiment_base_directory,
             gen_only=gen_only
         )
-    # Save agenda, initial parameter ranges and speed data
+        # Save agenda, initial parameter ranges and speed data
         save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
         save_parameter_ranges_and_speed_data(parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
                                              experiment_agenda_folder_name=experiment_agenda_directory)
@@ -838,7 +837,8 @@ def create_experiment_agenda(experiment_name: str,
                 flatland_seed_value=12 + run_of_this_grid_element,
                 asp_seed_value=parameter_set[9],
                 max_num_cities=parameter_set[4],
-                grid_mode=True,
+                # Do we need to have this true?
+                grid_mode=False,
                 max_rail_between_cities=parameter_set[3],
                 max_rail_in_city=parameter_set[2],
                 earliest_malfunction=parameter_set[5],
@@ -919,7 +919,6 @@ def create_schedule_full_problem_description_from_experiment_parameters(
         experiment_parameters: ExperimentParameters
 ) -> Tuple[ScheduleProblemDescription, RailEnv]:
     env = create_env_from_experiment_parameters(params=experiment_parameters)
-
     schedule_problem_description = _create_schedule_problem_description_from_rail_env(env, k=experiment_parameters.number_of_shortest_paths_per_agent)
 
     return schedule_problem_description, env
@@ -939,6 +938,7 @@ def _create_schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> 
                                 for agent in env.agents}
     topo_dict = _get_topology_from_agents_path_dict(agents_paths_dict)
     # TODO should we set max_episode_steps in agenda and take if from there?
+
     max_episode_steps = env._max_episode_steps
     schedule_problem_description = ScheduleProblemDescription(
         route_dag_constraints_dict={
