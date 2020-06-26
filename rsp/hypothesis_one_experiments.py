@@ -99,7 +99,7 @@ def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSp
 
 def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
     parameter_ranges = ParameterRanges(agent_range=[120, 120, 1],
-                                       size_range=[100, 100, 1],
+                                       size_range=[150, 150, 1],
                                        in_city_rail_range=[3, 3, 1],
                                        out_city_rail_range=[2, 2, 1],
                                        city_range=[10, 10, 1],
@@ -109,7 +109,7 @@ def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
                                        max_window_size_from_earliest=[100, 100, 1],
                                        asp_seed_value=[94, 94, 1],
                                        # route change is penalized the same as 1 second delay
-                                       weight_route_change=[10, 10, 1],
+                                       weight_route_change=[20, 20, 1],
                                        weight_lateness_seconds=[1, 1, 1]
                                        )
 

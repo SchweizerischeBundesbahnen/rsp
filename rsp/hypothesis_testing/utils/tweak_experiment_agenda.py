@@ -93,6 +93,7 @@ def tweak_experiment_agenda_parameters(
         experiment_name: str) -> ExperimentAgenda:
     """Produce a new `ExperimentAgenda` with tweaked parameter "new_parameters"
     This returns an agenda with the same experiments but changed parameters.
+    The changes are applied to all experiment in the agenda.
 
     Parameters
     ----------
@@ -120,7 +121,9 @@ def tweak_experiment_agenda_parameters(
 def tweak_parameter_ranges(
         original_ranges_and_data: ParameterRangesAndSpeedData,
         new_parameter_ranges: Dict) -> ParameterRangesAndSpeedData:
-    """Change parameter ranges and speed data.
+    """Change parameter ranges and speed data. Takes an original
+    ParameterRangesAndSpeedData and updates the ranges specified in the
+    new_parameter_ranges dict.
 
     Parameters
     ----------

@@ -11,7 +11,7 @@ if __name__ == '__main__':
     # Beware of time-stamps when re-runing experiments
 
     # Generate schedule with n_agents
-    n_agents = 30
+    n_agents = 120
     experiment_name = 'schedule_{}_agents'.format(n_agents)
     experiment_base_directory = '../rsp-data/{}/'.format(experiment_name)
     if not os.path.exists(experiment_base_directory):
