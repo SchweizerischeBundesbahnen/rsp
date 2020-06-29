@@ -509,10 +509,12 @@ def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, 
             r.solver_statistics["solving"]["solvers"]["conflicts"],
         f'user_accu_propagations_{suffix}':
             sum(map(lambda d: d["Propagation(s)"],
-                    r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])),
+                    r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])) /
+            len(r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"]),
         f'user_step_propagations_{suffix}':
             sum(map(lambda d: d["Propagation(s)"],
-                    r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])),
+                    r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])) /
+            len(r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"]),
     }
 
 

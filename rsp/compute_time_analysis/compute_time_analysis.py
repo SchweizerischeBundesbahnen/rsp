@@ -212,7 +212,9 @@ def plot_computional_times_from_traces(
 def plot_speed_up(
         experiment_data: DataFrame,
         axis_of_interest: str,
-        output_folder: Optional[str] = None
+        output_folder: Optional[str] = None,
+        col: str = 'speed_up',
+        y_axis_title: str = "Speed Up Factor"
 ):
     """
 
@@ -232,7 +234,7 @@ def plot_speed_up(
     fig = go.Figure()
 
     fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
-                         y=experiment_data['speed_up'],
+                         y=experiment_data[col],
                          pointpos=-1,
                          boxpoints='all',
                          customdata=np.dstack((experiment_data['n_agents'],
@@ -251,9 +253,9 @@ def plot_speed_up(
                          marker=dict(size=3, color='blue')))
 
     fig.update_layout(boxmode='group')
-    fig.update_layout(title_text=f"Speed Up Factors {axis_of_interest}")
+    fig.update_layout(title_text=f"Speed Up Factors {y_axis_title} per {axis_of_interest}")
     fig.update_xaxes(title=axis_of_interest)
-    fig.update_yaxes(title="Speed Up Factor")
+    fig.update_yaxes(title=y_axis_title)
     if output_folder is None:
         fig.show()
     else:

@@ -250,6 +250,7 @@ def hypothesis_one_rerun_without_regen_schedule(
         experiment_name: Optional[str] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiment_ids: List[int] = None,
+        run_analysis: bool = True,
         nb_runs: int = 1):
     """
 
@@ -292,7 +293,8 @@ def hypothesis_one_rerun_without_regen_schedule(
         asp_export_experiment_ids=[],
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
         parallel_compute=parallel_compute,
-        experiment_ids=experiment_ids
+        experiment_ids=experiment_ids,
+        run_analysis=run_analysis
     )
 
 

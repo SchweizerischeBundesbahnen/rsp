@@ -673,9 +673,9 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         rsp_logger.info(f"============================================================================================================")
         rsp_logger.info(f"RUNNING AGENDA {experiment_agenda.experiment_name} -> {experiment_base_directory}")
         rsp_logger.info(f"============================================================================================================")
-        for file_name in ["rsp/experiment_solvers/asp/asp_helper.py", "rsp/experiment_solvers/asp/asp_helper.py"]:
+        for file_name in ["rsp/utils/global_constants.py"]:
             with open(file_name, "r") as content:
-                rsp_logger.info(f"{file_name}: {content}")
+                rsp_logger.info(f"{file_name}: {content.read()}")
         rsp_logger.info(f"============================================================================================================")
 
         # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
