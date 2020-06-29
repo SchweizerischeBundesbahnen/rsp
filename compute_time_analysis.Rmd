@@ -35,7 +35,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```
 
 ```{python}
-experiments_of_interest = None
+experiments_of_interest = [0,1,2]
 experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_22T11_48_47/'
 #experiment_base_directory = '../rsp-data/mini_toy_example/'
 experiment_results_list = load_and_expand_experiment_results_from_data_folder(

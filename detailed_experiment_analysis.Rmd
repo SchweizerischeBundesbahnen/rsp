@@ -123,22 +123,6 @@ plot_resource_occupation_heat_map(
 )
 ```
 
-#### Render the current environment
-
-```{python}
-video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data=exp_results_of_experiment_of_interest,experiment_id = experiment_of_interest)
-```
-
-```{python}
-Video(video_src_schedule, embed=True)
-```
-
-```{python}
-Video(video_src_reschedule, embed=True)
-```
-
-#### Route DAGs for individual agents
-
 ```{python}
 # %matplotlib inline
 plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)

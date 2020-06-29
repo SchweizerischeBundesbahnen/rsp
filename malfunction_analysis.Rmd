@@ -168,9 +168,9 @@ plot_time_window_resource_trajectories(experiment_result=exp_results_of_experime
 ```
 
 ```{python}
-transmission_chains_time_window = extract_time_windows_and_transmission_chains(experiment_result=exp_results_of_experiment_of_interest)
+#transmission_chains_time_window = extract_time_windows_and_transmission_chains(experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 ```{python}
-plot_transmission_chains_time_window(exp_results_of_experiment_of_interest, transmission_chains_time_window)
+#plot_transmission_chains_time_window(exp_results_of_experiment_of_interest, transmission_chains_time_window)
 ```
