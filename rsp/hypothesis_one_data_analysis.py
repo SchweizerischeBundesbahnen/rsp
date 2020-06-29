@@ -135,21 +135,51 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data_suffix: Optional[str] = '',
         output_folder: str = None):
     for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
-        plot_computational_times(experiment_data=experiment_data,
-                                 experiment_data_baseline=experiment_data_baseline,
-                                 experiment_data_baseline_suffix=experiment_data_baseline_suffix,
-                                 experiment_data_suffix=experiment_data_suffix,
-                                 axis_of_interest=axis_of_interest,
-                                 columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
-                                 output_folder=output_folder)
+        plot_computational_times(
+            experiment_data=experiment_data,
+            experiment_data_baseline=experiment_data_baseline,
+            experiment_data_baseline_suffix=experiment_data_baseline_suffix,
+            experiment_data_suffix=experiment_data_suffix,
+            axis_of_interest=axis_of_interest,
+            columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
+            output_folder=output_folder
+        )
+        if experiment_data_baseline is not None:
+            experiment_data_ratio = experiment_data.copy()
+            for col in HYPOTHESIS_ONE_COLUMNS_OF_INTEREST:
+                experiment_data_ratio[col] = experiment_data_baseline[col] / experiment_data[col]
+            plot_computational_times(
+                experiment_data=experiment_data_ratio,
+                experiment_data_suffix=experiment_data_suffix,
+                axis_of_interest=axis_of_interest,
+                columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
+                output_folder=output_folder,
+                title='Computational Times ratio (baseline / new data)'
+            )
 
 
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
+    experiment_data['speed_up_solve_time'] = \
+        experiment_data['solve_time_full_after_malfunction'] / \
+        experiment_data['solve_time_delta_after_malfunction']
+    experiment_data['speed_up_non_solve_time'] = \
+        (experiment_data['total_time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
+        (experiment_data['total_time_delta_after_malfunction'] - experiment_data['solve_time_delta_after_malfunction'])
+
     for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
-        plot_speed_up(experiment_data=experiment_data,
-                      axis_of_interest=axis_of_interest,
-                      output_folder=output_folder)
+        for speed_up_col, y_axis_title in [
+            ('speed_up', 'total solver time'),
+            ('speed_up_solve_time', 'solver time solving only'),
+            ('speed_up_non_solve_time', 'solver time non-processing (grounding etc.)'),
+        ]:
+            plot_speed_up(
+                experiment_data=experiment_data,
+                axis_of_interest=axis_of_interest,
+                output_folder=output_folder,
+                col=speed_up_col,
+                y_axis_title=y_axis_title
+            )
 
 
 def hypothesis_one_data_analysis(experiment_base_directory: str,
