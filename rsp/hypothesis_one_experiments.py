@@ -98,11 +98,11 @@ def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSp
 
 
 def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
-    parameter_ranges = ParameterRanges(agent_range=[120, 120, 1],
-                                       size_range=[150, 150, 1],
+    parameter_ranges = ParameterRanges(agent_range=[50, 50, 1],
+                                       size_range=[75, 75, 1],
                                        in_city_rail_range=[3, 3, 1],
                                        out_city_rail_range=[2, 2, 1],
-                                       city_range=[10, 10, 1],
+                                       city_range=[5, 5, 1],
                                        earliest_malfunction=[1, 1, 1],
                                        malfunction_duration=[50, 50, 1],
                                        number_of_shortest_paths_per_agent=[10, 10, 1],
