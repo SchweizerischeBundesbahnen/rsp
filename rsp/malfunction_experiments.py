@@ -14,6 +14,7 @@ if __name__ == '__main__':
     n_agents = 85
     experiment_name = 'schedule_{}_agents'.format(n_agents)
     experiment_base_directory = '../rsp-data/{}/'.format(experiment_name)
+    experiment_base_directory = './schedule_85_agents_2020_06_29T16_46_50/'
     if not os.path.exists(experiment_base_directory):
         experiment_base_directory = None
 

@@ -439,7 +439,7 @@ def hypothesis_one_malfunction_analysis(
         malfunction_agent_id: int = 0,
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
         malfunction_ranges: Dict = None,
-        parallel_compute: int = AVAILABLE_CPUS // 2, ):
+        parallel_compute: int = 6, ):
     rsp_logger.info(f"MALFUNCTION INVESTIGATION")
 
     # Generate Schedule
