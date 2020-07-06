@@ -40,9 +40,9 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```
 
 ```{python}
-experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_22T11_48_47/'
+experiment_base_directory = './agent_76_malfunction_base_schedule_80_agents_new__2020_07_03T20_46_53/'
 experiment_of_interest = 0
-agent_of_interest = 0
+agent_of_interest = 76
 ```
 
 ```{python}

@@ -778,13 +778,14 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 
 def create_experiment_agenda(experiment_name: str,
                              parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+                             flatland_seed: int = 12,
                              experiments_per_grid_element: int = 10,
-                             debug: bool = False
-                             ) -> ExperimentAgenda:
+                             debug: bool = False) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
     Parameters
     ----------
+    flatland_seed
     experiment_name: str
         Name of the experiment
     parameter_ranges: ParameterRanges
@@ -834,7 +835,7 @@ def create_experiment_agenda(experiment_name: str,
                 speed_data=parameter_ranges_and_speed_data.speed_data,
                 width=parameter_set[0],
                 height=parameter_set[0],
-                flatland_seed_value=12 + run_of_this_grid_element,
+                flatland_seed_value=flatland_seed + run_of_this_grid_element,
                 asp_seed_value=parameter_set[9],
                 max_num_cities=parameter_set[4],
                 # Do we need to have this true?
