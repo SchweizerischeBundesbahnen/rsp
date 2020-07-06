@@ -604,6 +604,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
 
 
 def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
+                          parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
                           experiment_ids: Optional[List[int]] = None,
                           copy_agenda_from_base_directory: Optional[str] = None,
                           run_experiments_parallel: int = AVAILABLE_CPUS // 2,
@@ -616,6 +617,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
     trying to find bugs in code.
     Parameters
     ----------
+    parameter_ranges_and_speed_data: ParameterRangesAndSpeedData
+        Initial parameters used to create the agenda
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_ids: Optional[List[int]]
@@ -664,6 +667,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             )
 
         save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
+        save_parameter_ranges_and_speed_data(parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                             experiment_agenda_folder_name=experiment_agenda_directory)
 
         rsp_logger.info(f"============================================================================================================")
         rsp_logger.info(f"RUNNING AGENDA {experiment_agenda.experiment_name} -> {experiment_base_directory}")
@@ -673,8 +678,28 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                 rsp_logger.info(f"{file_name}: {content.read()}")
         rsp_logger.info(f"============================================================================================================")
 
-
-# use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
+        # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
+        # N.B. even with parallelization degree 1, we want to run each experiment in a new process
+        #      in order to get around https://github.com/potassco/clingo/issues/203
+        pool = multiprocessing.Pool(
+            processes=run_experiments_parallel,
+            maxtasksperchild=1)
+        rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
+        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+        newline_and_flush_stdout_and_stderr()
+        run_and_save_one_experiment_partial = partial(
+            run_and_save_one_experiment,
+            verbose=verbose,
+            show_results_without_details=show_results_without_details,
+            experiment_base_directory=experiment_base_directory,
+            gen_only=gen_only
+        )
+        # Save agenda, initial parameter ranges and speed data
+        save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
+        save_parameter_ranges_and_speed_data(parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                             experiment_agenda_folder_name=experiment_agenda_directory)
+        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
         # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
         # N.B. even with parallelization degree 1, we want to run each experiment in a new process
         #      in order to get around https://github.com/potassco/clingo/issues/203
@@ -753,13 +778,14 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 
 def create_experiment_agenda(experiment_name: str,
                              parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+                             flatland_seed: int = 12,
                              experiments_per_grid_element: int = 10,
-                             debug: bool = False
-                             ) -> ExperimentAgenda:
+                             debug: bool = False) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
     Parameters
     ----------
+    flatland_seed
     experiment_name: str
         Name of the experiment
     parameter_ranges: ParameterRanges
@@ -809,10 +835,11 @@ def create_experiment_agenda(experiment_name: str,
                 speed_data=parameter_ranges_and_speed_data.speed_data,
                 width=parameter_set[0],
                 height=parameter_set[0],
-                flatland_seed_value=12 + run_of_this_grid_element,
+                flatland_seed_value=flatland_seed + run_of_this_grid_element,
                 asp_seed_value=parameter_set[9],
                 max_num_cities=parameter_set[4],
-                grid_mode=True,
+                # Do we need to have this true?
+                grid_mode=False,
                 max_rail_between_cities=parameter_set[3],
                 max_rail_in_city=parameter_set[2],
                 earliest_malfunction=parameter_set[5],
@@ -893,7 +920,6 @@ def create_schedule_full_problem_description_from_experiment_parameters(
         experiment_parameters: ExperimentParameters
 ) -> Tuple[ScheduleProblemDescription, RailEnv]:
     env = create_env_from_experiment_parameters(params=experiment_parameters)
-
     schedule_problem_description = _create_schedule_problem_description_from_rail_env(env, k=experiment_parameters.number_of_shortest_paths_per_agent)
 
     return schedule_problem_description, env
@@ -913,6 +939,7 @@ def _create_schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> 
                                 for agent in env.agents}
     topo_dict = _get_topology_from_agents_path_dict(agents_paths_dict)
     # TODO should we set max_episode_steps in agenda and take if from there?
+
     max_episode_steps = env._max_episode_steps
     schedule_problem_description = ScheduleProblemDescription(
         route_dag_constraints_dict={
@@ -961,6 +988,49 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
     with open(file_name, 'rb') as handle:
         file_data: ExperimentAgenda = pickle.load(handle)
         return file_data
+
+
+def save_parameter_ranges_and_speed_data(experiment_agenda_folder_name: str, parameter_ranges_and_speed_data: ParameterRangesAndSpeedData):
+    """
+    Save experiment parameters and speed data to allow for easier modification after reloading
+    Parameters
+    ----------
+    experiment_agenda_folder_name
+        Folder to store parameter ranges and speed data
+    parameter_ranges_and_speed_data
+        Data to store
+
+    Returns
+    -------
+
+    """
+    if parameter_ranges_and_speed_data is None:
+        return
+
+    file_name = os.path.join(experiment_agenda_folder_name, "parameter_ranges_and_speed_data.pkl")
+    check_create_folder(experiment_agenda_folder_name)
+    with open(file_name, 'wb') as handle:
+        pickle.dump(parameter_ranges_and_speed_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_parameter_ranges_and_speed_data(experiment_folder_name: str) -> ParameterRangesAndSpeedData:
+    """
+    Load experiment parameters and speed data to allow simpler modificaion
+    Parameters
+    ----------
+    experiment_folder_name
+
+    Returns
+    -------
+    Patameterranges and speed data of saved experiment
+    """
+    file_name = os.path.join(experiment_folder_name, "parameter_ranges_and_speed_data.pkl")
+    if os.path.exists(file_name):
+        with open(file_name, 'rb') as handle:
+            file_data: ParameterRangesAndSpeedData = pickle.load(handle)
+            return file_data
+    else:
+        return None
 
 
 def create_experiment_folder_name(experiment_name: str) -> str:
@@ -1189,3 +1259,46 @@ def _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_di
         dummy_nodes_visit = [v for v in constraints.freeze_visit if v.direction == 5]
         for v in dummy_nodes_visit:
             constraints.freeze_visit.remove(v)
+
+
+# -----------------------
+# Agenda tweaking methods
+# -----------------------
+
+def tweak_name(
+        agenda_null: ExperimentAgenda,
+        alt_index: Optional[int],
+        experiment_name: str) -> ExperimentAgenda:
+    """Produce a new `ExperimentAgenda` under a "tweaked" name.
+
+    Parameters
+    ----------
+    agenda_null
+    alt_index
+    experiment_name
+
+    Returns
+    -------
+    """
+    suffix = _make_suffix(alt_index)
+    return ExperimentAgenda(
+        experiment_name=f"{experiment_name}_{suffix}",
+        experiments=agenda_null.experiments
+    )
+
+
+def _make_suffix(alt_index: Optional[int]) -> str:
+    """Make suffix for experiment name: either "null" if `alt_index` is `None`,
+    else `alt{alt_index:03d}`
+
+    Parameters
+    ----------
+    alt_index
+
+    Returns
+    -------
+    """
+    suffix = "null"
+    if alt_index is not None:
+        suffix = f"alt{alt_index:03d}"
+    return suffix

@@ -42,9 +42,9 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ### Load Experiment Data
 
 ```{python}
-experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
-experiment_of_interest = 0
-agent_of_interest = 0
+experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_22T11_48_47/'
+experiment_of_interest = 2
+agent_of_interest = 10
 ```
 
 Extract data and aggregate plotting data
@@ -146,7 +146,13 @@ THe figure below is a simplified projection which should only help to visualize 
 
 ```{python}
 plot_delay_propagation_graph(minimal_depth = minimal_depth,
-        distance_matrix = distance_matrix)
+        distance_matrix = distance_matrix, changed_agents= changed_agents_dict)
+```
+
+```{python}
+for agent, changed in changed_agents_dict.items():
+    if changed and agent not in minimal_depth:
+        print("Missed agent {}".format(agent))
 ```
 
 # Transmission Chains Time Window
@@ -162,9 +168,9 @@ plot_time_window_resource_trajectories(experiment_result=exp_results_of_experime
 ```
 
 ```{python}
-transmission_chains_time_window = extract_time_windows_and_transmission_chains(experiment_result=exp_results_of_experiment_of_interest)
+#transmission_chains_time_window = extract_time_windows_and_transmission_chains(experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 ```{python}
-plot_transmission_chains_time_window(exp_results_of_experiment_of_interest, transmission_chains_time_window)
+#plot_transmission_chains_time_window(exp_results_of_experiment_of_interest, transmission_chains_time_window)
 ```

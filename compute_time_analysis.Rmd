@@ -36,7 +36,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 
 ```{python}
 experiments_of_interest = None
-experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
+experiment_base_directory = './agent_76_malfunction_base_schedule_80_agents_new__2020_07_03T20_46_53/'
 #experiment_base_directory = '../rsp-data/mini_toy_example/'
 experiment_results_list = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
@@ -78,4 +78,28 @@ hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
 # for exploration, use:
 # plot_speed_up(experiment_data=experiment_data,
 #                        axis_of_interest=axis_of_interest)
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
 ```

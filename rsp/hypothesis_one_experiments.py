@@ -1,4 +1,5 @@
 import shutil
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -6,6 +7,7 @@ import numpy as np
 
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.hypothesis_testing.utils.tweak_experiment_agenda import tweak_parameter_ranges
 from rsp.logger import rsp_logger
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
@@ -16,10 +18,12 @@ from rsp.utils.experiments import exists_schedule_and_malfunction
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
+from rsp.utils.experiments import load_parameter_ranges_and_speed_data
 from rsp.utils.experiments import load_schedule_and_malfunction
 from rsp.utils.experiments import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
+from rsp.utils.experiments import save_parameter_ranges_and_speed_data
 from rsp.utils.experiments import save_schedule_and_malfunction
 
 
@@ -93,37 +97,22 @@ def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSp
     return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 
-def get_agenda_pipeline_malfunction_variation(schedule_gen: bool) -> ParameterRangesAndSpeedData:
-    if schedule_gen:
-        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
-                                           size_range=[100, 100, 1],
-                                           in_city_rail_range=[3, 3, 1],
-                                           out_city_rail_range=[2, 2, 1],
-                                           city_range=[20, 20, 1],
-                                           earliest_malfunction=[1, 1, 1],
-                                           malfunction_duration=[50, 50, 1],
-                                           number_of_shortest_paths_per_agent=[10, 10, 1],
-                                           max_window_size_from_earliest=[100, 100, 1],
-                                           asp_seed_value=[94, 94, 1],
-                                           # route change is penalized the same as 1 second delay
-                                           weight_route_change=[20, 20, 1],
-                                           weight_lateness_seconds=[1, 1, 1]
-                                           )
-    else:
-        parameter_ranges = ParameterRanges(agent_range=[100, 100, 1],
-                                           size_range=[100, 100, 1],
-                                           in_city_rail_range=[3, 3, 1],
-                                           out_city_rail_range=[2, 2, 1],
-                                           city_range=[20, 20, 1],
-                                           earliest_malfunction=[1, 200, 48],
-                                           malfunction_duration=[50, 50, 1],
-                                           number_of_shortest_paths_per_agent=[10, 10, 1],
-                                           max_window_size_from_earliest=[100, 100, 1],
-                                           asp_seed_value=[94, 94, 1],
-                                           # route change is penalized the same as 1 second delay
-                                           weight_route_change=[20, 20, 1],
-                                           weight_lateness_seconds=[1, 1, 1]
-                                           )
+def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
+    parameter_ranges = ParameterRanges(agent_range=[50, 50, 1],
+                                       size_range=[75, 75, 1],
+                                       in_city_rail_range=[3, 3, 1],
+                                       out_city_rail_range=[2, 2, 1],
+                                       city_range=[5, 5, 1],
+                                       earliest_malfunction=[1, 1, 1],
+                                       malfunction_duration=[50, 50, 1],
+                                       number_of_shortest_paths_per_agent=[10, 10, 1],
+                                       max_window_size_from_earliest=[100, 100, 1],
+                                       asp_seed_value=[1, 1, 1],
+                                       # route change is penalized the same as 1 second delay
+                                       weight_route_change=[20, 20, 1],
+                                       weight_lateness_seconds=[1, 1, 1]
+                                       )
+
     # Define the desired speed profiles
     speed_data = {1.: 0.25,  # Fast passenger train
                   1. / 2.: 0.25,  # Fast freight train
@@ -141,6 +130,7 @@ def hypothesis_one_pipeline(
         experiment_name: str = "exp_hypothesis_one",
         run_analysis: bool = True,
         parallel_compute: int = AVAILABLE_CPUS // 2,
+        flatland_seed: int = 12,
         # take only half of avilable cpus so the machine stays responsive
         gen_only: bool = False,
         experiments_per_grid_element: int = 1
@@ -175,14 +165,14 @@ def hypothesis_one_pipeline(
     """
 
     # A.1 Experiment Planning: Create an experiment agenda out of the parameter ranges
-    experiment_agenda = create_experiment_agenda(
-        experiment_name=experiment_name,
-        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiments_per_grid_element=experiments_per_grid_element,
-    )
+    experiment_agenda = create_experiment_agenda(experiment_name=experiment_name,
+                                                 parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                                 flatland_seed=flatland_seed,
+                                                 experiments_per_grid_element=experiments_per_grid_element)
     # [ A.2 -> B ]* -> C
     experiment_base_folder_name = hypothesis_one_pipeline_without_setup(
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiment_agenda=experiment_agenda,
         experiment_ids=experiment_ids,
         parallel_compute=parallel_compute,
@@ -195,6 +185,7 @@ def hypothesis_one_pipeline(
 
 
 def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
+                                          parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
                                           experiment_ids: Optional[List[int]] = None,
                                           qualitative_analysis_experiment_ids: Optional[List[int]] = None,
                                           asp_export_experiment_ids: Optional[List[int]] = None,
@@ -224,6 +215,7 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
         run_experiments_parallel=parallel_compute,
         show_results_without_details=True,
         verbose=False,
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiment_ids=experiment_ids,
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
         gen_only=gen_only
@@ -308,10 +300,11 @@ def hypothesis_one_rerun_without_regen_schedule(
 
 def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         copy_agenda_from_base_directory: str,
-        experiment_parameters: ParameterRangesAndSpeedData = None,
+        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
         base_experiment_id: int = 0,
         malfunction_agent_id: int = 0,
         experiment_agenda_name: Optional[str] = None,
+        experiment_name: str = None,
         parallel_compute: int = AVAILABLE_CPUS // 2
 ):
     """Simple method to run experiments with new parameters without the need to
@@ -323,9 +316,10 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
 
     Parameters
     ----------
+    malfunction_agent_id
     copy_agenda_from_base_directory
         Agenda containing schedule.
-    experiment_parameters
+    parameter_ranges_and_speed_data
         New set of parameters that will be used for the experiments
     base_experiment_id
         The experiment to choose from the original agenda
@@ -342,24 +336,25 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     loaded_experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 
+    # Change the name of the experiment if desired
     if experiment_agenda_name is not None:
         loaded_experiment_agenda = ExperimentAgenda(
-            experiment_name=experiment_agenda_name,
+            experiment_name=experiment_agenda_name + "_base_" + experiment_name + "_new_",
             experiments=loaded_experiment_agenda.experiments
         )
 
+    # Load the appropriate schedule and malfunction. Malfunction will be overwriten by new malfunctions
+    # New parameter ranges are provided as input to this method
     loaded_schedule_and_malfunction = load_schedule_and_malfunction(
         experiment_agenda_directory=experiment_agenda_directory, experiment_id=base_experiment_id)
 
-    # Create new experiment agenda
+    # Create new experiment agenda with malfunction variation
     rsp_logger.info("Creating New Agenda")
-    experiment_agenda = create_experiment_agenda(
-        experiment_name=loaded_experiment_agenda.experiment_name,
-        parameter_ranges_and_speed_data=experiment_parameters,
-        experiments_per_grid_element=1,
-    )
+    experiment_agenda = create_experiment_agenda(experiment_name=loaded_experiment_agenda.experiment_name,
+                                                 parameter_ranges_and_speed_data=parameter_ranges_and_speed_data, flatland_seed=12,
+                                                 experiments_per_grid_element=1)
 
-    # Save the new agenda into a tmp folder
+    # Save the new agenda and paramter ranges into a tmp folder
     rsp_logger.info("Saving New Agenda")
     tmp_experiment_folder = './tmp_experiment_folder'
     shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
@@ -367,6 +362,8 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
 
     save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name=tmp_experiment_agenda_directory,
                                             experiment_agenda=experiment_agenda)
+    save_parameter_ranges_and_speed_data(experiment_agenda_folder_name=tmp_experiment_agenda_directory,
+                                         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data)
 
     # Generate the malfunction experiments
     rsp_logger.info("Generating Malfunctions")
@@ -386,6 +383,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
             schedule_problem_description=loaded_schedule_and_malfunction.schedule_problem_description,
             schedule_experiment_result=loaded_schedule_and_malfunction.schedule_experiment_result,
             experiment_malfunction=malfunction)
+
         # Save the newly generated schedule malfunction pairs
         save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
                                       experiment_agenda_directory=tmp_experiment_agenda_directory,
@@ -401,7 +399,8 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         copy_agenda_from_base_directory=tmp_experiment_folder,
         parallel_compute=parallel_compute
     )
-    # Cleanup files
+
+    # Cleanup tmp files
     shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
 
 
@@ -417,37 +416,58 @@ def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: st
     )
 
 
-def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None):
+def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
+                                flatland_seed: int = 12,
+                                experiment_name: str = "exp_hypothesis_one"):
     rsp_logger.info("GEN SCHEDULE ONLY")
 
     experiment_base_folder_name = hypothesis_one_pipeline(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+        experiment_name=experiment_name,
         gen_only=True,
         experiment_ids=None,
         parallel_compute=1,
+        flatland_seed=flatland_seed
     )
     return experiment_base_folder_name
 
 
 def hypothesis_one_malfunction_analysis(
-        agenda_folder: str = None,
+        copy_agenda_from_base_directory: str = None,
+        experiment_name: str = None,
         base_experiment_id: int = 0,
         malfunction_agent_id: int = 0,
-        parallel_compute: int = AVAILABLE_CPUS // 2, ):
+        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
+        malfunction_ranges: Dict = None,
+        flatland_seed: int = 12,
+        parallel_compute: int = 5, ):
     rsp_logger.info(f"MALFUNCTION INVESTIGATION")
+
     # Generate Schedule
-    if agenda_folder is None:
-        parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation(schedule_gen=True)
-        experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data)
+    if copy_agenda_from_base_directory is None:
+        experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data,
+                                                                  experiment_name=experiment_name,
+                                                                  flatland_seed=flatland_seed)
+        experiment_name = experiment_base_folder_name
+    # Use existing Schedule
     else:
-        experiment_base_folder_name = agenda_folder
-    # Generate examples with different malfunctions
-    parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation(schedule_gen=False)
+        experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
+        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = load_parameter_ranges_and_speed_data(experiment_folder_name=experiment_agenda_directory)
+        if parameter_ranges_and_speed_data is None:
+            rsp_logger.info("No parameters found. Reverting to default!")
+            parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = get_agenda_pipeline_malfunction_variation()
+
+        experiment_base_folder_name = copy_agenda_from_base_directory
+
+    # Update the loaded or provided parameters with the new malfunction parameters
+    parameter_ranges_and_speed_data = tweak_parameter_ranges(original_ranges_and_data=parameter_ranges_and_speed_data, new_parameter_ranges=malfunction_ranges)
 
     hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
-        experiment_base_folder_name,
-        experiment_parameters=parameter_ranges_and_speed_data,
+        copy_agenda_from_base_directory=experiment_base_folder_name,
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         base_experiment_id=base_experiment_id,
-        experiment_agenda_name=f"agent_{base_experiment_id}_malfunction",
-        parallel_compute=parallel_compute
+        experiment_agenda_name=f"agent_{malfunction_agent_id}_malfunction",
+        experiment_name=experiment_name,
+        parallel_compute=parallel_compute,
+        malfunction_agent_id=malfunction_agent_id
     )

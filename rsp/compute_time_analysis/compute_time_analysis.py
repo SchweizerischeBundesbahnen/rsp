@@ -1058,7 +1058,8 @@ def plot_delay_propagation_2d(
         plotting_data: SchedulePlotting,
         delay_information: Dict[int, int],
         depth_dict: Dict[int, int],
-        changed_agents: Optional[Dict[int, bool]] = None):
+        changed_agents: Optional[Dict[int, bool]] = None,
+        file_name: Optional[str] = None):
     """
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
@@ -1154,8 +1155,10 @@ def plot_delay_propagation_2d(
 
     fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
-
-    fig.show()
+    if file_name is None:
+        fig.show()
+    else:
+        fig.write_image(file_name)
 
 
 def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations):

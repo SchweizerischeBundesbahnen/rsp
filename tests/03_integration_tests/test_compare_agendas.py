@@ -48,17 +48,11 @@ def test_compare_agendas():
     """Run null and alt_0 and alt_1 hypotheses and check that expected files
     are present without inspecting them."""
     experiment_name = "test_compare_agendas"
-    experiment_agenda_null = create_experiment_agenda(
-        experiment_name=experiment_name,
-        parameter_ranges_and_speed_data=get_dummy_params_null(),
-        experiments_per_grid_element=1
-    )
+    experiment_agenda_null = create_experiment_agenda(experiment_name=experiment_name, parameter_ranges_and_speed_data=get_dummy_params_null(),
+                                                      flatland_seed=12, experiments_per_grid_element=1)
     experiment_agendas = [
-        create_experiment_agenda(
-            experiment_name=experiment_name,
-            parameter_ranges_and_speed_data=get_params_alt(window_size=window_size),
-            experiments_per_grid_element=1
-        )
+        create_experiment_agenda(experiment_name=experiment_name, parameter_ranges_and_speed_data=get_params_alt(window_size=window_size), flatland_seed=12,
+                                 experiments_per_grid_element=1)
         for window_size in [30, 60]
     ]
 
