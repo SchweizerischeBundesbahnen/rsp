@@ -351,7 +351,8 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     # Create new experiment agenda with malfunction variation
     rsp_logger.info("Creating New Agenda")
     experiment_agenda = create_experiment_agenda(experiment_name=loaded_experiment_agenda.experiment_name,
-                                                 parameter_ranges_and_speed_data=parameter_ranges_and_speed_data, flatland_seed=12,
+                                                 parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                                 flatland_seed=loaded_experiment_agenda.experiments[0].flatland_seed_value,
                                                  experiments_per_grid_element=1)
 
     # Save the new agenda and paramter ranges into a tmp folder

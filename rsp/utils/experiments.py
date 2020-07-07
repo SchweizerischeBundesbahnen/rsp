@@ -911,8 +911,6 @@ def create_env_from_experiment_parameters(params: ExperimentParameters) -> RailE
                                              max_rails_between_cities=max_rails_between_cities,
                                              max_rails_in_city=max_rails_in_city,
                                              speed_data=speed_data)
-    env_static.reset(random_seed=flatland_seed_value)
-
     return env_static
 
 

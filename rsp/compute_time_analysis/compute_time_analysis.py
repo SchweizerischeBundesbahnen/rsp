@@ -766,7 +766,7 @@ def render_flatland_env(data_folder: str,
     Method to render the environment for visual inspection
     Parameters
     ----------
-
+render_flatland_env
     data_folder: str
         Folder name to store and load images from
     experiment_data: ExperimentResultsAnalysis
@@ -783,6 +783,7 @@ def render_flatland_env(data_folder: str,
 
     # Generate environment for rendering
     rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
+
     # Generate aggregated visualization
     output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     video_src_schedule = None
