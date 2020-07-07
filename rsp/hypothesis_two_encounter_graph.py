@@ -228,7 +228,7 @@ def plot_delay_propagation_graph(  # noqa: C901
     changed_agents_ids = dict(filter(lambda elem: elem[1], changed_agents.items()))
     true_positives = set.intersection(set(changed_agents_ids.keys()), set(minimal_depth.keys()))
     false_negatives = set(changed_agents_ids.keys()) - true_positives
-    print("Agents not shown but affected \n", false_negatives)
+    print("Agents not shown but affected \n", list(false_negatives))
     # get agents for each depth
     for agent, depth in minimal_depth.items():
         agents_per_depth[depth].append(agent)
@@ -275,9 +275,7 @@ def plot_delay_propagation_graph(  # noqa: C901
                 name="Agent {}".format(from_agent),
                 marker=dict(size=5, color=color)
             ))
-    for agent in changed_agents:
-        if changed_agents[agent] and agent not in minimal_depth:
-            print("Missed agent {}".format(agent))
+
     fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=0, dtick=1, gridcolor='Grey', title="Influence Depth")
     fig.update_xaxes(zeroline=False, showgrid=False, ticks=None, visible=False)
     if file_name is None:
