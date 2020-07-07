@@ -437,8 +437,8 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
         y = []
         z = []
         for resource, occupancy in shared_per_resource.items():
-            x.append(resource[0])
-            y.append(resource[1])
+            x.append(resource[1])
+            y.append(resource[0])
             z.append(occupancy)
 
         fig.add_trace(go.Scattergl(
@@ -457,13 +457,12 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
                 ), colorscale="Hot"
             )))
 
-    fig.update_yaxes(autorange="reversed")
     fig.update_layout(title_text="Shared Resources",
                       autosize=False,
                       width=1000,
                       height=1000)
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.show()
 
 
@@ -928,7 +927,11 @@ def plot_resource_occupation_heat_map(
     for resource, resource_occupations in reschedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
         x_r.append(resource.column)
         y_r.append(resource.row)
-        size_r.append((len(resource_occupations)) - len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource]))
+        if resource in schedule_as_resource_occupations.sorted_resource_occupations_per_resource:
+            schedule_number_of_occupations = len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource])
+        else:
+            schedule_number_of_occupations = 0
+        size_r.append((len(resource_occupations)) - schedule_number_of_occupations)
 
     # Count start-target occupations
     starts_target = {}
@@ -1016,8 +1019,8 @@ def plot_resource_occupation_heat_map(
                       width=1000,
                       height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
 
     fig.show()
 

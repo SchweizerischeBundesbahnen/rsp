@@ -11,10 +11,10 @@ if __name__ == '__main__':
     # Beware of time-stamps when re-runing experiments
 
     # Generate schedule with n_agents
-    n_agents = 50
+    n_agents = 90
     experiment_name = 'schedule_{}_agents'.format(n_agents)
     experiment_base_directory = '../rsp-data/{}/'.format(experiment_name)
-
+    experiment_base_directory = './schedule_90_agents_2020_07_06T21_22_53/'
     if not os.path.exists(experiment_base_directory):
         experiment_base_directory = None
 
@@ -23,16 +23,16 @@ if __name__ == '__main__':
 
     # Update n_agent ranges and see,
     new_agent_ranges = {'agent_range': [n_agents, n_agents, 1],
-                        'size_range': [50, 50, 1],
-                        'in_city_rail_range': [3, 3, 1],
-                        'out_city_rail_range': [2, 2, 1],
-                        'city_range': [3, 3, 1]}
+                        'size_range': [100, 100, 1],
+                        'in_city_rail_range': [2, 2, 1],
+                        'out_city_rail_range': [1, 1, 1],
+                        'city_range': [20, 20, 1]}
     parameter_ranges_and_speed_data = tweak_parameter_ranges(original_ranges_and_data=parameter_ranges_and_speed_data, new_parameter_ranges=new_agent_ranges)
 
     # Vary the malfunction
-    malfunction_ranges = {'earliest_malfunction': [1, 300, 50],
+    malfunction_ranges = {'earliest_malfunction': [1, 500, 50],
                           'malfunction_duration': [50, 50, 1]}
-    malfunction_agent_id = 35
+    malfunction_agent_id = 82
 
     # Run the malfunction variation experiments
     hypothesis_one_malfunction_analysis(copy_agenda_from_base_directory=experiment_base_directory,
