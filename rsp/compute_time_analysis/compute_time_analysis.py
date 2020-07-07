@@ -707,6 +707,38 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
     fig.show()
 
 
+def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
+    """
+    Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
+    Parameters
+    ----------
+    experiment_data_frame
+    experiment_id
+
+    Returns
+    -------
+
+    """
+
+    lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
+    lateness_delta_after_malfunction = experiment_results.lateness_delta_after_malfunction
+    lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
+    lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=np.arange(len(lateness_full_values)), y=lateness_full_values, name='Full Reschedule'
+                         ))
+    fig.add_trace(go.Bar(x=np.arange(len(lateness_delta_values)), y=lateness_delta_values, name='Delta Reschedule'
+                         ))
+    fig.update_layout(barmode='overlay')
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Delay per Train")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Delaz in Seconds")
+
+    fig.show()
+
+
 def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
                    agent_id: int,
                    suffix_of_constraints_to_visualize: ScheduleProblemEnum,
