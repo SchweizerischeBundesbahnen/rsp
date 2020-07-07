@@ -304,7 +304,6 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         base_experiment_id: int = 0,
         malfunction_agent_id: int = 0,
         experiment_agenda_name: Optional[str] = None,
-        experiment_name: str = None,
         parallel_compute: int = AVAILABLE_CPUS // 2
 ):
     """Simple method to run experiments with new parameters without the need to
@@ -329,7 +328,15 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     Returns
     -------
     """
-    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
+
+    # Extract name of experiment folder
+    base_directory_string_name = ''
+    for char in copy_agenda_from_base_directory:
+        if char in ['.','/']:
+            base_directory_string_name += ''
+        else:
+            base_directory_string_name += char
+    rsp_logger.info(f"RERUN from {base_directory_string_name} WITHOUT REGEN SCHEDULE")
 
     # Load the previous agenda
     rsp_logger.info("Loading Agenda and Schedule")
@@ -339,7 +346,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     # Change the name of the experiment if desired
     if experiment_agenda_name is not None:
         loaded_experiment_agenda = ExperimentAgenda(
-            experiment_name=experiment_agenda_name + "_base_" + experiment_name + "_new_",
+            experiment_name=experiment_agenda_name + "_base_" + base_directory_string_name + "_new_",
             experiments=loaded_experiment_agenda.experiments
         )
 
@@ -449,7 +456,6 @@ def hypothesis_one_malfunction_analysis(
         experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data,
                                                                   experiment_name=experiment_name,
                                                                   flatland_seed=flatland_seed)
-        experiment_name = experiment_base_folder_name
     # Use existing Schedule
     else:
         experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
@@ -468,7 +474,6 @@ def hypothesis_one_malfunction_analysis(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         base_experiment_id=base_experiment_id,
         experiment_agenda_name=f"agent_{malfunction_agent_id}_malfunction",
-        experiment_name=experiment_name,
         parallel_compute=parallel_compute,
         malfunction_agent_id=malfunction_agent_id
     )

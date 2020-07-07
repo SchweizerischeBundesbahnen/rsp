@@ -200,9 +200,9 @@ def extract_time_windows_and_transmission_chains(experiment_result: ExperimentRe
 
 
 def plot_delay_propagation_graph(  # noqa: C901
-        minimal_depth,
+        minimal_depth: dict,
         distance_matrix,
-        changed_agents,
+        changed_agents: dict,
         file_name: Optional[str] = None
 ):
     """
@@ -223,9 +223,16 @@ def plot_delay_propagation_graph(  # noqa: C901
     max_depth = max(list(minimal_depth.values()))
     agents_per_depth = [[] for _ in range(max_depth + 1)]
     agent_counter_per_depth = [0 for _ in range(max_depth + 1)]
+
+    # see changed agents that are not in the propagation
+    changed_agents_ids = dict(filter(lambda elem: elem[1], changed_agents.items()))
+    true_positives = set.intersection(set(changed_agents_ids.keys()), set(minimal_depth.keys()))
+    false_negatives = set(changed_agents_ids.keys()) - true_positives
+    print("Agents not shown but affected \n", false_negatives)
     # get agents for each depth
     for agent, depth in minimal_depth.items():
         agents_per_depth[depth].append(agent)
+
     num_agents = len(distance_matrix[:, 0])
     node_positions = {}
     for depth in range(max_depth + 1):
@@ -257,7 +264,7 @@ def plot_delay_propagation_graph(  # noqa: C901
             for pos in node_line:
                 x.append(pos[1])
                 y.append(pos[0])
-            if changed_agents[from_agent]:
+            if from_agent in true_positives:
                 color = "red"
             else:
                 color = "yellow"
