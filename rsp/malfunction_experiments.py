@@ -14,7 +14,6 @@ if __name__ == '__main__':
     n_agents = 10
     experiment_name = 'schedule_{}_agents'.format(n_agents)
     experiment_base_directory = '../rsp-data/{}/'.format(experiment_name)
-    #experiment_base_directory = './schedule_10_agents_2020_07_07T11_09_40/'
     if not os.path.exists(experiment_base_directory):
         experiment_base_directory = None
 
@@ -28,7 +27,8 @@ if __name__ == '__main__':
                             'in_city_rail_range': [2, 2, 1],
                             'out_city_rail_range': [1, 1, 1],
                             'city_range': [20, 20, 1]}
-        parameter_ranges_and_speed_data = tweak_parameter_ranges(original_ranges_and_data=parameter_ranges_and_speed_data, new_parameter_ranges=new_agent_ranges)
+        parameter_ranges_and_speed_data = tweak_parameter_ranges(original_ranges_and_data=parameter_ranges_and_speed_data,
+                                                                 new_parameter_ranges=new_agent_ranges)
 
     # Vary the malfunction
     malfunction_ranges = {'earliest_malfunction': [1, 300, 2],

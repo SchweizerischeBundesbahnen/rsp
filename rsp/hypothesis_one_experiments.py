@@ -332,7 +332,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     # Extract name of experiment folder
     base_directory_string_name = ''
     for char in copy_agenda_from_base_directory:
-        if char in ['.','/']:
+        if char in ['.', '/']:
             base_directory_string_name += ''
         else:
             base_directory_string_name += char

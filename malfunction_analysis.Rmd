@@ -30,6 +30,7 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_d
 from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
 from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.compute_time_analysis.compute_time_analysis import plot_agent_specific_delay
 from rsp.compute_time_analysis.compute_time_analysis import print_situation_overview
 
 
@@ -42,7 +43,7 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ### Load Experiment Data
 
 ```{python}
-experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_22T11_48_47/'
+experiment_base_directory = './agent_5_malfunction_base_schedule_80_agents_2020_07_01T00_10_28_new__2020_07_01T00_42_03/'
 experiment_of_interest = 2
 agent_of_interest = 10
 ```
@@ -136,6 +137,10 @@ Figure below shows the histogram of the delay times, giving us a great overview 
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
+```{python}
+plot_agent_specific_delay(experiment_results=exp_results_of_experiment_of_interest)
+```
+
 The below figure shows the propagation of the malfunction within the schedule, when there are no actions taken. The progation is projected to show the influence from an agent to the next agent.
 
 Given that the influence from one agent to the next can follow different delay propagaions through the system and we only plot the lowest influence depth recorded, connected agents might have larger than 1 difference in influence depth.
@@ -147,12 +152,6 @@ THe figure below is a simplified projection which should only help to visualize 
 ```{python}
 plot_delay_propagation_graph(minimal_depth = minimal_depth,
         distance_matrix = distance_matrix, changed_agents= changed_agents_dict)
-```
-
-```{python}
-for agent, changed in changed_agents_dict.items():
-    if changed and agent not in minimal_depth:
-        print("Missed agent {}".format(agent))
 ```
 
 # Transmission Chains Time Window
