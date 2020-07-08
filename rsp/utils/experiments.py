@@ -1319,7 +1319,7 @@ def folder_to_name(foldername: str) -> str:
     # Extract name of experiment folder
     name_only = ''
     for char in foldername:
-        if char in ['.', '/']:
+        if char in ['.']:
             name_only += ''
         elif char in ['/']:
             name_only += '_'
