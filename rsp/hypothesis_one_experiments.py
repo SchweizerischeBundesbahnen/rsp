@@ -12,7 +12,7 @@ from rsp.logger import rsp_logger
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.experiments import AVAILABLE_CPUS
+from rsp.utils.experiments import AVAILABLE_CPUS, folder_to_name
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import exists_schedule_and_malfunction
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
@@ -329,13 +329,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     -------
     """
 
-    # Extract name of experiment folder
-    base_directory_string_name = ''
-    for char in copy_agenda_from_base_directory:
-        if char in ['.', '/']:
-            base_directory_string_name += ''
-        else:
-            base_directory_string_name += char
+    base_directory_string_name = folder_to_name(copy_agenda_from_base_directory)
     rsp_logger.info(f"RERUN from {base_directory_string_name} WITHOUT REGEN SCHEDULE")
 
     # Load the previous agenda

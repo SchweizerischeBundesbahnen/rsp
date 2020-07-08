@@ -13,7 +13,7 @@ if __name__ == '__main__':
     # Generate schedule with n_agents
     n_agents = 10
     experiment_name = 'schedule_{}_agents'.format(n_agents)
-    experiment_base_directory = '../rsp-data/{}/'.format(experiment_name)
+    experiment_base_directory = '../rsp-data/schedule_90_agents_2020_07_06T21_22_53/'.format(experiment_name)
     if not os.path.exists(experiment_base_directory):
         experiment_base_directory = None
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
                                                                  new_parameter_ranges=new_agent_ranges)
 
     # Vary the malfunction
-    malfunction_ranges = {'earliest_malfunction': [1, 300, 2],
+    malfunction_ranges = {'earliest_malfunction': [1, 300, 50],
                           'malfunction_duration': [50, 50, 1]}
     malfunction_agent_id = 1
 
