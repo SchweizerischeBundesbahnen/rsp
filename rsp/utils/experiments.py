@@ -1303,8 +1303,8 @@ def _make_suffix(alt_index: Optional[int]) -> str:
 
 
 def folder_to_name(foldername: str) -> str:
-    """
-    Returns a foldername as string to be able to use for naming in other methods
+    """Returns a foldername as string to be able to use for naming in other
+    methods.
 
     Parameters
     ----------
@@ -1314,7 +1314,6 @@ def folder_to_name(foldername: str) -> str:
     Returns
     -------
         sub-folder name
-
     """
     # Extract name of experiment folder
     name_only = ''

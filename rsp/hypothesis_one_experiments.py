@@ -12,10 +12,11 @@ from rsp.logger import rsp_logger
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.experiments import AVAILABLE_CPUS, folder_to_name
+from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import exists_schedule_and_malfunction
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import folder_to_name
 from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_parameter_ranges_and_speed_data
