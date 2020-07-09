@@ -1197,6 +1197,74 @@ def plot_delay_propagation_2d(
         fig.write_image(file_name)
 
 
+def plot_train_paths(
+        plotting_data: SchedulePlotting,
+        agent_ids: List[int],
+        file_name: Optional[str] = None):
+    """
+    Plot agent delay over ressource, only plot agents that are affected by the malfunction.
+    Parameters
+    ----------
+    schedule_resources
+        Dict containing all the times and agent handles for all resources
+
+    Returns
+    -------
+
+    """
+
+    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    layout = go.Layout(
+        plot_bgcolor=GREY_BACKGROUND_COLOR
+    )
+    fig = go.Figure(layout=layout)
+
+    # Plot traces of agents
+    for agent_id in agent_ids:
+        x = []
+        y = []
+        size = []
+        marker = []
+        times = []
+        delay = []
+        conflict_depth = []
+        for resource_occupation in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
+            time = resource_occupation.interval.from_incl
+
+            malfunction_resource = resource_occupation.resource
+            x.append(malfunction_resource[1])
+            y.append(malfunction_resource[0])
+            marker.append(MARKER_LIST[int(np.clip(resource_occupation.direction, 0, 3))])
+            times.append(time)
+            color = PLOTLY_COLORLIST[agent_id]
+
+        fig.add_trace(go.Scattergl(x=x,
+                                   y=y,
+                                   mode='markers',
+                                   name="Train {}".format(agent_id),
+                                   marker_symbol=marker,
+                                   customdata=list(zip(times, delay, conflict_depth)),
+                                   marker_size=10,
+                                   marker_opacity=1,
+                                   marker_color=color,
+                                   marker_line_color=color,
+                                   hovertemplate="Time:\t%{customdata[0]}<br>" +
+                                                 "Delay:\t%{customdata[1]}<br>" +
+                                                 "Influence depth:\t%{customdata[2]}"
+                                   ))
+    fig.update_layout(title_text="Malfunction position and effects",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    if file_name is None:
+        fig.show()
+    else:
+        fig.write_image(file_name)
+
+
 def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations):
     """Plot agent density over time.
 
