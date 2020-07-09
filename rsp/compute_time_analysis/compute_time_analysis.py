@@ -1223,7 +1223,6 @@ def plot_train_paths(
     for agent_id in agent_ids:
         x = []
         y = []
-        size = []
         marker = []
         times = []
         delay = []

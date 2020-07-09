@@ -1322,7 +1322,8 @@ def folder_to_name(foldername: str) -> str:
             name_only += ''
         elif char in ['/']:
             name_only += '_'
-
+        elif char in ['-']:
+            name_only += '_'
         else:
             name_only += char
     return name_only
