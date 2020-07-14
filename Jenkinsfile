@@ -118,6 +118,12 @@ git submodule update --init --recursive
             }
         }
         // if we're on master, tag the docker image with the new semantic version
+        stage("Breathe") {
+            steps{
+                echo "blabla"
+            }
+        }
+        // if we're on master, tag the docker image with the new semantic version
         stage("Build and Tag Docker Image if on master") {
             when {
                 allOf {
