@@ -107,8 +107,8 @@ git submodule update --init --recursive
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
 
-        # run unit tests
-        python -m pytest tests
+        # run unit tests without capturing
+        python -m pytest -s tests
 
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
