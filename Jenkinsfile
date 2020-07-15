@@ -107,7 +107,7 @@ git submodule update --init --recursive
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
 
-        # run unit tests without capturing
+        # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
         #python -m pytest -ra -v tests
 
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
@@ -178,19 +178,18 @@ helm delete rsp-ci-$GIT_COMMIT | echo
                             ]
                     )
                     echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
-                    // TODO temporary workaround because of CLEW-4973
-//                    cloud_helmchartsTest(
-//                            cluster: OPENSHIFT_CLUSTER,
-//                            project: env.OPENSHIFT_PROJECT,
-//                            credentialId: SERVICE_ACCOUNT_TOKEN,
-//                            release: 'rsp-ci',
-//                            timeoutInSeconds: 900
-//                    )
+                    cloud_helmchartsTest(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project: env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            release: 'rsp-ci-$GIT_COMMIT',
+                            timeoutInSeconds: 1800
+                    )
+                    echo "helm test succesful -> remove pod."
                     withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm test rsp-ci-$GIT_COMMIT --timeout=1800s
 helm delete rsp-ci-$GIT_COMMIT | echo
 '''
                     }
