@@ -10,9 +10,9 @@
 \usepackage{float}
 
 \title{Real Time Large Railway Network Re-Scheduling}
-\author{Erik, Christian, Emma}
+\author{Erik Nygren\footnote{\url{erik.nygren@sbb.ch}}, Christian Eichenberger\footnote{\url{christian.markus.eichenberger@sbb.ch}}, Emma Frejinger\footnote{\url{emma.frejinger@cirrelt.ca}}}
 
-\date{October 2019}
+\date{\today}
 
 \newcommand*{\NNN}[0]{\mathbb{N}}%
 \newcommand*\xor{\mathbin{\oplus}}
@@ -27,14 +27,18 @@
 \begin{abstract}
 In this paper, we describe our first steps to tackle the Re-Scheduling Problem for Real-Time Large Railway Networks by a combination of techniques from operations research with different heuristics from ML and domain-specific heuristics.
 
-The Industry State of the Art manages to resolve re-scheduling conflicts fully automatically only at narrowly defined hubs. In our approach, we aim at combining the best of two worlds: the rigor of the OR formulation with condensed experience in the form of a hypothesized Oracle. The Oracle's prediction could either narrow down the solution space (hard constraints) or speed up the solution process by strong priorities (soft constraints).
+The Industry State of the Art manages to resolve re-scheduling conflicts fully automatically only at narrowly defined hubs. In our approach, we aim at combining the best of two worlds: the rigor of the OR formulation with condensed experience in the form of a hypothesized Oracle. The Oracle's prediction could either narrow down the solution space (hard constraints) or speed up the solution process by strong priorities (soft constraints and solver heuristics).
 
 We believe that the very nature of railway system allows for very strong heuristics which could allow for the problem to become tractable for large networks in real-time scenarios.
 
-
-The goal of this paper is to report the decompositional problem formulation and our first steps in tackling the Oracle. We hope that this will draw the attention of both academic and industrial researchers to find other and better approaches and collaboration across Railway companies and from different research traditions.
-
-
+The goal of this paper is four-fold:
+\begin{description}
+\item[G1] report the decompositional problem formulation in a formal way;
+\item[G2] show the validity of the approach for one OR solver;
+\item[G3] report our first steps in tackling the Oracle;
+\item[G4] provide an extensible playground implementation for further research.
+\end{description}
+ We hope that this will draw the attention of both academic and industrial researchers to find other and better approaches and collaboration across Railway companies and from different research traditions.
 \end{abstract}
 
 
@@ -42,10 +46,79 @@ The goal of this paper is to report the decompositional problem formulation and 
 
 \section{Context and Goals}
 \subsection{Real-world Context}
-        real-world context, show our synthetic assumptions which are violated in the real-world
-        real-world operations: how is it solved today in the real world, by humans and algorithmic
-        Hypothesis 1: show speed-up in at least one implementation
-        Hypothesis 2: show some ideas, show why space and time
+% real-world operations: how is it solved today in the real world, by humans and algorithmic
+Switzerland has a dense railway network with both freight and passenger trains running on the same infrastructure. More than 1.2 million people use trains on a daily basis \cite{rcsbrochure}.
+In Railway Operations, the operational schedule has to be continually re-computed because of many smaller and larger delays that arise during operations. Not all of those can be absorbed by extra times in the schedule, and if the delay has an impact on other trains, decisions on re-ordering or re-routing trains have to be taken to derive a new feasible operational plan. The industry state of the art is that delay propagation is efficiently re-computed by online IT systems. Conflicts, however, have to be most often resolved by humans by explicitly deciding on re-ordering or re-routing based on their experience. Because of the massive combinatorial complexity of these microscopic models, Operations Research models are currently only applied in very restricted, highly condensed geographic areas for re-ordering decisions but do not consider routing alternatives.
+
+
+
+This situation is depicted in a schematic way in Figure~\ref{fig:introduction_compensation}:
+%
+\begin{figure}[ht]
+	\centering
+  \includegraphics[width=0.9\textwidth]{introduction_compensation.png}
+	\caption{}
+	\label{fig:introduction_compensation}
+\end{figure}
+%
+There is a common view of the current situation within system boundaries; the whole system is decomposed into disjoint geographic cells of responsibility. Most of them are handled by humans: human dispatchers have a view of the full system and can communicate through structured (e.g. IT system of incident messages) or informal ways (e.g. phone call with station managers or locomotive drivers). There are only a few condensation areas \cite{caimi2009} (in bottleneck areas such as merging areas in front of large stations or tunnels) that are operated through automatic systems. Between these areas, trains need to be able to compensate: if trains are reordered, these decisions must be taken into account in the neighboring areas.
+
+
+
+
+
+\subsection{Research Approach: Decomposition in Space and Time}
+Physical railway infrastructure is expensive in building and maintenance \cite{sr40programm}.
+Therefore, the existing infrastructure capacity should be exploited as best as possible.
+As the number of trains operating increases and condensation areas increase in number and size, it will become increasingly difficult to compensate for decisions taken within condensation zones or to define restrictions that keep the effects on the neighboring compensation zones as predictable as possible.
+
+We will argue that
+\begin{description}
+\item [H2] it is possible to predict the affected time-space, either from the problem structure or from historic data (see below, Section~\ref{subec:H2});
+\item [H1] such a prediction allows for a speed-up of the OR model (see below, Section~\ref{subec:H1}).
+\end{description}
+
+
+
+To tackle this problem, our approach is to combine Operations Research and Domain-specific Learning to get the best of both worlds: an "Oracle" is able to predict the "impact" of a delay, with or without a knowledge base learnt by training; we hope the Oracle could predict which trains and which departures are or could be affected by the delay based on past decisions. This piece of information from the Oracle then helps the solver to constrain the search space or at least drive its search more efficiently (driving the branching process).
+
+This approach is shown in Figure~\ref{fig:introduction_time_space}:
+%
+\begin{figure}[ht]
+	\centering
+  \includegraphics[width=0.9\textwidth]{introduction_time_space.png}
+	\caption{}
+	\label{fig:introduction_time_space}
+\end{figure}
+the Oracle predicts restrictions in time and space, which are passed to the solver.
+
+\subsection{Research Approach: a Synthetic Playground}
+We now give a short introduction to our playground implementation (G4) and its limitation with respect to real-world features.
+
+\begin{description}
+\item[Synthetic Infrastructure and Simplified Resource Model] \cite{aicrowdFLATland}
+: Generator, no shared occupation
+\item[Synthetic Timetable]
+        Every train has one single source and target, no intermediate stations
+        Every train has a constant speed (may be different from train to train)
+        no cycles in the schedule
+        schedule is generated to minimize sum of travel times satisfying an arbitrary upper bound → might be unrealistic
+        no time reserves (no catching up)
+        no distinction between published timetable and operational schedule (the published timetable imposes
+        no connections or vehicle tours (turnrounds)
+        no stops
+        simplified train dynamics
+\item[Synthetic route alternatives]
+        10 shortest paths (in reality, in particular in the case of disturbances affecting a whole are, we might need a different scheme knowing the parts that cannot be taken)
+\item[Simple Disturbance Model]:  one train stopped for d discrete time steps at time t; in reality, the delay might not be known or only probabilities can be assumed.
+    In reality, update information comes in batches and we would need to consider multiple delays in the same update interval
+\end{description}
+
+
+\subsubsection{Hypothesis 1}\label{subec:H1}
+show speed-up in at least one implementation
+\subsubsection{Hypothesis 2}\label{subec:H2}
+show some ideas, show why space and time
 
 
 \section{Show Pipeline H1}
@@ -71,6 +144,10 @@ The goal of this paper is to report the decompositional problem formulation and 
 
 
 
+\bibliographystyle{unsrt}
+\bibliography{biblio}
+
+\end{document}
 
 
 
@@ -80,7 +157,7 @@ The goal of this paper is to report the decompositional problem formulation and 
 \section{Introduction}
 Here we describe the Re-Scheduling problem.
 
-Switzerland has a dense railway network with both freight and passenger trains running on the same infrastructure. More than 1.2 million people use trains on a daily basis. In Railway Operations, the operational schedule has to be continually re-computed because of many smaller and larger delays that arise during operations. Not all of those can be absorbed by extra times in the schedule, and if the delay has an impact on other trains, decisions on re-ordering or re-routing trains have to be taken to derive a new feasible operational plan. The industry state of the art is that delay propagation is efficiently re-computed by online IT systems Conflicts, however, have to be most often resolved by humans by explicitly deciding on re-ordering or re-routing based on their experience. Because of the massive combinatorial complexity of these microscopic models, Operations Research models are currently only applied in very restricted, highly condensed areas for re-ordering decisions but do not consider routing alternatives.
+Switzerland has a dense railway network with both freight and passenger trains running on the same infrastructure. More than 1.2 million people use trains on a daily basis. In Railway Operations, the operational schedule has to be continually re-computed because of many smaller and larger delays that arise during operations. Not all of those can be absorbed by extra times in the schedule, and if the delay has an impact on other trains, decisions on re-ordering or re-routing trains have to be taken to derive a new feasible operational plan. The industry state of the art is that delay propagation is efficiently re-computed by online IT systems. Conflicts, however, have to be most often resolved by humans by explicitly deciding on re-ordering or re-routing based on their experience. Because of the massive combinatorial complexity of these microscopic models, Operations Research models are currently only applied in very restricted, highly condensed areas for re-ordering decisions but do not consider routing alternatives.
 Research Approach
 
 To tackle this problem, our approach is to combine Operations Research and Machine Learning to get the best of both worlds: a Graph Neural Network acts as an Oracle for Operations Research by learning a heuristic that predicts the "impact" of a delay; we hope the Oracle could predict which trains and which departures are or could be affected by the delay based on past decisions. This piece of information from the oracle then helps the (MILP or CP) solver to constrain the search space or at least drive its search more efficiently (driving the branching process). We hope that Graph Neural Networks are a natural way to represent the graph structure of railway networks.
