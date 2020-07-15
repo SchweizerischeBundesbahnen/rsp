@@ -108,19 +108,13 @@ git submodule update --init --recursive
         SKIP=docformatter pre-commit run --all --verbose
 
         # run unit tests without capturing
-        python -m pytest -ra -v tests
+        #python -m pytest -ra -v tests
 
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
 """
                         }
                 )
-            }
-        }
-        // if we're on master, tag the docker image with the new semantic version
-        stage("Breathe") {
-            steps{
-                echo "blabla"
             }
         }
         // if we're on master, tag the docker image with the new semantic version
