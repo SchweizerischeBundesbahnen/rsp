@@ -17,7 +17,6 @@ rsp_logger.addHandler(stdout_handler)
 
 # file handler
 def add_file_handler_to_rsp_logger(file_name: str, log_level=logging.INFO) -> logging.FileHandler:
-    return
     fh = logging.FileHandler(file_name)
     fh.setLevel(log_level)
     fh.setFormatter(rsp_log_formatter)
@@ -26,6 +25,5 @@ def add_file_handler_to_rsp_logger(file_name: str, log_level=logging.INFO) -> lo
 
 
 def remove_file_handler_from_rsp_logger(fh: logging.FileHandler):
-    return
     fh.close()
     rsp_logger.removeHandler(fh)

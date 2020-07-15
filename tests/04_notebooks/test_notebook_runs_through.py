@@ -17,7 +17,7 @@ def multiline_eval(expr):
     return eval(compile(eval_expr, 'file', 'eval'))
 
 
-if __name__ == '__main__':
+def test_notebooks_run_through():
     base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir)
     # TODO SIM-571 activate potassco notebooks when data is added to rsp-data
     notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd") and 'potassco' not in f]
