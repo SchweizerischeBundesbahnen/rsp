@@ -194,7 +194,8 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
                                           run_analysis: bool = True,
                                           parallel_compute: int = AVAILABLE_CPUS // 2,
                                           # take only half of avilable cpus so the machine stays responsive
-                                          gen_only: bool = False
+                                          gen_only: bool = False,
+                                          add_file_handler_to_rsp_logger: bool = False
                                           ):
     """Run pipeline from A.2 -> C.
 
@@ -219,7 +220,8 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiment_ids=experiment_ids,
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        gen_only=gen_only
+        gen_only=gen_only,
+        add_file_handler_to_rsp_logger=add_file_handler_to_rsp_logger
     )
     if gen_only:
         return experiment_base_folder_name
@@ -252,6 +254,7 @@ def hypothesis_one_rerun_without_regen_schedule(
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiment_ids: List[int] = None,
         run_analysis: bool = True,
+        add_file_handler_to_rsp_logger: bool = False,
         nb_runs: int = 1):
     """
 
@@ -295,7 +298,8 @@ def hypothesis_one_rerun_without_regen_schedule(
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
         parallel_compute=parallel_compute,
         experiment_ids=experiment_ids,
-        run_analysis=run_analysis
+        run_analysis=run_analysis,
+        add_file_handler_to_rsp_logger=add_file_handler_to_rsp_logger
     )
 
 
