@@ -57,6 +57,7 @@ from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
+from rsp.logger import add_file_handler_to_rsp_logger
 from rsp.logger import remove_file_handler_from_rsp_logger
 from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
@@ -560,7 +561,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
                                 show_results_without_details: bool,
                                 experiment_base_directory: str,
                                 gen_only: bool = False,
-                                add_file_handler_to_rsp_logger: bool = False
+                                with_file_handler_to_rsp_logger: bool = False
                                 ):
     """B. Run and save one experiment from experiment parameters.
     Parameters
@@ -575,7 +576,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     # add logging file handler in this thread
-    if add_file_handler_to_rsp_logger:
+    if with_file_handler_to_rsp_logger:
         stdout_log_file = os.path.join(experiment_data_directory, f"log.txt")
         stderr_log_file = os.path.join(experiment_data_directory, f"err.txt")
         stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
@@ -600,7 +601,7 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:
-        if add_file_handler_to_rsp_logger:
+        if with_file_handler_to_rsp_logger:
             remove_file_handler_from_rsp_logger(stdout_log_fh)
             remove_file_handler_from_rsp_logger(stderr_log_fh)
         rsp_logger.info(f"end experiment {current_experiment_parameters.experiment_id}")
@@ -615,7 +616,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                           show_results_without_details: bool = True,
                           verbose: bool = False,
                           gen_only: bool = False,
-                          add_file_handler_to_rsp_logger: bool = False
+                          with_file_handler_to_rsp_logger: bool = False
                           ) -> (str, str):
     """Run B. a subset of experiments of a given agenda. This is useful when
     trying to find bugs in code.
@@ -653,7 +654,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             "Using only one process in pool might cause pool to stall sometimes. Use more than one process in pool?")
 
     # tee stdout to log file
-    if add_file_handler_to_rsp_logger:
+    if with_file_handler_to_rsp_logger:
         stdout_log_file = os.path.join(experiment_data_directory, "log.txt")
         stderr_log_file = os.path.join(experiment_data_directory, "err.txt")
         stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
@@ -713,7 +714,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             show_results_without_details=show_results_without_details,
             experiment_base_directory=experiment_base_directory,
             gen_only=gen_only,
-            add_file_handler_to_rsp_logger=add_file_handler_to_rsp_logger
+            add_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
         )
 
         for pid_done in tqdm.tqdm(
@@ -728,10 +729,10 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
 
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE)
         newline_and_flush_stdout_and_stderr()
-        if add_file_handler_to_rsp_logger:
+        if with_file_handler_to_rsp_logger:
             _print_error_summary(experiment_data_directory)
     finally:
-        if add_file_handler_to_rsp_logger:
+        if with_file_handler_to_rsp_logger:
             remove_file_handler_from_rsp_logger(stdout_log_fh)
             remove_file_handler_from_rsp_logger(stderr_log_fh)
 
