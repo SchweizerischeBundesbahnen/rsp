@@ -714,7 +714,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             show_results_without_details=show_results_without_details,
             experiment_base_directory=experiment_base_directory,
             gen_only=gen_only,
-            add_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
+            with_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
         )
 
         for pid_done in tqdm.tqdm(
