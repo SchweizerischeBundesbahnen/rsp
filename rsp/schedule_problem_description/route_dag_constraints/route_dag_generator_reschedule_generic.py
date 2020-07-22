@@ -359,6 +359,7 @@ def _generic_route_dag_contraints_for_rescheduling(
         freeze_latest = propagate_latest(
             banned_set=set(),
             earliest_dict=freeze_earliest,
+            # TODO should this be release time instead of -1?
             latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)},
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,
