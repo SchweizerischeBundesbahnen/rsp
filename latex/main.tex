@@ -456,11 +456,14 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 \begin{algorithm}
 	\caption{$propagate\_earliest$} \label{algo:propagate_earliest}
 	\begin{algorithmic}[1]
-	    \Require $e$, $(S,L)$, $F$, $mrt$
+	    \Require $e$, $(S,L)$, $F$, $mrt$ s.t. $F\subseteq \dom(e)$
 	    \Ensure $e$
 	    \State $Open \leftarrow F$
 	    \For {$v \in Open$}
     	    \For {$v^\prime \in S-F: (v,v^\prime) \in L$}
+    	        \If{$v^\prime \not\in \dom(e)$}
+    	            \State $e(v^\prime) \leftarrow \infty$
+    	        \EndIf
     			\State $e(v) \leftarrow \min \Set*{e(v^\prime), e(v)+mrt}$
     			\State $Open \leftarrow Open \cup \Set*{v^\prime}$
     		\EndFor
@@ -472,7 +475,7 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 \begin{figure}[hbtp]
 	\centering
   \includegraphics[width=0.8\textwidth]{H1_propagate_earliest.png}
-	\caption{Illustration of $propagate\_earliest$ for an agent with speed $\frac{1}{2}$.}
+	\caption{Illustration of $propagate\_earliest$ for an agent $a$ with speed $v(a)=\frac{1}{2}$ (i.e. $mrt=2$).}
 	\label{fig:propagate_earliest}
 \end{figure}
 
@@ -480,12 +483,15 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 \begin{algorithm}
 	\caption{$propagate\_latest$} \label{algo:propagate_latest}
 	\begin{algorithmic}[1]
-	    \Require $l$, $(S,L)$, $F$, $mrt$
+	    \Require $l$, $(S,L)$, $F$, $mrt$  s.t. $F\subseteq \dom(l)$
 	    \Ensure $l$
 	    \State $Open \leftarrow F$
 	    \For {$v \in Open$}
     	    \For {$v^\prime \in S-F: (v^\prime,v) \in L$}
-    			\State $l(v) \leftarrow \max \Set*{e(v^\prime), e(v)-mrt}$
+    	        \If{$v^\prime \not\in \dom(l)$}
+    	            \State $l(v^\prime) \leftarrow -\infty$
+    	        \EndIf
+    			\State $l(v) \leftarrow \max \Set*{l(v^\prime), l(v)-mrt}$
     			\State $Open \leftarrow Open \cup \Set*{v^\prime}$
     		\EndFor
 			\State $Open \leftarrow Open - \Set*{v}$
@@ -497,7 +503,7 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 \begin{figure}[hbtp]
 	\centering
   \includegraphics[width=0.8\textwidth]{H1_propagate_latest.png}
-	\caption{Illustration of $propagate\_latest$ for an agent with speed $\frac{1}{2}$ and for upper bound $U=56$.}
+	\caption{Illustration of $propagate\_latest$ for an agent $a$ with speed $v(a)=\frac{1}{2}$ (i.e. $mrt=2$) and for upper bound $U=56$.}
 	\label{fig:propagate_latest}
 \end{figure}
 
@@ -584,21 +590,20 @@ if the train has not started yet at the malfunction time step, we keep its start
 	\caption{$Delta_0$ for train $a$} \label{algo:Delta0}
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
-	    \Ensure $(S_1,L_1),e,l$
+	    \Ensure $(S,L),e,l$
         \If{$\max_{v\in S} A(v) \leq m_{time\_step}$}
-            \State $S_1\leftarrow \emptyset$, $L_1 \leftarrow \emptyset$
+            \State $S\leftarrow \emptyset$, $L \leftarrow \emptyset$
         \ElsIf{$\min_{v\in S} A(v) > m_{time\_step}$}
-            \State $S_1 \leftarrow S$, $L_1 \leftarrow L$,
             \State $v_1 \leftarrow \argmin_{v\in S} A(v)$
             \State $e(v_1) \leftarrow A(v_1)$
-            \For{$\tau \in S_1: out(\tau)=0$}
+            \For{$\tau \in S: out(\tau)=0$}
                 \State $l(\tau)=U$
             \EndFor
-            \State $F_e \leftarrow \Set*{v_1}$
-            \State $F_l \leftarrow \Set*{\tau \in S_1: out(\tau)=0}$
-            \State $e,l,(S_1,L_1) \leftarrow propagate(e,l,(S_1,L_1),F_e,F_l,\Set*{v_1}, mrt, U, c)$
+            \State $F_v \leftarrow F_e \leftarrow \Set*{v_1}$
+            \State $F_l \leftarrow \Set*{\tau \in S: out(\tau)=0}$
+            \State $e,l,(S,L) \leftarrow propagate(e,l,(S,L),F_e,F_l,F_v, mrt, U, c)$
         \Else
-            \State $e,l,(S_1,L_1) \leftarrow Delta\_0\_running((S,L), (P,A), M, mrt, U, c)$
+            \State $e,l,(S,L) \leftarrow Delta\_0\_running((S,L), (P,A), M, mrt, U, c)$
         \EndIf
 \end{algorithmic}
 \end{algorithm}
@@ -615,7 +620,7 @@ Before describing the third case of the malfunction happening while the train is
 		\State $l \leftarrow propagate\_latest(l,(S,L),F_l, mrt)$
 		\If{$c < \infty$}
 		\For{$v\in S-F_e$}
-	        \State $l(v) \leftarrow \min l(v), e(v)+c$
+	        \State $l(v) \leftarrow \min \Set*{l(v), e(v)+c}$
 	    \EndFor
 	    \State $l \leftarrow propagate\_latest(l,(S,L),F_l, mrt)$
 	    \EndIf
@@ -632,10 +637,6 @@ Before describing the third case of the malfunction happening while the train is
 We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when the malfunction happens while the train is running. We refer to Algorithm~\ref{algo:Delta0running}: we first determine the edge $(v_1,v_2)$ the train is on when the malfunction happens; we then fix the time for $v_1$ as in $S0$ and set the earliest for $v_2$, possibly delayed. Then, we use $propagate$ to tighten the search space. Notice that $propagate$ will here remove the nodes on the scheduled path before $v_1$ (since the forward propagation will not reach these nodes, they will be removed as the time window will be empty).
 
 
-\begin{mdframed}
-{\bf TODO Christian} introduce convention for undefined e/l as infty / -infty instead of explicit loops?
-\end{mdframed}
-
 \begin{algorithm}
 	\caption{$Delta\_0\_running$ for running train $a$} \label{algo:Delta0running}
 	\begin{algorithmic}[1]
@@ -649,13 +650,8 @@ We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when t
             \State $e_1(v_2) \leftarrow A(v_1)+mrt$
         \EndIf
         \State $F_e \leftarrow \Set*{v_1,v_2}$, $F_l \leftarrow \Set*{v_1} \cup \Set*{\tau \in S: out(\tau)=0}$
-		\For {$v\in S-F_e$}
-	        \State $e(v) \leftarrow \infty$
-	    \EndFor
-        \For{$v\in S_1-F_l$}
-	        \State $l(v) \leftarrow -\infty$
-	    \EndFor
-	    \For{$\tau \in S_1-\Set*{v_1}: out(\tau)=0$}
+
+	    \For{$\tau \in S-\Set*{v_1}: out(\tau)=0$}
 	        \State $l(\tau) \leftarrow U$
 	    \EndFor
 		\State $e,l,(S,L) \leftarrow propagate(e,l,(S,L),F_e,F_l, \Set*{v_1,v_2}, mrt, U, c)$
@@ -673,7 +669,7 @@ We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when t
 Now we define the perfect oracle as outlined above.
 Let $(P_{S0},A_{S0})$ be the solution to the original train scheduling problem
 and let $N_S=(V_S,E_S,R_S,m_S,a_S,b_S)$ be the network of the re-scheduling problem for an agent
-and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{algo:Deltaperfect} defines the perfect oracle: we keep fixed all times and nodes that are common to $S_0$ and $S$, respectively. Everything that is not reachable in path ($F=\Delta_P$) or time ($F_e=F_l=\Delta_A)$) will be removed by $propagate$.
+and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{algo:Deltaperfect} defines the perfect oracle: we keep fixed all times and nodes that are common to $S_0$ and $S$, respectively. Everything that is not reachable in path ($F=\Delta_P$) or time ($F_e=F_l=\Delta_A)$) will be removed by $propagate$. Notice that we have $v_1 \in\subseteq \Delta_A \subseteq \Delta_P$ and $v_2 \in \Delta_P$
 
 
 
@@ -682,6 +678,9 @@ and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{
 
 
 
+\begin{mdframed}
+{\bf TODO Christian} does $Delta_{perfect}$ work if the agent has already terminated or has not started at malfunction time?
+\end{mdframed}
 
 
 \begin{algorithm}
@@ -693,9 +692,6 @@ and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{
 	    \State $\Delta_P \leftarrow \Set*{v: v\in P_S, v\in P_{S_0}}$
 	    \State $S_1 \leftarrow \Set*{v: v\in P_{S_0}} \cup \Set*{v: v\in P_{S}}$
 	    \State $L_1 \leftarrow \Set*{(v,v^\prime) \in P_S \textrm{ or } (v,v^\prime) \in P_{S_0}: v,v^\prime \in S_1}$
-	   \For{$v \in S_1$}
-	        \State $e(v) \leftarrow \infty$, $l(v) \leftarrow -\infty$
-	    \EndFor
 	    \For {$v \in \Delta_A$}
 	        \State $l(v)\leftarrow e(v)\leftarrow A_{S_0}(v)$
 	    \EndFor
