@@ -44,8 +44,10 @@ spec:
           git checkout {{ .Values.RspVersion }} --recurse-submodules
           cd $WORKDIR
           git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          cd rsp-data
           git status
-          find rsp-data
+          find .
+          cd $WORKDIR
 
           # activate conda activate
           # https://docs.anaconda.com/anaconda/install/silent-mode/
