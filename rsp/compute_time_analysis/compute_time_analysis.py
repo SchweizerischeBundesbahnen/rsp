@@ -855,7 +855,7 @@ render_flatland_env
                              trainruns=experiment_data.solution_full_after_malfunction,
                              convert_to_mpeg=True)
 
-    return Path(video_src_schedule), Path(video_src_reschedule)
+    return Path(video_src_schedule) if render_schedule else None, Path(video_src_reschedule) if render_reschedule else None
 
 
 def explode_trajectories(trajectories: Trajectories) -> Dict[int, Set[Tuple[int, int]]]:
