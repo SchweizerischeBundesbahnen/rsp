@@ -33,7 +33,7 @@ if __name__ == '__main__':
     # Vary the malfunction
     malfunction_ranges = {'earliest_malfunction': [1, 300, 50],
                           'malfunction_duration': [50, 50, 1]}
-    malfunction_agent_id = 1
+    malfunction_agent_id = 34
 
     # Run the malfunction variation experiments
     hypothesis_one_malfunction_analysis(copy_agenda_from_base_directory=experiment_base_directory,

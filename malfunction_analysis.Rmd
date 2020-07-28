@@ -43,9 +43,9 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ### Load Experiment Data
 
 ```{python}
-experiment_base_directory = './agent_5_malfunction_base_schedule_80_agents_2020_07_01T00_10_28_new__2020_07_01T00_42_03/'
+experiment_base_directory = '../rsp-data/agent_34_malfunction_base__rsp_data_schedule_90_agents_2020_07_06T21_22_53__new__2020_07_09T15_24_53/'
 experiment_of_interest = 2
-agent_of_interest = 10
+agent_of_interest = 84
 ```
 
 Extract data and aggregate plotting data
