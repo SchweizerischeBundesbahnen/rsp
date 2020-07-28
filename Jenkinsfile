@@ -149,6 +149,8 @@ git submodule update --init --recursive
                 }
             }
         }
+        // temporarily commented out notebooks in ci
+        /*
         stage("Integration Test Notebooks") {
             when {
                 anyOf {
@@ -197,7 +199,7 @@ helm delete rsp-ci-$GIT_COMMIT || echo
                     }
                 }
             }
-        }
+        }*/
         stage("Run Jupyter Workspace") {
             when {
                 allOf {
