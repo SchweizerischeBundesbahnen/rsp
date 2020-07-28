@@ -6,7 +6,7 @@ metadata:
     "helm.sh/hook": test-success
     "helm.sh/hook-delete-policy": hook-succeeded
 spec:
-  restartPolicy: OnFailure
+  restartPolicy: Never
   containers:
     - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
       imagePullPolicy: Always # Always or IfNotPresent (latest requires pulling always)

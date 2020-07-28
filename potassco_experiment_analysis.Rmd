@@ -155,7 +155,11 @@ plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_i
 #### Render the current environment
 
 ```{python}
-video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data=exp_results_of_experiment_of_interest,experiment_id = experiment_of_interest)
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_data_directory,
+                        experiment_data=exp_results_of_experiment_of_interest,
+                        experiment_id=0,
+                        render_schedule = True,
+                        render_reschedule = True)
 ```
 
 ```{python}
