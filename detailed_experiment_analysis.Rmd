@@ -35,14 +35,15 @@ from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_re
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
 from rsp.compute_time_analysis.compute_time_analysis import plot_time_density
 from rsp.compute_time_analysis.compute_time_analysis import plot_resource_occupation_heat_map
+from rsp.compute_time_analysis.compute_time_analysis import plot_train_paths
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = './agent_76_malfunction_base_schedule_80_agents_new__2020_07_03T20_46_53/'
+experiment_base_directory = '../rsp-data/agent_82_malfunction_base_rsp_data_schedule_90_agents_2020_07_06T21_22_53_new__2020_07_07T08_19_42/'
 experiment_of_interest = 0
-agent_of_interest = 76
+agent_of_interest = 82
 ```
 
 ```{python}
@@ -123,6 +124,22 @@ plot_resource_occupation_heat_map(
 )
 ```
 
+Detailed paths of single trains
+
+```{python}
+plot_train_paths(
+        plotting_data= plotting_data,
+        agent_ids= [82])
+```
+
+```{python}
+render_flatland_env(data_folder='./Video/',
+                        experiment_data=exp_results_of_experiment_of_interest,
+                        experiment_id=0,
+                        render_schedule = True,
+                        render_reschedule = False)
+```
+
 ```{python}
 # %matplotlib inline
 plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_SCHEDULE)
@@ -136,8 +153,4 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 ```{python}
 # %matplotlib inline
 plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
-```
-
-```{python}
-
 ```

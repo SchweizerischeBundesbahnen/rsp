@@ -16,6 +16,7 @@ from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import exists_schedule_and_malfunction
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import folder_to_name
 from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_parameter_ranges_and_speed_data
@@ -193,7 +194,8 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
                                           run_analysis: bool = True,
                                           parallel_compute: int = AVAILABLE_CPUS // 2,
                                           # take only half of avilable cpus so the machine stays responsive
-                                          gen_only: bool = False
+                                          gen_only: bool = False,
+                                          with_file_handler_to_rsp_logger: bool = False
                                           ):
     """Run pipeline from A.2 -> C.
 
@@ -218,7 +220,8 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiment_ids=experiment_ids,
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        gen_only=gen_only
+        gen_only=gen_only,
+        with_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
     )
     if gen_only:
         return experiment_base_folder_name
@@ -251,6 +254,7 @@ def hypothesis_one_rerun_without_regen_schedule(
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiment_ids: List[int] = None,
         run_analysis: bool = True,
+        with_file_handler_to_rsp_logger: bool = False,
         nb_runs: int = 1):
     """
 
@@ -294,7 +298,8 @@ def hypothesis_one_rerun_without_regen_schedule(
         copy_agenda_from_base_directory=copy_agenda_from_base_directory,
         parallel_compute=parallel_compute,
         experiment_ids=experiment_ids,
-        run_analysis=run_analysis
+        run_analysis=run_analysis,
+        with_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
     )
 
 
@@ -304,7 +309,6 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
         base_experiment_id: int = 0,
         malfunction_agent_id: int = 0,
         experiment_agenda_name: Optional[str] = None,
-        experiment_name: str = None,
         parallel_compute: int = AVAILABLE_CPUS // 2
 ):
     """Simple method to run experiments with new parameters without the need to
@@ -329,7 +333,9 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     Returns
     -------
     """
-    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
+
+    base_directory_string_name = folder_to_name(copy_agenda_from_base_directory)
+    rsp_logger.info(f"RERUN from {base_directory_string_name} WITHOUT REGEN SCHEDULE")
 
     # Load the previous agenda
     rsp_logger.info("Loading Agenda and Schedule")
@@ -339,7 +345,7 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     # Change the name of the experiment if desired
     if experiment_agenda_name is not None:
         loaded_experiment_agenda = ExperimentAgenda(
-            experiment_name=experiment_agenda_name + "_base_" + experiment_name + "_new_",
+            experiment_name=experiment_agenda_name + "_base_" + base_directory_string_name + "_new_",
             experiments=loaded_experiment_agenda.experiments
         )
 
@@ -351,7 +357,8 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     # Create new experiment agenda with malfunction variation
     rsp_logger.info("Creating New Agenda")
     experiment_agenda = create_experiment_agenda(experiment_name=loaded_experiment_agenda.experiment_name,
-                                                 parameter_ranges_and_speed_data=parameter_ranges_and_speed_data, flatland_seed=12,
+                                                 parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                                 flatland_seed=loaded_experiment_agenda.experiments[0].flatland_seed_value,
                                                  experiments_per_grid_element=1)
 
     # Save the new agenda and paramter ranges into a tmp folder
@@ -448,7 +455,6 @@ def hypothesis_one_malfunction_analysis(
         experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data,
                                                                   experiment_name=experiment_name,
                                                                   flatland_seed=flatland_seed)
-        experiment_name = experiment_base_folder_name
     # Use existing Schedule
     else:
         experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
@@ -467,7 +473,6 @@ def hypothesis_one_malfunction_analysis(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         base_experiment_id=base_experiment_id,
         experiment_agenda_name=f"agent_{malfunction_agent_id}_malfunction",
-        experiment_name=experiment_name,
         parallel_compute=parallel_compute,
         malfunction_agent_id=malfunction_agent_id
     )

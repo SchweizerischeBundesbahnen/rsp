@@ -53,11 +53,11 @@ spec:
           conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
           conda activate $WORKDIR/rsp-conda
 
-          # TODO SIM-545 should we move test to different locatioNn?
+          # run unit and integration tests
           export PYTHONPATH=$WORKDIR/rsp:$WORKDIR/rsp/flatland_ckua:$PYTHONPATH
           cd $WORKDIR/rsp
           export QT_DEBUG_PLUGINS=1
-          xvfb-run python tests/03_integration_tests/test_notebook_runs_through.py
+          xvfb-run python -m pytest tests
       resources:
       {{- toYaml .Values.resources | nindent 12 }}
       volumeMounts:

@@ -107,8 +107,10 @@ git submodule update --init --recursive
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
 
-        # run unit tests
-        python -m pytest tests
+        # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
+        python -m pytest tests/01_unit_tests
+        python -m pytest tests/02_regression_tests
+        python -m pytest tests/03_integration_tests
 
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
@@ -147,7 +149,82 @@ git submodule update --init --recursive
                 }
             }
         }
-
+        // temporarily commented out notebooks in ci
+        /*
+        stage("Integration Test Notebooks") {
+            when {
+                anyOf {
+                    // if the build was triggered manually with deploy=true, skip image building
+                    expression { !params.deploy }
+                    // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
+                    expression { env.CHANGE_ID == null }
+                }
+            }
+            steps {
+                script {
+                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                        sh '''
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+helm delete rsp-ci-$GIT_COMMIT || echo
+'''
+                    }
+                    cloud_helmchartsDeploy(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project: env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            chart: env.HELM_CHART,
+                            release: 'rsp-ci-' + GIT_COMMIT,
+                            additionalValues: [
+                                    // TODO the docker image should be extracted from this repo since they have independent lifecycles!
+                                    RspWorkspaceVersion: "latest",
+                                    RspVersion         : GIT_COMMIT
+                            ]
+                    )
+                    echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
+                    cloud_helmchartsTest(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project: env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            release: 'rsp-ci-$GIT_COMMIT',
+                            timeoutInSeconds: 1800
+                    )
+                    echo "helm test succesful -> remove pod."
+                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                        sh '''
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+helm delete rsp-ci-$GIT_COMMIT || echo
+'''
+                    }
+                }
+            }
+        }*/
+        stage("Run Jupyter Workspace") {
+            when {
+                allOf {
+                    expression { params.deploy }
+                }
+            }
+            steps {
+                script {
+                    echo """params.version=${params.version}"""
+                    // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_helmchartsDeploy()-LintanddeployaHelmChart
+                    cloud_helmchartsDeploy(
+                            cluster: OPENSHIFT_CLUSTER,
+                            project: env.OPENSHIFT_PROJECT,
+                            credentialId: SERVICE_ACCOUNT_TOKEN,
+                            chart: env.HELM_CHART,
+                            release: params.helm_release_name,
+                            additionalValues: [
+                                    RspWorkspaceVersion: "${params.version}",
+                                    RspVersion         : GIT_COMMIT
+                            ]
+                    )
+                    echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
+                }
+            }
+        }
     }
     post {
         failure {

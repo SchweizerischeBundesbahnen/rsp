@@ -437,8 +437,8 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
         y = []
         z = []
         for resource, occupancy in shared_per_resource.items():
-            x.append(resource[0])
-            y.append(resource[1])
+            x.append(resource[1])
+            y.append(resource[0])
             z.append(occupancy)
 
         fig.add_trace(go.Scattergl(
@@ -457,13 +457,12 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
                 ), colorscale="Hot"
             )))
 
-    fig.update_yaxes(autorange="reversed")
     fig.update_layout(title_text="Shared Resources",
                       autosize=False,
                       width=1000,
                       height=1000)
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.show()
 
 
@@ -708,6 +707,38 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
     fig.show()
 
 
+def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
+    """
+    Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
+    Parameters
+    ----------
+    experiment_data_frame
+    experiment_id
+
+    Returns
+    -------
+
+    """
+
+    lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
+    lateness_delta_after_malfunction = experiment_results.lateness_delta_after_malfunction
+    lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
+    lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=np.arange(len(lateness_full_values)), y=lateness_full_values, name='Full Reschedule'
+                         ))
+    fig.add_trace(go.Bar(x=np.arange(len(lateness_delta_values)), y=lateness_delta_values, name='Delta Reschedule'
+                         ))
+    fig.update_layout(barmode='overlay')
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Delay per Train")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Delaz in Seconds")
+
+    fig.show()
+
+
 def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
                    agent_id: int,
                    suffix_of_constraints_to_visualize: ScheduleProblemEnum,
@@ -767,7 +798,7 @@ def render_flatland_env(data_folder: str,
     Method to render the environment for visual inspection
     Parameters
     ----------
-
+render_flatland_env
     data_folder: str
         Folder name to store and load images from
     experiment_data: ExperimentResultsAnalysis
@@ -784,6 +815,7 @@ def render_flatland_env(data_folder: str,
 
     # Generate environment for rendering
     rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
+
     # Generate aggregated visualization
     output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     video_src_schedule = None
@@ -928,7 +960,11 @@ def plot_resource_occupation_heat_map(
     for resource, resource_occupations in reschedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
         x_r.append(resource.column)
         y_r.append(resource.row)
-        size_r.append((len(resource_occupations)) - len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource]))
+        if resource in schedule_as_resource_occupations.sorted_resource_occupations_per_resource:
+            schedule_number_of_occupations = len(schedule_as_resource_occupations.sorted_resource_occupations_per_resource[resource])
+        else:
+            schedule_number_of_occupations = 0
+        size_r.append((len(resource_occupations)) - schedule_number_of_occupations)
 
     # Count start-target occupations
     starts_target = {}
@@ -1016,8 +1052,8 @@ def plot_resource_occupation_heat_map(
                       width=1000,
                       height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
 
     fig.show()
 
@@ -1148,6 +1184,73 @@ def plot_delay_propagation_2d(
                                marker_size=25,
                                marker_line_color='black',
                                marker_color='black'))
+    fig.update_layout(title_text="Malfunction position and effects",
+                      autosize=False,
+                      width=1000,
+                      height=1000)
+
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    if file_name is None:
+        fig.show()
+    else:
+        fig.write_image(file_name)
+
+
+def plot_train_paths(
+        plotting_data: SchedulePlotting,
+        agent_ids: List[int],
+        file_name: Optional[str] = None):
+    """
+    Plot agent delay over ressource, only plot agents that are affected by the malfunction.
+    Parameters
+    ----------
+    schedule_resources
+        Dict containing all the times and agent handles for all resources
+
+    Returns
+    -------
+
+    """
+
+    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    layout = go.Layout(
+        plot_bgcolor=GREY_BACKGROUND_COLOR
+    )
+    fig = go.Figure(layout=layout)
+
+    # Plot traces of agents
+    for agent_id in agent_ids:
+        x = []
+        y = []
+        marker = []
+        times = []
+        delay = []
+        conflict_depth = []
+        for resource_occupation in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
+            time = resource_occupation.interval.from_incl
+
+            malfunction_resource = resource_occupation.resource
+            x.append(malfunction_resource[1])
+            y.append(malfunction_resource[0])
+            marker.append(MARKER_LIST[int(np.clip(resource_occupation.direction, 0, 3))])
+            times.append(time)
+            color = PLOTLY_COLORLIST[agent_id]
+
+        fig.add_trace(go.Scattergl(x=x,
+                                   y=y,
+                                   mode='markers',
+                                   name="Train {}".format(agent_id),
+                                   marker_symbol=marker,
+                                   customdata=list(zip(times, delay, conflict_depth)),
+                                   marker_size=10,
+                                   marker_opacity=1,
+                                   marker_color=color,
+                                   marker_line_color=color,
+                                   hovertemplate="Time:\t%{customdata[0]}<br>" +
+                                                 "Delay:\t%{customdata[1]}<br>" +
+                                                 "Influence depth:\t%{customdata[2]}"
+                                   ))
     fig.update_layout(title_text="Malfunction position and effects",
                       autosize=False,
                       width=1000,
