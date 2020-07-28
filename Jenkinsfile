@@ -197,6 +197,7 @@ helm delete rsp-ci-$GIT_COMMIT || echo
                     }
                 }
             }
+        }
         stage("Run Jupyter Workspace") {
             when {
                 allOf {
