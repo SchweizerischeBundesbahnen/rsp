@@ -123,7 +123,8 @@ git submodule update --init --recursive
         stage("Build and Tag Docker Image if on master") {
             when {
                 allOf {
-                    expression { BRANCH_NAME == 'master' }
+                    // TODO SIM-608 re-enable
+//                    expression { BRANCH_NAME == 'master' }
                     expression { !params.deploy }
                 }
             }
