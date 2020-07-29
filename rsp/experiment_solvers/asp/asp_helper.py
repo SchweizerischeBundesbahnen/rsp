@@ -117,7 +117,7 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)
     # bezieht sich auf eine sehr alte clingo[DL] version. Im Rahmen einer einheitlichen API für alle clingo Erweiterungen
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
-    rsp_logger.log(VERBOSE, f"no_optimize={no_optimize}")
+    rsp_logger.info(f"no_optimize={no_optimize}")
 
     dl = theory.Theory("clingodl", "clingo-dl")
     if DL_PROPAGATE_PARTIAL:
