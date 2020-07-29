@@ -123,8 +123,7 @@ git submodule update --init --recursive
         stage("Build and Tag Docker Image if on master") {
             when {
                 allOf {
-                    // TODO SIM-608 re-enable
-//                    expression { BRANCH_NAME == 'master' }
+                    expression { BRANCH_NAME == 'master' }
                     expression { !params.deploy }
                 }
             }
@@ -136,7 +135,7 @@ git submodule update --init --recursive
                             artifactoryProject: env.ARTIFACTORY_PROJECT,
                             ocApp: env.BASE_IMAGE_NAME,
                             ocAppVersion: env.GIT_COMMIT,
-                            // we must be able to access rsp_environment.yml from within docker root!
+                            / / we must be able to access rsp_environment.yml from within docker root !
                             // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
                             dockerDir: '.',
                             dockerfilePath: 'docker/Dockerfile'
@@ -180,6 +179,13 @@ helm delete rsp-ci-$GIT_COMMIT || echo
                                     RspVersion         : GIT_COMMIT
                             ]
                     )
+                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                        sh '''
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+helm delete rsp-ci-$GIT_COMMIT || echo
+'''
+                    }
                     echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
                     cloud_helmchartsTest(
                             cluster: OPENSHIFT_CLUSTER,
