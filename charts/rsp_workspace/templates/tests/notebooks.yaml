@@ -32,8 +32,6 @@ spec:
           source set-sbb-proxy
           printenv
 
-
-
           # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
           git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
           cd rsp
@@ -42,6 +40,7 @@ spec:
           git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
           cd rsp-data
           git status
+          $GIT_SSH_COMMAND git@github.com git-lfs-authenticate SchweizerischeBundesbahnen/rsp download
           git lfs pull
           find .
           cd $WORKDIR
