@@ -164,7 +164,7 @@ git submodule update --init --recursive
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci-$GIT_COMMIT || echo
+helm delete rsp-ci-$GIT_COMMIT || true
 '''
                     }
                     cloud_helmchartsDeploy(
@@ -183,7 +183,7 @@ helm delete rsp-ci-$GIT_COMMIT || echo
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-(helm delete rsp-ci-$GIT_COMMIT && sleep 10) || echo
+(helm delete rsp-ci-$GIT_COMMIT && sleep 10) || true
 '''
                     }
                     echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
@@ -199,7 +199,7 @@ oc project $OPENSHIFT_PROJECT
                         sh """
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci-$GIT_COMMIT || echo
+helm delete rsp-ci-$GIT_COMMIT || true
 
 # delete all failed test pods older than 1 day (https://stackoverflow.com/questions/48934491/kubernetes-how-to-delete-pods-based-on-age-creation-time/48960060#48960060)
 oc get pods --field-selector status.phase=Failed -o go-template --template '{{range .items}}{{.metadata.name}} {{.metadata.creationTimestamp}}{{"\\n"}}{{end}}' | awk '\$2 <= "'\$(date -d 'yesterday' -Ins --utc | sed 's/+0000/Z/')'" { print \$1 }' | fgrep test-pod | xargs --no-run-if-empty oc delete pod
