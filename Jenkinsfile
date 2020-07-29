@@ -185,7 +185,7 @@ oc project $OPENSHIFT_PROJECT
                             project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             release: 'rsp-ci-$GIT_COMMIT',
-                            timeoutInSeconds: 1800
+                            timeoutInSeconds: 2700
                     )
                     echo "helm test succesful -> cleanup."
                     withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
