@@ -164,7 +164,7 @@ git submodule update --init --recursive
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci-$GIT_COMMIT || true
+(helm delete rsp-ci-$GIT_COMMIT && sleep 10) || true
 '''
                     }
                     cloud_helmchartsDeploy(
@@ -179,13 +179,6 @@ helm delete rsp-ci-$GIT_COMMIT || true
                                     RspVersion         : GIT_COMMIT
                             ]
                     )
-                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
-                        sh '''
-oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
-oc project $OPENSHIFT_PROJECT
-(helm delete rsp-ci-$GIT_COMMIT && sleep 10) || true
-'''
-                    }
                     echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
                     cloud_helmchartsTest(
                             cluster: OPENSHIFT_CLUSTER,
