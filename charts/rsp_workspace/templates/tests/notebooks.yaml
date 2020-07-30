@@ -35,6 +35,12 @@ spec:
 
           # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
           date
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
+          cd rsp
+          git checkout {{ .Values.RspVersion }} --recurse-submodules
+          cd $WORKDIR
+
+          date
           git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
           date
           cd rsp-data
