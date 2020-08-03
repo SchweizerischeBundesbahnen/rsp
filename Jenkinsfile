@@ -135,7 +135,7 @@ git submodule update --init --recursive
                             artifactoryProject: env.ARTIFACTORY_PROJECT,
                             ocApp: env.BASE_IMAGE_NAME,
                             ocAppVersion: env.GIT_COMMIT,
-                            // we must be able to access rsp_environment.yml from within docker root!
+                            // we must be able to access rsp_environment.yml from within docker root !
                             // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
                             dockerDir: '.',
                             dockerfilePath: 'docker/Dockerfile'
@@ -149,8 +149,6 @@ git submodule update --init --recursive
                 }
             }
         }
-        // temporarily commented out notebooks in ci
-        /*
         stage("Integration Test Notebooks") {
             when {
                 anyOf {
@@ -166,7 +164,7 @@ git submodule update --init --recursive
                         sh '''
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci-$GIT_COMMIT || echo
+(helm delete rsp-ci-$GIT_COMMIT && sleep 10) || true
 '''
                     }
                     cloud_helmchartsDeploy(
@@ -187,19 +185,22 @@ helm delete rsp-ci-$GIT_COMMIT || echo
                             project: env.OPENSHIFT_PROJECT,
                             credentialId: SERVICE_ACCOUNT_TOKEN,
                             release: 'rsp-ci-$GIT_COMMIT',
-                            timeoutInSeconds: 1800
+                            timeoutInSeconds: 2700
                     )
-                    echo "helm test succesful -> remove pod."
+                    echo "helm test succesful -> cleanup."
                     withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
-                        sh '''
+                        sh """
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci-$GIT_COMMIT || echo
-'''
+helm delete rsp-ci-$GIT_COMMIT || true
+
+# delete all failed test pods older than 1 day (https://stackoverflow.com/questions/48934491/kubernetes-how-to-delete-pods-based-on-age-creation-time/48960060#48960060)
+oc get pods --field-selector status.phase=Failed -o go-template --template '{{range .items}}{{.metadata.name}} {{.metadata.creationTimestamp}}{{"\\n"}}{{end}}' | awk '\$2 <= "'\$(date -d 'yesterday' -Ins --utc | sed 's/+0000/Z/')'" { print \$1 }' | fgrep test-pod | xargs --no-run-if-empty oc delete pod
+"""
                     }
                 }
             }
-        }*/
+        }
         stage("Run Jupyter Workspace") {
             when {
                 allOf {
