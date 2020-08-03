@@ -8,11 +8,9 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_experiment_result_without_expanding
 from rsp.utils.experiments import load_schedule_and_malfunction
-from rsp.utils.experiments import remove_dummy_stuff_from_experiment_results_file
-from rsp.utils.experiments import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 
 
-def test_hypothesis_two(remove_dummy: bool = False, re_save: bool = False):
+def test_hypothesis_two(re_save: bool = False):
     """Run hypothesis two."""
     experiment_base_directory = './tests/03_integration_tests/mini_toy_example'
     experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
@@ -24,9 +22,6 @@ def test_hypothesis_two(remove_dummy: bool = False, re_save: bool = False):
     if re_save:
         load_experiment_result_without_expanding(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment_id, re_save=True)
         load_schedule_and_malfunction(experiment_agenda_directory=experiment_agenda_directory, experiment_id=experiment_id, re_save=True)
-    if remove_dummy:
-        remove_dummy_stuff_from_schedule_and_malfunction_pickle(experiment_agenda_directory=experiment_agenda_directory, experiment_id=experiment_id)
-        remove_dummy_stuff_from_experiment_results_file(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment_id)
 
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_directory,

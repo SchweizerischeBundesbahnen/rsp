@@ -25,7 +25,6 @@ from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_schedule_and_malfunction_from_experiment_parameters
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
-from rsp.utils.experiments import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_from_schedule_and_malfunction
@@ -111,7 +110,7 @@ def test_created_env_tuple():
     assert static_env.rail.grid.tolist() == expected_grid
 
 
-def test_regression_experiment_agenda(regen: bool = False, remove_dummy: bool = False, re_save: bool = False):
+def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False):
     """Run a simple agenda as regression test.
 
     It verifies that we can start from a set of schedules and
@@ -138,9 +137,6 @@ def test_regression_experiment_agenda(regen: bool = False, remove_dummy: bool = 
         save_experiment_agenda_and_hash_to_file(
             experiment_agenda_folder_name=experiment_agenda_directory,
             experiment_agenda=agenda)
-
-    if remove_dummy:
-        remove_dummy_stuff_from_schedule_and_malfunction_pickle(experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
 
     # Import the solver for the experiments
     experiment_folder_name, experiment_data_folder = run_experiment_agenda(
