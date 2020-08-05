@@ -433,7 +433,7 @@ def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRanges
         experiment_name=experiment_name,
         gen_only=True,
         experiment_ids=None,
-        parallel_compute=1,
+        parallel_compute=2,
         flatland_seed=flatland_seed
     )
     return experiment_base_folder_name

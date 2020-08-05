@@ -2,10 +2,17 @@
 % OBJECTIVE FOR SCHEDULING
 % This file is an addition (not part of Flux)!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% penalty model trains:  linear up to 30 seconds and then huge penalty
-% TODO SIM-171 refine: not for every 30 seconds, but only at intervall 5? discuss with Erik
-penalty_for_delay(1..30,1).
-penalty_for_delay(31,5000).
+
+% #const upper_bound_linear_penalty = .... injected from data.
+% #const penalty_after_linear = .... injected from data.
+% #const resolution = .... injected from data.
+linear_range(1..upper_bound_linear_penalty/resolution ).
+
+penalty_for_delay(S,resolution*2) :-  linear_range(S).
+penalty_for_delay(upper_bound_linear_penalty,penalty_after_linear).
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PENALTIES FOR TRAINS TO EXCEED THEIR MINIMUM RUNNING TIME

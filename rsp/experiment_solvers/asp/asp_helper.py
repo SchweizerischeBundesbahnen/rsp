@@ -117,7 +117,7 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
     # (https://www.cs.uni-potsdam.de/~torsten/hybris.pdf  Listing 1.8 line 9)
     # bezieht sich auf eine sehr alte clingo[DL] version. Im Rahmen einer einheitlichen API für alle clingo Erweiterungen
     # (clingo[DL], clingcon, clingo[LP]) ist die neue Variante mit der python theory zu verwenden.
-    rsp_logger.log(VERBOSE, f"no_optimize={no_optimize}")
+    rsp_logger.info(f"no_optimize={no_optimize}")
 
     dl = theory.Theory("clingodl", "clingo-dl")
     if DL_PROPAGATE_PARTIAL:
@@ -149,12 +149,12 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
         ctl.load(str(enc))
     if plain_encoding:
         ctl.add("base", [], plain_encoding)
-    if verbose:
-        print("Grounding starting...")
+    rsp_logger.log(VERBOSE, "Grounding starting...")
+    rsp_logger.info("Grounding starting...")
     grounding_start_time = time.time()
     ctl.ground([("base", [])])
-    if verbose:
-        print("Grounding took {}s".format(time.time() - grounding_start_time))
+
+    rsp_logger.info("Grounding took {}s".format(time.time() - grounding_start_time))
 
     all_answers = _asp_loop(ctl=ctl, dl=dl, no_optimize=no_optimize, verbose=verbose, debug=debug)
     statistics: Dict = ctl.statistics
@@ -203,8 +203,7 @@ def _asp_loop(ctl: clingo.Control,  # noqa: C901
             if len(model.cost) > 0:
                 cost = model.cost[0]
                 if cost < min_cost:
-                    if verbose:
-                        print("Optimization: {}".format(cost))
+                    rsp_logger.log(VERBOSE, "Optimization: {}".format(cost))
                     min_cost = cost
                     all_answers = []
             # TODO SIM-121 convert to handable data structures instead of strings!
@@ -260,11 +259,12 @@ def _print_stats(statistics, print_full_statistics: bool = False):
     print("Optimum      : {:3}".format("yes" if statistics["summary"]["models"]["optimal"] else "no"))
     print("Optimization : {}".format(statistics["summary"]["costs"]))
     print("Calls        : {}".format(statistics["summary"]["call"]))
-    print("Time         : {:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s)"
+    print("Time         : {:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s Grounding etc. {}s)"
           .format(statistics["summary"]["times"]["total"],
                   statistics["summary"]["times"]["solve"],
                   statistics["summary"]["times"]["sat"],
                   statistics["summary"]["times"]["unsat"],
+                  statistics["summary"]["times"]["total"] - statistics["summary"]["times"]["solve"]
                   ))
     percentage_solving_time = \
         100 * statistics["summary"]["times"]["solve"] / (statistics["summary"]["times"]["total"]

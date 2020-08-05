@@ -220,7 +220,7 @@ def run_experiment(
                 schedule_and_malfunction=schedule_and_malfunction,
                 experiment_agenda_directory=experiment_agenda_directory,
                 experiment_id=experiment_parameters.experiment_id)
-    if gen_only:
+
         elapsed_time = (time.time() - start_time)
         _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
         solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"][
@@ -229,6 +229,8 @@ def run_experiment(
             experiment_parameters.experiment_id,
             elapsed_time, solver_time_full,
             solver_time_full / elapsed_time * 100))
+
+    if gen_only:
         return ExperimentResults(
             experiment_parameters=experiment_parameters,
             malfunction=schedule_and_malfunction.experiment_malfunction,
@@ -492,7 +494,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
             solver_program=None
         )
     else:
-        schedule_result = asp_schedule_wrapper(
+        schedule_result: SchedulingExperimentResult = asp_schedule_wrapper(
             schedule_problem_description=schedule_problem,
             asp_seed_value=experiment_parameters.asp_seed_value,
             debug=debug
