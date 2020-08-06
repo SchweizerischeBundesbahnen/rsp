@@ -17,7 +17,6 @@ jupyter:
 # %load_ext autoreload
 # %autoreload 2
 import sys
-sys.path.append("./flatland_ckua")
 from IPython.display import Video
 
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame

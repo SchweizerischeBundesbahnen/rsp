@@ -88,7 +88,7 @@ spec:
               conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
               conda activate $WORKDIR/rsp-conda
 
-              export PYTHONPATH=$WORKDIR/rsp:$WORKDIR/rsp/flatland_ckua:$PYTHONPATH
+              export PYTHONPATH=$WORKDIR/rsp
 
               # since we redefine the CMD inherited from dskit/jupyter-base, we need to call start-notebook.sh here!
               # the password is injected via env variable JUPYTER_NOTEBOOK_PASSWORD from a secret, see above
