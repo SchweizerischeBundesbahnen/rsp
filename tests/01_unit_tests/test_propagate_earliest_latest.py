@@ -1,6 +1,5 @@
 import numpy as np
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
@@ -84,11 +83,9 @@ def test_scheduling_propagate_earliest():
     source_waypoint = next(get_sources_for_topo(topo_dict[0]))
 
     earliest = propagate_earliest(
-        banned_set=set(),
         earliest_dict={source_waypoint: 0},
         minimum_travel_time=minimum_travel_time,
-        force_freeze_dict={},
-        subdag_source=TrainrunWaypoint(waypoint=source_waypoint, scheduled_at=0),
+        force_freeze_earliest={source_waypoint},
         topo=topo_dict[0],
     )
 
@@ -164,11 +161,9 @@ def test_scheduling_propagate_latest_forward():
     source_waypoint = next(get_sources_for_topo(topo_dict[0]))
 
     earliest = propagate_earliest(
-        banned_set=set(),
         earliest_dict={source_waypoint: 0},
         minimum_travel_time=minimum_travel_time,
-        force_freeze_dict={},
-        subdag_source=TrainrunWaypoint(waypoint=source_waypoint, scheduled_at=0),
+        force_freeze_earliest={source_waypoint},
         topo=topo_dict[0],
     )
 
@@ -240,11 +235,9 @@ def test_scheduling_propagate_latest_forward_backward_min():
     source_waypoint = next(get_sources_for_topo(topo_dict[0]))
 
     earliest = propagate_earliest(
-        banned_set=set(),
         earliest_dict={source_waypoint: 0},
         minimum_travel_time=minimum_travel_time,
-        force_freeze_dict={},
-        subdag_source=TrainrunWaypoint(waypoint=source_waypoint, scheduled_at=0),
+        force_freeze_earliest={source_waypoint},
         topo=topo_dict[0],
     )
 

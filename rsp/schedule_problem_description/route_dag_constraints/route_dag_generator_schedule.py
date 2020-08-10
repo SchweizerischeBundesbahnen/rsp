@@ -1,5 +1,4 @@
 import networkx as nx
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
@@ -17,11 +16,9 @@ def _get_route_dag_constraints_for_scheduling(
     return RouteDAGConstraints(
         freeze_visit=[],
         freeze_earliest=propagate_earliest(
-            banned_set=set(),
             earliest_dict={source_waypoint: 0},
             minimum_travel_time=minimum_travel_time,
-            force_freeze_dict={},
-            subdag_source=TrainrunWaypoint(waypoint=source_waypoint, scheduled_at=0),
+            force_freeze_earliest={source_waypoint},
             topo=topo,
         ),
         freeze_latest=propagate_latest(

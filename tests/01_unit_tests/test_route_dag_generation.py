@@ -427,7 +427,6 @@ def test_get_freeze_for_full_rescheduling():
     agent_paths, train_run = _get_data()
     malfunction = ExperimentMalfunction(time_step=19, agent_id=2, malfunction_duration=20)
     expected_route_dag_constraints = RouteDAGConstraints(
-
         freeze_visit=[
             Waypoint(position=(6, 23), direction=3),
             Waypoint(position=(6, 22), direction=3),
@@ -541,27 +540,7 @@ def test_get_freeze_for_full_rescheduling():
 
         ]),
         freeze_latest=[],
-        freeze_banned=[
-            Waypoint(position=(7, 19), direction=3),
-            Waypoint(position=(7, 18), direction=3),
-            Waypoint(position=(7, 17), direction=3),
-            Waypoint(position=(7, 16), direction=3),
-            Waypoint(position=(7, 15), direction=3),
-            Waypoint(position=(7, 14), direction=3),
-            Waypoint(position=(7, 13), direction=3),
-            Waypoint(position=(7, 12), direction=3),
-            Waypoint(position=(7, 11), direction=3),
-            Waypoint(position=(8, 11), direction=2),
-            Waypoint(position=(7, 10), direction=3),
-            Waypoint(position=(7, 9), direction=3),
-            Waypoint(position=(7, 8), direction=3),
-            Waypoint(position=(7, 7), direction=3),
-            Waypoint(position=(7, 6), direction=3),
-            Waypoint(position=(7, 5), direction=3),
-            Waypoint(position=(7, 4), direction=3),
-            Waypoint(position=(8, 4), direction=2)
-
-        ])
+        freeze_banned=[])
     topo_dict = _get_topology_from_agents_path_dict({2: agent_paths})
     reschedule_full_problem_description: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
         minimum_travel_time_dict={2: 1},
@@ -1345,8 +1324,7 @@ def test_get_freeze_for_delta():
                  (Waypoint(position=(14, 29), direction=2), 316 + 1),
                  (Waypoint(position=(14, 28), direction=2), 315 + 1),
                  (Waypoint(position=(13, 28), direction=3), 314 + 1)]),
-            freeze_banned=[Waypoint(position=(7, 27), direction=0), Waypoint(position=(7, 28), direction=1),
-                           Waypoint(position=(7, 29), direction=1), Waypoint(position=(8, 29), direction=2)]),
+            freeze_banned=[]),
         1: RouteDAGConstraints(
             freeze_visit=[
                 Waypoint(position=(23, 23), direction=1),
@@ -1436,14 +1414,7 @@ def test_get_freeze_for_delta():
                  (Waypoint(position=(12, 29), direction=0), 321 + 1),
                  (Waypoint(position=(13, 29), direction=0), 320 + 1),
                  (Waypoint(position=(14, 29), direction=0), 319 + 1)]),
-            freeze_banned=[
-                Waypoint(position=(17, 28), direction=3), Waypoint(position=(16, 28), direction=0),
-                Waypoint(position=(15, 28), direction=0), Waypoint(position=(14, 28), direction=0),
-                Waypoint(position=(13, 28), direction=0), Waypoint(position=(13, 29), direction=1),
-                Waypoint(position=(24, 26), direction=2), Waypoint(position=(24, 27), direction=1),
-                Waypoint(position=(23, 27), direction=0), Waypoint(position=(24, 28), direction=1),
-                Waypoint(position=(24, 29), direction=1), Waypoint(position=(23, 29), direction=0)
-            ])}
+            freeze_banned=[])}
     reschedule_problem_description: ScheduleProblemDescription = generic_schedule_problem_description_for_rescheduling(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
@@ -1848,12 +1819,12 @@ def test_bugfix_sim_172():
          TrainrunWaypoint(waypoint=Waypoint(position=(14, 29), direction=0), scheduled_at=6653 + 1),
          TrainrunWaypoint(waypoint=Waypoint(position=(15, 29), direction=0), scheduled_at=6652 + 1),
          TrainrunWaypoint(waypoint=Waypoint(position=(16, 29), direction=0), scheduled_at=6651 + 1),
-
          ])
     experimentFreezePrettyPrint(actual_route_dag_constraints)
     actual_dict = actual_route_dag_constraints.freeze_latest
     expected_dict = expected_freeze_latest
     compare_dicts(actual_dict, expected_dict)
+
     assert set(actual_route_dag_constraints.freeze_visit) == set([
         Waypoint(position=(25, 23), direction=1),
         Waypoint(position=(25, 24), direction=1),
@@ -1912,16 +1883,7 @@ def test_bugfix_sim_172():
          TrainrunWaypoint(scheduled_at=55, waypoint=Waypoint(position=(9, 23), direction=3)),
          ])
     compare_dicts(actual_route_dag_constraints.freeze_earliest, expected_freeze_earliest)
-    assert set(actual_route_dag_constraints.freeze_banned) == set([
-        Waypoint(position=(23, 27), direction=0),
-        Waypoint(position=(23, 28), direction=1),
-        Waypoint(position=(23, 29), direction=1),
-        Waypoint(position=(17, 28), direction=3),
-        Waypoint(position=(16, 28), direction=0),
-        Waypoint(position=(15, 28), direction=0),
-        Waypoint(position=(14, 28), direction=0),
-        Waypoint(position=(13, 28), direction=0),
-        Waypoint(position=(13, 29), direction=1)])
+    assert set(actual_route_dag_constraints.freeze_banned) == set([])
 
 
 def test_bugfix_sim_175_no_path_splitting_forward():
@@ -1956,19 +1918,20 @@ def test_bugfix_sim_175_no_path_splitting_forward():
                     TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(2, 1), direction=0)),
                     ]
 
+    topo = topo_from_agent_paths(agent_paths)
     actual_route_dag_constraints = _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         minimum_travel_time=1,
-        topo=topo_from_agent_paths(agent_paths),
+        topo=topo,
         force_freeze=force_freeze,
         subdag_source=force_freeze[0],
         latest_arrival=6667)
 
     experimentFreezePrettyPrint(actual_route_dag_constraints)
     # (3,0) must be banned (forward) since the edge (2,0)->(3,1) is frozen and since (3,0) is a forward successor of (2,0)
-    assert Waypoint(position=(3, 0), direction=0) in actual_route_dag_constraints.freeze_banned
+    assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
     # (4,0) must be banned since reachable forward only through (3,0) which is banned
-    assert Waypoint(position=(4, 0), direction=0) in actual_route_dag_constraints.freeze_banned
+    assert Waypoint(position=(4, 0), direction=0) not in topo.nodes
 
 
 def test_bugfix_sim_175_no_path_splitting_backward():
@@ -2002,19 +1965,20 @@ def test_bugfix_sim_175_no_path_splitting_backward():
         TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(4, 1), direction=0)),
     ]
 
+    topo = topo_from_agent_paths(agent_paths)
     actual_route_dag_constraints = _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         minimum_travel_time=1,
-        topo=topo_from_agent_paths(agent_paths),
+        topo=topo,
         force_freeze=force_freeze,
         subdag_source=force_freeze[0],
         latest_arrival=6667)
 
     experimentFreezePrettyPrint(actual_route_dag_constraints)
     # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
-    assert Waypoint(position=(3, 0), direction=0) in actual_route_dag_constraints.freeze_banned
+    assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
     # (3,0) must be since it cannot be reached backwards as (4,0) is banned.
-    assert Waypoint(position=(3, 0), direction=0) in actual_route_dag_constraints.freeze_banned
+    assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
 
 def test_bugfix_sim_175_no_path_splitting_notorious():
@@ -2049,25 +2013,26 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
         TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(3, 1), direction=0)),
     ]
 
+    topo = topo_from_agent_paths(agent_paths)
     actual_route_dag_constraints = _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         minimum_travel_time=1,
-        topo=topo_from_agent_paths(agent_paths),
+        topo=topo,
         force_freeze=force_freeze,
         subdag_source=force_freeze[0],
         latest_arrival=6667)
 
     experimentFreezePrettyPrint(actual_route_dag_constraints)
     # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
-    assert Waypoint(position=(3, 0), direction=0) in actual_route_dag_constraints.freeze_banned
+    assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
     # (3,0) must be since it cannot be reached backwards as (4,0) is banned.
-    assert Waypoint(position=(3, 0), direction=0) in actual_route_dag_constraints.freeze_banned
+    assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
 
 def compare_dicts(actual_dict: Dict[Any, Any], expected_dict: Dict[Any, Any]):
     assert set(actual_dict.keys()) == set(expected_dict.keys()), \
-        f"not same keys, " + \
-        f"only expected {set(expected_dict).difference(set(actual_dict))}" + \
+        f"not same keys: " + \
+        f"only expected {set(expected_dict).difference(set(actual_dict))} \n" + \
         f"only actual {set(actual_dict).difference(set(expected_dict))}"
     for key in expected_dict:
         expected_val = expected_dict[key]

@@ -1,4 +1,5 @@
 """Generic route dag generation."""
+from collections import deque
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -16,42 +17,30 @@ from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstr
 from rsp.utils.data_types import ExperimentMalfunction
 
 
-def propagate_earliest(banned_set: Set[Waypoint],
-                       earliest_dict: Dict[Waypoint, int],
-                       force_freeze_dict: Dict[Waypoint, int],
+def propagate_earliest(earliest_dict: Dict[Waypoint, int],
+                       force_freeze_earliest: Set[Waypoint],
                        minimum_travel_time: int,
-                       subdag_source: TrainrunWaypoint,
                        topo: nx.DiGraph) -> Dict[Waypoint, int]:
     """Extract earliest times at nodes by moving forward from source. Earliest
     time for the agent to reach this vertex given the freezed times.
 
     Parameters
     ----------
-    banned_set
     earliest_dict
-    force_freeze_dict
+    force_freeze_earliest: earliest must not be changed
     minimum_travel_time
-    subdag_source
     topo
     """
-    # iterate as long as there are updates (not optimized!)
     # update as min(earliest_at_predecessor+minimum_travel_time,current_earliest) until fixed point reached
-    done = False
-    while not done:
-        done = True
-        for waypoint in topo.nodes:
-            # https://networkx.github.io/documentation/stable/reference/classes/generated/networkx.DiGraph.predecessors.html
-            for successor in topo.successors(waypoint):
-                if successor in force_freeze_dict or successor in banned_set:
-                    continue
-                else:
-                    path_earliest = earliest_dict.get(waypoint, np.inf) + minimum_travel_time
-                    earliest = min(path_earliest, earliest_dict.get(successor, np.inf))
-                    if earliest > subdag_source.scheduled_at and earliest < np.inf:
-                        earliest = int(earliest)
-                        if earliest_dict.get(successor, None) != earliest:
-                            done = False
-                        earliest_dict[successor] = earliest
+    open = deque()
+    open.extend(force_freeze_earliest)
+    while len(open) > 0:
+        waypoint = open.pop()
+        for successor in topo.successors(waypoint):
+            if successor in force_freeze_earliest:
+                continue
+            earliest_dict[successor] = min(earliest_dict[waypoint] + minimum_travel_time, earliest_dict.get(successor, np.inf))
+            open.append(successor)
     return earliest_dict
 
 
@@ -208,14 +197,15 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
     malfunctions correctly? Are the constraints consistent?
 
     0. assert all referenced waypoints are in topo
-    1. if waypoint is banned -> must not have earliest/latest/visit
+    1. banned must be empty TODO SIM-613 remove
     2. if waypoint is not banned --> must have earliest and latest s.t. earliest <= latest
     3. verify that force is implemented correctly
     3.1 if trainrun_waypoint is in force_freeze -> assert that earliest == trainrun_waypoint.scheduled_at == latest
     3.2 if trainrun_waypoint is in force_freeze -> assert that trainrun_waypoint.waypoint in freeze_visit
     3.3 if trainrun_waypoint is in force_freeze -> assert that trainrun_waypoint.waypoint not in freeze_banned
+    # TODO SIM-613 verify that topo does not contain unreachable vertices
     4. verify that all points up to malfunction are forced to be visited
-    5. verify that every node in freeze_visit has predecessor and successor not banned
+    5. freeze_visit must be empty TODO SIM-613 remove
     6. verify that latest-earliest <= max_window_size_from_earliest
 
     Parameters
@@ -247,7 +237,7 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
     for waypoint in route_dag_constraints.freeze_latest:
         assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} has latest, but not in topo"
     for waypoint in route_dag_constraints.freeze_visit:
-        assert waypoint in all_waypoints
+        assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} has to be visited, but not in topo"
     if force_freeze is not None:
         for trainrun_waypoint in force_freeze:
             assert trainrun_waypoint.waypoint in all_waypoints

@@ -327,6 +327,7 @@ class ASPProblemDescription:
         # - no diff-constraints in addition to earliest/latest -> should be added immediately
         # - no route constraints in addition to visit -> should be added immediately
 
+        # TODO SIM-613 This should not be necessary as we have removed those edges.
         for waypoint in freeze.freeze_visit:
             vertex = self._sanitize_waypoint(waypoint)
 

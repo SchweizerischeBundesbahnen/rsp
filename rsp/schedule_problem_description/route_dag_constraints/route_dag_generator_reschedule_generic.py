@@ -112,7 +112,8 @@ def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict
     return route_section_penalties
 
 
-def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
+# TODO SIM-613 this should become Delta_0_running as in paper
+def _generic_route_dag_constraints_for_rescheduling_agent_while_running(  # noqa: C901
         minimum_travel_time: int,
         topo: nx.DiGraph,
         force_freeze: List[TrainrunWaypoint],
@@ -164,6 +165,7 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
             reachable_earliest_dict.pop(waypoint)
         if waypoint in reachable_latest_dict:
             reachable_latest_dict.pop(waypoint)
+        topo.remove_node(waypoint)
 
     # 1. sub dag source must be visited (point after malfunction)
     freeze_visit.append(subdag_source.waypoint)
@@ -184,8 +186,10 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
         freeze_visit_waypoint_set.add(trainrun_waypoint.waypoint)
 
     # 4. ban all that are not reachable in topology given the force_freeze
-    reachable_set = _get_reachable_given_frozen_set(force_freeze=force_freeze, topo=topo)
-    reachable_set.add(subdag_source.waypoint)
+    # TODO this seems not correct: subdag source must be part of
+    must_be_visited = {trainrun_waypoint.waypoint for trainrun_waypoint in force_freeze}
+    must_be_visited.add(subdag_source.waypoint)
+    reachable_set = _get_reachable_given_frozen_set(must_be_visited=must_be_visited, topo=topo)
     for trainrun_waypoint in force_freeze:
         reachable_set.add(trainrun_waypoint.waypoint)
 
@@ -194,16 +198,21 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
     # design choice: we give no earliest/latest for banned!
     for waypoint in banned_set:
         _remove_from_reachable(waypoint)
+    # TODO SIM-622 refactor!
+    banned = []
+    banned_set = set()
 
     # 5. propagate earliest and latest in the sub-DAG
     # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
     # TODO bad code smell: earliest_dict is in-out-parameter
-    propagate_earliest(banned_set=banned_set,
-                       earliest_dict=reachable_earliest_dict,
-                       force_freeze_dict=force_freeze_dict,
-                       minimum_travel_time=minimum_travel_time,
-                       subdag_source=subdag_source,
-                       topo=topo)
+    force_freeze_earliest = force_freeze_dict.copy()
+    force_freeze_earliest[subdag_source.waypoint] = subdag_source.scheduled_at
+    propagate_earliest(
+        earliest_dict=reachable_earliest_dict,
+        force_freeze_earliest=force_freeze_earliest.keys(),
+        minimum_travel_time=minimum_travel_time,
+        topo=topo)
+
     # TODO bad code smell: do we need latest_dict as input here at all?
     reachable_latest_dict = propagate_latest(
         banned_set=banned_set,
@@ -217,13 +226,13 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(
     )
 
     # 6. ban all waypoints that are reachable in the toplogy but not in time (i.e. where earliest > latest)
+    to_remove = set()
     for waypoint in all_waypoints:
         if (waypoint not in reachable_earliest_dict or waypoint not in reachable_latest_dict or  # noqa: W504
-            reachable_earliest_dict[waypoint] > reachable_latest_dict[waypoint]) \
-                and waypoint not in banned_set:
-            banned.append(waypoint)
-            banned_set.add(waypoint)
-            _remove_from_reachable(waypoint)
+                reachable_earliest_dict[waypoint] > reachable_latest_dict[waypoint]):
+            to_remove.add(waypoint)
+    for waypoint in to_remove:
+        _remove_from_reachable(waypoint)
 
     return RouteDAGConstraints(
         freeze_visit=freeze_visit,
@@ -253,7 +262,7 @@ def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
 
 
 def _get_reachable_given_frozen_set(topo: nx.DiGraph,
-                                    force_freeze: List[TrainrunWaypoint]) -> Set[Waypoint]:
+                                    must_be_visited: List[Waypoint]) -> Set[Waypoint]:
     """Determines which vertices can still be reached given the frozen set. We
     take all funnels forward and backward from these points and then the
     intersection of those. A source and sink node only have a forward and
@@ -265,7 +274,7 @@ def _get_reachable_given_frozen_set(topo: nx.DiGraph,
     ----------
     topo
         directed graph
-    force_freeze
+    must_be_visited
         the waypoints that must be visited
 
     Returns
@@ -275,9 +284,9 @@ def _get_reachable_given_frozen_set(topo: nx.DiGraph,
     backward_reachable = {waypoint: set() for waypoint in topo.nodes}
 
     # collect descendants and ancestors of freeze
-    for trainrun_waypoint in force_freeze:
-        forward_reachable[trainrun_waypoint.waypoint] = set(nx.descendants(topo, trainrun_waypoint.waypoint))
-        backward_reachable[trainrun_waypoint.waypoint] = set(nx.ancestors(topo, trainrun_waypoint.waypoint))
+    for waypoint in must_be_visited:
+        forward_reachable[waypoint] = set(nx.descendants(topo, waypoint))
+        backward_reachable[waypoint] = set(nx.ancestors(topo, waypoint))
 
     # reflexivity: add waypoint to its own closure (needed for building reachable_set below)
     for waypoint in topo.nodes:
@@ -286,8 +295,7 @@ def _get_reachable_given_frozen_set(topo: nx.DiGraph,
 
     # reachable are only those that are either in the forward or backward "funnel" of all force freezes!
     reachable_set = set(topo.nodes)
-    for trainrun_waypoint in force_freeze:
-        waypoint = trainrun_waypoint.waypoint
+    for waypoint in must_be_visited:
         forward_and_backward_reachable = forward_reachable[waypoint].union(backward_reachable[waypoint])
         reachable_set.intersection_update(forward_and_backward_reachable)
     return reachable_set
@@ -349,11 +357,9 @@ def _generic_route_dag_contraints_for_rescheduling(
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
         rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}")
         freeze_earliest = propagate_earliest(
-            banned_set=set(),
             earliest_dict={schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at},
             minimum_travel_time=minimum_travel_time,
-            force_freeze_dict={},
-            subdag_source=schedule_trainrun[0],
+            force_freeze_earliest={schedule_trainrun[0].waypoint},
             topo=topo,
         )
         freeze_latest = propagate_latest(
