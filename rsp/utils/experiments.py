@@ -51,12 +51,9 @@ from pandas import DataFrame
 
 from rsp.experiment_solvers.asp.asp_helper import _print_stats
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
-from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
-from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.logger import add_file_handler_to_rsp_logger
 from rsp.logger import remove_file_handler_from_rsp_logger
 from rsp.logger import rsp_logger
@@ -461,42 +458,11 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         experiment_parameters=experiment_parameters
     )
 
-    # TODO SIM-566 pull out switch out if ckua stuff not remove
-    SWITCH_CKUA = False
-    if SWITCH_CKUA:
-        # TODO SIM-566 fix local import if ckua stuff not removed; if we have not setup PYTHONPATH correctly, pipeline fails.
-        from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
-        trainrun_dict, elapsed_time = ckua_generate_schedule(
-            env=rail_env,
-            random_seed=experiment_parameters.flatland_seed_value,
-            rendering=False,
-            show=False
-        )
-        verify_trainrun_dict_for_schedule_problem(
-            schedule_problem=schedule_problem,
-            trainrun_dict=trainrun_dict,
-            expected_route_dag_constraints=schedule_problem.route_dag_constraints_dict
-        )
-        schedule_result = SchedulingExperimentResult(
-            total_reward=-np.inf,
-            solve_time=-np.inf,
-            optimization_costs=-np.inf,
-            build_problem_time=-np.inf,
-            nb_conflicts=-np.inf,
-            trainruns_dict=trainrun_dict,
-            route_dag_constraints=schedule_problem.route_dag_constraints_dict,
-            solver_statistics=fake_solver_statistics(elapsed_time),
-            solver_result={},
-            solver_configuration={},
-            solver_seed=experiment_parameters.asp_seed_value,
-            solver_program=None
-        )
-    else:
-        schedule_result = asp_schedule_wrapper(
-            schedule_problem_description=schedule_problem,
-            asp_seed_value=experiment_parameters.asp_seed_value,
-            debug=debug
-        )
+    schedule_result = asp_schedule_wrapper(
+        schedule_problem_description=schedule_problem,
+        asp_seed_value=experiment_parameters.asp_seed_value,
+        debug=debug
+    )
     malfunction = gen_malfunction(
         earliest_malfunction=experiment_parameters.earliest_malfunction,
         malfunction_duration=experiment_parameters.malfunction_duration,

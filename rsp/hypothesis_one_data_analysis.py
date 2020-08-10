@@ -31,15 +31,12 @@ from rsp.schedule_problem_description.analysis.rescheduling_verification_utils i
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
-from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
@@ -195,12 +192,13 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     analysis_2d
     asp_export_experiment_ids
     experiment_base_directory
+    save_as_tsv
+    qualitative_analysis_experiment_ids
     """
 
     # Import the desired experiment results
     experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     experiment_potassco_directory = f'{experiment_base_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}'
 
     # Create output directoreis
@@ -208,11 +206,6 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
 
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         experiment_data_directory)
-
-    rsp_logger.info(f"loading experiment agenda from {experiment_agenda_directory}...")
-    experiment_agenda: ExperimentAgenda = load_experiment_agenda_from_file(experiment_agenda_directory)
-    rsp_logger.info(
-        f" -> loaded experiment agenda {experiment_agenda.experiment_name} with {len(experiment_agenda.experiments)} experiments")
 
     # Plausibility tests on experiment data
     _run_plausibility_tests_on_experiment_data(experiment_results_list)
@@ -258,7 +251,6 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
                 flatland_rendering=False
             )
 
-    # TODO do we still need this? we have rsp-data now.
     if asp_export_experiment_ids:
         potassco_export(experiment_potassco_directory=experiment_potassco_directory,
                         experiment_results_list=experiment_results_list,

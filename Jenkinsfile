@@ -100,7 +100,7 @@ git submodule update --init --recursive
         conda env create --file rsp_environment.yml --force
         conda activate rsp
 
-        export PYTHONPATH=\$PWD:\$PWD/flatland_ckua:\$PYTHONPATH
+        export PYTHONPATH=\$PWD
         echo PYTHONPATH=\$PYTHONPATH
 
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
