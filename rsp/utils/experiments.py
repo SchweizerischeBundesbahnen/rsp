@@ -64,6 +64,7 @@ from rsp.schedule_problem_description.analysis.rescheduling_verification_utils i
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import apply_weight_route_change
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
@@ -497,7 +498,8 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         schedule_result: SchedulingExperimentResult = asp_schedule_wrapper(
             schedule_problem_description=schedule_problem,
             asp_seed_value=experiment_parameters.asp_seed_value,
-            debug=debug
+            debug=debug,
+            no_optimize=True
         )
     malfunction = gen_malfunction(
         earliest_malfunction=experiment_parameters.earliest_malfunction,
@@ -922,6 +924,7 @@ def create_schedule_full_problem_description_from_experiment_parameters(
         experiment_parameters: ExperimentParameters
 ) -> Tuple[ScheduleProblemDescription, RailEnv]:
     env = create_env_from_experiment_parameters(params=experiment_parameters)
+    np.random.seed(experiment_parameters.flatland_seed_value)
     schedule_problem_description = _create_schedule_problem_description_from_rail_env(env, k=experiment_parameters.number_of_shortest_paths_per_agent)
 
     return schedule_problem_description, env
@@ -941,6 +944,9 @@ def _create_schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> 
                                 for agent in env.agents}
     topo_dict = _get_topology_from_agents_path_dict(agents_paths_dict)
     # TODO should we set max_episode_steps in agenda and take if from there?
+
+    avg_path_len = sum([len(get_paths_in_route_dag(topo)[0]) for topo in topo_dict.values()])
+    rsp_logger.info(f"average length of shortest path is {avg_path_len}")
 
     max_episode_steps = env._max_episode_steps
     schedule_problem_description = ScheduleProblemDescription(

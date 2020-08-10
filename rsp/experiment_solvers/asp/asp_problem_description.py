@@ -12,6 +12,7 @@ from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
 from rsp.experiment_solvers.asp.data_types import ASPHeuristics
 from rsp.experiment_solvers.asp.data_types import ASPObjective
+from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
@@ -285,6 +286,8 @@ class ASPProblemDescription:
                 earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].freeze_earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
+                rsp_logger.info("no additional wait time allowed")
+                self.asp_program.append("&diff{ (T,V')-(T,V) }  <= W :- route(T,(V,V')),  w(T,(V,V'),W).")
 
         # inject weight lateness
         if self.asp_objective == ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED:

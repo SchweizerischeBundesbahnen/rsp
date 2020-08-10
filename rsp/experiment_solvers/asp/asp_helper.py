@@ -204,6 +204,7 @@ def _asp_loop(ctl: clingo.Control,  # noqa: C901
                 cost = model.cost[0]
                 if cost < min_cost:
                     rsp_logger.log(VERBOSE, "Optimization: {}".format(cost))
+                    rsp_logger.info("Optimization: {}".format(cost))
                     min_cost = cost
                     all_answers = []
             # TODO SIM-121 convert to handable data structures instead of strings!
