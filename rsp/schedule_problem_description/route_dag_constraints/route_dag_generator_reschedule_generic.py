@@ -17,7 +17,6 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_earliest
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
 from rsp.utils.data_types import ExperimentMalfunction
@@ -206,14 +205,10 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(  # noqa
     # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
     force_freeze_earliest = force_freeze_dict.copy()
     force_freeze_earliest[subdag_source.waypoint] = subdag_source.scheduled_at
-    propagate_earliest(
-        earliest_dict=reachable_earliest_dict,
-        force_freeze_earliest=set(force_freeze_earliest.keys()),
-        minimum_travel_time=minimum_travel_time,
-        topo=topo)
 
-    reachable_latest_dict = propagate(
-        force_freeze_dict=force_freeze_dict,
+    propagate(
+        force_freeze_earliest=set(force_freeze_earliest.keys()),
+        force_freeze_latest=set(force_freeze_dict.keys()).union(get_sinks_for_topo(topo)),
         latest_arrival=latest_arrival,
         latest_dict=reachable_latest_dict,
         earliest_dict=reachable_earliest_dict,
@@ -353,20 +348,17 @@ def _generic_route_dag_contraints_for_rescheduling(
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
         rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}")
-        freeze_earliest = propagate_earliest(
-            earliest_dict={schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at},
-            minimum_travel_time=minimum_travel_time,
-            force_freeze_earliest={schedule_trainrun[0].waypoint},
-            topo=topo,
-        )
-        freeze_latest = propagate(
+        # TODO should this be release time instead of -1?
+        freeze_latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)}
+        freeze_earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
+        propagate(
             earliest_dict=freeze_earliest,
-            # TODO should this be release time instead of -1?
-            latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)},
+            latest_dict=freeze_latest,
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time,
-            force_freeze_dict={},
+            force_freeze_earliest={schedule_trainrun[0].waypoint},
+            force_freeze_latest=set(get_sinks_for_topo(topo)),
             topo=topo,
         )
         route_dag_constraints = RouteDAGConstraints(

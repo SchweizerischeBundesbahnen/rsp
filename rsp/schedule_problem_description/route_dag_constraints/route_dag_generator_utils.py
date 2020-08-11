@@ -101,14 +101,15 @@ def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
 
 
 def propagate(
-        force_freeze_dict: Dict[Waypoint, int],
         earliest_dict: Dict[Waypoint, int],
         latest_dict: Dict[Waypoint, int],
-        latest_arrival: int,
-        minimum_travel_time: int,
         topo: nx.DiGraph,
+        force_freeze_earliest: Set[Waypoint],
+        force_freeze_latest: Set[Waypoint],
+        minimum_travel_time: int,
+        latest_arrival: int,
         max_window_size_from_earliest: int = np.inf
-) -> Dict[Waypoint, int]:
+):
     """If max_window_size_from_earliest is 0, then extract latest by moving
     backwards from sinks. Latest time for the agent to pass here in order to
     reach the target in time. Otherwise take the minimum of moving backwards or
@@ -116,7 +117,7 @@ def propagate(
 
     Parameters
     ----------
-    force_freeze_dict
+    force_freeze_latest
     earliest_dict
     latest_dict
     latest_arrival
@@ -126,32 +127,26 @@ def propagate(
         maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
         back propagation of latest"
     """
-    # TODO SIM-613 include forward propagation here.
-
-    # TODO SIM-613 temp workaround
-    force_freeze_latest = set(force_freeze_dict.keys())
-    sinks = get_sinks_for_topo(topo)
-    force_freeze_latest.update(sinks)
-
+    propagate_earliest(
+        earliest_dict=earliest_dict,
+        force_freeze_earliest=force_freeze_earliest,
+        minimum_travel_time=minimum_travel_time,
+        topo=topo)
     latest_backwards = _propagate_latest(
         force_freeze_latest=force_freeze_latest,
         latest_dict=latest_dict,
         minimum_travel_time=minimum_travel_time,
         topo=topo
     )
-    if max_window_size_from_earliest == np.inf:
-        return latest_backwards
-    else:
+    if max_window_size_from_earliest < np.inf:
         latest_forward = _propagate_latest_forward_constant(
             earliest_dict=earliest_dict,
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest
         )
-        latest = dict()
         for waypoint, latest_forward_time in latest_forward.items():
             latest_backward_time = latest_backwards.get(waypoint)
-            latest[waypoint] = min(latest_forward_time, latest_backward_time)
-        return latest
+            latest_backwards[waypoint] = min(latest_forward_time, latest_backward_time)
 
 
 def get_delayed_trainrun_waypoint_after_malfunction(

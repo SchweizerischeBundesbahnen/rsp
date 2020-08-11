@@ -141,10 +141,12 @@ def test_scheduling_propagate_latest_backwards():
 
     topo_dict, minimum_travel_time, latest_arrival = _get_test_env()
 
-    latest = propagate(
-        force_freeze_dict={},
+    latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])}
+    propagate(
         earliest_dict={},
-        latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
+        latest_dict=latest,
+        force_freeze_earliest=set(),
+        force_freeze_latest=set(get_sinks_for_topo(topo_dict[0])),
         latest_arrival=latest_arrival,
         max_window_size_from_earliest=np.inf,
         minimum_travel_time=minimum_travel_time,
@@ -159,18 +161,14 @@ def test_scheduling_propagate_latest_forward():
     topo_dict, minimum_travel_time, latest_arrival = _get_test_env()
     source_waypoint = next(get_sources_for_topo(topo_dict[0]))
 
-    earliest = propagate_earliest(
-        earliest_dict={source_waypoint: 0},
-        minimum_travel_time=minimum_travel_time,
-        force_freeze_earliest={source_waypoint},
-        topo=topo_dict[0],
-    )
-
     max_window_size_from_earliest = 180
-    latest = propagate(
-        force_freeze_dict={},
+    earliest = {source_waypoint: 0}
+    latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])}
+    propagate(
         earliest_dict=earliest,
-        latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
+        latest_dict=latest,
+        force_freeze_earliest={source_waypoint},
+        force_freeze_latest=set(get_sinks_for_topo(topo_dict[0])),
         latest_arrival=latest_arrival,
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
@@ -232,18 +230,15 @@ def test_scheduling_propagate_latest_forward_backward_min():
     topo_dict, minimum_travel_time, latest_arrival = _get_test_env()
     source_waypoint = next(get_sources_for_topo(topo_dict[0]))
 
-    earliest = propagate_earliest(
-        earliest_dict={source_waypoint: 0},
-        minimum_travel_time=minimum_travel_time,
-        force_freeze_earliest={source_waypoint},
-        topo=topo_dict[0],
-    )
+    earliest = {source_waypoint: 0}
 
     max_window_size_from_earliest = 600
-    latest = propagate(
-        force_freeze_dict={},
+    latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])}
+    propagate(
         earliest_dict=earliest,
-        latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
+        latest_dict=latest,
+        force_freeze_earliest={source_waypoint},
+        force_freeze_latest=set(get_sinks_for_topo(topo_dict[0])),
         latest_arrival=latest_arrival,
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
