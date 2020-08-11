@@ -17,10 +17,10 @@ from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstr
 from rsp.utils.data_types import ExperimentMalfunction
 
 
-def propagate_earliest(earliest_dict: Dict[Waypoint, int],
-                       force_freeze_earliest: Set[Waypoint],
-                       minimum_travel_time: int,
-                       topo: nx.DiGraph) -> Dict[Waypoint, int]:
+def _propagate_earliest(earliest_dict: Dict[Waypoint, int],
+                        force_freeze_earliest: Set[Waypoint],
+                        minimum_travel_time: int,
+                        topo: nx.DiGraph) -> Dict[Waypoint, int]:
     """Extract earliest times at nodes by moving forward from source(s).
     Earliest time for the agent to reach this vertex given the freezed times.
     Pre-condition: all waypoints in `force_freeze_earliest` have a finite value (`< np.inf`) in `earliest_dict`.
@@ -77,7 +77,6 @@ def _propagate_latest(
                 continue
             latest_dict[predecessor] = max(latest_dict[waypoint] - minimum_travel_time, latest_dict.get(predecessor, -np.inf))
             open.append(predecessor)
-    return latest_dict
 
 
 def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
@@ -100,12 +99,53 @@ def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
     return latest_dict
 
 
+def _get_reachable_given_frozen_set(topo: nx.DiGraph,
+                                    must_be_visited: List[Waypoint]) -> Set[Waypoint]:
+    """Determines which vertices can still be reached given the frozen set. We
+    take all funnels forward and backward from these points and then the
+    intersection of those. A source and sink node only have a forward and
+    backward funnel, respectively. In FLATland, the source node is always
+    unique, the sink node is made unique by a dummy node at the end (the agent
+    may enter from more than one direction ino the target cell.)
+
+    Parameters
+    ----------
+    topo
+        directed graph
+    must_be_visited
+        the waypoints that must be visited
+
+    Returns
+    -------
+    """
+    forward_reachable = {waypoint: set() for waypoint in topo.nodes}
+    backward_reachable = {waypoint: set() for waypoint in topo.nodes}
+
+    # collect descendants and ancestors of freeze
+    for waypoint in must_be_visited:
+        forward_reachable[waypoint] = set(nx.descendants(topo, waypoint))
+        backward_reachable[waypoint] = set(nx.ancestors(topo, waypoint))
+
+    # reflexivity: add waypoint to its own closure (needed for building reachable_set below)
+    for waypoint in topo.nodes:
+        forward_reachable[waypoint].add(waypoint)
+        backward_reachable[waypoint].add(waypoint)
+
+    # reachable are only those that are either in the forward or backward "funnel" of all force freezes!
+    reachable_set = set(topo.nodes)
+    for waypoint in must_be_visited:
+        forward_and_backward_reachable = forward_reachable[waypoint].union(backward_reachable[waypoint])
+        reachable_set.intersection_update(forward_and_backward_reachable)
+    return reachable_set
+
+
 def propagate(
         earliest_dict: Dict[Waypoint, int],
         latest_dict: Dict[Waypoint, int],
         topo: nx.DiGraph,
         force_freeze_earliest: Set[Waypoint],
         force_freeze_latest: Set[Waypoint],
+        must_be_visited: Set[Waypoint],
         minimum_travel_time: int,
         latest_arrival: int,
         max_window_size_from_earliest: int = np.inf
@@ -127,12 +167,12 @@ def propagate(
         maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
         back propagation of latest"
     """
-    propagate_earliest(
+    _propagate_earliest(
         earliest_dict=earliest_dict,
         force_freeze_earliest=force_freeze_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo)
-    latest_backwards = _propagate_latest(
+    _propagate_latest(
         force_freeze_latest=force_freeze_latest,
         latest_dict=latest_dict,
         minimum_travel_time=minimum_travel_time,
@@ -145,8 +185,26 @@ def propagate(
             max_window_size_from_earliest=max_window_size_from_earliest
         )
         for waypoint, latest_forward_time in latest_forward.items():
-            latest_backward_time = latest_backwards.get(waypoint)
-            latest_backwards[waypoint] = min(latest_forward_time, latest_backward_time)
+            latest_backward_time = latest_dict.get(waypoint)
+            latest_dict[waypoint] = min(latest_forward_time, latest_backward_time)
+        # apply latest again for consistency
+        _propagate_latest(
+            force_freeze_latest=force_freeze_latest,
+            latest_dict=latest_dict,
+            minimum_travel_time=minimum_travel_time,
+            topo=topo
+        )
+    # remove nodes not reachable in time
+    to_remove = set()
+    for waypoint in topo.nodes:
+        if (waypoint not in earliest_dict or waypoint not in earliest_dict or  # noqa: W504
+                earliest_dict[waypoint] > latest_dict[waypoint]):
+            to_remove.add(waypoint)
+    topo.remove_nodes_from(to_remove)
+    # remove nodes not reachable given the must_be_visited
+    reachable = _get_reachable_given_frozen_set(topo=topo, must_be_visited=must_be_visited)
+    to_remove = {v for v in topo.nodes if v not in reachable}
+    topo.remove_nodes_from(to_remove)
 
 
 def get_delayed_trainrun_waypoint_after_malfunction(

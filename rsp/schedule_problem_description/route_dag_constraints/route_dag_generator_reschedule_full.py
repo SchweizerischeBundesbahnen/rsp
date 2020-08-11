@@ -10,6 +10,7 @@ from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_
 from rsp.utils.data_types import ExperimentMalfunction
 
 
+# TODO SIM-613 do we need this wrapper?
 def get_schedule_problem_for_full_rescheduling(malfunction: ExperimentMalfunction,
                                                schedule_trainruns: TrainrunDict,
                                                minimum_travel_time_dict: Dict[int, int],

@@ -15,6 +15,7 @@ from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_
 from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenaltiesDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import _get_reachable_given_frozen_set
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
@@ -59,7 +60,7 @@ def generic_schedule_problem_description_for_rescheduling(
     """
     spd = ScheduleProblemDescription(
         route_dag_constraints_dict={
-            agent_id: _generic_route_dag_contraints_for_rescheduling(
+            agent_id: delta_zero(
                 schedule_trainrun=schedule_trainruns[agent_id],
                 minimum_travel_time=minimum_travel_time_dict[agent_id],
                 topo=topo_dict[agent_id],
@@ -111,8 +112,7 @@ def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict
     return route_section_penalties
 
 
-# TODO SIM-613 this should become Delta_0_running as in paper
-def _generic_route_dag_constraints_for_rescheduling_agent_while_running(  # noqa: C901
+def delta_zero_running(  # noqa: C901
         minimum_travel_time: int,
         topo: nx.DiGraph,
         force_freeze: List[TrainrunWaypoint],
@@ -207,14 +207,15 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(  # noqa
     force_freeze_earliest[subdag_source.waypoint] = subdag_source.scheduled_at
 
     propagate(
+        earliest_dict=reachable_earliest_dict,
+        latest_dict=reachable_latest_dict,
+        topo=topo,
         force_freeze_earliest=set(force_freeze_earliest.keys()),
         force_freeze_latest=set(force_freeze_dict.keys()).union(get_sinks_for_topo(topo)),
-        latest_arrival=latest_arrival,
-        latest_dict=reachable_latest_dict,
-        earliest_dict=reachable_earliest_dict,
+        must_be_visited=must_be_visited,
         minimum_travel_time=minimum_travel_time,
-        max_window_size_from_earliest=max_window_size_from_earliest,
-        topo=topo
+        latest_arrival=latest_arrival,
+        max_window_size_from_earliest=max_window_size_from_earliest
     )
 
     # 6. ban all waypoints that are reachable in the toplogy but not in time (i.e. where earliest > latest)
@@ -253,47 +254,7 @@ def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
     return banned, banned_set
 
 
-def _get_reachable_given_frozen_set(topo: nx.DiGraph,
-                                    must_be_visited: List[Waypoint]) -> Set[Waypoint]:
-    """Determines which vertices can still be reached given the frozen set. We
-    take all funnels forward and backward from these points and then the
-    intersection of those. A source and sink node only have a forward and
-    backward funnel, respectively. In FLATland, the source node is always
-    unique, the sink node is made unique by a dummy node at the end (the agent
-    may enter from more than one direction ino the target cell.)
-
-    Parameters
-    ----------
-    topo
-        directed graph
-    must_be_visited
-        the waypoints that must be visited
-
-    Returns
-    -------
-    """
-    forward_reachable = {waypoint: set() for waypoint in topo.nodes}
-    backward_reachable = {waypoint: set() for waypoint in topo.nodes}
-
-    # collect descendants and ancestors of freeze
-    for waypoint in must_be_visited:
-        forward_reachable[waypoint] = set(nx.descendants(topo, waypoint))
-        backward_reachable[waypoint] = set(nx.ancestors(topo, waypoint))
-
-    # reflexivity: add waypoint to its own closure (needed for building reachable_set below)
-    for waypoint in topo.nodes:
-        forward_reachable[waypoint].add(waypoint)
-        backward_reachable[waypoint].add(waypoint)
-
-    # reachable are only those that are either in the forward or backward "funnel" of all force freezes!
-    reachable_set = set(topo.nodes)
-    for waypoint in must_be_visited:
-        forward_and_backward_reachable = forward_reachable[waypoint].union(backward_reachable[waypoint])
-        reachable_set.intersection_update(forward_and_backward_reachable)
-    return reachable_set
-
-
-def _generic_route_dag_contraints_for_rescheduling(
+def delta_zero(
         schedule_trainrun: Trainrun,
         minimum_travel_time: int,
         topo: nx.DiGraph,
@@ -331,7 +292,7 @@ def _generic_route_dag_contraints_for_rescheduling(
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
         malfunction.time_step < schedule_trainrun[-1].scheduled_at) or force_freeze:
         rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}")
-        return _generic_route_dag_constraints_for_rescheduling_agent_while_running(
+        return delta_zero_running(
             minimum_travel_time=minimum_travel_time,
             topo=topo,
             force_freeze=force_freeze,
@@ -359,6 +320,7 @@ def _generic_route_dag_contraints_for_rescheduling(
             minimum_travel_time=minimum_travel_time,
             force_freeze_earliest={schedule_trainrun[0].waypoint},
             force_freeze_latest=set(get_sinks_for_topo(topo)),
+            must_be_visited=set(),
             topo=topo,
         )
         route_dag_constraints = RouteDAGConstraints(

@@ -5,8 +5,8 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import _propagate_earliest
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_earliest
 from rsp.utils.experiment_env_generators import create_flatland_environment
 
 
@@ -82,7 +82,7 @@ def test_scheduling_propagate_earliest():
     topo_dict, minimum_travel_time, latest_arrival = _get_test_env()
     source_waypoint = next(get_sources_for_topo(topo_dict[0]))
 
-    earliest = propagate_earliest(
+    earliest = _propagate_earliest(
         earliest_dict={source_waypoint: 0},
         minimum_travel_time=minimum_travel_time,
         force_freeze_earliest={source_waypoint},
@@ -151,6 +151,7 @@ def test_scheduling_propagate_latest_backwards():
         max_window_size_from_earliest=np.inf,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
+        must_be_visited=set()
     )
 
     for waypoint, earliest_time in latest.items():
@@ -173,6 +174,7 @@ def test_scheduling_propagate_latest_forward():
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
+        must_be_visited=set()
     )
 
     for waypoint, earliest_time in earliest.items():
@@ -243,6 +245,7 @@ def test_scheduling_propagate_latest_forward_backward_min():
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
+        must_be_visited=set()
     )
 
     for waypoint, latest_time in latest.items():

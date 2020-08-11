@@ -13,7 +13,7 @@ from rsp.schedule_problem_description.data_types_and_utils import topo_from_agen
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import generic_schedule_problem_description_for_rescheduling
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_generic import \
-    _generic_route_dag_constraints_for_rescheduling_agent_while_running
+    delta_zero_running
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import experimentFreezePrettyPrint
@@ -1763,7 +1763,7 @@ def test_bugfix_sim_172():
                     TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(18, 29), direction=0)),
                     TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(17, 29), direction=0))]
 
-    actual_route_dag_constraints = _generic_route_dag_constraints_for_rescheduling_agent_while_running(
+    actual_route_dag_constraints = delta_zero_running(
         minimum_travel_time=1,
         topo=topo_from_agent_paths(agent_paths),
         force_freeze=force_freeze,
@@ -1919,7 +1919,7 @@ def test_bugfix_sim_175_no_path_splitting_forward():
                     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = _generic_route_dag_constraints_for_rescheduling_agent_while_running(
+    actual_route_dag_constraints = delta_zero_running(
         minimum_travel_time=1,
         topo=topo,
         force_freeze=force_freeze,
@@ -1966,7 +1966,7 @@ def test_bugfix_sim_175_no_path_splitting_backward():
     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = _generic_route_dag_constraints_for_rescheduling_agent_while_running(
+    actual_route_dag_constraints = delta_zero_running(
         minimum_travel_time=1,
         topo=topo,
         force_freeze=force_freeze,
@@ -2014,7 +2014,7 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = _generic_route_dag_constraints_for_rescheduling_agent_while_running(
+    actual_route_dag_constraints = delta_zero_running(
         minimum_travel_time=1,
         topo=topo,
         force_freeze=force_freeze,
