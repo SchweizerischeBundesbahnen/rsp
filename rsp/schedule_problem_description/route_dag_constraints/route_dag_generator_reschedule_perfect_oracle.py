@@ -10,8 +10,6 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_generic import \
-    generic_schedule_problem_description_for_rescheduling
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
 from rsp.utils.data_types import ExperimentMalfunction
@@ -19,6 +17,11 @@ from rsp.utils.data_types import RouteDAGConstraints
 from rsp.utils.data_types import RouteDAGConstraintsDict
 
 _pp = pprint.PrettyPrinter(indent=4)
+
+
+def generic_schedule_problem_description_for_rescheduling(schedule_trainruns, minimum_travel_time_dict, topo_dict, force_freeze, malfunction, latest_arrival,
+                                                          max_window_size_from_earliest):
+    raise
 
 
 def perfect_oracle(
@@ -124,6 +127,7 @@ def perfect_oracle(
         schedule_trainruns=schedule_trainrun_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
+        # TODO SIM-613
         force_freeze=force_freeze,
         malfunction=malfunction,
         latest_arrival=max_episode_steps,
@@ -138,7 +142,7 @@ def perfect_oracle(
             freeze_visit=freeze_dict[agent_id].freeze_visit,
             freeze_earliest=freeze_dict[agent_id].freeze_earliest,
             freeze_latest=freeze_dict[agent_id].freeze_latest,
-            freeze_banned=freeze_dict[agent_id].freeze_banned + list(force_banned[agent_id]),
+            freeze_banned=list(freeze_dict[agent_id].freeze_banned) + list(force_banned[agent_id]),
         )
         for agent_id in delta.keys()
     }

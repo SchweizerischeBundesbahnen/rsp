@@ -1,5 +1,3 @@
-from collections import OrderedDict
-from typing import Dict
 from typing import List
 from typing import Set
 
@@ -7,94 +5,16 @@ import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenaltiesDict
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import _get_reachable_given_frozen_set
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import _get_delayed_trainrun_waypoint_after_malfunction
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
-
-
-def generic_schedule_problem_description_for_rescheduling(
-        schedule_trainruns: TrainrunDict,
-        minimum_travel_time_dict: Dict[int, int],
-        topo_dict: TopoDict,
-        force_freeze: Dict[int, List[TrainrunWaypoint]],
-        malfunction: ExperimentMalfunction,
-        latest_arrival: int,
-        max_window_size_from_earliest: int = np.inf
-) -> ScheduleProblemDescription:
-    """Derives the experiment freeze given the malfunction and optionally a
-    force freeze from an Oracle. The node after the malfunction time has to be
-    visited with an earliest constraint.
-
-    Parameters
-    ----------
-    schedule_trainruns
-        the schedule before the malfunction happened
-    minimum_travel_time_dict
-        the agent's speed (constant for every agent, different among agents)
-    topo_dict
-        the topos for the agents
-    force_freeze
-        waypoints the oracle told to pass by
-    malfunction
-        malfunction
-    latest_arrival
-        end of the global time window
-    max_window_size_from_earliest
-        maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
-        back propagation of latest"
-
-    Returns
-    -------
-    """
-    spd = ScheduleProblemDescription(
-        route_dag_constraints_dict={
-            agent_id: delta_zero(
-                schedule_trainrun=schedule_trainruns[agent_id],
-                minimum_travel_time=minimum_travel_time_dict[agent_id],
-                topo=topo_dict[agent_id],
-                force_freeze=force_freeze[agent_id],
-                malfunction=malfunction,
-                agent_id=agent_id,
-                latest_arrival=latest_arrival,
-                max_window_size_from_earliest=max_window_size_from_earliest
-            )
-            for agent_id in schedule_trainruns},
-        topo_dict=topo_dict,
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        max_episode_steps=latest_arrival,
-        route_section_penalties=_extract_route_section_penalties(schedule_trainruns, topo_dict),
-        weight_lateness_seconds=1
-    )
-    # TODO SIM-324 pull out verification
-    for agent_id in spd.route_dag_constraints_dict:
-        verify_consistency_of_route_dag_constraints_for_agent(
-            agent_id=agent_id,
-            topo=topo_dict[agent_id],
-            route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
-            force_freeze=force_freeze[agent_id],
-            malfunction=malfunction if malfunction.agent_id == agent_id else None,
-            max_window_size_from_earliest=max_window_size_from_earliest
-        )
-        verify_trainrun_satisfies_route_dag_constraints(
-            agent_id=agent_id,
-            route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
-            scheduled_trainrun=list(
-                filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
-                       schedule_trainruns[agent_id]))
-        )
-    return spd
 
 
 def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict: TopoDict):
@@ -112,11 +32,13 @@ def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict
     return route_section_penalties
 
 
+# TODO SIM-613 remove force_freeze param
 def delta_zero_running(  # noqa: C901
+        agent_id: int,
+        schedule_trainrun: Trainrun,
+        malfunction: ExperimentMalfunction,
         minimum_travel_time: int,
         topo: nx.DiGraph,
-        force_freeze: List[TrainrunWaypoint],
-        subdag_source: TrainrunWaypoint,
         latest_arrival: int,
         max_window_size_from_earliest: int = np.inf
 ) -> RouteDAGConstraints:
@@ -131,11 +53,6 @@ def delta_zero_running(  # noqa: C901
         the constant cell running time of trains
     topo: nx.DiGraph
         the agent's route DAG without constraints
-    force_freeze: List[TrainrunWaypoint]
-        vertices that need be visited and be visited at the given time
-    subdag_source: TrainrunWaypoint
-        the entry point into the dag that needs to be visited (the vertex after malfunction that is delayed);
-        scheduled_at is interpreted as earliest
     latest_arrival: int
 
     Returns
@@ -143,95 +60,55 @@ def delta_zero_running(  # noqa: C901
     RouteDAGConstraints
         constraints for the situation
     """
+    must_be_visited = {
+        trainrun_waypoint.waypoint
+        for trainrun_waypoint in schedule_trainrun
+        if trainrun_waypoint.scheduled_at <= malfunction.time_step
+    }
+    earliest_dict = {
+        trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+        for trainrun_waypoint in schedule_trainrun
+        if trainrun_waypoint.scheduled_at <= malfunction.time_step
 
-    # force freeze
-    force_freeze_dict = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                         for trainrun_waypoint in force_freeze}
-    force_freeze_waypoints_set = {trainrun_waypoint.waypoint for trainrun_waypoint in force_freeze}
+    }
+    latest_dict = earliest_dict.copy()
 
-    # remove duplicates but deterministic (hashes of dict)
-    all_waypoints: List[Waypoint] = topo.nodes
-
-    # initialize visit, earliest, latest
-    freeze_visit = []
-    freeze_visit_waypoint_set: Set[Waypoint] = set()
-    reachable_earliest_dict: [Waypoint, int] = OrderedDict()
-    reachable_latest_dict: [Waypoint, int] = OrderedDict()
-
-    def _remove_from_reachable(waypoint):
-        # design choice: we give no earliest/latest for banned!
-        if waypoint in reachable_earliest_dict:
-            reachable_earliest_dict.pop(waypoint)
-        if waypoint in reachable_latest_dict:
-            reachable_latest_dict.pop(waypoint)
-        topo.remove_node(waypoint)
-
-    # 1. sub dag source must be visited (point after malfunction)
-    freeze_visit.append(subdag_source.waypoint)
-    freeze_visit_waypoint_set.add(subdag_source.waypoint)
-    reachable_earliest_dict[subdag_source.waypoint] = subdag_source.scheduled_at
-
-    # 2. latest for sinks
-    # there may be multiple vertices by which the last cell may be entered!
-    sinks = list(get_sinks_for_topo(topo))
-    for sink in sinks:
-        reachable_latest_dict[sink] = latest_arrival
-
-    # 3. visit, earliest and latest for force_freeze
-    for trainrun_waypoint in force_freeze:
-        reachable_earliest_dict[trainrun_waypoint.waypoint] = trainrun_waypoint.scheduled_at
-        reachable_latest_dict[trainrun_waypoint.waypoint] = trainrun_waypoint.scheduled_at
-        freeze_visit.append(trainrun_waypoint.waypoint)
-        freeze_visit_waypoint_set.add(trainrun_waypoint.waypoint)
-
-    # 4. ban all that are not reachable in topology given the force_freeze
-    # TODO this seems not correct: subdag source must be part of
-    must_be_visited = {trainrun_waypoint.waypoint for trainrun_waypoint in force_freeze}
+    subdag_source = _get_delayed_trainrun_waypoint_after_malfunction(
+        agent_id=agent_id,
+        trainrun=schedule_trainrun,
+        malfunction=malfunction,
+        minimum_travel_time=minimum_travel_time
+    )
     must_be_visited.add(subdag_source.waypoint)
-    reachable_set = _get_reachable_given_frozen_set(must_be_visited=must_be_visited, topo=topo)
-    for trainrun_waypoint in force_freeze:
-        reachable_set.add(trainrun_waypoint.waypoint)
 
-    # ban all that are not reachable in topology
-    banned, banned_set = _collect_banned_as_not_reached(all_waypoints, force_freeze_waypoints_set, reachable_set)
-    # design choice: we give no earliest/latest for banned!
-    for waypoint in banned_set:
-        _remove_from_reachable(waypoint)
-    # TODO SIM-622 refactor!
-    banned = []
-    banned_set = set()
+    earliest_dict[subdag_source.waypoint] = subdag_source.scheduled_at
+    if subdag_source.waypoint in latest_dict and subdag_source.scheduled_at > malfunction.time_step:
+        latest_dict.pop(subdag_source.waypoint)
 
-    # 5. propagate earliest and latest in the sub-DAG
-    # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
-    force_freeze_earliest = force_freeze_dict.copy()
-    force_freeze_earliest[subdag_source.waypoint] = subdag_source.scheduled_at
+    for sink in get_sinks_for_topo(topo):
+        if sink in must_be_visited:
+            continue
+        latest_dict[sink] = latest_arrival
 
     propagate(
-        earliest_dict=reachable_earliest_dict,
-        latest_dict=reachable_latest_dict,
+        earliest_dict=earliest_dict,
+        latest_dict=latest_dict,
         topo=topo,
-        force_freeze_earliest=set(force_freeze_earliest.keys()),
-        force_freeze_latest=set(force_freeze_dict.keys()).union(get_sinks_for_topo(topo)),
+        force_freeze_earliest=set(earliest_dict.keys()),
+        force_freeze_latest=set(latest_dict.keys()),
         must_be_visited=must_be_visited,
         minimum_travel_time=minimum_travel_time,
         latest_arrival=latest_arrival,
         max_window_size_from_earliest=max_window_size_from_earliest
     )
 
-    # 6. ban all waypoints that are reachable in the toplogy but not in time (i.e. where earliest > latest)
-    to_remove = set()
-    for waypoint in all_waypoints:
-        if (waypoint not in reachable_earliest_dict or waypoint not in reachable_latest_dict or  # noqa: W504
-                reachable_earliest_dict[waypoint] > reachable_latest_dict[waypoint]):
-            to_remove.add(waypoint)
-    for waypoint in to_remove:
-        _remove_from_reachable(waypoint)
-
     return RouteDAGConstraints(
-        freeze_visit=freeze_visit,
-        freeze_earliest=reachable_earliest_dict,
-        freeze_banned=banned,
-        freeze_latest=reachable_latest_dict
+        # TODO SIM-613 remove freeze_visit from RouteDAGConstraints?
+        freeze_visit=must_be_visited,
+        freeze_earliest=earliest_dict,
+        # TODO SIM-613 remove freeze_visit from RouteDAGConstraints?
+        freeze_banned=set(),
+        freeze_latest=latest_dict
     )
 
 
@@ -258,7 +135,6 @@ def delta_zero(
         schedule_trainrun: Trainrun,
         minimum_travel_time: int,
         topo: nx.DiGraph,
-        force_freeze: List[TrainrunWaypoint],
         malfunction: ExperimentMalfunction,
         agent_id: int,
         latest_arrival: int,
@@ -276,8 +152,6 @@ def delta_zero(
         the agent's speed (constant for every agent, different among agents)
     topo
         the topos for the agents
-    force_freeze
-        waypoints the oracle told to pass by
     malfunction
         malfunction
     latest_arrival
@@ -290,25 +164,21 @@ def delta_zero(
     -------
     """
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
-        malfunction.time_step < schedule_trainrun[-1].scheduled_at) or force_freeze:
-        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}")
+            malfunction.time_step < schedule_trainrun[-1].scheduled_at):
+        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
         return delta_zero_running(
+            agent_id=agent_id,
+            schedule_trainrun=schedule_trainrun,
+            malfunction=malfunction,
             minimum_travel_time=minimum_travel_time,
             topo=topo,
-            force_freeze=force_freeze,
-            subdag_source=get_delayed_trainrun_waypoint_after_malfunction(
-                agent_id=agent_id,
-                trainrun=schedule_trainrun,
-                malfunction=malfunction,
-                minimum_travel_time=minimum_travel_time
-            ),
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest
         )
 
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
-        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}")
+        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
         # TODO should this be release time instead of -1?
         freeze_latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)}
         freeze_earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
@@ -339,7 +209,7 @@ def delta_zero(
                 freeze.freeze_banned.append(waypoint)
         return freeze
     elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
-        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}")
+        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         all_waypoints = topo.nodes
         return RouteDAGConstraints(

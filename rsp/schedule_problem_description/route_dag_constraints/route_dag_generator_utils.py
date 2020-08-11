@@ -167,6 +167,11 @@ def propagate(
         maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
         back propagation of latest"
     """
+    # remove nodes not reachable given the must_be_visited
+    reachable = _get_reachable_given_frozen_set(topo=topo, must_be_visited=must_be_visited)
+    to_remove = {v for v in topo.nodes if v not in reachable}
+    topo.remove_nodes_from(to_remove)
+
     _propagate_earliest(
         earliest_dict=earliest_dict,
         force_freeze_earliest=force_freeze_earliest,
@@ -194,20 +199,26 @@ def propagate(
             minimum_travel_time=minimum_travel_time,
             topo=topo
         )
+
+    def _remove_waypoint_from_earliest_latest_topo(waypoint):
+        # design choice: we give no earliest/latest for banned!
+        if waypoint in earliest_dict:
+            earliest_dict.pop(waypoint)
+        if waypoint in latest_dict:
+            latest_dict.pop(waypoint)
+        topo.remove_node(waypoint)
+
     # remove nodes not reachable in time
     to_remove = set()
     for waypoint in topo.nodes:
         if (waypoint not in earliest_dict or waypoint not in earliest_dict or  # noqa: W504
                 earliest_dict[waypoint] > latest_dict[waypoint]):
             to_remove.add(waypoint)
-    topo.remove_nodes_from(to_remove)
-    # remove nodes not reachable given the must_be_visited
-    reachable = _get_reachable_given_frozen_set(topo=topo, must_be_visited=must_be_visited)
-    to_remove = {v for v in topo.nodes if v not in reachable}
-    topo.remove_nodes_from(to_remove)
+    for wp in to_remove:
+        _remove_waypoint_from_earliest_latest_topo(wp)
 
 
-def get_delayed_trainrun_waypoint_after_malfunction(
+def _get_delayed_trainrun_waypoint_after_malfunction(
         agent_id: int,
         trainrun: Trainrun,
         malfunction: ExperimentMalfunction,
