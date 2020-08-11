@@ -10,9 +10,8 @@ from rsp.schedule_problem_description.data_types_and_utils import _get_topology_
 from rsp.schedule_problem_description.data_types_and_utils import route_dag_constraints_dict_from_list_of_train_run_waypoint
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import topo_from_agent_paths
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_generic import \
-    delta_zero_running
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import delta_zero_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import delta_zero_running
 from rsp.utils.data_types import experimentFreezeDictPrettyPrint
 from rsp.utils.data_types import experimentFreezePrettyPrint
 from rsp.utils.data_types import ExperimentMalfunction
@@ -540,7 +539,7 @@ def test_get_freeze_for_full_rescheduling():
         freeze_latest=[],
         freeze_banned=[])
     topo_dict = _get_topology_from_agents_path_dict({2: agent_paths})
-    reschedule_full_problem_description: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    reschedule_full_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
         minimum_travel_time_dict={2: 1},
         topo_dict=topo_dict,
         malfunction=malfunction,
@@ -1389,7 +1388,7 @@ def test_get_freeze_for_delta():
                  (Waypoint(position=(14, 29), direction=0), 319 + 1)]),
             freeze_banned=[])}
 
-    reschedule_problem_description: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    reschedule_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
         topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])

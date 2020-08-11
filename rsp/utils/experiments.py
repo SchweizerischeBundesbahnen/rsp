@@ -66,7 +66,7 @@ from rsp.schedule_problem_description.data_types_and_utils import _get_topology_
 from rsp.schedule_problem_description.data_types_and_utils import apply_weight_route_change
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import delta_zero_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
@@ -320,7 +320,7 @@ def run_experiment_from_schedule_and_malfunction(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
     reduced_topo_dict = schedule_problem.topo_dict
-    full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    full_reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
