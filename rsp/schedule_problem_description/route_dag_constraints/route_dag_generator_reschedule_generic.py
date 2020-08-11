@@ -16,8 +16,8 @@ from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPe
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import get_delayed_trainrun_waypoint_after_malfunction
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_earliest
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_latest
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
 from rsp.utils.data_types import ExperimentMalfunction
@@ -204,18 +204,15 @@ def _generic_route_dag_constraints_for_rescheduling_agent_while_running(  # noqa
 
     # 5. propagate earliest and latest in the sub-DAG
     # N.B. we cannot move along paths since this we the order would play a role (SIM-260)
-    # TODO bad code smell: earliest_dict is in-out-parameter
     force_freeze_earliest = force_freeze_dict.copy()
     force_freeze_earliest[subdag_source.waypoint] = subdag_source.scheduled_at
     propagate_earliest(
         earliest_dict=reachable_earliest_dict,
-        force_freeze_earliest=force_freeze_earliest.keys(),
+        force_freeze_earliest=set(force_freeze_earliest.keys()),
         minimum_travel_time=minimum_travel_time,
         topo=topo)
 
-    # TODO bad code smell: do we need latest_dict as input here at all?
-    reachable_latest_dict = propagate_latest(
-        banned_set=banned_set,
+    reachable_latest_dict = propagate(
         force_freeze_dict=force_freeze_dict,
         latest_arrival=latest_arrival,
         latest_dict=reachable_latest_dict,
@@ -362,8 +359,7 @@ def _generic_route_dag_contraints_for_rescheduling(
             force_freeze_earliest={schedule_trainrun[0].waypoint},
             topo=topo,
         )
-        freeze_latest = propagate_latest(
-            banned_set=set(),
+        freeze_latest = propagate(
             earliest_dict=freeze_earliest,
             # TODO should this be release time instead of -1?
             latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)},

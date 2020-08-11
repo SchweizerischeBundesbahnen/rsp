@@ -1434,7 +1434,7 @@ def test_get_freeze_for_delta():
             f"difference earliest for agent {agent_id}: " \
             f"expected {expected_freeze_dict[agent_id].freeze_earliest}, " \
             f"found {freeze_dict[agent_id].freeze_earliest}"
-        assert freeze_dict[agent_id].freeze_latest == expected_freeze_dict[agent_id].freeze_latest, \
+        assert dict(freeze_dict[agent_id].freeze_latest) == dict(expected_freeze_dict[agent_id].freeze_latest), \
             f"difference latest for agent {agent_id}: \n" \
             f"expected {expected_freeze_dict[agent_id].freeze_latest}, \n" \
             f"found {freeze_dict[agent_id].freeze_latest}\n" \

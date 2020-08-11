@@ -5,8 +5,8 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_earliest
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate_latest
 from rsp.utils.experiment_env_generators import create_flatland_environment
 
 
@@ -141,8 +141,7 @@ def test_scheduling_propagate_latest_backwards():
 
     topo_dict, minimum_travel_time, latest_arrival = _get_test_env()
 
-    latest = propagate_latest(
-        banned_set=set(),
+    latest = propagate(
         force_freeze_dict={},
         earliest_dict={},
         latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
@@ -168,8 +167,7 @@ def test_scheduling_propagate_latest_forward():
     )
 
     max_window_size_from_earliest = 180
-    latest = propagate_latest(
-        banned_set=set(),
+    latest = propagate(
         force_freeze_dict={},
         earliest_dict=earliest,
         latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
@@ -242,8 +240,7 @@ def test_scheduling_propagate_latest_forward_backward_min():
     )
 
     max_window_size_from_earliest = 600
-    latest = propagate_latest(
-        banned_set=set(),
+    latest = propagate(
         force_freeze_dict={},
         earliest_dict=earliest,
         latest_dict={sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo_dict[0])},
