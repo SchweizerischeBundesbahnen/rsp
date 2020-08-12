@@ -185,8 +185,7 @@ def delta_zero(
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
         rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
-        # TODO should this be release time instead of -1?
-        freeze_latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)}
+        freeze_latest = {sink: latest_arrival for sink in get_sinks_for_topo(topo)}
         freeze_earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
         propagate(
             earliest_dict=freeze_earliest,

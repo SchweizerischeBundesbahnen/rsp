@@ -177,14 +177,19 @@ def propagate(  # noqa C901
         back propagation of latest"
     """
     # remove nodes not reachable given the must_be_visited
+    assert set(force_freeze_earliest).issubset(topo.nodes)
+    assert set(force_freeze_latest).issubset(topo.nodes)
     reachable = _get_reachable_given_frozen_set(topo=topo, must_be_visited=must_be_visited)
     to_remove = {v for v in topo.nodes if v not in reachable}
     topo.remove_nodes_from(to_remove)
     try:
         assert set(must_be_visited).issubset(reachable)
+
     except AssertionError as e:
         rsp_logger.error(f"must_be_visited={must_be_visited}, reachable={reachable}")
         raise e
+    assert set(force_freeze_earliest).issubset(reachable)
+    assert set(force_freeze_latest).issubset(reachable)
 
     _propagate_earliest(
         earliest_dict=earliest_dict,
