@@ -159,9 +159,7 @@ def perfect_oracle_for_all_agents(
             agent_id=agent_id,
             route_dag_constraints=freeze_dict[agent_id],
             topo=topo_dict[agent_id],
-            # TODO SIM-613 have a look into this
-            # TODO perfect oracle seems not to respect malfunction!!
-            # malfunction=malfunction, # noqa
+            malfunction=malfunction,
             max_window_size_from_earliest=max_window_size_from_earliest,
         )
         # re-schedule train run must be open in route dag constraints

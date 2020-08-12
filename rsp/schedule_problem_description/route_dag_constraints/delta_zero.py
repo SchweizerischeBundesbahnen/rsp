@@ -109,10 +109,10 @@ def delta_zero_running(
     )
 
     return RouteDAGConstraints(
-        # TODO SIM-613 remove freeze_visit from RouteDAGConstraints?
+        # TODO SIM-613->SIM-650 remove freeze_visit from RouteDAGConstraints?
         freeze_visit=[],
         freeze_earliest=earliest_dict,
-        # TODO SIM-613 remove freeze_visit from RouteDAGConstraints?
+        # TODO SIM-613->SIM-650 remove freeze_visit from RouteDAGConstraints?
         freeze_banned=set(),
         freeze_latest=latest_dict
     )

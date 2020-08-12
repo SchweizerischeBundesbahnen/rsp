@@ -303,7 +303,7 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
 
     all_waypoints = topo.nodes
 
-    # 00. TODO SIM-613 (temporary check, to be removed)
+    # 00. TODO SIM-613->SIM-650 (temporary check, to be removed in SIM-650)
     assert not route_dag_constraints.freeze_visit
     assert not route_dag_constraints.freeze_banned
 
@@ -329,7 +329,8 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
             # everything before malfunction must be the same
             if earliest <= malfunction.time_step:
                 assert route_dag_constraints.freeze_latest[waypoint] == earliest
-            else:
+            # everything after malfunction must be respect malfunction duration (at least) for malfunction agent
+            elif agent_id == malfunction.agent_id:
                 assert earliest >= malfunction.time_step + malfunction.malfunction_duration, \
                     f"agent {agent_id} with malfunction {malfunction}. Found earliest={earliest} for {waypoint}"
 
