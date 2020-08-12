@@ -4,7 +4,7 @@ metadata:
   name: "{{ .Release.Name }}-test-pod"
   annotations:
     "helm.sh/hook": test-success
-    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
 spec:
   restartPolicy: Never
   containers:

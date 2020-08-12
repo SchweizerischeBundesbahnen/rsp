@@ -17,7 +17,9 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults)
     route_dag_constraints_delta_afer_malfunction = experiment_results.results_delta_after_malfunction.route_dag_constraints
     route_dag_constraints_schedule = experiment_results.results_full.route_dag_constraints
     route_dag_constraints_full_after_malfunction = experiment_results.results_full_after_malfunction.route_dag_constraints
-    topo_dict = experiment_results.problem_full.topo_dict
+    topo_dict_full_after_malfunction = experiment_results.problem_full_after_malfunction.topo_dict
+    topo_dict_delta_after_malfunction = experiment_results.problem_delta_after_malfunction.topo_dict
+    topo_dict_schedule = experiment_results.problem_full.topo_dict
 
     # 1. plausibility check
     # a) same waypoint in schedule and re-schedule -> waypoint also in delta re-schedule
@@ -48,8 +50,13 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults)
 
     # 2. plausibility test: number of alternatives should be decreasing
     all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = extract_number_of_path_alternatives(
-        topo_dict, route_dag_constraints_schedule, route_dag_constraints_delta_afer_malfunction,
-        route_dag_constraints_full_after_malfunction)
+        topo_dict_full_after_malfunction=topo_dict_full_after_malfunction,
+        topo_dict_schedule=topo_dict_schedule,
+        topo_dict_delta_afer_malfunction=topo_dict_delta_after_malfunction,
+        route_dag_constraints_schedule=route_dag_constraints_schedule,
+        route_dag_constraints_delta_afer_malfunction=route_dag_constraints_delta_afer_malfunction,
+        route_dag_constraints_full_after_malfunction=route_dag_constraints_full_after_malfunction
+    )
 
     for agent_id in route_dag_constraints_delta_afer_malfunction:
         nb_alternatives_schedule = all_nb_alternatives_schedule[agent_id]
@@ -60,9 +67,9 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults)
         assert nb_alternatives_rsp_full >= nb_alternatives_rsp_delta, \
             f"nb_alternatives_rsp_full={nb_alternatives_rsp_full}, nb_alternatives_rsp_delta={nb_alternatives_rsp_delta}"
 
-    assert len(all_nb_alternatives_schedule) == len(topo_dict.keys())
-    assert len(all_nb_alternatives_rsp_full) == len(topo_dict.keys())
-    assert len(all_nb_alternatives_rsp_delta) == len(topo_dict.keys())
+    assert len(all_nb_alternatives_schedule) == len(topo_dict_full_after_malfunction.keys())
+    assert len(all_nb_alternatives_rsp_full) == len(topo_dict_full_after_malfunction.keys())
+    assert len(all_nb_alternatives_rsp_delta) == len(topo_dict_full_after_malfunction.keys())
 
     path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = extract_path_search_space(
         experiment_results)

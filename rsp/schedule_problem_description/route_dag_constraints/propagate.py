@@ -211,7 +211,7 @@ def propagate(
     # remove nodes not reachable in time
     to_remove = set()
     for waypoint in topo.nodes:
-        if (waypoint not in earliest_dict or waypoint not in earliest_dict or  # noqa: W504
+        if (waypoint not in earliest_dict or waypoint not in latest_dict or  # noqa: W504
                 earliest_dict[waypoint] > latest_dict[waypoint]):
             to_remove.add(waypoint)
     for wp in to_remove:

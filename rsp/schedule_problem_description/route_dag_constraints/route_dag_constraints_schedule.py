@@ -2,7 +2,7 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
+from rsp.schedule_problem_description.route_dag_constraints.propagate import propagate
 from rsp.utils.data_types import RouteDAGConstraints
 
 

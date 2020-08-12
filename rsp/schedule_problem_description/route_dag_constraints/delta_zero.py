@@ -13,10 +13,10 @@ from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_
 from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenaltiesDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import _get_delayed_trainrun_waypoint_after_malfunction
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import propagate
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_trainrun_satisfies_route_dag_constraints
+from rsp.schedule_problem_description.route_dag_constraints.propagate import _get_delayed_trainrun_waypoint_after_malfunction
+from rsp.schedule_problem_description.route_dag_constraints.propagate import propagate
+from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
+from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_trainrun_satisfies_route_dag_constraints
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
 
@@ -171,7 +171,7 @@ def delta_zero(
     """
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
             malfunction.time_step < schedule_trainrun[-1].scheduled_at):
-        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
+        rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
         return delta_zero_running(
             agent_id=agent_id,
             schedule_trainrun=schedule_trainrun,
@@ -184,7 +184,7 @@ def delta_zero(
 
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
-        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
+        rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
         # TODO should this be release time instead of -1?
         freeze_latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)}
         freeze_earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
@@ -215,7 +215,7 @@ def delta_zero(
                 freeze.freeze_banned.append(waypoint)
         return freeze
     elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
-        rsp_logger.debug(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
+        rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         all_waypoints = topo.nodes
         return RouteDAGConstraints(

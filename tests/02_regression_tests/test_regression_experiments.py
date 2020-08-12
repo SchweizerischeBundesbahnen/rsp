@@ -199,8 +199,8 @@ def test_save_and_load_experiment_results():
         experiment_data_folder_name=experiment_data_folder)
     delete_experiment_folder(experiment_folder_name)
 
-    # since we do not return the results in memor from run_experiment_agenda (SIM-393), do some sanity checks:
-    assert len(loaded_results) == 1
+    # since we do not return the results in memory from run_experiment_agenda (SIM-393), do some sanity checks:
+    assert len(loaded_results) == 1, len(loaded_results)
     loaded_result: ExperimentResultsAnalysis = loaded_results[0]
     assert loaded_result.results_full_after_malfunction.solver_statistics is not None
 

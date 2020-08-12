@@ -19,9 +19,9 @@ from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import delta_zero_for_all_agents
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
+from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
@@ -767,8 +767,8 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
                                fake_full_reschedule_trainruns: TrainrunDict,
                                expected_arrivals, expected_delay):
     fake_malfunction, schedule_problem = _dummy_test_case(fake_malfunction)
-    delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle(
-        full_reschedule_trainrun_waypoints_dict=fake_full_reschedule_trainruns,
+    delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle_for_all_agents(
+        full_reschedule_trainrun_dict=fake_full_reschedule_trainruns,
         malfunction=fake_malfunction,
         max_episode_steps=schedule_problem.schedule_problem_description.max_episode_steps,
         schedule_topo_dict=schedule_problem.schedule_problem_description.topo_dict,

@@ -536,12 +536,17 @@ def extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[in
     route_dag_constraints_delta_afer_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
     route_dag_constraints_full_after_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
     route_dag_constraints_schedule = experiment_results.problem_full.route_dag_constraints_dict
-    topo_dict = experiment_results.problem_full.topo_dict
+    topo_dict_schedule = experiment_results.problem_full.topo_dict
+    topo_dict_full_after_malfunction = experiment_results.problem_full_after_malfunction.topo_dict
+    topo_dict_delta_after_malfunction = experiment_results.problem_delta_after_malfunction.topo_dict
     all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = extract_number_of_path_alternatives(
-        topo_dict,
-        route_dag_constraints_schedule,
-        route_dag_constraints_delta_afer_malfunction,
-        route_dag_constraints_full_after_malfunction)
+        topo_dict_full_after_malfunction=topo_dict_full_after_malfunction,
+        topo_dict_schedule=topo_dict_schedule,
+        topo_dict_delta_afer_malfunction=topo_dict_delta_after_malfunction,
+        route_dag_constraints_schedule=route_dag_constraints_schedule,
+        route_dag_constraints_delta_afer_malfunction=route_dag_constraints_delta_afer_malfunction,
+        route_dag_constraints_full_after_malfunction=route_dag_constraints_full_after_malfunction
+    )
     path_search_space_schedule = _prod(all_nb_alternatives_schedule)
     path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
     path_search_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
@@ -549,7 +554,9 @@ def extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[in
 
 
 def extract_number_of_path_alternatives(
-        topo_dict: TopoDict,
+        topo_dict_schedule: TopoDict,
+        topo_dict_delta_afer_malfunction: TopoDict,
+        topo_dict_full_after_malfunction: TopoDict,
         route_dag_constraints_schedule: RouteDAGConstraintsDict,
         route_dag_constraints_delta_afer_malfunction: RouteDAGConstraintsDict,
         route_dag_constraints_full_after_malfunction: RouteDAGConstraintsDict
@@ -562,15 +569,15 @@ def extract_number_of_path_alternatives(
 
     for agent_id in route_dag_constraints_delta_afer_malfunction:
         alternatives_schedule = get_paths_for_route_dag_constraints(
-            topo=topo_dict[agent_id],
+            topo=topo_dict_schedule[agent_id],
             route_dag_constraints=route_dag_constraints_schedule[agent_id]
         )
         alternatives_rsp_full = get_paths_for_route_dag_constraints(
-            topo=topo_dict[agent_id],
+            topo=topo_dict_full_after_malfunction[agent_id],
             route_dag_constraints=route_dag_constraints_full_after_malfunction[agent_id]
         )
         alternatives_rsp_delta = get_paths_for_route_dag_constraints(
-            topo=topo_dict[agent_id],
+            topo=topo_dict_delta_afer_malfunction[agent_id],
             route_dag_constraints=route_dag_constraints_delta_afer_malfunction[agent_id]
         )
         all_nb_alternatives_schedule.append(len(alternatives_schedule))
