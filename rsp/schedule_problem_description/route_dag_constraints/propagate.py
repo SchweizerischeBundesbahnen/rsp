@@ -185,12 +185,19 @@ def propagate(  # noqa C901
     topo.remove_nodes_from(to_remove)
     try:
         assert set(must_be_visited).issubset(reachable)
-
     except AssertionError as e:
         rsp_logger.error(f"must_be_visited={must_be_visited}, reachable={reachable}")
         raise e
-    assert set(force_freeze_earliest).issubset(reachable)
-    assert set(force_freeze_latest).issubset(reachable)
+    not_reachable_earliest = force_freeze_earliest.difference(reachable)
+    if not_reachable_earliest:
+        rsp_logger.warn(f"removing {not_reachable_earliest} from earliest_dict, not reachable. { {v: earliest_dict[v] for v in not_reachable_earliest} }")
+    not_reachable_latest = force_freeze_latest.difference(reachable)
+    if not_reachable_latest:
+        rsp_logger.warn(f"removing {not_reachable_latest} from latest_dict, not reachable. { {v: earliest_dict[v] for v in not_reachable_latest} }")
+    for key in not_reachable_earliest:
+        del not_reachable_earliest[key]
+    for key in not_reachable_latest:
+        del not_reachable_latest[key]
 
     _propagate_earliest(
         earliest_dict=earliest_dict,
