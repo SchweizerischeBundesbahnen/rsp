@@ -110,7 +110,7 @@ def delta_zero_running(
 
     return RouteDAGConstraints(
         # TODO SIM-613 remove freeze_visit from RouteDAGConstraints?
-        freeze_visit=must_be_visited,
+        freeze_visit=[],
         freeze_earliest=earliest_dict,
         # TODO SIM-613 remove freeze_visit from RouteDAGConstraints?
         freeze_banned=set(),
@@ -217,16 +217,14 @@ def delta_zero(
     elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
         rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
-        all_waypoints = topo.nodes
+        topo.remove_nodes_from(set(topo.nodes).difference(visited))
         return RouteDAGConstraints(
-            freeze_visit=[trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun],
+            freeze_visit=[],
             freeze_earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
                              for trainrun_waypoint in schedule_trainrun},
             freeze_latest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
                            for trainrun_waypoint in schedule_trainrun},
-            freeze_banned=[waypoint
-                           for waypoint in all_waypoints
-                           if waypoint not in visited],
+            freeze_banned=[],
         )
     else:
         raise Exception(f"Unexepcted state for agent {agent_id} malfunction {malfunction}")
@@ -267,10 +265,8 @@ def delta_zero_for_all_agents(malfunction: ExperimentMalfunction,
     for agent_id in spd.route_dag_constraints_dict:
         verify_consistency_of_route_dag_constraints_for_agent(
             agent_id=agent_id,
-            topo=topo_dict[agent_id],
+            topo=spd.topo_dict[agent_id],
             route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
-            # TODO SIM-613
-            # force_freeze=force_freeze[agent_id], # noqa E800
             malfunction=malfunction if malfunction.agent_id == agent_id else None,
             max_window_size_from_earliest=max_window_size_from_earliest
         )

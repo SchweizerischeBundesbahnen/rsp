@@ -416,7 +416,6 @@ def test_rescheduling_bottleneck():
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem.route_dag_constraints_dict
 
-    assert freeze_dict[0].freeze_visit == []
     for trainrun_waypoint in [
         TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
         TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -433,7 +432,6 @@ def test_rescheduling_bottleneck():
         TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(17, 29), direction=0)),
         TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0))
     ]:
-        assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_latest[trainrun_waypoint.waypoint]
 
@@ -441,7 +439,6 @@ def test_rescheduling_bottleneck():
     assert freeze_dict[0].freeze_visit == [], format(f"found {freeze_dict[0].freeze_visit}")
 
     for trainrun_waypoint in [TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]:
-        assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():

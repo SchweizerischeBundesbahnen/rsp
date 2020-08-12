@@ -424,28 +424,7 @@ def test_get_freeze_for_full_rescheduling():
     agent_paths, train_run = _get_data()
     malfunction = ExperimentMalfunction(time_step=19, agent_id=2, malfunction_duration=20)
     expected_route_dag_constraints = RouteDAGConstraints(
-        freeze_visit=[
-            Waypoint(position=(6, 23), direction=3),
-            Waypoint(position=(6, 22), direction=3),
-            Waypoint(position=(6, 21), direction=3),
-            Waypoint(position=(7, 21), direction=2),
-            Waypoint(position=(7, 20), direction=3),
-            Waypoint(position=(8, 20), direction=2),
-            Waypoint(position=(8, 19), direction=3),
-            Waypoint(position=(8, 18), direction=3),
-            Waypoint(position=(8, 17), direction=3),
-            Waypoint(position=(8, 16), direction=3),
-            Waypoint(position=(8, 15), direction=3),
-            Waypoint(position=(8, 14), direction=3),
-            Waypoint(position=(8, 13), direction=3),
-            Waypoint(position=(8, 12), direction=3),
-            Waypoint(position=(8, 11), direction=3),
-            Waypoint(position=(8, 10), direction=3),
-            Waypoint(position=(8, 9), direction=3),
-            Waypoint(position=(8, 8), direction=3),
-            Waypoint(position=(8, 7), direction=3),
-            Waypoint(position=(8, 6), direction=3)
-        ],
+        freeze_visit=[],
         freeze_earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(6, 23), direction=3)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(6, 22), direction=3)),
@@ -1204,20 +1183,7 @@ def test_get_freeze_for_delta():
 
     expected_freeze_dict = {
         0: RouteDAGConstraints(
-            freeze_visit=[
-                Waypoint(position=(8, 23), direction=1),
-                Waypoint(position=(8, 24), direction=1),
-                Waypoint(position=(8, 25), direction=1),
-                Waypoint(position=(8, 26), direction=1),
-                Waypoint(position=(8, 27), direction=1),
-                Waypoint(position=(8, 28), direction=1),
-                Waypoint(position=(8, 29), direction=1),
-                Waypoint(position=(9, 29), direction=2),
-                Waypoint(position=(10, 29), direction=2),
-                Waypoint(position=(11, 29), direction=2),
-                Waypoint(position=(12, 29), direction=2),
-                Waypoint(position=(13, 29), direction=2)
-            ],
+            freeze_visit=[],
             freeze_earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
                 TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(8, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(8, 24), direction=1)),
@@ -1298,24 +1264,7 @@ def test_get_freeze_for_delta():
                  (Waypoint(position=(13, 28), direction=3), 314 + 1)]),
             freeze_banned=[]),
         1: RouteDAGConstraints(
-            freeze_visit=[
-                Waypoint(position=(23, 23), direction=1),
-                Waypoint(position=(23, 24), direction=1),
-                Waypoint(position=(23, 25), direction=1),
-                Waypoint(position=(23, 26), direction=1),
-                Waypoint(position=(23, 27), direction=1),
-                Waypoint(position=(23, 28), direction=1),
-                Waypoint(position=(23, 29), direction=1),
-                Waypoint(position=(22, 29), direction=0),
-                Waypoint(position=(21, 29), direction=0),
-                Waypoint(position=(20, 29), direction=0),
-                Waypoint(position=(19, 29), direction=0),
-                Waypoint(position=(18, 29), direction=0),
-                Waypoint(position=(17, 29), direction=0),
-                Waypoint(position=(16, 29), direction=0),
-                Waypoint(position=(15, 29), direction=0),
-                Waypoint(position=(14, 29), direction=0)
-            ],
+            freeze_visit=[],
             freeze_earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
                 TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -1778,23 +1727,6 @@ def test_bugfix_sim_172():
     expected_dict = expected_freeze_latest
     compare_dicts(actual_dict, expected_dict)
 
-    assert set(actual_route_dag_constraints.freeze_visit) == set([
-        Waypoint(position=(25, 23), direction=1),
-        Waypoint(position=(25, 24), direction=1),
-        Waypoint(position=(25, 25), direction=1),
-        Waypoint(position=(24, 25), direction=0),
-        Waypoint(position=(24, 26), direction=1),
-        Waypoint(position=(24, 27), direction=1),
-        Waypoint(position=(24, 28), direction=1),
-        Waypoint(position=(24, 29), direction=1),
-        Waypoint(position=(23, 29), direction=0),
-        Waypoint(position=(22, 29), direction=0),
-        Waypoint(position=(21, 29), direction=0),
-        Waypoint(position=(20, 29), direction=0),
-        Waypoint(position=(19, 29), direction=0),
-        Waypoint(position=(18, 29), direction=0),
-        Waypoint(position=(17, 29), direction=0),
-        Waypoint(position=(16, 29), direction=0)])
     expected_freeze_earliest = route_dag_constraints_dict_from_list_of_train_run_waypoint(
         [TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(25, 23), direction=1)),
          TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(25, 24), direction=1)),
