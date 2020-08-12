@@ -68,7 +68,7 @@ spec:
 
           # run unit and integration tests
           date
-          export PYTHONPATH=$WORKDIR/rsp:$WORKDIR/rsp/flatland_ckua:$PYTHONPATH
+          export PYTHONPATH=$WORKDIR/rsp
           cd $WORKDIR/rsp
           export QT_DEBUG_PLUGINS=1
           xvfb-run python -m pytest tests

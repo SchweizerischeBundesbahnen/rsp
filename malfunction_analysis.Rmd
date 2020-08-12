@@ -19,7 +19,6 @@ jupyter:
 # %load_ext autoreload
 # %autoreload 2
 import sys
-sys.path.append("./flatland_ckua")
 
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
