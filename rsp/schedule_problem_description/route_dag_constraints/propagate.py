@@ -12,6 +12,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.logger import rsp_logger
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.utils.data_types import ExperimentMalfunction
 
@@ -281,10 +282,10 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
     malfunctions correctly? Are the constraints consistent?
 
     0. assert all referenced waypoints are in topo
-    2. all waypoints in topo must have earliest and latest s.t. earliest <= latest
-    4. verify that all points up to malfunction are visited,
-    4a. TODO SIM-613 verify that all source-sink paths go through these points
-    6. verify that latest-earliest <= max_window_size_from_earliest
+    1. all waypoints in topo must have earliest and latest s.t. earliest <= latest
+    2. verify that all points up to malfunction are visited,
+    3a. verify that all source-sink paths go through these points
+    4. verify that latest-earliest <= max_window_size_from_earliest
 
     Parameters
     ----------
@@ -313,7 +314,7 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
     for waypoint in route_dag_constraints.freeze_latest:
         assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} has latest, but not in topo"
 
-    # 2. all waypoints in topo must have earliest and latest s.t. earliest <= latest
+    # 1. all waypoints in topo must have earliest and latest s.t. earliest <= latest
     for waypoint in all_waypoints:
         assert waypoint in route_dag_constraints.freeze_earliest, \
             f"agent {agent_id} has no earliest for {waypoint}"
@@ -323,18 +324,26 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
             f"agent {agent_id} at {waypoint}: earliest should be less or equal to latest, " + \
             f"found {route_dag_constraints.freeze_earliest[waypoint]} <= {route_dag_constraints.freeze_latest[waypoint]}"
 
-    # 4. verify that all points up to malfunction are forced to be visited
+    # 2. verify that all points up to malfunction are forced to be visited
     if malfunction:
+        # 2a. verify that all source-sink paths go through these points
+        all_paths = get_paths_in_route_dag(topo)
+        all_path_vertices = [set(path) for path in all_paths]
+        vertices_of_all_paths = all_path_vertices[0]
+        for path_vertices in all_path_vertices[1:]:
+            vertices_of_all_paths.intersection_update(path_vertices)
+
         for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
             # everything before malfunction must be the same
             if earliest <= malfunction.time_step:
                 assert route_dag_constraints.freeze_latest[waypoint] == earliest
+                assert waypoint in vertices_of_all_paths
             # everything after malfunction must be respect malfunction duration (at least) for malfunction agent
             elif agent_id == malfunction.agent_id:
                 assert earliest >= malfunction.time_step + malfunction.malfunction_duration, \
                     f"agent {agent_id} with malfunction {malfunction}. Found earliest={earliest} for {waypoint}"
 
-    # 6. verify that latest-earliest <= max_window_size_from_earliest
+    # 3. verify that latest-earliest <= max_window_size_from_earliest
     for waypoint in route_dag_constraints.freeze_earliest:
         assert (route_dag_constraints.freeze_latest[waypoint] - route_dag_constraints.freeze_earliest[waypoint] <= max_window_size_from_earliest), \
             f"{waypoint} of {agent_id}: [{route_dag_constraints.freeze_earliest[waypoint]},{route_dag_constraints.freeze_latest[waypoint]}], " \
