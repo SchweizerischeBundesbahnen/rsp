@@ -84,11 +84,14 @@ def perfect_oracle(
     )
     earliest_dict[delayed_trainrun_waypoint_after_malfunction.waypoint] = delayed_trainrun_waypoint_after_malfunction.scheduled_at
 
+    force_freeze_earliest = delta_same_location_and_time.union({delayed_trainrun_waypoint_after_malfunction.waypoint})
+    assert set(force_freeze_earliest).issubset(topo.nodes), \
+        f"{force_freeze_earliest.difference(topo.nodes)} - {set(topo.nodes).difference(force_freeze_earliest)} // {delayed_trainrun_waypoint_after_malfunction}"
     propagate(
         earliest_dict=earliest_dict,
         latest_dict=latest_dict,
         topo=topo_out,
-        force_freeze_earliest=delta_same_location_and_time.union({delayed_trainrun_waypoint_after_malfunction.waypoint}),
+        force_freeze_earliest=force_freeze_earliest,
         force_freeze_latest=delta_same_location_and_time.union(sinks),
         must_be_visited=delta_same_location,
         minimum_travel_time=minimum_travel_time,

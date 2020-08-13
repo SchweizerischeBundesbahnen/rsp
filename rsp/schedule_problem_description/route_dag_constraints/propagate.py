@@ -105,6 +105,7 @@ def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],
     latest_dict = {}
     for waypoint, earliest in earliest_dict.items():
         latest = min(earliest + max_window_size_from_earliest, latest_arrival)
+        assert latest is not None, f"min({earliest} + {max_window_size_from_earliest}, {latest_arrival})"
         latest_dict[waypoint] = latest
     return latest_dict
 
