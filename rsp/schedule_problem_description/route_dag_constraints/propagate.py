@@ -191,14 +191,16 @@ def propagate(  # noqa C901
         raise e
     not_reachable_earliest = force_freeze_earliest.difference(reachable)
     if not_reachable_earliest:
-        rsp_logger.warn(f"removing {not_reachable_earliest} from earliest_dict, not reachable. { {v: earliest_dict[v] for v in not_reachable_earliest} }")
+        rsp_logger.warn(f"removing {not_reachable_earliest} from earliest_dict, not reachable. {{v: earliest_dict[v] for v in not_reachable_earliest}}")
     not_reachable_latest = force_freeze_latest.difference(reachable)
     if not_reachable_latest:
-        rsp_logger.warn(f"removing {not_reachable_latest} from latest_dict, not reachable. { {v: earliest_dict[v] for v in not_reachable_latest} }")
+        rsp_logger.warn(f"removing {not_reachable_latest} from latest_dict, not reachable. {{v: latest_dict[v] for v in not_reachable_latest}}")
+    force_freeze_earliest.difference_update(not_reachable_earliest)
+    force_freeze_latest.difference_update(not_reachable_latest)
     for key in not_reachable_earliest:
-        del not_reachable_earliest[key]
+        del earliest_dict[key]
     for key in not_reachable_latest:
-        del not_reachable_latest[key]
+        del latest_dict[key]
 
     _propagate_earliest(
         earliest_dict=earliest_dict,
