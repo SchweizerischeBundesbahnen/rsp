@@ -6,7 +6,7 @@ metadata:
     "helm.sh/hook": test-success
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
-  restartPolicy: OnFailure
+  restartPolicy: Never
   containers:
     - image: "docker.bin.sbb.ch/pfi/rsp-workspace:{{ .Values.RspWorkspaceVersion }}"
       imagePullPolicy: Always # Always or IfNotPresent (latest requires pulling always)
@@ -14,7 +14,7 @@ spec:
       env:
         # set GIT_SSH_COMMAND to access the private key mounted
         - name: GIT_SSH_COMMAND
-          value: "ssh -o ProxyCommand='connect -H zscaler.sbb.ch:10465 %h %p' -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          value: "ssh -i /home/jovyan/ssh/ssh-privatekey -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
       args:
         - /bin/bash
         - -c
@@ -22,14 +22,37 @@ spec:
           # echo shell commands and fail script on error
           set -e
           set -x
+          date
 
           # we need to fix user before cloning https://stackoverflow.com/questions/47706024/docker-set-running-user-while-launch-container/57531352#57531352
           set-ocuser-as-jovyan
 
-          # set http proxy for conda
+          export WORKDIR=$PWD
+
+          # set http proxy for conda and git-lfs
           source set-sbb-proxy
           printenv
-          export WORKDIR=$PWD
+
+          # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
+          date
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
+          cd rsp
+          git checkout {{ .Values.RspVersion }} --recurse-submodules
+          cd $WORKDIR
+
+          date
+          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          date
+          cd rsp-data
+          git status
+          $GIT_SSH_COMMAND git@github.com git-lfs-authenticate SchweizerischeBundesbahnen/rsp download
+          git lfs pull
+          date
+          cd $WORKDIR
+
+          # activate conda activate
+          # https://docs.anaconda.com/anaconda/install/silent-mode/
+          eval "$(conda shell.bash hook)"
 
           # set up http proxy for git (required for pip dependency to FLATland)
           git config --global http.sslVerify false
@@ -38,26 +61,18 @@ spec:
           git config --global http.maxRequestBuffer 524288000
           git config --global core.compression 0
 
-          # clone (ssh key and proxy are injected by SSH_GIT_COMMAND env variable)
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp.git
-          cd rsp
-          git checkout {{ .Values.RspVersion }} --recurse-submodules
-          cd $WORKDIR
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
-
-          # activate conda activate
-          # https://docs.anaconda.com/anaconda/install/silent-mode/
-          eval "$(conda shell.bash hook)"
-
           # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-          conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force --verbose
+          date
+          conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force
           conda activate $WORKDIR/rsp-conda
 
           # run unit and integration tests
-          export PYTHONPATH=$WORKDIR/rsp:$WORKDIR/rsp/flatland_ckua:$PYTHONPATH
+          date
+          export PYTHONPATH=$WORKDIR/rsp
           cd $WORKDIR/rsp
           export QT_DEBUG_PLUGINS=1
           xvfb-run python -m pytest tests
+          date
       resources:
       {{- toYaml .Values.resources | nindent 12 }}
       volumeMounts:

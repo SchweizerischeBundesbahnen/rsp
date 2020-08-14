@@ -17,7 +17,6 @@ jupyter:
 # %load_ext autoreload
 # %autoreload 2
 import sys
-sys.path.append("./flatland_ckua")
 from IPython.display import Video
 
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
@@ -133,11 +132,15 @@ plot_train_paths(
 ```
 
 ```{python}
-render_flatland_env(data_folder='./Video/',
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory,
                         experiment_data=exp_results_of_experiment_of_interest,
                         experiment_id=0,
                         render_schedule = True,
                         render_reschedule = False)
+```
+
+```{python}
+Video(video_src_schedule, embed=True)
 ```
 
 ```{python}

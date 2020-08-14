@@ -51,12 +51,10 @@ from pandas import DataFrame
 
 from rsp.experiment_solvers.asp.asp_helper import _print_stats
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.experiment_solvers.data_types import fake_solver_statistics
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
-from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.logger import add_file_handler_to_rsp_logger
 from rsp.logger import remove_file_handler_from_rsp_logger
 from rsp.logger import rsp_logger
@@ -464,43 +462,13 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         experiment_parameters=experiment_parameters
     )
 
-    # TODO SIM-566 pull out switch out if ckua stuff not remove
-    SWITCH_CKUA = False
-    if SWITCH_CKUA:
-        # TODO SIM-566 fix local import if ckua stuff not removed; if we have not setup PYTHONPATH correctly, pipeline fails.
-        from rsp.flatland_controller.ckua_schedule_generator import ckua_generate_schedule
-        trainrun_dict, elapsed_time = ckua_generate_schedule(
-            env=rail_env,
-            random_seed=experiment_parameters.flatland_seed_value,
-            rendering=False,
-            show=False
-        )
-        verify_trainrun_dict_for_schedule_problem(
-            schedule_problem=schedule_problem,
-            trainrun_dict=trainrun_dict,
-            expected_route_dag_constraints=schedule_problem.route_dag_constraints_dict
-        )
-        schedule_result = SchedulingExperimentResult(
-            total_reward=-np.inf,
-            solve_time=-np.inf,
-            optimization_costs=-np.inf,
-            build_problem_time=-np.inf,
-            nb_conflicts=-np.inf,
-            trainruns_dict=trainrun_dict,
-            route_dag_constraints=schedule_problem.route_dag_constraints_dict,
-            solver_statistics=fake_solver_statistics(elapsed_time),
-            solver_result={},
-            solver_configuration={},
-            solver_seed=experiment_parameters.asp_seed_value,
-            solver_program=None
-        )
-    else:
-        schedule_result: SchedulingExperimentResult = asp_schedule_wrapper(
-            schedule_problem_description=schedule_problem,
-            asp_seed_value=experiment_parameters.asp_seed_value,
-            debug=debug,
-            no_optimize=True
-        )
+    schedule_result: SchedulingExperimentResult = asp_schedule_wrapper(
+        schedule_problem_description=schedule_problem,
+        asp_seed_value=experiment_parameters.asp_seed_value,
+        debug=debug,
+        no_optimize=True
+    )
+
     malfunction = gen_malfunction(
         earliest_malfunction=experiment_parameters.earliest_malfunction,
         malfunction_duration=experiment_parameters.malfunction_duration,
@@ -1115,7 +1083,6 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
             with open(file_name, 'wb') as handle:
                 file_data = ExperimentResults(**file_data._asdict())
                 pickle.dump(file_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            remove_dummy_stuff_from_experiment_results_file(experiment_data_folder_name=experiment_data_folder_name, experiment_id=exp_id)
         experiment_results_list.append(expand_experiment_results_for_analysis(
             file_data,
             nonify_problem_and_results=nonify_problem_and_results))
@@ -1191,82 +1158,6 @@ def delete_experiment_folder(experiment_folder_name: str):
     -------
     """
     shutil.rmtree(experiment_folder_name)
-
-
-# TODO SIM-558 remove remove_dummy_stuff*
-def remove_dummy_stuff_from_experiment_results_file(experiment_data_folder_name: str,
-                                                    experiment_id: int):
-    experiment_results, file_name = load_experiment_result_without_expanding(experiment_data_folder_name, experiment_id)
-
-    for topo_dict in [
-        experiment_results.problem_full.topo_dict,
-        experiment_results.problem_full_after_malfunction.topo_dict,
-        experiment_results.problem_delta_after_malfunction.topo_dict,
-    ]:
-        _remove_dummy_stuff_from_topo_dict(topo_dict=topo_dict)
-    for route_dag_constraints_dict in [
-        experiment_results.problem_full.route_dag_constraints_dict,
-        experiment_results.problem_full_after_malfunction.route_dag_constraints_dict,
-        experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict,
-        experiment_results.results_full.route_dag_constraints,
-        experiment_results.results_full_after_malfunction.route_dag_constraints,
-        experiment_results.results_delta_after_malfunction.route_dag_constraints,
-    ]:
-        _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_dict=route_dag_constraints_dict)
-    for trainrun_dict in [
-        experiment_results.results_full.trainruns_dict,
-        experiment_results.results_full_after_malfunction.trainruns_dict,
-        experiment_results.results_delta_after_malfunction.trainruns_dict,
-    ]:
-        _remove_dummy_stuff_from_trainrun_dict(trainrun_dict=trainrun_dict)
-
-    save_experiment_results_to_file(experiment_results=experiment_results, file_name=file_name)
-
-
-# TODO SIM-558 remove remove_dummy_stuff*
-def remove_dummy_stuff_from_schedule_and_malfunction_pickle(
-        experiment_agenda_directory: str,
-        experiment_id: int):
-    schedule_and_malfunction: ScheduleAndMalfunction = load_schedule_and_malfunction(experiment_agenda_directory=experiment_agenda_directory,
-                                                                                     experiment_id=experiment_id)
-    topo_dict = schedule_and_malfunction.schedule_problem_description.topo_dict
-    _remove_dummy_stuff_from_topo_dict(topo_dict)
-    for route_dag_constraints_dict in [
-        schedule_and_malfunction.schedule_problem_description.route_dag_constraints_dict,
-        schedule_and_malfunction.schedule_experiment_result.route_dag_constraints
-    ]:
-        _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_dict)
-    trainrun_dict = schedule_and_malfunction.schedule_experiment_result.trainruns_dict
-    _remove_dummy_stuff_from_trainrun_dict(trainrun_dict)
-    save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction, experiment_agenda_directory=experiment_agenda_directory,
-                                  experiment_id=experiment_id)
-
-
-# TODO SIM-558 remove remove_dummy_stuff*
-def _remove_dummy_stuff_from_topo_dict(topo_dict):
-    for _, topo in topo_dict.items():
-        dummy_nodes = [v for v in topo.nodes if v.direction == 5]
-        topo.remove_nodes_from(dummy_nodes)
-
-
-# TODO SIM-558 remove remove_dummy_stuff*
-def _remove_dummy_stuff_from_trainrun_dict(trainrun_dict):
-    for agent_id in trainrun_dict:
-        trainrun = trainrun_dict[agent_id]
-        trainrun_tweaked = [trainrun_waypoint for trainrun_waypoint in trainrun if trainrun_waypoint.waypoint.direction != 5]
-        trainrun_dict[agent_id] = trainrun_tweaked
-
-
-# TODO SIM-558 remove remove_dummy_stuff*
-def _remove_dummy_stuff_from_route_dag_constraints_dict(route_dag_constraints_dict):
-    for _, constraints in route_dag_constraints_dict.items():
-        dummy_nodes_earliest_latest = [v for v in constraints.freeze_earliest.keys() if v.direction == 5]
-        for v in dummy_nodes_earliest_latest:
-            del constraints.freeze_earliest[v]
-            del constraints.freeze_latest[v]
-        dummy_nodes_visit = [v for v in constraints.freeze_visit if v.direction == 5]
-        for v in dummy_nodes_visit:
-            constraints.freeze_visit.remove(v)
 
 
 # -----------------------

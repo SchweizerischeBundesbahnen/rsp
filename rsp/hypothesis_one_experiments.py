@@ -21,7 +21,6 @@ from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_parameter_ranges_and_speed_data
 from rsp.utils.experiments import load_schedule_and_malfunction
-from rsp.utils.experiments import remove_dummy_stuff_from_schedule_and_malfunction_pickle
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.utils.experiments import save_parameter_ranges_and_speed_data
@@ -203,14 +202,6 @@ def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
     """
     if experiment_ids is None:
         experiment_ids = [exp.experiment_id for exp in experiment_agenda.experiments]
-    # TODO remove again
-
-    if copy_agenda_from_base_directory is not None:
-        for experiment_id in experiment_ids:
-            remove_dummy_stuff_from_schedule_and_malfunction_pickle(
-                experiment_agenda_directory=f"{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
-                experiment_id=experiment_id
-            )
 
     experiment_base_folder_name, _ = run_experiment_agenda(
         experiment_agenda=experiment_agenda,

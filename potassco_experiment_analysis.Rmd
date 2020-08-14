@@ -19,7 +19,6 @@ jupyter:
 # %load_ext autoreload
 # %autoreload 2
 import sys
-sys.path.append("./flatland_ckua")
 import pandas as pd
 from IPython.display import Video
 
@@ -41,7 +40,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```
 
 ```{python}
-experiment_base_directory = '../rsp-data/agent_0_malfunction_2020_06_04T19_17_28/'
+experiment_base_directory = '../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_baseline_2020_07_15T17_14_34/'
 #experiment_base_directory = '../rsp-data/mini_toy_example'
 experiment_of_interest = 0
 ```
@@ -155,7 +154,11 @@ plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_i
 #### Render the current environment
 
 ```{python}
-video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory ,experiment_data=exp_results_of_experiment_of_interest,experiment_id = experiment_of_interest)
+video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory,
+                        experiment_data=exp_results_of_experiment_of_interest,
+                        experiment_id=experiment_of_interest,
+                        render_schedule = True,
+                        render_reschedule = True)
 ```
 
 ```{python}
