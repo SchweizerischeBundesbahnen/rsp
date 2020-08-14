@@ -133,7 +133,10 @@ def test_minimize_sum_of_running_times_scheduling():
         encodings.append(encoding_in)
     with path('res.asp.encodings', 'minimize_total_sum_of_running_times.lp') as encoding_in:
         encodings.append(encoding_in)
-    models, all_statistics, _, _, _ = _asp_helper(encodings)
+    plain_encoding = "#const upper_bound_linear_penalty = 30." + \
+                     "#const penalty_after_linear = 5000." + \
+                     "#const resolution = 1."
+    models, all_statistics, _, _, _ = _asp_helper(encodings, plain_encoding=plain_encoding)
 
     print(models)
     assert len(models) == 1
