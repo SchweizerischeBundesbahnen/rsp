@@ -6,6 +6,7 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
+from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
@@ -53,10 +54,15 @@ def perfect_oracle(
     -------
     """
     delta_same_location_and_time = {trainrun_waypoint.waypoint for trainrun_waypoint in set(full_reschedule_trainrun).intersection(set(schedule_trainrun))}
+    rsp_logger.info(f"delta_same_location_and_time={delta_same_location_and_time}")
 
     schedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
     reschedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in full_reschedule_trainrun}
+    assert schedule_waypoints.issubset(topo.nodes), f"{schedule_waypoints} {topo.nodes} {schedule_waypoints.difference(topo.nodes)}"
+    assert reschedule_waypoints.issubset(topo.nodes), f"{reschedule_waypoints} {topo.nodes} {reschedule_waypoints.difference(topo.nodes)}"
+
     delta_same_location = list(schedule_waypoints.intersection(reschedule_waypoints))
+    rsp_logger.info(f"delta_same_location={delta_same_location}")
 
     topo_out = topo.copy()
     to_remove = set(topo_out.nodes).difference(schedule_waypoints.union(reschedule_waypoints))
@@ -85,8 +91,9 @@ def perfect_oracle(
     earliest_dict[delayed_trainrun_waypoint_after_malfunction.waypoint] = delayed_trainrun_waypoint_after_malfunction.scheduled_at
 
     force_freeze_earliest = delta_same_location_and_time.union({delayed_trainrun_waypoint_after_malfunction.waypoint})
-    assert set(force_freeze_earliest).issubset(topo.nodes), \
-        f"{force_freeze_earliest.difference(topo.nodes)} - {set(topo.nodes).difference(force_freeze_earliest)} // {delayed_trainrun_waypoint_after_malfunction}"
+    assert set(force_freeze_earliest).issubset(topo_out.nodes), \
+        f"{force_freeze_earliest.difference(topo_out.nodes)} - {set(topo_out.nodes).difference(force_freeze_earliest)} // " \
+        f"{set(topo_out.nodes).intersection(force_freeze_earliest)} // {delayed_trainrun_waypoint_after_malfunction}"
     propagate(
         earliest_dict=earliest_dict,
         latest_dict=latest_dict,

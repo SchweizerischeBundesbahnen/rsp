@@ -317,14 +317,15 @@ def run_experiment_from_schedule_and_malfunction(
     # 2. Re-schedule Full
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
-    reduced_topo_dict = schedule_problem.topo_dict
+    # clone topos since propagation will modify them
+    full_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
     full_reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         latest_arrival=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        topo_dict=reduced_topo_dict
+        topo_dict=full_reschedule_topo_dict
     )
     full_reschedule_problem = apply_weight_route_change(
         schedule_problem=full_reschedule_problem,
@@ -358,11 +359,13 @@ def run_experiment_from_schedule_and_malfunction(
     # 3. Re-Schedule Delta
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3. reschedule delta")
+    # clone topos since propagation will modify them
+    delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
     delta_reschedule_problem = perfect_oracle_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         malfunction=malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
-        schedule_topo_dict=reduced_topo_dict,
+        schedule_topo_dict=delta_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
