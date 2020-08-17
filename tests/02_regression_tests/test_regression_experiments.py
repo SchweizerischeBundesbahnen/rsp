@@ -149,7 +149,7 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
     )
 
     hypothesis_one_data_analysis(
-        experiment_base_directory=experiment_folder_name,
+        experiment_output_directory=experiment_folder_name,
         analysis_2d=True,
         qualitative_analysis_experiment_ids=[0],
     )

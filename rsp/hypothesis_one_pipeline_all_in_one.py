@@ -161,8 +161,7 @@ def hypothesis_one_pipeline_all_in_one(
     # C. Experiment Analysis
     if run_analysis:
         hypothesis_one_data_analysis(
-            # TODO SIM-650 should be run_folder_name?
-            experiment_base_directory=experiment_output_directory,
+            experiment_output_directory=experiment_output_directory,
             analysis_2d=True,
             qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
             asp_export_experiment_ids=asp_export_experiment_ids

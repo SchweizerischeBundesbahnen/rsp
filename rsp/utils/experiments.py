@@ -436,8 +436,6 @@ def run_and_save_one_experiment(
         check_create_folder(experiment_data_directory)
         filename = create_experiment_filename(experiment_data_directory, experiment_parameters.experiment_id)
 
-        # TODO SIM-650 load schedule and malfunction
-
         start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
         rsp_logger.info(
             "Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(),
@@ -555,7 +553,6 @@ def run_experiment_agenda(
     -------
     Returns the name of the experiment base and data folders
     """
-    # TODO SIM-650 as subfolder of agenda dir? option to write somewhere else
     if experiment_output_base_directory is None:
         experiment_output_base_directory = experiment_base_directory
     experiment_output_directory = f"{experiment_output_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)

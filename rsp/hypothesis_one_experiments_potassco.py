@@ -3,10 +3,12 @@ from typing import Optional
 
 from rsp.hypothesis_one_pipeline_all_in_one import get_agenda_pipeline_params_003_a_bit_more_advanced
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_gen_schedule
-from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_rerun_without_regen_schedule
+from rsp.utils.experiments import run_experiment_agenda
 
 
 # TODO pass arguments instead of hacky file editing
+
+
 def enable_seq(enable=True):
     off = "RESCHEDULE_HEURISTICS = []"
     on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
@@ -43,6 +45,7 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
+# TODO SIM-650 should run again - make integration test
 def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory: Optional[str] = None):
     """
 
@@ -68,7 +71,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
             experiment_ids = None
             # baseline with defaults
             set_defaults()
-            hypothesis_one_rerun_without_regen_schedule(
+            run_experiment_agenda(
                 base_directory=base_directory,
                 experiment_name=('%sbaseline' % experiment_name_prefix),
                 nb_runs=nb_runs,
@@ -80,7 +83,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
             # effect of SEQ heuristic (SIM-167)
             set_defaults()
             enable_seq(True)
-            hypothesis_one_rerun_without_regen_schedule(
+            run_experiment_agenda(
                 base_directory=base_directory,
                 experiment_name=('%swith_SEQ' % experiment_name_prefix),
                 nb_runs=nb_runs,
@@ -92,7 +95,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
             # effect of delay model resolution (SIM-542)
             set_defaults()
             set_delay_model_resolution(2)
-            hypothesis_one_rerun_without_regen_schedule(
+            run_experiment_agenda(
                 base_directory=base_directory,
                 experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
                 nb_runs=nb_runs,
@@ -103,7 +106,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
             )
             set_defaults()
             set_delay_model_resolution(5)
-            hypothesis_one_rerun_without_regen_schedule(
+            run_experiment_agenda(
                 base_directory=base_directory,
                 experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
                 nb_runs=nb_runs,
@@ -114,7 +117,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
             )
             set_defaults()
             set_delay_model_resolution(10)
-            hypothesis_one_rerun_without_regen_schedule(
+            run_experiment_agenda(
                 base_directory=base_directory,
                 experiment_name=('%swith_delay_model_resolution_10' % experiment_name_prefix),
                 nb_runs=nb_runs,
@@ -126,7 +129,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
             # # effect of --propagate (SIM-543)
             set_defaults()
             enable_propagate_partial(enable=False)
-            hypothesis_one_rerun_without_regen_schedule(
+            run_experiment_agenda(
                 base_directory=base_directory,
                 experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
                 nb_runs=nb_runs,

@@ -179,7 +179,7 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
             )
 
 
-def hypothesis_one_data_analysis(experiment_base_directory: str,
+def hypothesis_one_data_analysis(experiment_output_directory: str,
                                  analysis_2d: bool = False,
                                  asp_export_experiment_ids: List[int] = None,
                                  qualitative_analysis_experiment_ids: List[int] = None,
@@ -191,15 +191,15 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     ----------
     analysis_2d
     asp_export_experiment_ids
-    experiment_base_directory
+    experiment_output_directory
     save_as_tsv
     qualitative_analysis_experiment_ids
     """
 
     # Import the desired experiment results
-    experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-    experiment_potassco_directory = f'{experiment_base_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}'
+    experiment_analysis_directory = f'{experiment_output_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
+    experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+    experiment_potassco_directory = f'{experiment_output_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}'
 
     # Create output directoreis
     check_create_folder(experiment_analysis_directory)
@@ -319,7 +319,7 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 if __name__ == '__main__':
     hypothesis_one_data_analysis(
-        experiment_base_directory='./rsp/exp_hypothesis_one_2020_03_21T12_57_55',
+        experiment_output_directory='./rsp/exp_hypothesis_one_2020_03_21T12_57_55',
         analysis_2d=True,
         asp_export_experiment_ids=[270, 275, 280, 285, 290, 295]
     )
