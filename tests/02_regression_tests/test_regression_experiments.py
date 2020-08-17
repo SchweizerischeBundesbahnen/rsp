@@ -22,7 +22,8 @@ from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import gen_schedule_and_malfunction_from_experiment_parameters
+from rsp.utils.experiments import gen_malfunction
+from rsp.utils.experiments import gen_schedule
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_malfunction
 from rsp.utils.experiments import load_schedule
@@ -305,11 +306,21 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
-        schedule_scaled, malfunction_scaled = gen_schedule_and_malfunction_from_experiment_parameters(
+        schedule_scaled = gen_schedule(
             experiment_parameters=experiment_parameters_scaled,
         )
-        schedule, malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+        malfunction_scaled = gen_malfunction(
+            earliest_malfunction=experiment_parameters.earliest_malfunction,
+            malfunction_duration=experiment_parameters.malfunction_duration,
+            schedule_trainruns=schedule_scaled.schedule_experiment_result.trainruns_dict
+        )
+        schedule = gen_schedule(
             experiment_parameters=experiment_parameters
+        )
+        malfunction = gen_malfunction(
+            earliest_malfunction=experiment_parameters.earliest_malfunction,
+            malfunction_duration=experiment_parameters.malfunction_duration,
+            schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
         )
         save_schedule(
             schedule=schedule_scaled,

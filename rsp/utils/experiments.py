@@ -376,13 +376,13 @@ def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dic
     )
 
 
-# TODO SIM-650 separate?
-def gen_schedule_and_malfunction_from_experiment_parameters(
+# TODO SIM-650 gen_schedule from topo_dict
+def gen_schedule(
         experiment_parameters: ExperimentParameters,
         verbose: bool = False,
         debug: bool = False
 
-) -> Tuple[Schedule, ExperimentMalfunction]:
+) -> Schedule:
     """A.2 Create schedule and malfunction from experiment parameters.
 
     Parameters
@@ -404,12 +404,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         asp_seed_value=experiment_parameters.asp_seed_value,
         debug=debug
     )
-    malfunction = gen_malfunction(
-        earliest_malfunction=experiment_parameters.earliest_malfunction,
-        malfunction_duration=experiment_parameters.malfunction_duration,
-        schedule_trainruns=schedule_result.trainruns_dict
-    )
-    return Schedule(schedule_problem_description=schedule_problem, schedule_experiment_result=schedule_result), malfunction
+    return Schedule(schedule_problem_description=schedule_problem, schedule_experiment_result=schedule_result)
 
 
 def gen_malfunction(
@@ -1212,12 +1207,17 @@ def hypothesis_one_gen_schedule(
     for experiment_parameters in experiment_agenda.experiments:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
 
-        schedule, experiment_malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+        schedule = gen_schedule(
             experiment_parameters=experiment_parameters)
         save_schedule(
             schedule=schedule,
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)
+        experiment_malfunction = gen_malfunction(
+            earliest_malfunction=experiment_parameters.earliest_malfunction,
+            malfunction_duration=experiment_parameters.malfunction_duration,
+            schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
+        )
         save_malfunction(
             experiment_malfunction=experiment_malfunction,
             experiment_agenda_directory=experiment_agenda_directory,
