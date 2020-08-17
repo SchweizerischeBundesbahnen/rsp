@@ -5,7 +5,6 @@ from typing import List
 import numpy as np
 
 from rsp.experiment_solvers.data_types import schedule_experiment_results_equals_modulo_solve_time
-from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.logger import rsp_logger
@@ -25,11 +24,13 @@ from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_schedule_and_malfunction_from_experiment_parameters
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.utils.experiments import load_schedule_and_malfunction
+from rsp.utils.experiments import load_malfunction
+from rsp.utils.experiments import load_schedule
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_from_schedule_and_malfunction
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
-from rsp.utils.experiments import save_schedule_and_malfunction
+from rsp.utils.experiments import save_malfunction
+from rsp.utils.experiments import save_schedule
 
 
 def test_created_env_tuple():
@@ -132,7 +133,8 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
     # used if module path used in pickle has changed
     # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
     if re_save:
-        load_schedule_and_malfunction(experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
+        load_schedule(experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
+        load_malfunction(experiment_agenda_directory=experiment_agenda_directory, experiment_id=0)
     if regen:
         save_experiment_agenda_and_hash_to_file(
             experiment_agenda_folder_name=experiment_agenda_directory,
@@ -288,52 +290,70 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
     # used if module path used in pickle has changed
     # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
     if re_save:
-        load_schedule_and_malfunction(
-            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
-            experiment_id=0,
-            re_save=True
-        )
-        load_schedule_and_malfunction(
-            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
-            experiment_id=1,
-            re_save=True
-        )
+        for experiment_id in range(2):
+            load_schedule(
+                experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+                experiment_id=experiment_id,
+                re_save=True
+            )
+            load_malfunction(
+                experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+                experiment_id=experiment_id,
+                re_save=True
+            )
 
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
-        schedule_and_malfunction_scaled: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+        schedule_scaled, malfunction_scaled = gen_schedule_and_malfunction_from_experiment_parameters(
             experiment_parameters=experiment_parameters_scaled,
         )
-        schedule_and_malfunction: ScheduleAndMalfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+        schedule, malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
             experiment_parameters=experiment_parameters
         )
+        save_schedule(
+            schedule=schedule_scaled,
+            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+            experiment_id=0)
+        save_malfunction(
+            experiment_malfunction=malfunction_scaled,
+            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+            experiment_id=0)
+        save_schedule(
+            schedule=schedule,
+            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+            experiment_id=0)
+        save_malfunction(
+            experiment_malfunction=malfunction,
+            experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+            experiment_id=0)
 
-        save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction_scaled,
-                                      experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
-                                      experiment_id=0
-                                      )
-        save_schedule_and_malfunction(schedule_and_malfunction=schedule_and_malfunction,
-                                      experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
-                                      experiment_id=1
-                                      )
-
-    schedule_and_malfunction_scaled = load_schedule_and_malfunction(
+    schedule_scaled = load_schedule(
         experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
         experiment_id=0
     )
-    schedule_and_malfunction = load_schedule_and_malfunction(
+    malfunction_scaled = load_malfunction(
+        experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+        experiment_id=0
+    )
+    schedule = load_schedule(
+        experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
+        experiment_id=1
+    )
+    malfunction = load_malfunction(
         experiment_agenda_directory="tests/02_regression_tests/data/alpha_beta",
         experiment_id=1
     )
 
     experiment_result_scaled: ExperimentResults = run_experiment_from_schedule_and_malfunction(
-        schedule_and_malfunction=schedule_and_malfunction_scaled,
+        schedule=schedule_scaled,
+        experiment_malfunction=malfunction_scaled,
         experiment_parameters=experiment_parameters_scaled,
     )
 
     experiment_result: ExperimentResults = run_experiment_from_schedule_and_malfunction(
-        schedule_and_malfunction=schedule_and_malfunction,
+        schedule=schedule,
+        experiment_malfunction=malfunction,
         experiment_parameters=experiment_parameters,
     )
 

@@ -50,7 +50,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
+from rsp.experiment_solvers.data_types import Schedule
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.logger import add_file_handler_to_rsp_logger
@@ -93,25 +93,42 @@ EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
 EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
 
 
-def save_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction,
-                                  experiment_agenda_directory: str,
-                                  experiment_id: int):
+# TODO SIM-650 topo id and schedule id
+def save_schedule(schedule: Schedule,
+                  experiment_agenda_directory: str,
+                  experiment_id: int):
     """Persist `ScheduleAndMalfunction` to a file.
     Parameters
     ----------
-    schedule_and_malfunction
+    schedule
     experiment_agenda_directory
     experiment_id
     """
-    schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
-                                                      f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
-    check_create_folder(experiment_agenda_directory)
-    with open(schedule_and_malfunction_file_name, 'wb') as handle:
-        pickle.dump(schedule_and_malfunction, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    schedule_file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
+    check_create_folder(os.path.join(experiment_agenda_directory, f"{experiment_id:03d}"))
+    with open(schedule_file_name, 'wb') as handle:
+        pickle.dump(schedule, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int) -> bool:
-    """Does a persisted `ScheduleAndMalfunction` exist?
+# TODO SIM-650 topo id and schedule id
+def save_malfunction(experiment_malfunction: ExperimentMalfunction,
+                     experiment_agenda_directory: str,
+                     experiment_id: int):
+    """Persist `ScheduleAndMalfunction` to a file.
+    Parameters
+    ----------
+    experiment_malfunction
+    experiment_agenda_directory
+    experiment_id
+    """
+    schedule_file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"malfunction.pkl")
+    check_create_folder(os.path.join(experiment_agenda_directory, f"{experiment_id:03d}"))
+    with open(schedule_file_name, 'wb') as handle:
+        pickle.dump(experiment_malfunction, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def exists_schedule(experiment_agenda_directory: str, experiment_id: int) -> bool:
+    """Does a persisted `Schedule` exist?
     Parameters
     ----------
     experiment_agenda_directory
@@ -119,13 +136,26 @@ def exists_schedule_and_malfunction(experiment_agenda_directory: str, experiment
     Returns
     -------
     """
-    schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
-                                                      f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
-    return os.path.isfile(schedule_and_malfunction_file_name)
+    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
+    return os.path.isfile(file_name)
 
 
-def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> ScheduleAndMalfunction:
-    """Load a persisted `ScheduleAndMalfunction` from a file.
+def exists_malfunction(experiment_agenda_directory: str, experiment_id: int) -> bool:
+    """Does a persisted `ExperimentMalfunction` exist?
+    Parameters
+    ----------
+    experiment_agenda_directory
+    experiment_id
+    Returns
+    -------
+    """
+    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
+    return os.path.isfile(file_name)
+
+
+# TODO SIM-650 pass topo_id
+def load_malfunction(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> ExperimentMalfunction:
+    """Load a persisted `ExperimentMalfunction` from a file.
     Parameters
     ----------
     experiment_agenda_directory
@@ -138,22 +168,50 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
     Returns
     -------
     """
-    schedule_and_malfunction_file_name = os.path.join(experiment_agenda_directory,
-                                                      f"experiment_{experiment_id:03d}_schedule_and_malfunction.pkl")
+    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"malfunction.pkl")
 
-    with open(schedule_and_malfunction_file_name, 'rb') as handle:
-        file_data: ScheduleAndMalfunction = pickle.load(handle)
+    with open(file_name, 'rb') as handle:
+        file_data: ExperimentMalfunction = pickle.load(handle)
 
     # used if module path used in pickle has changed
     # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
     if re_save:
-        with open(schedule_and_malfunction_file_name, 'wb') as handle:
-            pickle.dump(ScheduleAndMalfunction(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(file_name, 'wb') as handle:
+            pickle.dump(ExperimentMalfunction(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
+    return file_data
+
+
+# TODO SIM-650 pass topo_id and schedule_id
+def load_schedule(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> Schedule:
+    """Load a persisted `Schedule` from a file.
+    Parameters
+    ----------
+    experiment_agenda_directory
+    experiment_id
+    re_save
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+
+
+    Returns
+    -------
+    """
+    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
+
+    with open(file_name, 'rb') as handle:
+        file_data: Schedule = pickle.load(handle)
+
+    # used if module path used in pickle has changed
+    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+    if re_save:
+        with open(file_name, 'wb') as handle:
+            pickle.dump(Schedule(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
     return file_data
 
 
 def run_experiment_from_schedule_and_malfunction(
-        schedule_and_malfunction: ScheduleAndMalfunction,
+        schedule: Schedule,
+        experiment_malfunction: ExperimentMalfunction,
         experiment_parameters: ExperimentParameters,
         verbose: bool = False,
         debug: bool = False,
@@ -174,7 +232,7 @@ def run_experiment_from_schedule_and_malfunction(
     ExperimentResults
     """
     rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
-    schedule_problem, schedule_result, malfunction = schedule_and_malfunction
+    schedule_problem, schedule_result = schedule
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # --------------------------------------------------------------------------------------
@@ -184,10 +242,10 @@ def run_experiment_from_schedule_and_malfunction(
     # clone topos since propagation will modify them
     full_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
     full_reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
-        malfunction=malfunction,
+        malfunction=experiment_malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        latest_arrival=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
+        latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         topo_dict=full_reschedule_topo_dict
     )
@@ -203,7 +261,7 @@ def run_experiment_from_schedule_and_malfunction(
             visualize_route_dag_constraints_simple_wrapper(
                 schedule_problem_description=full_reschedule_problem,
                 trainrun_dict=None,
-                experiment_malfunction=malfunction,
+                experiment_malfunction=experiment_malfunction,
                 agent_id=agent_id,
                 file_name=f"rescheduling_neu_agent_{agent_id}.pdf",
             )
@@ -227,8 +285,8 @@ def run_experiment_from_schedule_and_malfunction(
     delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
     delta_reschedule_problem = perfect_oracle_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
-        malfunction=malfunction,
-        max_episode_steps=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
+        malfunction=experiment_malfunction,
+        max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         schedule_topo_dict=delta_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
@@ -246,7 +304,7 @@ def run_experiment_from_schedule_and_malfunction(
             visualize_route_dag_constraints_simple_wrapper(
                 schedule_problem_description=delta_reschedule_problem,
                 trainrun_dict=None,
-                experiment_malfunction=malfunction,
+                experiment_malfunction=experiment_malfunction,
                 agent_id=agent_id,
                 file_name=f"delta_rescheduling_neu_agent_{agent_id}.pdf",
             )
@@ -266,7 +324,7 @@ def run_experiment_from_schedule_and_malfunction(
     # --------------------------------------------------------------------------------------
     current_results = ExperimentResults(
         experiment_parameters=experiment_parameters,
-        malfunction=malfunction,
+        malfunction=experiment_malfunction,
         problem_full=schedule_problem,
         problem_full_after_malfunction=full_reschedule_problem,
         problem_delta_after_malfunction=delta_reschedule_problem,
@@ -278,12 +336,14 @@ def run_experiment_from_schedule_and_malfunction(
     return current_results
 
 
-def _visualize_route_dag_constraints_for_schedule_and_malfunction(schedule_and_malfunction: ScheduleAndMalfunction):
-    for agent_id in schedule_and_malfunction.schedule_experiment_result.trainruns_dict:
+def _visualize_route_dag_constraints_for_schedule_and_malfunction(
+        schedule: Schedule,
+        experiment_malfunction: ExperimentMalfunction):
+    for agent_id in schedule.schedule_experiment_result.trainruns_dict:
         visualize_route_dag_constraints_simple_wrapper(
-            schedule_problem_description=schedule_and_malfunction.schedule_problem_description,
+            schedule_problem_description=schedule.schedule_problem_description,
             trainrun_dict=None,
-            experiment_malfunction=schedule_and_malfunction.experiment_malfunction,
+            experiment_malfunction=experiment_malfunction,
             agent_id=agent_id,
             file_name=f"schedule_alt_agent_{agent_id}.pdf"
         )
@@ -316,12 +376,13 @@ def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dic
     )
 
 
+# TODO SIM-650 separate?
 def gen_schedule_and_malfunction_from_experiment_parameters(
         experiment_parameters: ExperimentParameters,
         verbose: bool = False,
         debug: bool = False
 
-):
+) -> Tuple[Schedule, ExperimentMalfunction]:
     """A.2 Create schedule and malfunction from experiment parameters.
 
     Parameters
@@ -348,8 +409,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
         malfunction_duration=experiment_parameters.malfunction_duration,
         schedule_trainruns=schedule_result.trainruns_dict
     )
-    schedule_and_malfunction = ScheduleAndMalfunction(schedule_problem, schedule_result, malfunction)
-    return schedule_and_malfunction
+    return Schedule(schedule_problem_description=schedule_problem, schedule_experiment_result=schedule_result), malfunction
 
 
 def gen_malfunction(
@@ -446,13 +506,20 @@ def run_and_save_one_experiment(
                         .format(experiment_parameters.experiment_id,
                                 _pp.pformat(experiment_parameters)))
 
-        if experiment_base_directory is None or not exists_schedule_and_malfunction(
-                experiment_agenda_directory=experiment_base_directory,
-                experiment_id=experiment_parameters.experiment_id):
+        if experiment_base_directory is None or \
+                not exists_schedule(
+                    experiment_agenda_directory=experiment_base_directory,
+                    experiment_id=experiment_parameters.experiment_id) or \
+                not exists_malfunction(
+                    experiment_agenda_directory=experiment_base_directory,
+                    experiment_id=experiment_parameters.experiment_id):
             rsp_logger.warn(f"Could not find schedule_and_malfunction for {experiment_parameters.experiment_id} in {experiment_base_directory}")
 
-        rsp_logger.info(f"load_schedule_and_malfunction for {experiment_parameters.experiment_id}")
-        schedule_and_malfunction = load_schedule_and_malfunction(
+        rsp_logger.info(f"load_schedule/load_malfunction for {experiment_parameters.experiment_id}")
+        schedule = load_schedule(
+            experiment_agenda_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
+            experiment_id=experiment_parameters.experiment_id)
+        experiment_malfunction = load_malfunction(
             experiment_agenda_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
             experiment_id=experiment_parameters.experiment_id)
 
@@ -460,11 +527,12 @@ def run_and_save_one_experiment(
             _render_route_dags_from_data(experiment_base_directory=experiment_output_directory,
                                          experiment_id=experiment_parameters.experiment_id)
             _visualize_route_dag_constraints_for_schedule_and_malfunction(
-                schedule_and_malfunction=schedule_and_malfunction)
+                schedule=schedule, experiment_malfunction=experiment_malfunction)
 
         # B2: full and delta re-scheduling
         experiment_results: ExperimentResults = run_experiment_from_schedule_and_malfunction(
-            schedule_and_malfunction=schedule_and_malfunction,
+            schedule=schedule,
+            experiment_malfunction=experiment_malfunction,
             experiment_parameters=experiment_parameters,
             verbose=verbose,
             debug=debug
@@ -1124,7 +1192,7 @@ def folder_to_name(foldername: str) -> str:
     return name_only
 
 
-# TODO SIM-650 gen-only given parameter ranges
+# TODO SIM-650 gen-only given parameter ranges, do not generate malfunction here!!
 # A.2
 def hypothesis_one_gen_schedule(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
@@ -1144,9 +1212,13 @@ def hypothesis_one_gen_schedule(
     for experiment_parameters in experiment_agenda.experiments:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
 
-        schedule_and_malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+        schedule, experiment_malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
             experiment_parameters=experiment_parameters)
-        save_schedule_and_malfunction(
-            schedule_and_malfunction=schedule_and_malfunction,
+        save_schedule(
+            schedule=schedule,
+            experiment_agenda_directory=experiment_agenda_directory,
+            experiment_id=experiment_parameters.experiment_id)
+        save_malfunction(
+            experiment_malfunction=experiment_malfunction,
             experiment_agenda_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)

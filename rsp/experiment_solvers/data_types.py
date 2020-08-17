@@ -94,8 +94,8 @@ def schedule_experiment_results_equals_modulo_solve_time(s1: SchedulingExperimen
 # test_id: int, solver_name: str, i_step: int
 SolveProblemRenderCallback = Callable[[int, str, int], None]
 
-ScheduleAndMalfunction = NamedTuple('ScheduleAndMalfunction', [
+
+Schedule = NamedTuple('Schedule', [
     ('schedule_problem_description', ScheduleProblemDescription),
     ('schedule_experiment_result', SchedulingExperimentResult),
-    ('experiment_malfunction', ExperimentMalfunction)
 ])
