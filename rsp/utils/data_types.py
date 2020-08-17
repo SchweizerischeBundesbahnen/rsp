@@ -40,6 +40,7 @@ ParameterRanges = NamedTuple('ParameterRanges', [
     ('in_city_rail_range', List[int]),
     ('out_city_rail_range', List[int]),
     ('city_range', List[int]),
+
     ('agent_range', List[int]),
     # TODO SIM-650 flatland-seed???
 
@@ -62,26 +63,35 @@ ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
 ])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
-ExperimentParameters = NamedTuple('ExperimentParameters',
-                                  [('experiment_id', int),
-                                   ('grid_id', int),
-                                   ('number_of_agents', int),
-                                   ('speed_data', SpeedData),
-                                   ('width', int),
-                                   ('height', int),
-                                   ('flatland_seed_value', int),
-                                   ('asp_seed_value', int),
-                                   ('max_num_cities', int),
-                                   ('grid_mode', bool),
-                                   ('max_rail_between_cities', int),
-                                   ('max_rail_in_city', int),
-                                   ('earliest_malfunction', int),
-                                   ('malfunction_duration', int),
-                                   ('number_of_shortest_paths_per_agent', int),
-                                   ('weight_route_change', int),
-                                   ('weight_lateness_seconds', int),
-                                   ('max_window_size_from_earliest', int),
-                                   ]
+ExperimentParameters = NamedTuple('ExperimentParameters', [
+    ('experiment_id', int),
+    ('grid_id', int),
+
+    # infrastructure
+    ('width', int),
+    ('height', int),
+    ('flatland_seed_value', int),
+    ('max_num_cities', int),
+    ('grid_mode', bool),
+    ('max_rail_between_cities', int),
+    ('max_rail_in_city', int),
+
+    ('number_of_agents', int),
+    ('speed_data', SpeedData),
+    ('number_of_shortest_paths_per_agent', int),
+
+    # scheduling
+    # TODO SIM-650 remove?
+    ('asp_seed_value', int),
+
+    # re-scheduling
+    ('earliest_malfunction', int),
+    ('malfunction_duration', int),
+    ('weight_route_change', int),
+    ('weight_lateness_seconds', int),
+    ('max_window_size_from_earliest', int),
+
+]
                                   )
 if COMPATIBILITY_MODE:
     ExperimentParameters.__new__.__defaults__ = (None,) * len(ExperimentParameters._fields)

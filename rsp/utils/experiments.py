@@ -89,6 +89,11 @@ AVAILABLE_CPUS = os.cpu_count()
 _pp = pprint.PrettyPrinter(indent=4)
 
 EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
+
+EXPERIMENT_INFRA_SUBDIRECTORY_NAME = "infra"
+EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME = "schedule"
+
+
 EXPERIMENT_DATA_SUBDIRECTORY_NAME = "data"
 EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
 EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
@@ -105,8 +110,8 @@ def save_schedule(schedule: Schedule,
     experiment_agenda_directory
     experiment_id
     """
-    schedule_file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
-    check_create_folder(os.path.join(experiment_agenda_directory, f"{experiment_id:03d}"))
+    schedule_file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME,  f"{experiment_id:03d}", f"schedule.pkl")
+    check_create_folder(os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
     with open(schedule_file_name, 'wb') as handle:
         pickle.dump(schedule, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -121,8 +126,8 @@ def save_infrastructure(infrastructure: Infrastructure,
     experiment_agenda_directory
     experiment_id
     """
-    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"infrastructure.pkl")
-    check_create_folder(os.path.join(experiment_agenda_directory, f"{experiment_id:03d}"))
+    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"infrastructure.pkl")
+    check_create_folder(os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
     with open(file_name, 'wb') as handle:
         pickle.dump(infrastructure, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -138,8 +143,8 @@ def save_malfunction(experiment_malfunction: ExperimentMalfunction,
     experiment_agenda_directory
     experiment_id
     """
-    schedule_file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"malfunction.pkl")
-    check_create_folder(os.path.join(experiment_agenda_directory, f"{experiment_id:03d}"))
+    schedule_file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
+    check_create_folder(os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
     with open(schedule_file_name, 'wb') as handle:
         pickle.dump(experiment_malfunction, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -153,7 +158,7 @@ def exists_schedule(experiment_agenda_directory: str, experiment_id: int) -> boo
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
+    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME,  f"{experiment_id:03d}", f"schedule.pkl")
     return os.path.isfile(file_name)
 
 
@@ -166,7 +171,7 @@ def exists_malfunction(experiment_agenda_directory: str, experiment_id: int) -> 
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
+    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
     return os.path.isfile(file_name)
 
 
@@ -185,7 +190,7 @@ def load_malfunction(experiment_agenda_directory: str, experiment_id: int, re_sa
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"malfunction.pkl")
+    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
 
     with open(file_name, 'rb') as handle:
         file_data: ExperimentMalfunction = pickle.load(handle)
@@ -213,7 +218,7 @@ def load_infrastructure(experiment_agenda_directory: str, experiment_id: int, re
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"infrastructure.pkl")
+    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"infrastructure.pkl")
 
     with open(file_name, 'rb') as handle:
         file_data: Infrastructure = pickle.load(handle)
@@ -241,7 +246,7 @@ def load_schedule(experiment_agenda_directory: str, experiment_id: int, re_save:
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"schedule.pkl")
+    file_name = os.path.join(experiment_agenda_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
 
     with open(file_name, 'rb') as handle:
         file_data: Schedule = pickle.load(handle)
