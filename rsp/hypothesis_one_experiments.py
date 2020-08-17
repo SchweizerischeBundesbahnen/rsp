@@ -2,6 +2,7 @@ import shutil
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 import numpy as np
 
@@ -14,10 +15,12 @@ from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import exists_schedule_and_malfunction
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import folder_to_name
 from rsp.utils.experiments import gen_malfunction
+from rsp.utils.experiments import gen_schedule_and_malfunction_from_experiment_parameters
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_parameter_ranges_and_speed_data
 from rsp.utils.experiments import load_schedule_and_malfunction
@@ -25,6 +28,7 @@ from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.utils.experiments import save_parameter_ranges_and_speed_data
 from rsp.utils.experiments import save_schedule_and_malfunction
+from rsp.utils.file_utils import check_create_folder
 
 
 def get_agenda_pipeline_params_001_simple_setting() -> ParameterRangesAndSpeedData:
@@ -121,20 +125,19 @@ def get_agenda_pipeline_malfunction_variation() -> ParameterRangesAndSpeedData:
     return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
 
 
-def hypothesis_one_pipeline(
+def hypothesis_one_pipeline_all_in_one(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+        experiment_base_directory: Optional[str] = '.',
         experiment_ids: Optional[List[int]] = None,
         qualitative_analysis_experiment_ids: Optional[List[int]] = None,
         asp_export_experiment_ids: Optional[List[int]] = None,
-        copy_agenda_from_base_directory: Optional[str] = None,
         experiment_name: str = "exp_hypothesis_one",
         run_analysis: bool = True,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         flatland_seed: int = 12,
         # take only half of avilable cpus so the machine stays responsive
-        gen_only: bool = False,
         experiments_per_grid_element: int = 1
-) -> str:
+) -> Tuple[str, ExperimentAgenda]:
     """
     Run full pipeline A.1 -> A.2 - B - C
 
@@ -147,7 +150,7 @@ def hypothesis_one_pipeline(
         filter for data analysis on the generated data
     asp_export_experiment_ids
         filter for data analysis on the generated data
-    copy_agenda_from_base_directory
+    experiment_base_directory
         base directory from the same agenda with serialized schedule and malfunction.
         - if given, the schedule is not re-generated
         - if not given, a schedule is generate in a non-deterministc fashion
@@ -156,7 +159,6 @@ def hypothesis_one_pipeline(
     run_analysis
     parameter_ranges_and_speed_data
     parallel_compute
-    gen_only
 
     Returns
     -------
@@ -169,78 +171,50 @@ def hypothesis_one_pipeline(
                                                  parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
                                                  flatland_seed=flatland_seed,
                                                  experiments_per_grid_element=experiments_per_grid_element)
-    # [ A.2 -> B ]* -> C
-    experiment_base_folder_name = hypothesis_one_pipeline_without_setup(
-        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+    experiment_data_directory_name = create_experiment_folder_name(experiment_agenda.experiment_name)
+    experiment_data_directory = f'{experiment_base_directory}/{experiment_data_directory_name}'
+    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
+
+    check_create_folder(experiment_base_directory)
+    check_create_folder(experiment_data_directory)
+    check_create_folder(experiment_agenda_directory)
+
+    # Create schedule and malfunction
+    hypothesis_one_gen_schedule(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_agenda=experiment_agenda,
-        experiment_ids=experiment_ids,
-        parallel_compute=parallel_compute,
-        qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
-        asp_export_experiment_ids=asp_export_experiment_ids,
-        run_analysis=run_analysis,
-        gen_only=gen_only
+        experiment_agenda_directory=experiment_agenda_directory
     )
-    return experiment_base_folder_name
 
-
-def hypothesis_one_pipeline_without_setup(experiment_agenda: ExperimentAgenda,
-                                          parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
-                                          experiment_ids: Optional[List[int]] = None,
-                                          qualitative_analysis_experiment_ids: Optional[List[int]] = None,
-                                          asp_export_experiment_ids: Optional[List[int]] = None,
-                                          copy_agenda_from_base_directory: Optional[str] = None,
-                                          run_analysis: bool = True,
-                                          parallel_compute: int = AVAILABLE_CPUS // 2,
-                                          # take only half of avilable cpus so the machine stays responsive
-                                          gen_only: bool = False,
-                                          with_file_handler_to_rsp_logger: bool = False
-                                          ):
-    """Run pipeline from A.2 -> C.
-
-    [A.2 -> B]* Experiments: setup, then run
-    """
     if experiment_ids is None:
         experiment_ids = [exp.experiment_id for exp in experiment_agenda.experiments]
 
-    experiment_base_folder_name, _ = run_experiment_agenda(
+    # TODO SIM-650 should be run_folder_name?
+    experiment_output_directory = run_experiment_agenda(
+        # TODO should only be folder and optional filter of experiment_ids?
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
         show_results_without_details=True,
         verbose=False,
-        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         experiment_ids=experiment_ids,
-        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-        gen_only=gen_only,
-        with_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
+        experiment_base_directory=experiment_base_directory
     )
-    if gen_only:
-        return experiment_base_folder_name
 
     # C. Experiment Analysis
     if run_analysis:
         hypothesis_one_data_analysis(
-            experiment_base_directory=experiment_base_folder_name,
+            # TODO SIM-650 should be run_folder_name?
+            experiment_base_directory=experiment_output_directory,
             analysis_2d=True,
             qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
             asp_export_experiment_ids=asp_export_experiment_ids
         )
-    return experiment_base_folder_name
+
+    return experiment_output_directory, experiment_agenda
 
 
-def hypothesis_one_main():
-    rsp_logger.info(f"RUN FULL (WITH SCHEDULE GENERATION)")
-    parameter_ranges_and_speed_data = get_agenda_pipeline_malfunction_variation()
-    hypothesis_one_pipeline(
-        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        qualitative_analysis_experiment_ids=[],
-        asp_export_experiment_ids=[],
-        parallel_compute=AVAILABLE_CPUS // 2  # take only half of avilable cpus so the machine stays responsive
-    )
-
-
+# TODO SIM-650 this should be just hypothesis_one_pipeline_without_setup
 def hypothesis_one_rerun_without_regen_schedule(
-        copy_agenda_from_base_directory: str,
+        base_directory: str,
         experiment_name: Optional[str] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiment_ids: List[int] = None,
@@ -253,7 +227,7 @@ def hypothesis_one_rerun_without_regen_schedule(
     ----------
     experiment_ids
     experiment_name
-    copy_agenda_from_base_directory
+    base_directory
         agenda to re-run
     parallel_compute
         how many cores?
@@ -261,10 +235,10 @@ def hypothesis_one_rerun_without_regen_schedule(
         how many times should each experiment be re-run? Multiples will be executed under the same `experiment_id`
     """
     rsp_logger.info(f"============================================================================================================")
-    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITHOUT REGEN SCHEDULE")
+    rsp_logger.info(f"RERUN from {base_directory} WITHOUT REGEN SCHEDULE")
     rsp_logger.info(f"============================================================================================================")
 
-    experiment_agenda_directory = f'{copy_agenda_from_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
+    experiment_agenda_directory = f'{base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
     experiment_agenda = load_experiment_agenda_from_file(experiment_agenda_directory)
 
     experiment_agenda = ExperimentAgenda(
@@ -286,7 +260,7 @@ def hypothesis_one_rerun_without_regen_schedule(
         experiment_agenda=experiment_agenda,
         qualitative_analysis_experiment_ids=[],
         asp_export_experiment_ids=[],
-        copy_agenda_from_base_directory=copy_agenda_from_base_directory,
+        copy_agenda_from_base_directory=base_directory,
         parallel_compute=parallel_compute,
         experiment_ids=experiment_ids,
         run_analysis=run_analysis,
@@ -402,34 +376,34 @@ def hypothesis_one_rerun_one_experiment_with_new_params_same_schedule(
     shutil.rmtree(tmp_experiment_folder, ignore_errors=True)
 
 
-def hypothesis_one_rerun_with_regen_schedule(copy_agenda_from_base_directory: str):
-    rsp_logger.info(f"RERUN from {copy_agenda_from_base_directory} WITH REGEN SCHEDULE")
-    experiment_agenda = load_experiment_agenda_from_file(copy_agenda_from_base_directory + "/agenda")
-    hypothesis_one_pipeline_without_setup(
-        experiment_agenda=experiment_agenda,
-        qualitative_analysis_experiment_ids=[],
-        asp_export_experiment_ids=[],
-        parallel_compute=1,
-        experiment_ids=list(range(10))
-    )
-
-
-def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
+# TODO SIM-650 gen-only given parameter ranges
+# A.2
+def hypothesis_one_gen_schedule(parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+                                experiment_agenda_directory: str,
+                                # TODO SIM-650 this should
                                 flatland_seed: int = 12,
+                                experiments_per_grid_element: int = 1,
                                 experiment_name: str = "exp_hypothesis_one"):
-    rsp_logger.info("GEN SCHEDULE ONLY")
+    rsp_logger.info("GEN SCHEDULE")
 
-    experiment_base_folder_name = hypothesis_one_pipeline(
-        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_name=experiment_name,
-        gen_only=True,
-        experiment_ids=None,
-        parallel_compute=1,
-        flatland_seed=flatland_seed
-    )
-    return experiment_base_folder_name
+    # TODO SIM-650 get rid of agenda, replay by partial expander?
+    experiment_agenda: ExperimentAgenda = create_experiment_agenda(experiment_name=experiment_name,
+                                                                   parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                                                   flatland_seed=flatland_seed,
+                                                                   experiments_per_grid_element=experiments_per_grid_element)
+
+    for experiment_parameters in experiment_agenda.experiments:
+        rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
+
+        schedule_and_malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+            experiment_parameters=experiment_parameters)
+        save_schedule_and_malfunction(
+            schedule_and_malfunction=schedule_and_malfunction,
+            experiment_agenda_directory=experiment_agenda_directory,
+            experiment_id=experiment_parameters.experiment_id)
 
 
+# TODO SIM-650 should work again
 def hypothesis_one_malfunction_analysis(
         copy_agenda_from_base_directory: str = None,
         experiment_name: str = None,

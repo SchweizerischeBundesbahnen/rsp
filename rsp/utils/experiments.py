@@ -49,7 +49,6 @@ from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
-from rsp.experiment_solvers.asp.asp_helper import _print_stats
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
@@ -156,10 +155,10 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
 def run_experiment(
         experiment_parameters: ExperimentParameters,
         experiment_base_directory: str,
-        show_results_without_details: bool = True,
+        schedule_and_malfunction: ScheduleAndMalfunction,
         verbose: bool = False,
         debug: bool = False,
-        gen_only: bool = False,
+
 ) -> ExperimentResults:
     """
     Run a single experiment with a given solver and ExperimentParameters
@@ -172,120 +171,6 @@ def run_experiment(
     -------
     Returns a DataFrame with the experiment results
     """
-    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
-    check_create_folder(experiment_agenda_directory)
-
-    start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
-    if show_results_without_details:
-        rsp_logger.info(
-            "Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(),
-                                                              start_datetime_str))
-    start_time = time.time()
-
-    if show_results_without_details:
-        rsp_logger.info("*** experiment parameters for experiment {}. {}"
-                        .format(experiment_parameters.experiment_id,
-                                _pp.pformat(experiment_parameters)))
-
-    # A.2: load or re-generate?
-    # we want to be able to reuse the same schedule and malfunction to be able to compare
-    # identical re-scheduling problems between runs and to debug them
-    # if the data already exists, load it and do not re-generate it
-    if experiment_agenda_directory is not None and exists_schedule_and_malfunction(
-            experiment_agenda_directory=experiment_agenda_directory,
-            experiment_id=experiment_parameters.experiment_id):
-        rsp_logger.info(f"load_schedule_and_malfunction for {experiment_parameters.experiment_id}")
-        schedule_and_malfunction = load_schedule_and_malfunction(
-            experiment_agenda_directory=experiment_agenda_directory,
-            experiment_id=experiment_parameters.experiment_id)
-
-        if debug:
-            _render_route_dags_from_data(experiment_base_directory=experiment_base_directory,
-                                         experiment_id=experiment_parameters.experiment_id)
-            _visualize_route_dag_constraints_for_schedule_and_malfunction(
-                schedule_and_malfunction=schedule_and_malfunction)
-
-    else:
-        rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
-
-        schedule_and_malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
-            debug=debug,
-            experiment_parameters=experiment_parameters,
-            verbose=verbose)
-        if experiment_agenda_directory is not None:
-            save_schedule_and_malfunction(
-                schedule_and_malfunction=schedule_and_malfunction,
-                experiment_agenda_directory=experiment_agenda_directory,
-                experiment_id=experiment_parameters.experiment_id)
-
-    if gen_only:
-        elapsed_time = (time.time() - start_time)
-        _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
-        solver_time_full = schedule_and_malfunction.schedule_experiment_result.solver_statistics["summary"]["times"][
-            "total"]
-        rsp_logger.info("Generating schedule {}: took {:5.3f}s (sched: {:5.3f}s = {:5.2f}%".format(
-            experiment_parameters.experiment_id,
-            elapsed_time, solver_time_full,
-            solver_time_full / elapsed_time * 100))
-        return ExperimentResults(
-            experiment_parameters=experiment_parameters,
-            malfunction=schedule_and_malfunction.experiment_malfunction,
-            problem_full=schedule_and_malfunction.schedule_problem_description,
-            problem_full_after_malfunction=None,
-            problem_delta_after_malfunction=None,
-            results_full=schedule_and_malfunction.schedule_experiment_result,
-            results_full_after_malfunction=None,
-            results_delta_after_malfunction=None
-        )
-
-    # B2: full and delta re-scheduling
-    experiment_results: ExperimentResults = run_experiment_from_schedule_and_malfunction(
-        schedule_and_malfunction=schedule_and_malfunction,
-        experiment_parameters=experiment_parameters,
-        verbose=verbose,
-        debug=debug
-    )
-    if experiment_results is None:
-        print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
-        return []
-
-    if show_results_without_details:
-        elapsed_time = (time.time() - start_time)
-        end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
-        s = (
-            "Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta:  {} / ").format(
-            experiment_parameters.experiment_id,
-            elapsed_time,
-            start_datetime_str,
-            end_datetime_str,
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
-                                                    statistics=experiment_results.results_full.solver_statistics),
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
-                                                    statistics=experiment_results.results_full_after_malfunction.solver_statistics),
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
-                                                    statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
-        )
-        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-        solver_time_full_after_malfunction = \
-            experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        solver_time_delta_after_malfunction = \
-            experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        elapsed_overhead_time = (
-                elapsed_time - solver_time_full -
-                solver_time_full_after_malfunction -
-                solver_time_delta_after_malfunction)
-        s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
-            elapsed_overhead_time,
-            elapsed_overhead_time / elapsed_time * 100,
-            threading.get_ident())
-        rsp_logger.info(s)
-
-        rsp_logger.info(virtual_memory_human_readable())
-        rsp_logger.info(current_process_stats_human_readable())
-
-    # TODO SIM-324 pull out validation steps
-    plausibility_check_experiment_results(experiment_results=experiment_results)
-    return experiment_results
 
 
 def run_experiment_from_schedule_and_malfunction(
@@ -470,7 +355,7 @@ def gen_schedule_and_malfunction_from_experiment_parameters(
     -------
     """
 
-    schedule_problem, rail_env = create_schedule_full_problem_description_from_experiment_parameters(
+    schedule_problem, _ = create_schedule_full_problem_description_from_experiment_parameters(
         experiment_parameters=experiment_parameters
     )
 
@@ -538,24 +423,26 @@ def _write_sha_txt(folder_name: str):
         out.write(sha)
 
 
-def run_and_save_one_experiment(current_experiment_parameters: ExperimentParameters,
-                                verbose: bool,
-                                show_results_without_details: bool,
-                                experiment_base_directory: str,
-                                gen_only: bool = False,
-                                with_file_handler_to_rsp_logger: bool = False
-                                ):
+# TODO SIM-650 refactor to pass topo and schedule for unit testing
+def run_and_save_one_experiment(
+        experiment_parameters: ExperimentParameters,
+        experiment_base_directory: str,
+        experiment_output_directory: str,
+        verbose: bool = False,
+        show_results_without_details: bool = True,
+        debug: bool = False,
+        with_file_handler_to_rsp_logger: bool = False
+):
     """B. Run and save one experiment from experiment parameters.
     Parameters
     ----------
-    current_experiment_parameters
+    experiment_parameters
     verbose
     show_results_without_details
-    experiment_base_directory
-    gen_only
+    experiment_output_directory
     """
 
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+    experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     # add logging file handler in this thread
     if with_file_handler_to_rsp_logger:
@@ -564,18 +451,87 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
         stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
 
-    rsp_logger.info(f"start experiment {current_experiment_parameters.experiment_id}")
+    rsp_logger.info(f"start experiment {experiment_parameters.experiment_id}")
     try:
 
         check_create_folder(experiment_data_directory)
+        filename = create_experiment_filename(experiment_data_directory, experiment_parameters.experiment_id)
 
-        filename = create_experiment_filename(experiment_data_directory, current_experiment_parameters.experiment_id)
-        experiment_results: ExperimentResults = run_experiment(
-            experiment_parameters=current_experiment_parameters,
+        # TODO SIM-650 load schedule and malfunction
+
+        start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
+        rsp_logger.info(
+            "Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(),
+                                                              start_datetime_str))
+        start_time = time.time()
+
+        rsp_logger.info("*** experiment parameters for experiment {}. {}"
+                        .format(experiment_parameters.experiment_id,
+                                _pp.pformat(experiment_parameters)))
+
+        if experiment_base_directory is None or not exists_schedule_and_malfunction(
+                experiment_agenda_directory=experiment_base_directory,
+                experiment_id=experiment_parameters.experiment_id):
+            rsp_logger.warn(f"Could not find schedule_and_malfunction for {experiment_parameters.experiment_id} in {experiment_base_directory}")
+
+        rsp_logger.info(f"load_schedule_and_malfunction for {experiment_parameters.experiment_id}")
+        schedule_and_malfunction = load_schedule_and_malfunction(
+            experiment_agenda_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
+            experiment_id=experiment_parameters.experiment_id)
+
+        if debug:
+            _render_route_dags_from_data(experiment_base_directory=experiment_output_directory,
+                                         experiment_id=experiment_parameters.experiment_id)
+            _visualize_route_dag_constraints_for_schedule_and_malfunction(
+                schedule_and_malfunction=schedule_and_malfunction)
+
+        # B2: full and delta re-scheduling
+        experiment_results: ExperimentResults = run_experiment_from_schedule_and_malfunction(
+            schedule_and_malfunction=schedule_and_malfunction,
+            experiment_parameters=experiment_parameters,
             verbose=verbose,
-            experiment_base_directory=experiment_base_directory,
-            show_results_without_details=show_results_without_details,
-            gen_only=gen_only)
+            debug=debug
+        )
+        if experiment_results is None:
+            print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
+            return []
+
+        elapsed_time = (time.time() - start_time)
+        end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
+        s = (
+            "Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta:  {} / ").format(
+            experiment_parameters.experiment_id,
+            elapsed_time,
+            start_datetime_str,
+            end_datetime_str,
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
+                                                    statistics=experiment_results.results_full.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
+                                                    statistics=experiment_results.results_full_after_malfunction.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
+                                                    statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
+        )
+        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
+        solver_time_full_after_malfunction = \
+            experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        solver_time_delta_after_malfunction = \
+            experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        elapsed_overhead_time = (
+                elapsed_time - solver_time_full -
+                solver_time_full_after_malfunction -
+                solver_time_delta_after_malfunction)
+        s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
+            elapsed_overhead_time,
+            elapsed_overhead_time / elapsed_time * 100,
+            threading.get_ident())
+        rsp_logger.info(s)
+
+        rsp_logger.info(virtual_memory_human_readable())
+        rsp_logger.info(current_process_stats_human_readable())
+
+        # TODO SIM-324 pull out validation steps
+        plausibility_check_experiment_results(experiment_results=experiment_results)
+
         save_experiment_results_to_file(experiment_results, filename)
         return os.getpid()
     except Exception as e:
@@ -586,28 +542,28 @@ def run_and_save_one_experiment(current_experiment_parameters: ExperimentParamet
         if with_file_handler_to_rsp_logger:
             remove_file_handler_from_rsp_logger(stdout_log_fh)
             remove_file_handler_from_rsp_logger(stderr_log_fh)
-        rsp_logger.info(f"end experiment {current_experiment_parameters.experiment_id}")
+        rsp_logger.info(f"end experiment {experiment_parameters.experiment_id}")
 
 
-def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
-                          parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
-                          experiment_ids: Optional[List[int]] = None,
-                          copy_agenda_from_base_directory: Optional[str] = None,
-                          run_experiments_parallel: int = AVAILABLE_CPUS // 2,
-                          # take only half of avilable cpus so the machine stays responsive
-                          show_results_without_details: bool = True,
-                          verbose: bool = False,
-                          gen_only: bool = False,
-                          with_file_handler_to_rsp_logger: bool = False
-                          ) -> (str, str):
-    """Run B. a subset of experiments of a given agenda. This is useful when
-    trying to find bugs in code.
+# TODO SIM-650 topo_filter/schedule_filter
+def run_experiment_agenda(
+        experiment_agenda: ExperimentAgenda,
+        experiment_base_directory: str,
+        experiment_output_base_directory: Optional[str] = None,
+        experiment_ids: Optional[List[int]] = None,
+        run_experiments_parallel: int = AVAILABLE_CPUS // 2,
+        # take only half of avilable cpus so the machine stays responsive
+        show_results_without_details: bool = True,
+        verbose: bool = False,
+        with_file_handler_to_rsp_logger: bool = False
+) -> str:
+    """Run B.
     Parameters
     ----------
-    parameter_ranges_and_speed_data: ParameterRangesAndSpeedData
-        Initial parameters used to create the agenda
     experiment_agenda: ExperimentAgenda
         Full list of experiments
+    experiment_base_directory: str
+        where are schedules etc?
     experiment_ids: Optional[List[int]]
         List of experiment IDs we want to run
     run_experiments_parallel: in
@@ -616,20 +572,17 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         Print results
     verbose: bool
         Print additional information
-    copy_agenda_from_base_directory: bool
-        copy schedule and malfunction data from this directory to the experiments folder if given
-    rendering: bool
     Returns
     -------
     Returns the name of the experiment base and data folders
     """
-    experiment_base_directory = create_experiment_folder_name(experiment_agenda.experiment_name)
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
+    # TODO SIM-650 as subfolder of agenda dir? option to write somewhere else
+    if experiment_output_base_directory is None:
+        experiment_output_base_directory = experiment_base_directory
+    experiment_output_directory = f"{experiment_output_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)
+    experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
-    check_create_folder(experiment_base_directory)
     check_create_folder(experiment_data_directory)
-    check_create_folder(experiment_agenda_directory)
 
     if run_experiments_parallel <= 1:
         rsp_logger.warn(
@@ -642,10 +595,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
         stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
     try:
-
-        if copy_agenda_from_base_directory is not None:
-            _copy_agenda_from_base_directory(copy_agenda_from_base_directory, experiment_agenda_directory)
-
+        # TODO SIM-650 here we should loop over the files in the agenda folder instead of inspecting the agenda!
         if experiment_ids is not None:
             filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
             experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
@@ -654,12 +604,8 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
                 experiments=list(experiments_filtered)
             )
 
-        save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
-        save_parameter_ranges_and_speed_data(parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-                                             experiment_agenda_folder_name=experiment_agenda_directory)
-
         rsp_logger.info(f"============================================================================================================")
-        rsp_logger.info(f"RUNNING AGENDA {experiment_agenda.experiment_name} -> {experiment_base_directory}")
+        rsp_logger.info(f"RUNNING agenda {experiment_base_directory} -> {experiment_data_directory}")
         rsp_logger.info(f"============================================================================================================")
         for file_name in ["rsp/utils/global_constants.py"]:
             with open(file_name, "r") as content:
@@ -676,26 +622,12 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
         rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
-        # Save agenda, initial parameter ranges and speed data
-        save_experiment_agenda_and_hash_to_file(experiment_agenda_directory, experiment_agenda)
-        save_parameter_ranges_and_speed_data(parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-                                             experiment_agenda_folder_name=experiment_agenda_directory)
-        # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
-        # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
-        # N.B. even with parallelization degree 1, we want to run each experiment in a new process
-        #      in order to get around https://github.com/potassco/clingo/issues/203
-        pool = multiprocessing.Pool(
-            processes=run_experiments_parallel,
-            maxtasksperchild=1)
-        rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
-        # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-        newline_and_flush_stdout_and_stderr()
         run_and_save_one_experiment_partial = partial(
             run_and_save_one_experiment,
             verbose=verbose,
-            show_results_without_details=show_results_without_details,
             experiment_base_directory=experiment_base_directory,
-            gen_only=gen_only,
+            show_results_without_details=show_results_without_details,
+            experiment_output_directory=experiment_output_directory,
             with_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
         )
 
@@ -718,7 +650,7 @@ def run_experiment_agenda(experiment_agenda: ExperimentAgenda,
             remove_file_handler_from_rsp_logger(stdout_log_fh)
             remove_file_handler_from_rsp_logger(stderr_log_fh)
 
-    return experiment_base_directory, experiment_data_directory
+    return experiment_output_directory
 
 
 def _print_error_summary(experiment_data_directory):

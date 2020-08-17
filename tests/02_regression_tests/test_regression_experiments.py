@@ -7,7 +7,7 @@ import numpy as np
 from rsp.experiment_solvers.data_types import schedule_experiment_results_equals_modulo_solve_time
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
-from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
+from rsp.hypothesis_one_experiments import hypothesis_one_pipeline_all_in_one
 from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import schedule_problem_description_equals
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
@@ -22,10 +22,10 @@ from rsp.utils.experiments import create_env_from_experiment_parameters
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_schedule_and_malfunction_from_experiment_parameters
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import load_schedule_and_malfunction
-from rsp.utils.experiments import run_experiment
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_from_schedule_and_malfunction
 from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
@@ -139,11 +139,13 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
             experiment_agenda=agenda)
 
     # Import the solver for the experiments
-    experiment_folder_name, experiment_data_folder = run_experiment_agenda(
+    experiment_folder_name = run_experiment_agenda(
         experiment_agenda=agenda,
+        # do not clutter folder
+        experiment_output_base_directory='.',
         run_experiments_parallel=1,
         verbose=True,
-        copy_agenda_from_base_directory="tests/02_regression_tests/data/test_regression_experiment_agenda"
+        experiment_base_directory="tests/02_regression_tests/data/test_regression_experiment_agenda"
     )
 
     hypothesis_one_data_analysis(
@@ -153,7 +155,7 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
     )
 
     # load results
-    experiment_results_for_analysis = load_and_expand_experiment_results_from_data_folder(experiment_data_folder)
+    experiment_results_for_analysis = load_and_expand_experiment_results_from_data_folder(f"{experiment_folder_name}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}")
     if not regen:
         delete_experiment_folder(experiment_folder_name)
     result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
@@ -176,33 +178,57 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
             f"{key} should be equal; expected{expected_result_dict[key]}, but got {result_dict[key]}"
 
 
-def test_save_and_load_experiment_results():
+def test_hypothesis_one_pipeline_all_in_one():
     """Run a simple agenda and save and load the results.
 
     Check that loading gives the same result.
     """
-    agenda = ExperimentAgenda(experiment_name="test_save_and_load_experiment_results", experiments=[
-        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
-                             width=30, height=30,
-                             flatland_seed_value=12, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
-                             weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)])
-
-    experiment_folder_name, experiment_data_folder = \
-        run_experiment_agenda(experiment_agenda=agenda,
-                              run_experiments_parallel=1)
+    experiment_base_directory = create_experiment_folder_name("test_hypothesis_one_pipeline_all_in_one")
+    experiment_folder_name, experiment_agenda = \
+        hypothesis_one_pipeline_all_in_one(
+            experiment_base_directory=experiment_base_directory,
+            parameter_ranges_and_speed_data=ParameterRangesAndSpeedData(
+                parameter_ranges=ParameterRanges(agent_range=[2, 2, 1],
+                                                 size_range=[30, 30, 1],
+                                                 in_city_rail_range=[6, 6, 1],
+                                                 out_city_rail_range=[2, 2, 1],
+                                                 city_range=[20, 20, 1],
+                                                 earliest_malfunction=[20, 20, 1],
+                                                 malfunction_duration=[20, 20, 1],
+                                                 number_of_shortest_paths_per_agent=[10, 10, 1],
+                                                 max_window_size_from_earliest=[np.inf, np.inf, 1],
+                                                 asp_seed_value=[94, 94, 1],
+                                                 weight_route_change=[60, 60, 1],
+                                                 weight_lateness_seconds=[1, 1, 1]),
+                # Define the desired speed profiles
+                speed_data={1.: 1}
+            )
+        )
 
     # load results
+    experiment_data_folder = f"{experiment_folder_name}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}"
     loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_folder)
-    delete_experiment_folder(experiment_folder_name)
+    delete_experiment_folder(experiment_base_directory)
 
     # since we do not return the results in memory from run_experiment_agenda (SIM-393), do some sanity checks:
     assert len(loaded_results) == 1, len(loaded_results)
     loaded_result: ExperimentResultsAnalysis = loaded_results[0]
     assert loaded_result.results_full_after_malfunction.solver_statistics is not None
+
+    experiment_results = loaded_result
+    experiment_parameters = experiment_agenda.experiments[0]
+
+    # check that asp seed value is received in solver
+    assert experiment_results.results_full.solver_seed == experiment_parameters.asp_seed_value, \
+        f"actual={experiment_results.results_full.solver_seed}, " \
+        f"expected={experiment_parameters.asp_seed_value}"
+    assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+        f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " \
+        f"expected={experiment_parameters.asp_seed_value}"
+    assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+        f"actual={experiment_results.results_delta_after_malfunction.solver_seed}, " \
+        f"expected={experiment_parameters.asp_seed_value}"
 
 
 def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
@@ -234,28 +260,6 @@ def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
                 f"{key} should be equal; \n" \
                 f"  expected{experiment_results_dict[key]}, \n" \
                 f"  actual {loaded_result_dict[key]}"
-
-
-def test_run_full_pipeline():
-    """Ensure that the full pipeline runs without error on a simple agenda."""
-    experiment_folder_name = hypothesis_one_pipeline(
-        ParameterRangesAndSpeedData(
-            parameter_ranges=ParameterRanges(agent_range=[2, 2, 1],
-                                             size_range=[30, 30, 1],
-                                             in_city_rail_range=[6, 6, 1],
-                                             out_city_rail_range=[2, 2, 1],
-                                             city_range=[20, 20, 1],
-                                             earliest_malfunction=[20, 20, 1],
-                                             malfunction_duration=[20, 20, 1],
-                                             number_of_shortest_paths_per_agent=[10, 10, 1],
-                                             max_window_size_from_earliest=[np.inf, np.inf, 1],
-                                             asp_seed_value=[94, 94, 1],
-                                             weight_route_change=[60, 60, 1],
-                                             weight_lateness_seconds=[1, 1, 1], ),
-            speed_data={1: 1.0})
-    )
-    # cleanup
-    delete_experiment_folder(experiment_folder_name)
 
 
 def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
@@ -341,76 +345,3 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
             costs_full_after_malfunction_scaled)
     assert (experiment_result.results_full_after_malfunction.trainruns_dict ==
             experiment_result_scaled.results_full_after_malfunction.trainruns_dict)
-
-
-def test_seed():
-    experiment_parameters = ExperimentParameters(
-        experiment_id=0, grid_id=0, number_of_agents=2,
-        width=30, height=30,
-        flatland_seed_value=12, asp_seed_value=77,
-        max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-        max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-        number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-        max_window_size_from_earliest=np.inf)
-
-    folder_name = create_experiment_folder_name("test_seed")
-    try:
-        experiment_results: ExperimentResults = run_experiment(
-            experiment_parameters=experiment_parameters,
-            experiment_base_directory=folder_name)
-
-        # check that asp seed value is received in solver
-        assert experiment_results.results_full.solver_seed == experiment_parameters.asp_seed_value, \
-            f"actual={experiment_results.results_full.solver_seed}, " \
-            f"expected={experiment_parameters.asp_seed_value}"
-        assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
-            f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " \
-            f"expected={experiment_parameters.asp_seed_value}"
-        assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
-            f"actual={experiment_results.results_delta_after_malfunction.solver_seed}, " \
-            f"expected={experiment_parameters.asp_seed_value}"
-    finally:
-        delete_experiment_folder(folder_name)
-
-
-def test_parallel_experiment_execution():
-    """Run a parallel experiment agenda."""
-    agenda = ExperimentAgenda(experiment_name="test_parallel_experiment_execution", experiments=[
-        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
-                             width=30, height=30,
-                             flatland_seed_value=12, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf),
-        ExperimentParameters(experiment_id=1, grid_id=0, number_of_agents=2,
-                             width=30, height=30,
-                             flatland_seed_value=13, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf),
-        ExperimentParameters(experiment_id=2, grid_id=0, number_of_agents=2,
-                             width=30, height=30,
-                             flatland_seed_value=14, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf),
-        ExperimentParameters(experiment_id=3, grid_id=0, number_of_agents=3,
-                             width=30, height=30,
-                             flatland_seed_value=11, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=7, earliest_malfunction=15, malfunction_duration=15, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf),
-        ExperimentParameters(experiment_id=4, grid_id=0, number_of_agents=4,
-                             width=30, height=30,
-                             flatland_seed_value=10, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=8, earliest_malfunction=1, malfunction_duration=10, speed_data={1: 1.0},
-                             number_of_shortest_paths_per_agent=10, weight_route_change=1, weight_lateness_seconds=1,
-                             max_window_size_from_earliest=np.inf)])
-
-    experiment_folder_name, _ = run_experiment_agenda(agenda, run_experiments_parallel=os.cpu_count())
-    delete_experiment_folder(experiment_folder_name)

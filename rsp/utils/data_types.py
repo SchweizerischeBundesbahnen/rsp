@@ -34,19 +34,28 @@ SymmetricEncounterGraphDistance = NamedTuple('SymmetricEncounterGraphDistance', 
     ('proximity', float)
 ])
 
-ParameterRanges = NamedTuple('ParameterRanges', [('size_range', List[int]),
-                                                 ('agent_range', List[int]),
-                                                 ('in_city_rail_range', List[int]),
-                                                 ('out_city_rail_range', List[int]),
-                                                 ('city_range', List[int]),
-                                                 ('earliest_malfunction', List[int]),
-                                                 ('malfunction_duration', List[int]),
-                                                 ('number_of_shortest_paths_per_agent', List[int]),
-                                                 ('max_window_size_from_earliest', List[int]),
-                                                 ('asp_seed_value', List[int]),
-                                                 ('weight_route_change', List[int]),
-                                                 ('weight_lateness_seconds', List[int])
-                                                 ])
+ParameterRanges = NamedTuple('ParameterRanges', [
+    # infrastructure and agent placement
+    ('size_range', List[int]),
+    ('in_city_rail_range', List[int]),
+    ('out_city_rail_range', List[int]),
+    ('city_range', List[int]),
+    ('agent_range', List[int]),
+    # TODO SIM-650 flatland-seed???
+
+    # schedule
+
+    # malfunction
+    ('earliest_malfunction', List[int]),
+    ('malfunction_duration', List[int]),
+
+    # rescheduling
+    ('number_of_shortest_paths_per_agent', List[int]),
+    ('max_window_size_from_earliest', List[int]),
+    ('asp_seed_value', List[int]),
+    ('weight_route_change', List[int]),
+    ('weight_lateness_seconds', List[int])
+])
 ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('parameter_ranges', ParameterRanges),
     ('speed_data', SpeedData)
