@@ -50,6 +50,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
+from rsp.experiment_solvers.data_types import Infrastructure
 from rsp.experiment_solvers.data_types import Schedule
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
@@ -108,6 +109,22 @@ def save_schedule(schedule: Schedule,
     check_create_folder(os.path.join(experiment_agenda_directory, f"{experiment_id:03d}"))
     with open(schedule_file_name, 'wb') as handle:
         pickle.dump(schedule, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def save_infrastructure(infrastructure: Infrastructure,
+                        experiment_agenda_directory: str,
+                        experiment_id: int):
+    """Persist `Infrastructure` to a file.
+    Parameters
+    ----------
+    infrastructure
+    experiment_agenda_directory
+    experiment_id
+    """
+    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"infrastructure.pkl")
+    check_create_folder(os.path.join(experiment_agenda_directory, f"{experiment_id:03d}"))
+    with open(file_name, 'wb') as handle:
+        pickle.dump(infrastructure, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 # TODO SIM-650 topo id and schedule id
@@ -178,6 +195,34 @@ def load_malfunction(experiment_agenda_directory: str, experiment_id: int, re_sa
     if re_save:
         with open(file_name, 'wb') as handle:
             pickle.dump(ExperimentMalfunction(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
+    return file_data
+
+
+# TODO SIM-650 infra id
+def load_infrastructure(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> Infrastructure:
+    """Load a persisted `Infrastructure` from a file.
+    Parameters
+    ----------
+    experiment_agenda_directory
+    experiment_id
+    re_save
+        activate temporarily if module path used in pickle has changed,
+        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+
+
+    Returns
+    -------
+    """
+    file_name = os.path.join(experiment_agenda_directory, f"{experiment_id:03d}", f"infrastructure.pkl")
+
+    with open(file_name, 'rb') as handle:
+        file_data: Infrastructure = pickle.load(handle)
+
+    # used if module path used in pickle has changed
+    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+    if re_save:
+        with open(file_name, 'wb') as handle:
+            pickle.dump(Infrastructure(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
     return file_data
 
 
@@ -376,10 +421,27 @@ def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dic
     )
 
 
-# TODO SIM-650 gen_schedule from topo_dict
+def gen_infrastructure(
+        experiment_parameters: ExperimentParameters
+) -> Infrastructure:
+    """
+    A.1 infrastructure generation
+    Parameters
+    ----------
+    experiment_parameters
+
+    Returns
+    -------
+
+    """
+    return create_infrastructure_from_rail_env(
+        env=create_env_from_experiment_parameters(experiment_parameters),
+        k=experiment_parameters.number_of_shortest_paths_per_agent)
+
+
 def gen_schedule(
         experiment_parameters: ExperimentParameters,
-        verbose: bool = False,
+        infrastructure: Infrastructure,
         debug: bool = False
 
 ) -> Schedule:
@@ -387,16 +449,16 @@ def gen_schedule(
 
     Parameters
     ----------
+    infrastructure
     experiment_parameters
-    verbose
     debug
 
     Returns
     -------
     """
 
-    schedule_problem, _ = create_schedule_full_problem_description_from_experiment_parameters(
-        experiment_parameters=experiment_parameters
+    schedule_problem = create_schedule_problem_description_from_instructure(
+        infrastructure=infrastructure
     )
 
     schedule_result = asp_schedule_wrapper(
@@ -849,16 +911,7 @@ def create_env_from_experiment_parameters(params: ExperimentParameters) -> RailE
     return env_static
 
 
-def create_schedule_full_problem_description_from_experiment_parameters(
-        experiment_parameters: ExperimentParameters
-) -> Tuple[ScheduleProblemDescription, RailEnv]:
-    env = create_env_from_experiment_parameters(params=experiment_parameters)
-    schedule_problem_description = _create_schedule_problem_description_from_rail_env(env, k=experiment_parameters.number_of_shortest_paths_per_agent)
-
-    return schedule_problem_description, env
-
-
-def _create_schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> ScheduleProblemDescription:
+def create_infrastructure_from_rail_env(env: RailEnv, k: int):
     agents_paths_dict = {
         # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
         i: get_k_shortest_paths(env,
@@ -871,21 +924,28 @@ def _create_schedule_problem_description_from_rail_env(env: RailEnv, k: int) -> 
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                 for agent in env.agents}
     topo_dict = _get_topology_from_agents_path_dict(agents_paths_dict)
-    # TODO should we set max_episode_steps in agenda and take if from there?
+    return Infrastructure(
+        topo_dict=topo_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        max_episode_steps=env._max_episode_steps
+    )
 
-    max_episode_steps = env._max_episode_steps
+
+def create_schedule_problem_description_from_instructure(
+        infrastructure: Infrastructure
+) -> ScheduleProblemDescription:
     schedule_problem_description = ScheduleProblemDescription(
         route_dag_constraints_dict={
             agent_id: _get_route_dag_constraints_for_scheduling(
-                minimum_travel_time=minimum_travel_time_dict[agent_id],
-                topo=topo_dict[agent_id],
-                source_waypoint=next(get_sources_for_topo(topo_dict[agent_id])),
-                latest_arrival=max_episode_steps)
-            for agent_id, topo in topo_dict.items()},
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        topo_dict=topo_dict,
-        max_episode_steps=max_episode_steps,
-        route_section_penalties={agent_id: {} for agent_id in topo_dict.keys()},
+                minimum_travel_time=infrastructure.minimum_travel_time_dict[agent_id],
+                topo=infrastructure.topo_dict[agent_id],
+                source_waypoint=next(get_sources_for_topo(infrastructure.topo_dict[agent_id])),
+                latest_arrival=infrastructure.max_episode_steps)
+            for agent_id, topo in infrastructure.topo_dict.items()},
+        minimum_travel_time_dict=infrastructure.minimum_travel_time_dict,
+        topo_dict=infrastructure.topo_dict,
+        max_episode_steps=infrastructure.max_episode_steps,
+        route_section_penalties={agent_id: {} for agent_id in infrastructure.topo_dict.keys()},
         weight_lateness_seconds=1
     )
     return schedule_problem_description
@@ -1207,7 +1267,9 @@ def hypothesis_one_gen_schedule(
     for experiment_parameters in experiment_agenda.experiments:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
 
+        infra = gen_infrastructure(experiment_parameters=experiment_parameters)
         schedule = gen_schedule(
+            infrastructure=infra,
             experiment_parameters=experiment_parameters)
         save_schedule(
             schedule=schedule,

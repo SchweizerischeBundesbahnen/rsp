@@ -4,8 +4,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_sum_running_times_trainruns_dict
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
 from rsp.utils.experiments import create_env_from_experiment_parameters
+from rsp.utils.experiments import create_infrastructure_from_rail_env
+from rsp.utils.experiments import create_schedule_problem_description_from_instructure
 
 
 def test_scheduling():
@@ -72,7 +73,7 @@ def test_scheduling():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
     assert static_env.rail.grid.tolist() == expected_grid
 
-    schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, 10)
+    schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(create_infrastructure_from_rail_env(static_env, 10))
     schedule_result = asp_schedule_wrapper(
         schedule_problem_description=schedule_problem,
         asp_seed_value=94,

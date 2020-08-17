@@ -24,9 +24,10 @@ from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle impor
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
 from rsp.utils.experiments import create_env_from_experiment_parameters
-from rsp.utils.experiments import create_schedule_full_problem_description_from_experiment_parameters
+from rsp.utils.experiments import create_infrastructure_from_rail_env
+from rsp.utils.experiments import create_schedule_problem_description_from_instructure
+from rsp.utils.experiments import gen_infrastructure
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -169,7 +170,7 @@ def test_rescheduling_no_bottleneck():
             TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
     k = 10
-    schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, k)
+    schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(create_infrastructure_from_rail_env(static_env, k))
     verify_trainrun_dict_for_schedule_problem(schedule_problem=schedule_problem, trainrun_dict=fake_schedule)
 
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
@@ -190,7 +191,7 @@ def test_rescheduling_no_bottleneck():
             topo=schedule_problem.topo_dict[agent_id]
         )
 
-    schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, k)
+    schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(create_infrastructure_from_rail_env(static_env, k))
 
     full_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_zero_for_all_agents(
@@ -404,7 +405,7 @@ def test_rescheduling_bottleneck():
 
     # we derive the re-schedule problem from the schedule problem
     k = 10
-    schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, k)
+    schedule_problem = create_schedule_problem_description_from_instructure(create_infrastructure_from_rail_env(static_env, k))
     verify_trainrun_dict_for_schedule_problem(schedule_problem=schedule_problem, trainrun_dict=fake_schedule)
     reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=fake_malfunction,
@@ -855,6 +856,6 @@ def _dummy_test_case(fake_malfunction: Malfunction):
                                            number_of_shortest_paths_per_agent=10, weight_route_change=1,
                                            weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
     schedule_problem = ASPProblemDescription.factory_scheduling(
-        create_schedule_full_problem_description_from_experiment_parameters(experiment_parameters=test_parameters)[0])
+        schedule_problem_description=create_schedule_problem_description_from_instructure(gen_infrastructure(experiment_parameters=test_parameters)))
 
     return fake_malfunction, schedule_problem

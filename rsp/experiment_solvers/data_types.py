@@ -5,6 +5,7 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Set
 
+import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
@@ -94,8 +95,15 @@ def schedule_experiment_results_equals_modulo_solve_time(s1: SchedulingExperimen
 # test_id: int, solver_name: str, i_step: int
 SolveProblemRenderCallback = Callable[[int, str, int], None]
 
-
 Schedule = NamedTuple('Schedule', [
     ('schedule_problem_description', ScheduleProblemDescription),
     ('schedule_experiment_result', SchedulingExperimentResult),
+])
+
+# TODO we should separate grid generation from agent placement, speed generation and topo_dict extraction (shortest paths);
+#  however, we do not pass the city information out of FLATland to place agents.
+Infrastructure = NamedTuple('Infrastructure', [
+    ('topo_dict', Dict[int, nx.DiGraph]),
+    ('minimum_travel_time_dict', Dict[int, int]),
+    ('max_episode_steps', int)
 ])

@@ -22,6 +22,7 @@ from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.utils.experiments import gen_infrastructure
 from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import gen_schedule
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -306,17 +307,19 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
+        infra_scaled = gen_infrastructure(experiment_parameters=experiment_parameters_scaled)
         schedule_scaled = gen_schedule(
-            experiment_parameters=experiment_parameters_scaled,
-        )
+            infrastructure=infra_scaled,
+            experiment_parameters=experiment_parameters_scaled)
         malfunction_scaled = gen_malfunction(
-            earliest_malfunction=experiment_parameters.earliest_malfunction,
-            malfunction_duration=experiment_parameters.malfunction_duration,
+            earliest_malfunction=experiment_parameters_scaled.earliest_malfunction,
+            malfunction_duration=experiment_parameters_scaled.malfunction_duration,
             schedule_trainruns=schedule_scaled.schedule_experiment_result.trainruns_dict
         )
+        infra = gen_infrastructure(experiment_parameters=experiment_parameters)
         schedule = gen_schedule(
-            experiment_parameters=experiment_parameters
-        )
+            infrastructure=infra,
+            experiment_parameters=experiment_parameters)
         malfunction = gen_malfunction(
             earliest_malfunction=experiment_parameters.earliest_malfunction,
             malfunction_duration=experiment_parameters.malfunction_duration,
