@@ -7,7 +7,7 @@ import numpy as np
 from rsp.experiment_solvers.data_types import schedule_experiment_results_equals_modulo_solve_time
 from rsp.experiment_solvers.data_types import ScheduleAndMalfunction
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
-from rsp.hypothesis_one_experiments import hypothesis_one_pipeline_all_in_one
+from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import schedule_problem_description_equals
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame

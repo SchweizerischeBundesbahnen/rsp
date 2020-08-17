@@ -1,9 +1,9 @@
 import re
 from typing import Optional
 
-from rsp.hypothesis_one_experiments import get_agenda_pipeline_params_003_a_bit_more_advanced
-from rsp.hypothesis_one_experiments import hypothesis_one_pipeline_all_in_one
-from rsp.hypothesis_one_experiments import hypothesis_one_rerun_without_regen_schedule
+from rsp.hypothesis_one_pipeline_all_in_one import get_agenda_pipeline_params_003_a_bit_more_advanced
+from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_gen_schedule
+from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_rerun_without_regen_schedule
 
 
 # TODO pass arguments instead of hacky file editing
@@ -43,36 +43,33 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
-def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_from_base_directory: Optional[str] = None):
+def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory: Optional[str] = None):
     """
 
     Parameters
     ----------
     gen_schedule
-        generate schedule? If `False`, `copy_agenda_from_base_directory` must be provided.
+        generate schedule? If `False`, `base_directory` must be provided.
     run_experiments
         run experiments after schedule generation
-    copy_agenda_from_base_directory
+    base_directory
     """
     if gen_schedule:
-        copy_agenda_from_base_directory, _ = hypothesis_one_pipeline_all_in_one(
+        hypothesis_one_gen_schedule(
             experiment_name='003_a_bit_more_advanced_schedules_only',
-            parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced(),
-            qualitative_analysis_experiment_ids=[],
-            asp_export_experiment_ids=[],
-            experiment_ids=None,
-            gen_only=True
+            experiment_agenda_directory=base_directory,
+            parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced()
         )
-    if run_experiments and copy_agenda_from_base_directory is not None:
+    if run_experiments and base_directory is not None:
         try:
             nb_runs = 3
-            experiment_name_prefix = copy_agenda_from_base_directory + "_"
+            experiment_name_prefix = base_directory + "_"
             parallel_compute = 2
             experiment_ids = None
             # baseline with defaults
             set_defaults()
             hypothesis_one_rerun_without_regen_schedule(
-                base_directory=copy_agenda_from_base_directory,
+                base_directory=base_directory,
                 experiment_name=('%sbaseline' % experiment_name_prefix),
                 nb_runs=nb_runs,
                 parallel_compute=parallel_compute,
@@ -84,7 +81,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             set_defaults()
             enable_seq(True)
             hypothesis_one_rerun_without_regen_schedule(
-                base_directory=copy_agenda_from_base_directory,
+                base_directory=base_directory,
                 experiment_name=('%swith_SEQ' % experiment_name_prefix),
                 nb_runs=nb_runs,
                 parallel_compute=parallel_compute,
@@ -96,7 +93,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             set_defaults()
             set_delay_model_resolution(2)
             hypothesis_one_rerun_without_regen_schedule(
-                base_directory=copy_agenda_from_base_directory,
+                base_directory=base_directory,
                 experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
                 nb_runs=nb_runs,
                 parallel_compute=parallel_compute,
@@ -107,7 +104,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             set_defaults()
             set_delay_model_resolution(5)
             hypothesis_one_rerun_without_regen_schedule(
-                base_directory=copy_agenda_from_base_directory,
+                base_directory=base_directory,
                 experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
                 nb_runs=nb_runs,
                 parallel_compute=parallel_compute,
@@ -118,7 +115,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             set_defaults()
             set_delay_model_resolution(10)
             hypothesis_one_rerun_without_regen_schedule(
-                base_directory=copy_agenda_from_base_directory,
+                base_directory=base_directory,
                 experiment_name=('%swith_delay_model_resolution_10' % experiment_name_prefix),
                 nb_runs=nb_runs,
                 parallel_compute=parallel_compute,
@@ -130,7 +127,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_fr
             set_defaults()
             enable_propagate_partial(enable=False)
             hypothesis_one_rerun_without_regen_schedule(
-                base_directory=copy_agenda_from_base_directory,
+                base_directory=base_directory,
                 experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
                 nb_runs=nb_runs,
                 parallel_compute=parallel_compute,
@@ -146,5 +143,5 @@ if __name__ == '__main__':
     main(
         gen_schedule=False,
         run_experiments=True,
-        copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16'
+        base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16'
     )

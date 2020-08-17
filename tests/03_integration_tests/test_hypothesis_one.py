@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from rsp.hypothesis_one_experiments import hypothesis_one_pipeline_all_in_one
+from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import delete_experiment_folder

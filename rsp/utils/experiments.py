@@ -152,27 +152,6 @@ def load_schedule_and_malfunction(experiment_agenda_directory: str, experiment_i
     return file_data
 
 
-def run_experiment(
-        experiment_parameters: ExperimentParameters,
-        experiment_base_directory: str,
-        schedule_and_malfunction: ScheduleAndMalfunction,
-        verbose: bool = False,
-        debug: bool = False,
-
-) -> ExperimentResults:
-    """
-    Run a single experiment with a given solver and ExperimentParameters
-    Parameters
-    ----------
-    experiment_base_directory
-    experiment_parameters: ExperimentParameters
-        Parameter set of the data form ExperimentParameters
-    Returns
-    -------
-    Returns a DataFrame with the experiment results
-    """
-
-
 def run_experiment_from_schedule_and_malfunction(
         schedule_and_malfunction: ScheduleAndMalfunction,
         experiment_parameters: ExperimentParameters,
@@ -545,7 +524,7 @@ def run_and_save_one_experiment(
         rsp_logger.info(f"end experiment {experiment_parameters.experiment_id}")
 
 
-# TODO SIM-650 topo_filter/schedule_filter
+# TODO SIM-650 topo_filter/schedule_filter and take params instead of agenda
 def run_experiment_agenda(
         experiment_agenda: ExperimentAgenda,
         experiment_base_directory: str,
@@ -666,26 +645,6 @@ def _print_error_summary(experiment_data_directory):
     print(f"END OF ERROR SUMMARY")
     print(f"=========================================================")
     print("\n\n\n\n")
-
-
-def _copy_agenda_from_base_directory(copy_agenda_from_base_directory: str, experiment_agenda_directory: str):
-    """
-    Copy agenda and schedule for re-use.
-    Parameters
-    ----------
-    copy_agenda_from_base_directory
-        base directory to copy from
-    experiment_agenda_directory
-        agenda subdirectory to copy to
-    """
-    copy_agenda_from_agenda_directory = os.path.join(copy_agenda_from_base_directory,
-                                                     EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
-    print(os.path.abspath(os.curdir))
-    files = os.listdir(copy_agenda_from_agenda_directory)
-    rsp_logger.info(f"Copying agenda, schedule and malfunctions {copy_agenda_from_agenda_directory} "
-                    f"-> {experiment_agenda_directory}")
-    for file in [file for file in files]:
-        shutil.copy2(os.path.join(copy_agenda_from_agenda_directory, file), experiment_agenda_directory)
 
 
 def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
@@ -1166,3 +1125,31 @@ def folder_to_name(foldername: str) -> str:
         else:
             name_only += char
     return name_only
+
+
+# TODO SIM-650 gen-only given parameter ranges
+# A.2
+def hypothesis_one_gen_schedule(
+        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+        experiment_agenda_directory: str,
+        # TODO SIM-650 this should
+        flatland_seed: int = 12,
+        experiments_per_grid_element: int = 1,
+        experiment_name: str = "exp_hypothesis_one"):
+    rsp_logger.info("GEN SCHEDULE")
+
+    # TODO SIM-650 get rid of agenda, replay by partial expander?
+    experiment_agenda: ExperimentAgenda = create_experiment_agenda(experiment_name=experiment_name,
+                                                                   parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                                                   flatland_seed=flatland_seed,
+                                                                   experiments_per_grid_element=experiments_per_grid_element)
+
+    for experiment_parameters in experiment_agenda.experiments:
+        rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
+
+        schedule_and_malfunction = gen_schedule_and_malfunction_from_experiment_parameters(
+            experiment_parameters=experiment_parameters)
+        save_schedule_and_malfunction(
+            schedule_and_malfunction=schedule_and_malfunction,
+            experiment_agenda_directory=experiment_agenda_directory,
+            experiment_id=experiment_parameters.experiment_id)
