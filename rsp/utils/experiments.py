@@ -93,7 +93,6 @@ EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
 EXPERIMENT_INFRA_SUBDIRECTORY_NAME = "infra"
 EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME = "schedule"
 
-
 EXPERIMENT_DATA_SUBDIRECTORY_NAME = "data"
 EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
 EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
@@ -101,55 +100,61 @@ EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
 
 # TODO SIM-650 topo id and schedule id
 def save_schedule(schedule: Schedule,
-                  experiment_agenda_directory: str,
-                  experiment_id: int):
+                  base_directory: str,
+                  infra_id: int,
+                  schedule_id: int = 0
+                  ):
     """Persist `ScheduleAndMalfunction` to a file.
     Parameters
     ----------
     schedule
-    experiment_agenda_directory
-    experiment_id
+    base_directory
+    infra_id
     """
-    schedule_file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME,  f"{experiment_id:03d}", f"schedule.pkl")
-    check_create_folder(os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
+    schedule_file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
+                                      f"{schedule_id:03d}", f"schedule.pkl")
+    check_create_folder(os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
+                                     f"{schedule_id:03d}", ))
     with open(schedule_file_name, 'wb') as handle:
         pickle.dump(schedule, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def save_infrastructure(infrastructure: Infrastructure,
-                        experiment_agenda_directory: str,
-                        experiment_id: int):
+def save_infrastructure(
+        infrastructure: Infrastructure,
+        base_directory: str,
+        infra_id: int
+):
     """Persist `Infrastructure` to a file.
     Parameters
     ----------
     infrastructure
-    experiment_agenda_directory
-    experiment_id
+    base_directory
+    infra_id
     """
-    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"infrastructure.pkl")
-    check_create_folder(os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", f"infrastructure.pkl")
+    check_create_folder(os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}"))
     with open(file_name, 'wb') as handle:
         pickle.dump(infrastructure, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-# TODO SIM-650 topo id and schedule id
+# TODO SIM-650 topo id and schedule id - do we still need it?
 def save_malfunction(experiment_malfunction: ExperimentMalfunction,
-                     experiment_agenda_directory: str,
+                     base_directory: str,
                      experiment_id: int):
     """Persist `ScheduleAndMalfunction` to a file.
     Parameters
     ----------
     experiment_malfunction
-    experiment_agenda_directory
+    base_directory
     experiment_id
     """
-    schedule_file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
-    check_create_folder(os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
+    schedule_file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
+    check_create_folder(os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
     with open(schedule_file_name, 'wb') as handle:
         pickle.dump(experiment_malfunction, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def exists_schedule(experiment_agenda_directory: str, experiment_id: int) -> bool:
+def exists_schedule(base_directory: str, experiment_id: int) -> bool:
     """Does a persisted `Schedule` exist?
     Parameters
     ----------
@@ -158,29 +163,29 @@ def exists_schedule(experiment_agenda_directory: str, experiment_id: int) -> boo
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME,  f"{experiment_id:03d}", f"schedule.pkl")
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
     return os.path.isfile(file_name)
 
 
-def exists_malfunction(experiment_agenda_directory: str, experiment_id: int) -> bool:
+def exists_malfunction(base_directory: str, experiment_id: int) -> bool:
     """Does a persisted `ExperimentMalfunction` exist?
     Parameters
     ----------
-    experiment_agenda_directory
+    base_directory
     experiment_id
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
     return os.path.isfile(file_name)
 
 
-# TODO SIM-650 pass topo_id
-def load_malfunction(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> ExperimentMalfunction:
+# TODO SIM-650 pass topo_id  - do we still need it?
+def load_malfunction(base_directory: str, experiment_id: int, re_save: bool = False) -> ExperimentMalfunction:
     """Load a persisted `ExperimentMalfunction` from a file.
     Parameters
     ----------
-    experiment_agenda_directory
+    base_directory
     experiment_id
     re_save
         activate temporarily if module path used in pickle has changed,
@@ -190,7 +195,7 @@ def load_malfunction(experiment_agenda_directory: str, experiment_id: int, re_sa
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
 
     with open(file_name, 'rb') as handle:
         file_data: ExperimentMalfunction = pickle.load(handle)
@@ -203,13 +208,12 @@ def load_malfunction(experiment_agenda_directory: str, experiment_id: int, re_sa
     return file_data
 
 
-# TODO SIM-650 infra id
-def load_infrastructure(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> Infrastructure:
+def load_infrastructure(base_directory: str, infra_id: int, re_save: bool = False) -> Infrastructure:
     """Load a persisted `Infrastructure` from a file.
     Parameters
     ----------
-    experiment_agenda_directory
-    experiment_id
+    base_directory
+    infra_id
     re_save
         activate temporarily if module path used in pickle has changed,
         use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
@@ -218,7 +222,7 @@ def load_infrastructure(experiment_agenda_directory: str, experiment_id: int, re
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory,  EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"infrastructure.pkl")
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", f"infrastructure.pkl")
 
     with open(file_name, 'rb') as handle:
         file_data: Infrastructure = pickle.load(handle)
@@ -232,12 +236,12 @@ def load_infrastructure(experiment_agenda_directory: str, experiment_id: int, re
 
 
 # TODO SIM-650 pass topo_id and schedule_id
-def load_schedule(experiment_agenda_directory: str, experiment_id: int, re_save: bool = False) -> Schedule:
+def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0, re_save: bool = False) -> Schedule:
     """Load a persisted `Schedule` from a file.
     Parameters
     ----------
-    experiment_agenda_directory
-    experiment_id
+    base_directory
+    infra_id
     re_save
         activate temporarily if module path used in pickle has changed,
         use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
@@ -246,7 +250,8 @@ def load_schedule(experiment_agenda_directory: str, experiment_id: int, re_save:
     Returns
     -------
     """
-    file_name = os.path.join(experiment_agenda_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
+                             f"{schedule_id:03d}", f"schedule.pkl")
 
     with open(file_name, 'rb') as handle:
         file_data: Schedule = pickle.load(handle)
@@ -259,7 +264,7 @@ def load_schedule(experiment_agenda_directory: str, experiment_id: int, re_save:
     return file_data
 
 
-def run_experiment_from_schedule_and_malfunction(
+def run_experiment_in_memory(
         schedule: Schedule,
         experiment_malfunction: ExperimentMalfunction,
         experiment_parameters: ExperimentParameters,
@@ -525,7 +530,7 @@ def _write_sha_txt(folder_name: str):
 
 
 # TODO SIM-650 refactor to pass topo and schedule for unit testing
-def run_and_save_one_experiment(
+def run_experiment_from_to_file(
         experiment_parameters: ExperimentParameters,
         experiment_base_directory: str,
         experiment_output_directory: str,
@@ -573,16 +578,16 @@ def run_and_save_one_experiment(
                     experiment_agenda_directory=experiment_base_directory,
                     experiment_id=experiment_parameters.experiment_id) or \
                 not exists_malfunction(
-                    experiment_agenda_directory=experiment_base_directory,
+                    base_directory=experiment_base_directory,
                     experiment_id=experiment_parameters.experiment_id):
             rsp_logger.warn(f"Could not find schedule_and_malfunction for {experiment_parameters.experiment_id} in {experiment_base_directory}")
 
         rsp_logger.info(f"load_schedule/load_malfunction for {experiment_parameters.experiment_id}")
         schedule = load_schedule(
-            experiment_agenda_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
-            experiment_id=experiment_parameters.experiment_id)
+            base_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
+            infra_id=experiment_parameters.experiment_id)
         experiment_malfunction = load_malfunction(
-            experiment_agenda_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
+            base_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
             experiment_id=experiment_parameters.experiment_id)
 
         if debug:
@@ -592,7 +597,7 @@ def run_and_save_one_experiment(
                 schedule=schedule, experiment_malfunction=experiment_malfunction)
 
         # B2: full and delta re-scheduling
-        experiment_results: ExperimentResults = run_experiment_from_schedule_and_malfunction(
+        experiment_results: ExperimentResults = run_experiment_in_memory(
             schedule=schedule,
             experiment_malfunction=experiment_malfunction,
             experiment_parameters=experiment_parameters,
@@ -729,7 +734,7 @@ def run_experiment_agenda(
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
         run_and_save_one_experiment_partial = partial(
-            run_and_save_one_experiment,
+            run_experiment_from_to_file,
             verbose=verbose,
             experiment_base_directory=experiment_base_directory,
             show_results_without_details=show_results_without_details,
@@ -1278,8 +1283,8 @@ def hypothesis_one_gen_schedule(
             experiment_parameters=experiment_parameters)
         save_schedule(
             schedule=schedule,
-            experiment_agenda_directory=experiment_agenda_directory,
-            experiment_id=experiment_parameters.experiment_id)
+            base_directory=experiment_agenda_directory,
+            infra_id=experiment_parameters.experiment_id)
         experiment_malfunction = gen_malfunction(
             earliest_malfunction=experiment_parameters.earliest_malfunction,
             malfunction_duration=experiment_parameters.malfunction_duration,
@@ -1287,5 +1292,5 @@ def hypothesis_one_gen_schedule(
         )
         save_malfunction(
             experiment_malfunction=experiment_malfunction,
-            experiment_agenda_directory=experiment_agenda_directory,
+            base_directory=experiment_agenda_directory,
             experiment_id=experiment_parameters.experiment_id)

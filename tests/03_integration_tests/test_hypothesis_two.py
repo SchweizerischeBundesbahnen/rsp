@@ -22,8 +22,8 @@ def test_hypothesis_two(re_save: bool = False):
     # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
     if re_save:
         load_experiment_result_without_expanding(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment_id, re_save=True)
-        load_schedule(experiment_agenda_directory=experiment_agenda_directory, experiment_id=experiment_id, re_save=True)
-        load_malfunction(experiment_agenda_directory=experiment_agenda_directory, experiment_id=experiment_id, re_save=True)
+        load_schedule(base_directory=experiment_agenda_directory, infra_id=experiment_id, re_save=True)
+        load_malfunction(base_directory=experiment_agenda_directory, experiment_id=experiment_id, re_save=True)
 
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_directory,
