@@ -62,7 +62,29 @@ ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('speed_data', SpeedData)
 ])
 
-# the experiment_id is unambiguous within the agenda for the full parameter set!
+InfrastructureParameters = NamedTuple('InfrastructureParameters', [
+    ('infra_id', int),
+
+    ('width', int),
+    ('height', int),
+    ('flatland_seed_value', int),
+    ('max_num_cities', int),
+    ('grid_mode', bool),
+    ('max_rail_between_cities', int),
+    ('max_rail_in_city', int),
+    ('number_of_agents', int),
+    ('speed_data', SpeedData),
+    ('number_of_shortest_paths_per_agent', int),
+])
+
+ScheduleParameters = NamedTuple('ScheduleParameters', [
+    ('infra_id', int),
+    ('schedule_id', int),
+
+    ('asp_seed_value', int),
+    ('number_of_shortest_paths_per_agent_schedule', int),
+])
+
 ExperimentParameters = NamedTuple('ExperimentParameters', [
     ('experiment_id', int),
     ('grid_id', int),
@@ -91,11 +113,45 @@ ExperimentParameters = NamedTuple('ExperimentParameters', [
     ('weight_lateness_seconds', int),
     ('max_window_size_from_earliest', int),
 
-]
-                                  )
+])
+
+# the experiment_id is unambiguous within the agenda for the full parameter set!
+ExperimentParameters2 = NamedTuple('ExperimentParameters', [
+    ('experiment_id', int),  # unique per execution (there may be multiple `experiment_id`s for the same `grid_id`
+    ('grid_id', int),  # same if all params are the same
+
+    ('infra_parameters', InfrastructureParameters),
+    ('schedule_parameters', ScheduleParameters),
+
+    ('earliest_malfunction', int),
+    ('malfunction_duration', int),
+    ('weight_route_change', int),
+    ('weight_lateness_seconds', int),
+    ('max_window_size_from_earliest', int),
+])
+
+
+def _extract_infra_parameters_from_experiment_parameters(experiment_parameters: ExperimentParameters, infra_id: int):
+    return InfrastructureParameters(infra_id=infra_id, width=experiment_parameters.width, height=experiment_parameters.height,
+                                    flatland_seed_value=experiment_parameters.flatland_seed_value,
+                                    max_num_cities=experiment_parameters.max_num_cities,
+                                    grid_mode=experiment_parameters.grid_mode,
+                                    max_rail_between_cities=experiment_parameters.max_rail_between_cities,
+                                    max_rail_in_city=experiment_parameters.max_rail_in_city,
+                                    number_of_agents=experiment_parameters.number_of_agents,
+                                    speed_data=experiment_parameters.speed_data,
+                                    number_of_shortest_paths_per_agent=experiment_parameters.number_of_shortest_paths_per_agent)
+
+
+def _extract_schedule_parameters_from_experiment_parameters(experiment_parameters: ExperimentParameters, infra_id: int, schedule_id: int):
+    return ScheduleParameters(infra_id=infra_id, schedule_id=schedule_id, asp_seed_value=experiment_parameters.asp_seed_value,
+                              number_of_shortest_paths_per_agent_schedule=10)
+
+
 if COMPATIBILITY_MODE:
     ExperimentParameters.__new__.__defaults__ = (None,) * len(ExperimentParameters._fields)
 
+# TODO SIM-650 remove?
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
                                                    ('experiments', List[ExperimentParameters])])
 

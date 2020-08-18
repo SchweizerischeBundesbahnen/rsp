@@ -37,6 +37,7 @@ import threading
 import time
 import traceback
 from functools import partial
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -66,13 +67,17 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
+from rsp.utils.data_types import _extract_infra_parameters_from_experiment_parameters
+from rsp.utils.data_types import _extract_schedule_parameters_from_experiment_parameters
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
@@ -98,8 +103,26 @@ EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
 EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
 
 
+def _pickle_dump(obj: Any, file_name: str, folder: Optional[str] = None):
+    file_path = file_name
+    if folder is not None:
+        file_path = os.path.join(folder, file_name)
+    check_create_folder(folder)
+    with open(file_path, 'wb') as handle:
+        pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def _pickle_load(file_name: str, folder: Optional[str] = None):
+    file_path = file_name
+    if folder is not None:
+        file_path = os.path.join(folder, file_name)
+    with open(file_path, 'rb') as handle:
+        return pickle.load(handle)
+
+
 # TODO SIM-650 topo id and schedule id
 def save_schedule(schedule: Schedule,
+                  schedule_parameters: ScheduleParameters,
                   base_directory: str,
                   infra_id: int,
                   schedule_id: int = 0
@@ -107,34 +130,34 @@ def save_schedule(schedule: Schedule,
     """Persist `ScheduleAndMalfunction` to a file.
     Parameters
     ----------
+    schedule_id
+    schedule_parameters
     schedule
     base_directory
     infra_id
     """
-    schedule_file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
-                                      f"{schedule_id:03d}", f"schedule.pkl")
-    check_create_folder(os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
-                                     f"{schedule_id:03d}", ))
-    with open(schedule_file_name, 'wb') as handle:
-        pickle.dump(schedule, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME, f"{schedule_id:03d}")
+    _pickle_dump(obj=schedule, folder=folder, file_name="schedule.pkl")
+    _pickle_dump(obj=schedule_parameters, folder=folder, file_name="schedule_parameters.pkl")
 
 
 def save_infrastructure(
         infrastructure: Infrastructure,
+        infrastructure_parameters: InfrastructureParameters,
         base_directory: str,
         infra_id: int
 ):
     """Persist `Infrastructure` to a file.
     Parameters
     ----------
+    infrastructure_parameters
     infrastructure
     base_directory
     infra_id
     """
-    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", f"infrastructure.pkl")
-    check_create_folder(os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}"))
-    with open(file_name, 'wb') as handle:
-        pickle.dump(infrastructure, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}")
+    _pickle_dump(obj=infrastructure, folder=folder, file_name="infrastructure.pkl")
+    _pickle_dump(obj=infrastructure_parameters, folder=folder, file_name="infrastructure_parameters.pkl")
 
 
 # TODO SIM-650 topo id and schedule id - do we still need it?
@@ -148,10 +171,33 @@ def save_malfunction(experiment_malfunction: ExperimentMalfunction,
     base_directory
     experiment_id
     """
-    schedule_file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
-    check_create_folder(os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}"))
-    with open(schedule_file_name, 'wb') as handle:
-        pickle.dump(experiment_malfunction, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}")
+    _pickle_dump(obj=experiment_malfunction, folder=folder, file_name="malfunction.pkl")
+
+
+def save_experiment_parameters(
+        experiment_parameters: ExperimentParameters,
+        folder: str):
+    """Persist `ScheduleAndMalfunction` to a file.
+    Parameters
+    ----------
+    experiment_parameters: ExperimentParameters
+    folder: str
+    """
+    _pickle_dump(obj=experiment_parameters, folder=folder, file_name=f"experiment_parameters_{experiment_parameters.experiment_id:03d}.pkl")
+
+
+def load_experiment_parameters(
+        folder: str,
+        experiment_id: int
+):
+    """Persist `ScheduleAndMalfunction` to a file.
+    Parameters
+    ----------
+    experiment_id
+    folder: str
+    """
+    return _pickle_load(folder=folder, file_name=f"experiment_parameters_{experiment_id:03d}.pkl")
 
 
 def exists_schedule(base_directory: str, experiment_id: int) -> bool:
@@ -208,7 +254,7 @@ def load_malfunction(base_directory: str, experiment_id: int, re_save: bool = Fa
     return file_data
 
 
-def load_infrastructure(base_directory: str, infra_id: int, re_save: bool = False) -> Infrastructure:
+def load_infrastructure(base_directory: str, infra_id: int, re_save: bool = False) -> Tuple[Infrastructure, InfrastructureParameters]:
     """Load a persisted `Infrastructure` from a file.
     Parameters
     ----------
@@ -222,21 +268,14 @@ def load_infrastructure(base_directory: str, infra_id: int, re_save: bool = Fals
     Returns
     -------
     """
-    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", f"infrastructure.pkl")
-
-    with open(file_name, 'rb') as handle:
-        file_data: Infrastructure = pickle.load(handle)
-
-    # used if module path used in pickle has changed
-    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
-    if re_save:
-        with open(file_name, 'wb') as handle:
-            pickle.dump(Infrastructure(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
-    return file_data
+    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}")
+    infra = _pickle_load(folder=folder, file_name=f"infrastructure.pkl")
+    infra_parameters = _pickle_load(folder=folder, file_name=f"infrastructure_parameters.pkl")
+    return infra, infra_parameters
 
 
 # TODO SIM-650 pass topo_id and schedule_id
-def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0, re_save: bool = False) -> Schedule:
+def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0, re_save: bool = False) -> Tuple[Schedule, ScheduleParameters]:
     """Load a persisted `Schedule` from a file.
     Parameters
     ----------
@@ -250,18 +289,11 @@ def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0, re_s
     Returns
     -------
     """
-    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
-                             f"{schedule_id:03d}", f"schedule.pkl")
-
-    with open(file_name, 'rb') as handle:
-        file_data: Schedule = pickle.load(handle)
-
-    # used if module path used in pickle has changed
-    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
-    if re_save:
-        with open(file_name, 'wb') as handle:
-            pickle.dump(Schedule(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
-    return file_data
+    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
+                          f"{schedule_id:03d}")
+    schedule = _pickle_load(folder=folder, file_name="schedule.pkl")
+    schedule_parameters = _pickle_load(folder=folder, file_name="schedule_parameters.pkl")
+    return schedule, schedule_parameters
 
 
 def run_experiment_in_memory(
@@ -583,7 +615,7 @@ def run_experiment_from_to_file(
             rsp_logger.warn(f"Could not find schedule_and_malfunction for {experiment_parameters.experiment_id} in {experiment_base_directory}")
 
         rsp_logger.info(f"load_schedule/load_malfunction for {experiment_parameters.experiment_id}")
-        schedule = load_schedule(
+        schedule, schedule_parameters = load_schedule(
             base_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
             infra_id=experiment_parameters.experiment_id)
         experiment_malfunction = load_malfunction(
@@ -1278,11 +1310,29 @@ def hypothesis_one_gen_schedule(
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
 
         infra = gen_infrastructure(experiment_parameters=experiment_parameters)
+
         schedule = gen_schedule(
             infrastructure=infra,
             experiment_parameters=experiment_parameters)
+        schedule_parameters = _extract_schedule_parameters_from_experiment_parameters(
+            experiment_parameters=experiment_parameters,
+            infra_id=experiment_parameters.experiment_id,
+            schedule_id=0
+        )
+        infra_parameters = _extract_infra_parameters_from_experiment_parameters(
+            experiment_parameters=experiment_parameters,
+            infra_id=experiment_parameters.experiment_id
+        )
+        save_infrastructure(
+            infrastructure=infra,
+            infra_id=experiment_parameters.experiment_id,
+            base_directory=experiment_agenda_directory,
+            infrastructure_parameters=infra_parameters
+        )
+
         save_schedule(
             schedule=schedule,
+            schedule_parameters=schedule_parameters,
             base_directory=experiment_agenda_directory,
             infra_id=experiment_parameters.experiment_id)
         experiment_malfunction = gen_malfunction(

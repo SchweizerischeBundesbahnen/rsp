@@ -121,7 +121,7 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
     costs. Results may differ on different platforms event with the same
     seed because we use 2 threads.
     """
-    agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
+    agenda = ExperimentAgenda(experiment_name="regression_experiment_agenda", experiments=[
         ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
                              width=30, height=30,
                              flatland_seed_value=12, asp_seed_value=94,
@@ -130,7 +130,7 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
                              speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
                              weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf
                              )])
-    experiment_agenda_directory = os.path.join("tests", "02_regression_tests", "data", "test_regression_experiment_agenda", EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+    experiment_agenda_directory = os.path.join("tests", "02_regression_tests", "data", "regression_experiment_agenda", EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
 
     # used if module path used in pickle has changed
     # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
@@ -149,7 +149,7 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
         experiment_output_base_directory='.',
         run_experiments_parallel=1,
         verbose=True,
-        experiment_base_directory="tests/02_regression_tests/data/test_regression_experiment_agenda"
+        experiment_base_directory="tests/02_regression_tests/data/regression_experiment_agenda"
     )
 
     hypothesis_one_data_analysis(
@@ -271,7 +271,7 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
     for route change and lateness by the same factor."""
 
     experiment_parameters = ExperimentParameters(
-        experiment_id=9, grid_id=0, number_of_agents=11,
+        experiment_id=0, grid_id=0, number_of_agents=11,
         speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30,
         flatland_seed_value=12, asp_seed_value=94,
         max_num_cities=20, grid_mode=False, max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
@@ -342,7 +342,7 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
             base_directory="tests/02_regression_tests/data/alpha_beta",
             experiment_id=0)
 
-    schedule_scaled = load_schedule(
+    schedule_scaled, _ = load_schedule(
         base_directory="tests/02_regression_tests/data/alpha_beta",
         infra_id=0
     )
@@ -350,13 +350,15 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
         base_directory="tests/02_regression_tests/data/alpha_beta",
         experiment_id=0
     )
-    schedule = load_schedule(
+    schedule, _ = load_schedule(
         base_directory="tests/02_regression_tests/data/alpha_beta",
-        infra_id=1
+        infra_id=0,
+        schedule_id=0
     )
+
     malfunction = load_malfunction(
         base_directory="tests/02_regression_tests/data/alpha_beta",
-        experiment_id=1
+        experiment_id=0
     )
 
     experiment_result_scaled: ExperimentResults = run_experiment_in_memory(

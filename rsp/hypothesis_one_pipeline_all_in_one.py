@@ -96,6 +96,7 @@ def hypothesis_one_pipeline_all_in_one(
         experiment_name: str = "exp_hypothesis_one",
         run_analysis: bool = True,
         parallel_compute: int = AVAILABLE_CPUS // 2,
+        # TODO SIM-650 take from params
         flatland_seed: int = 12,
         # take only half of avilable cpus so the machine stays responsive
         experiments_per_grid_element: int = 1
