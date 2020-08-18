@@ -158,7 +158,7 @@ def exists_schedule(base_directory: str, experiment_id: int) -> bool:
     """Does a persisted `Schedule` exist?
     Parameters
     ----------
-    experiment_agenda_directory
+    base_directory
     experiment_id
     Returns
     -------
@@ -575,7 +575,7 @@ def run_experiment_from_to_file(
 
         if experiment_base_directory is None or \
                 not exists_schedule(
-                    experiment_agenda_directory=experiment_base_directory,
+                    base_directory=experiment_base_directory,
                     experiment_id=experiment_parameters.experiment_id) or \
                 not exists_malfunction(
                     base_directory=experiment_base_directory,
