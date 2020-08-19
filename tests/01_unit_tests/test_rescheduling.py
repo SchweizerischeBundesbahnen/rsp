@@ -19,9 +19,9 @@ from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_utils import verify_consistency_of_route_dag_constraints_for_agent
+from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
@@ -174,7 +174,7 @@ def test_rescheduling_no_bottleneck():
 
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
 
-    reschedule_problem_description: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    reschedule_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
@@ -193,7 +193,7 @@ def test_rescheduling_no_bottleneck():
     schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, k)
 
     full_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=get_schedule_problem_for_full_rescheduling(
+        reschedule_problem_description=delta_zero_for_all_agents(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
@@ -406,7 +406,7 @@ def test_rescheduling_bottleneck():
     k = 10
     schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, k)
     verify_trainrun_dict_for_schedule_problem(schedule_problem=schedule_problem, trainrun_dict=fake_schedule)
-    reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
@@ -416,7 +416,6 @@ def test_rescheduling_bottleneck():
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem.route_dag_constraints_dict
 
-    assert freeze_dict[0].freeze_visit == []
     for trainrun_waypoint in [
         TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
         TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -433,7 +432,6 @@ def test_rescheduling_bottleneck():
         TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(17, 29), direction=0)),
         TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0))
     ]:
-        assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_latest[trainrun_waypoint.waypoint]
 
@@ -441,7 +439,6 @@ def test_rescheduling_bottleneck():
     assert freeze_dict[0].freeze_visit == [], format(f"found {freeze_dict[0].freeze_visit}")
 
     for trainrun_waypoint in [TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]:
-        assert trainrun_waypoint.waypoint in freeze_dict[1].freeze_visit, f"found {freeze_dict[1].freeze_visit}"
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():
@@ -451,7 +448,7 @@ def test_rescheduling_bottleneck():
             topo=reschedule_problem.topo_dict[agent_id])
 
     full_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=get_schedule_problem_for_full_rescheduling(
+        reschedule_problem_description=delta_zero_for_all_agents(
             malfunction=fake_malfunction,
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=reschedule_problem.minimum_travel_time_dict,
@@ -767,8 +764,8 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
                                fake_full_reschedule_trainruns: TrainrunDict,
                                expected_arrivals, expected_delay):
     fake_malfunction, schedule_problem = _dummy_test_case(fake_malfunction)
-    delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle(
-        full_reschedule_trainrun_waypoints_dict=fake_full_reschedule_trainruns,
+    delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle_for_all_agents(
+        full_reschedule_trainrun_dict=fake_full_reschedule_trainruns,
         malfunction=fake_malfunction,
         max_episode_steps=schedule_problem.schedule_problem_description.max_episode_steps,
         schedule_topo_dict=schedule_problem.schedule_problem_description.topo_dict,

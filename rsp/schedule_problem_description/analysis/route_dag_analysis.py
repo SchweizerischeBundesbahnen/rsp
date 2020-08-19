@@ -390,7 +390,8 @@ def _get_edge_label(edge: RouteDagEdge,
 
 
 def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: RouteDAGConstraints) -> str:
-    if waypoint in f.freeze_banned:
+    # since we now remove nodes from the topo instead of banning them, we interpret missing nodes as banned.
+    if waypoint in f.freeze_banned or waypoint not in f.freeze_earliest or waypoint not in f.freeze_latest:
         return "X"
     s: str = "["
     if waypoint in f.freeze_visit:
@@ -404,7 +405,8 @@ def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: RouteDAGConstr
 
 def _get_color_for_node(n: Waypoint, f: RouteDAGConstraints):
     # https://matplotlib.org/examples/color/named_colors.html
-    if n in f.freeze_banned:
+    # since we now remove nodes from the topo instead of banning them, we interpret missing nodes as banned.
+    if n in f.freeze_banned or n not in f.freeze_earliest or n not in f.freeze_latest:
         return 'salmon'
     elif n in f.freeze_visit and f.freeze_earliest[n] == f.freeze_latest[n]:
         return 'sandybrown'

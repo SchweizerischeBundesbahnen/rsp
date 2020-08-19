@@ -17,7 +17,7 @@ def compare_agendas(
         experiment_ids: Optional[List[int]] = None,
         copy_agenda_from_base_directory: Optional[str] = None,
         run_analysis: bool = True,
-        parallel_compute: bool = True
+        parallel_compute: int = 1
 ) -> str:
     """Run and compare two agendas. Scheduling is run only once (non-
     deterministic mode). Re-scheduling on same schedules for null and

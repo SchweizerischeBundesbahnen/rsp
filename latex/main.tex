@@ -616,6 +616,10 @@ Before describing the third case of the malfunction happening while the train is
 	\begin{algorithmic}[1]
 	    \Require $e,l,(S,L),F_e,F_l,F_v,mrt,U,c$
 	    \Ensure $e,l,(S,L)$
+        \For{$v \in F_v$}
+		    \State $S \leftarrow \Set{v^\prime \in S: \textrm{there is a }v\textrm{--}v^\prime\textrm{ path or a }v^\prime\textrm{--}v\textrm{ path in }L}$
+		    \State $L \leftarrow \Set*{(v,v^\prime) \in L: v,v^\prime \in S}$
+		\EndFor
 	    \State $e \leftarrow propagate\_earliest(e, (S,L), F_e, mrt)$
 		\State $l \leftarrow propagate\_latest(l,(S,L),F_l, mrt)$
 		\If{$c < \infty$}
@@ -625,10 +629,7 @@ Before describing the third case of the malfunction happening while the train is
 	    \State $l \leftarrow propagate\_latest(l,(S,L),F_l, mrt)$
 	    \EndIf
 		\State $S \leftarrow \Set{v \in S: e(v) \leq l(v)}$, $L \leftarrow \Set*{(v,v^\prime) \in L: v,v^\prime \in S}$
-		\For{$v \in F_v$}
-		    \State $S \leftarrow \Set{v^\prime \in S: \textrm{there is a }v\textrm{--}v^\prime\textrm{ path or a }v^\prime\textrm{--}v\textrm{ path in }L}$
-		    \State $L \leftarrow \Set*{(v,v^\prime) \in L: v,v^\prime \in S}$
-		\EndFor
+
 	\end{algorithmic}
 \end{algorithm}
 
@@ -642,7 +643,7 @@ We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when t
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
 	    \Ensure $e,l,(S,L)$
-	    \State $(v_1,v_2) \leftarrow (v_1,v_2) \in L$ s.t. $A(v_1)\geq m_{time\_step}$ and $A(v_2)<m_{time\_step}$
+	    \State $(v_1,v_2) \leftarrow (v_1,v_2) \in L$ s.t. $A(v_1)\leq m_{time\_step}$ and $A(v_2)>m_{time\_step}$
 		\State $e(v_1)\leftarrow A(v_1)$, $l(v_1) \leftarrow A(v_1)$
         \If{$a$ corresponds to $m_{agent}$}
             \State $e_1(v_2) \leftarrow A(v_1)+mrt+m_{duration}$
@@ -698,7 +699,7 @@ and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{
 	    \For{$v \in S_1-\Delta_A: out(v)=0$}
 	        \State $l(v) \leftarrow U$
 	    \EndFor
-	    \State $(v_1,v_2) \leftarrow (v_1,v_2) \in L_1$ s.t. $A_{S_0}(v_1)\geq m_{time\_step}$ and $A_{S_0}(v_2)<m_{time\_step}$
+	    \State $(v_1,v_2) \leftarrow (v_1,v_2) \in L_1$ s.t. $A_{S_0}(v_1)\leq m_{time\_step}$ and $A_{S_0}(v_2)>m_{time\_step}$
 	    \If{$v_2 \not \in \Delta_A$}
         \If{$a$ corresponds to $m_{agent}$}
             \State $e_1(v_2) \leftarrow A_{S_0}(v_1)+mrt+m_{duration}$
@@ -709,6 +710,13 @@ and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{
 	    \State $e,l,(S_1,L_1) \leftarrow propagate(e,l,(S_1,L_1),\Delta_A \cup \Set*{v_2}, \Delta_A, \Delta_P, mrt, U, c)$
 	\end{algorithmic}
 \end{algorithm}
+
+\begin{mdframed}
+{\bf TODO Christian}
+Formalize Delta_0/Delta_perfect of the whole problem for all agents.
+Proposition: "Delta_perfect <= Delta_0", i.e. every solution to Delta_perfect is a solution to Delta_0
+\end{mdframed}
+
 
 
 \noindent\textbf{Objective for Re-scheduling}
@@ -744,6 +752,11 @@ and the second term of (\ref{eq:objectiveresched}) penalizes re-routing with res
         Heuristic ideas
         ML Ideas
 
+\begin{mdframed}
+{\bf TODO Christian} pseudo-code naive prediction
+\end{mdframed}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Discussion: show links to}
@@ -763,6 +776,76 @@ and the second term of (\ref{eq:objectiveresched}) penalizes re-routing with res
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Problem Size}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In order to show the speed-up postulated by H1, we want to investigate computation times over a wide range of ``problem sizes''. We saw in Section~\ref{sec:H2} on a qualitative, illustrative level that the impact of a malfunction varies greatly for different schedules within the same infrastructure, different malfunctions (agent and malfunction time) within the same schedule. In other words, the ``size'' of the problem is not derivable in an easy direct way from the experiment parameters, and we need a measure for the problem size.
+
+We now define problem size in a semi-formal way in terms of predictors and postdictors:  We call \emph{predictor} a function that takes a rescheduling problem as input and predicts the runtime approximately correctly at some level $\alpha$ with probability $1-\beta$ (i.e. $\alpha$ controls the precision of the prediction and $\beta$ controls the probability the the prediction is wrong at the given precision).
+Similarly, a \emph{postdictor} takes the result of rescheduling (including the original problem and solver statistics) and postdicts the runtime for parameters $\alpha,\beta$. The number of variables in the solver model is a potential predictor, whereas the number of solver of choices during solver run is a potential postdictor (formally, the runtime itself is a postdictor).
+
+\begin{mdframed}
+{\bf TODO Christian} Do we really need the formalization? Only if we want to relate speed-up to problem size! Argue why we want to do this. Do we need in order to show experimental asymptotics? We can derive experiment design without this measure and not relate speed-up to problem size. Introduce later in chapter?
+\end{mdframed}
+
+\begin{mdframed}
+{\bf TODO Christian} Figures:
+\begin{itemize}
+    \item nb of agents x (time_full_after_malfunction, time_delta_after_malfunction) --> variance
+    \item nb of cells x (time_full_after_malfunction, time_delta_after_malfunction) --> variance
+    \item nb of affected trains x (time_full_after_malfunction, time_delta_after_malfunction) --> variance
+\end{itemize}
+\end{mdframed}
+
+
+
+
+\begin{mdframed}
+{\bf TODO Christian} - Speed-Up: Discussion of multiple predictors/postdictors
+\end{mdframed}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experiment Design}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In light of the findings of the previous paragraphs, we design our experiments in a hierarchical fashion on multiple levels
+\begin{enumerate}
+    \item infrastructure
+    \item schedule
+    \item malfunction
+    \item solver runs
+\end{enumerate}
+where at each level we generate multiple instances for a fixed instance of the previous levels (i.e. we generate multiple infrastructures for the same parameters, we generate multiple schedules for the same infrastructure etc.). The lowest level is a sanity level to investigate the variance of the solver for the same problem.
+
+
+\begin{mdframed}
+{\bf TODO Christian} Numbers, relate to problem size? Get rid of experiment agenda entirely and work on a collection of this folder structure?
+\end{mdframed}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Speed-Up}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{mdframed}
+{\bf TODO Christian} Show relative speed-up (experiment_id x speed_up) and absolute runtimes of Delta perfect (experiment_id x time_delta_after_malfunction and time_full_after_malfunction x time_delta_after_malfunction. Three plots.
+\end{mdframed}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{ASP Model Characteristics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{mdframed}
+{\bf TODO Christian} Potassco notebook ratios, large vs. complex
+\end{mdframed}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

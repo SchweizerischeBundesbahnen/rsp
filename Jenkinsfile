@@ -108,9 +108,7 @@ git submodule update --init --recursive
         SKIP=docformatter pre-commit run --all --verbose
 
         # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
-        python -m pytest tests/01_unit_tests
-        python -m pytest tests/02_regression_tests
-        python -m pytest tests/03_integration_tests
+        python -m pytest tests/01_unit_tests tests/02_regression_tests tests/03_integration_tests
 
         python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow

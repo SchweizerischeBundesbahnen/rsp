@@ -15,7 +15,7 @@ from rsp.experiment_solvers.asp.data_types import ASPObjective
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_schedule import RouteDAGConstraints
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import RouteDAGConstraints
 from rsp.utils.global_constants import DELAY_MODEL_PENALTY_AFTER_LINEAR
 from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
 from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
@@ -326,19 +326,6 @@ class ASPProblemDescription:
         # 2019-12-03 discussion with Potsdam (SIM-146)
         # - no diff-constraints in addition to earliest/latest -> should be added immediately
         # - no route constraints in addition to visit -> should be added immediately
-
-        for waypoint in freeze.freeze_visit:
-            vertex = self._sanitize_waypoint(waypoint)
-
-            # add route constraint for pairs of edges in freeze_visit
-            # route(t1,(1,2)).
-            for predecessor in topo.predecessors(waypoint):
-                if predecessor in freeze.freeze_visit:
-                    frozen.append(f"route({train},({self._sanitize_waypoint(predecessor)},{vertex})).")
-            for successor in topo.successors(waypoint):
-                if successor in freeze.freeze_visit:
-                    frozen.append(f"route({train},({vertex},{self._sanitize_waypoint(successor)})).")
-
         for waypoint, scheduled_at in freeze.freeze_latest.items():
             vertex = self._sanitize_waypoint(waypoint)
             time = scheduled_at
@@ -354,7 +341,5 @@ class ASPProblemDescription:
             # add earliest constraint
             # e(t1,1,2).
             frozen.append(f"e({train},{vertex},{time}).")
-
-        # N.B. we do not add freeze_banned, see above `_build_asp_program`
 
         return frozen

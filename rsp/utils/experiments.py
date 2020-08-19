@@ -63,9 +63,9 @@ from rsp.schedule_problem_description.data_types_and_utils import _get_topology_
 from rsp.schedule_problem_description.data_types_and_utils import apply_weight_route_change
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_full import get_schedule_problem_for_full_rescheduling
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_reschedule_perfect_oracle import perfect_oracle
-from rsp.schedule_problem_description.route_dag_constraints.route_dag_generator_schedule import _get_route_dag_constraints_for_scheduling
+from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -217,6 +217,7 @@ def run_experiment(
                 schedule_and_malfunction=schedule_and_malfunction,
                 experiment_agenda_directory=experiment_agenda_directory,
                 experiment_id=experiment_parameters.experiment_id)
+
     if gen_only:
         elapsed_time = (time.time() - start_time)
         _print_stats(schedule_and_malfunction.schedule_experiment_result.solver_statistics)
@@ -292,7 +293,7 @@ def run_experiment_from_schedule_and_malfunction(
         experiment_parameters: ExperimentParameters,
         verbose: bool = False,
         debug: bool = False,
-        visualize_route_dag_constraing: bool = False
+        visualize_route_dag_constraints: bool = False
 ) -> ExperimentResults:
     """B2. Runs the main part of the experiment: re-scheduling full and delta.
 
@@ -302,7 +303,7 @@ def run_experiment_from_schedule_and_malfunction(
     experiment_parameters
     verbose
     debug
-    visualize_route_dag_constraing
+    visualize_route_dag_constraints
 
     Returns
     -------
@@ -316,14 +317,15 @@ def run_experiment_from_schedule_and_malfunction(
     # 2. Re-schedule Full
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
-    reduced_topo_dict = schedule_problem.topo_dict
-    full_reschedule_problem: ScheduleProblemDescription = get_schedule_problem_for_full_rescheduling(
+    # clone topos since propagation will modify them
+    full_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
+    full_reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         latest_arrival=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        topo_dict=reduced_topo_dict
+        topo_dict=full_reschedule_topo_dict
     )
     full_reschedule_problem = apply_weight_route_change(
         schedule_problem=full_reschedule_problem,
@@ -331,8 +333,8 @@ def run_experiment_from_schedule_and_malfunction(
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
     )
 
-    # activate visualize_route_dag_constraing for debugging
-    if visualize_route_dag_constraing:
+    # activate visualize_route_dag_constraints for debugging
+    if visualize_route_dag_constraints:
         for agent_id in schedule_trainruns:
             visualize_route_dag_constraints_simple_wrapper(
                 schedule_problem_description=full_reschedule_problem,
@@ -357,11 +359,13 @@ def run_experiment_from_schedule_and_malfunction(
     # 3. Re-Schedule Delta
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3. reschedule delta")
-    delta_reschedule_problem = perfect_oracle(
-        full_reschedule_trainrun_waypoints_dict=full_reschedule_trainruns,
+    # clone topos since propagation will modify them
+    delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
+    delta_reschedule_problem = perfect_oracle_for_all_agents(
+        full_reschedule_trainrun_dict=full_reschedule_trainruns,
         malfunction=malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + malfunction.malfunction_duration,
-        schedule_topo_dict=reduced_topo_dict,
+        schedule_topo_dict=delta_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
@@ -371,6 +375,18 @@ def run_experiment_from_schedule_and_malfunction(
         weight_route_change=experiment_parameters.weight_route_change,
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
     )
+
+    # activate visualize_route_dag_constraints for debugging
+    if visualize_route_dag_constraints:
+        for agent_id in schedule_trainruns:
+            visualize_route_dag_constraints_simple_wrapper(
+                schedule_problem_description=delta_reschedule_problem,
+                trainrun_dict=None,
+                experiment_malfunction=malfunction,
+                agent_id=agent_id,
+                file_name=f"delta_rescheduling_neu_agent_{agent_id}.pdf",
+            )
+
     delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_reschedule_problem,
         debug=debug,
