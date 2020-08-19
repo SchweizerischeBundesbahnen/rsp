@@ -1,37 +1,30 @@
 """Run tests for different experiment methods."""
-import os
 from typing import List
 
 import numpy as np
 
-from rsp.experiment_solvers.data_types import schedule_experiment_results_equals_modulo_solve_time
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.logger import rsp_logger
-from rsp.schedule_problem_description.data_types_and_utils import schedule_problem_description_equals
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import convert_list_of_experiment_results_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.experiments import create_env_from_experiment_parameters
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
-from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_infrastructure
-from rsp.utils.experiments import gen_malfunction
 from rsp.utils.experiments import gen_schedule
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.utils.experiments import load_malfunction
 from rsp.utils.experiments import load_schedule
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_in_memory
-from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
-from rsp.utils.experiments import save_malfunction
 from rsp.utils.experiments import save_schedule
 
 
@@ -86,24 +79,36 @@ def test_created_env_tuple():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
-    test_parameters = ExperimentParameters(experiment_id=0,
-                                           grid_id=0,
-                                           number_of_agents=7,
-                                           width=30,
-                                           height=30,
-                                           flatland_seed_value=12,
-                                           asp_seed_value=94,
-                                           max_num_cities=5,
-                                           grid_mode=True,
-                                           max_rail_between_cities=2,
-                                           max_rail_in_city=4,
-                                           earliest_malfunction=10,
-                                           malfunction_duration=20,
-                                           speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10,
-                                           weight_route_change=1,
-                                           weight_lateness_seconds=1,
-                                           max_window_size_from_earliest=np.inf)
+    test_parameters = ExperimentParameters(
+        experiment_id=0,
+        grid_id=0,
+        infra_parameters=InfrastructureParameters(
+            infra_id=0,
+            width=30,
+            height=30,
+            number_of_agents=7,
+            flatland_seed_value=12,
+            max_num_cities=5,
+            grid_mode=True,
+            max_rail_between_cities=2,
+            max_rail_in_city=4,
+            speed_data={1: 1.0},
+            number_of_shortest_paths_per_agent=10
+
+        ),
+        schedule_parameters=ScheduleParameters(
+            infra_id=0,
+            schedule_id=0,
+            asp_seed_value=94,
+            number_of_shortest_paths_per_agent_schedule=1
+        ),
+
+        earliest_malfunction=10,
+        malfunction_duration=20,
+        weight_route_change=1,
+        weight_lateness_seconds=1,
+        max_window_size_from_earliest=np.inf
+    )
 
     # Generate the tuple of environments
     static_env = create_env_from_experiment_parameters(params=test_parameters)
@@ -113,7 +118,7 @@ def test_created_env_tuple():
     assert static_env.rail.grid.tolist() == expected_grid
 
 
-def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False):
+def test_regression_experiment_agenda(regen: bool = False):
     """Run a simple agenda as regression test.
 
     It verifies that we can start from a set of schedules and
@@ -121,26 +126,37 @@ def test_regression_experiment_agenda(regen: bool = False, re_save: bool = False
     costs. Results may differ on different platforms event with the same
     seed because we use 2 threads.
     """
-    agenda = ExperimentAgenda(experiment_name="regression_experiment_agenda", experiments=[
-        ExperimentParameters(experiment_id=0, grid_id=0, number_of_agents=2,
-                             width=30, height=30,
-                             flatland_seed_value=12, asp_seed_value=94,
-                             max_num_cities=20, grid_mode=True, max_rail_between_cities=2,
-                             max_rail_in_city=6, earliest_malfunction=20, malfunction_duration=20,
-                             speed_data={1: 1.0}, number_of_shortest_paths_per_agent=10,
-                             weight_route_change=1, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf
-                             )])
-    experiment_agenda_directory = os.path.join("tests", "02_regression_tests", "data", "regression_experiment_agenda", EXPERIMENT_AGENDA_SUBDIRECTORY_NAME)
+    agenda = ExperimentAgenda(experiment_name="test_regression_experiment_agenda", experiments=[
+        ExperimentParameters(
+            experiment_id=0,
+            grid_id=0,
+            infra_parameters=InfrastructureParameters(
+                infra_id=0,
+                width=30,
+                height=30,
+                number_of_agents=2,
+                flatland_seed_value=12,
+                max_num_cities=20,
+                grid_mode=True,
+                max_rail_between_cities=2,
+                max_rail_in_city=6,
+                speed_data={1: 1.0},
+                number_of_shortest_paths_per_agent=10
 
-    # used if module path used in pickle has changed
-    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
-    if re_save:
-        load_schedule(base_directory=experiment_agenda_directory, infra_id=0)
-        load_malfunction(base_directory=experiment_agenda_directory, experiment_id=0)
-    if regen:
-        save_experiment_agenda_and_hash_to_file(
-            experiment_agenda_folder_name=experiment_agenda_directory,
-            experiment_agenda=agenda)
+            ),
+            schedule_parameters=ScheduleParameters(
+                infra_id=0,
+                schedule_id=0,
+                asp_seed_value=94,
+                number_of_shortest_paths_per_agent_schedule=1
+            ),
+
+            earliest_malfunction=20,
+            malfunction_duration=20,
+            weight_route_change=1,
+            weight_lateness_seconds=1,
+            max_window_size_from_earliest=np.inf
+        )])
 
     # Import the solver for the experiments
     experiment_folder_name = run_experiment_agenda(
@@ -221,49 +237,18 @@ def test_hypothesis_one_pipeline_all_in_one():
     assert loaded_result.results_full_after_malfunction.solver_statistics is not None
 
     experiment_results = loaded_result
-    experiment_parameters = experiment_agenda.experiments[0]
+    experiment_parameters: ExperimentParameters = experiment_agenda.experiments[0]
 
     # check that asp seed value is received in solver
-    assert experiment_results.results_full.solver_seed == experiment_parameters.asp_seed_value, \
+    assert experiment_results.results_full.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, \
         f"actual={experiment_results.results_full.solver_seed}, " \
         f"expected={experiment_parameters.asp_seed_value}"
-    assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+    assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, \
         f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " \
         f"expected={experiment_parameters.asp_seed_value}"
-    assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.asp_seed_value, \
+    assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, \
         f"actual={experiment_results.results_delta_after_malfunction.solver_seed}, " \
         f"expected={experiment_parameters.asp_seed_value}"
-
-
-def _assert_results_dict_equals(experiment_results: List[ExperimentResults],
-                                loaded_results: List[ExperimentResultsAnalysis]):
-    loaded_result_dict = convert_list_of_experiment_results_analysis_to_data_frame(loaded_results).to_dict()
-    experiment_results_dict = convert_list_of_experiment_results_to_data_frame(experiment_results).to_dict()
-    for key in experiment_results_dict:
-        if key.startswith("problem_"):
-            assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
-            for index in loaded_result_dict[key]:
-                assert schedule_problem_description_equals(loaded_result_dict[key][index],
-                                                           experiment_results_dict[key][index]), \
-                    f"not equal {key}{index}: \n" \
-                    f"  loaded: {loaded_result_dict[key][index]}\n" \
-                    f"  in memory: {experiment_results_dict[key][index]}"
-        elif key.startswith('results_'):
-            assert len(loaded_result_dict[key]) == len(experiment_results_dict[key])
-            for index in loaded_result_dict[key]:
-                equals_modulo_solve_time = schedule_experiment_results_equals_modulo_solve_time(
-                    experiment_results_dict[key][index],
-                    loaded_result_dict[key][index])
-
-                assert equals_modulo_solve_time, \
-                    f"{key} for index {index} should be equal modulo solve_time; \n" \
-                    f"  expected{experiment_results_dict[key][index]}, \n" \
-                    f"  actual {loaded_result_dict[key][index]}"
-        else:
-            assert experiment_results_dict[key] == loaded_result_dict[key], \
-                f"{key} should be equal; \n" \
-                f"  expected{experiment_results_dict[key]}, \n" \
-                f"  actual {loaded_result_dict[key]}"
 
 
 def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
@@ -271,12 +256,34 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
     for route change and lateness by the same factor."""
 
     experiment_parameters = ExperimentParameters(
-        experiment_id=0, grid_id=0, number_of_agents=11,
-        speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0}, width=30, height=30,
-        flatland_seed_value=12, asp_seed_value=94,
-        max_num_cities=20, grid_mode=False, max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-        malfunction_duration=20, number_of_shortest_paths_per_agent=10,
-        weight_route_change=20, weight_lateness_seconds=1, max_window_size_from_earliest=np.inf
+        experiment_id=0,
+        grid_id=0,
+        infra_parameters=InfrastructureParameters(
+            infra_id=0,
+            width=30,
+            height=30,
+            number_of_agents=11,
+            flatland_seed_value=12,
+            max_num_cities=20,
+            grid_mode=True,
+            max_rail_between_cities=2,
+            max_rail_in_city=6,
+            speed_data={1.0: 1.0, 0.5: 0.0, 0.3333333333333333: 0.0, 0.25: 0.0},
+            number_of_shortest_paths_per_agent=10
+
+        ),
+        schedule_parameters=ScheduleParameters(
+            infra_id=0,
+            schedule_id=0,
+            asp_seed_value=94,
+            number_of_shortest_paths_per_agent_schedule=1
+        ),
+
+        earliest_malfunction=20,
+        malfunction_duration=20,
+        weight_route_change=20,
+        weight_lateness_seconds=1,
+        max_window_size_from_earliest=np.inf
     )
     scale = 5
     experiment_parameters_scaled = ExperimentParameters(**dict(
@@ -291,16 +298,12 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
 
     # used if module path used in pickle has changed
     # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
+    # TODO remove re_save stuff?
     if re_save:
         for experiment_id in range(2):
             load_schedule(
                 base_directory="tests/02_regression_tests/data/alpha_beta",
                 infra_id=experiment_id,
-                re_save=True
-            )
-            load_malfunction(
-                base_directory="tests/02_regression_tests/data/alpha_beta",
-                experiment_id=experiment_id,
                 re_save=True
             )
 
@@ -311,44 +314,25 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
         schedule_scaled = gen_schedule(
             infrastructure=infra_scaled,
             experiment_parameters=experiment_parameters_scaled)
-        malfunction_scaled = gen_malfunction(
-            earliest_malfunction=experiment_parameters_scaled.earliest_malfunction,
-            malfunction_duration=experiment_parameters_scaled.malfunction_duration,
-            schedule_trainruns=schedule_scaled.schedule_experiment_result.trainruns_dict
-        )
+
         infra = gen_infrastructure(experiment_parameters=experiment_parameters)
         schedule = gen_schedule(
             infrastructure=infra,
             experiment_parameters=experiment_parameters)
-        malfunction = gen_malfunction(
-            earliest_malfunction=experiment_parameters.earliest_malfunction,
-            malfunction_duration=experiment_parameters.malfunction_duration,
-            schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
-        )
         save_schedule(
             schedule=schedule_scaled,
+            schedule_parameters=experiment_parameters_scaled.schedule_parameters,
             base_directory="tests/02_regression_tests/data/alpha_beta",
             infra_id=0)
-        save_malfunction(
-            experiment_malfunction=malfunction_scaled,
-            base_directory="tests/02_regression_tests/data/alpha_beta",
-            experiment_id=0)
         save_schedule(
             schedule=schedule,
+            schedule_parameters=experiment_parameters.schedule_parameters,
             base_directory="tests/02_regression_tests/data/alpha_beta",
             infra_id=0)
-        save_malfunction(
-            experiment_malfunction=malfunction,
-            base_directory="tests/02_regression_tests/data/alpha_beta",
-            experiment_id=0)
 
     schedule_scaled, _ = load_schedule(
         base_directory="tests/02_regression_tests/data/alpha_beta",
         infra_id=0
-    )
-    malfunction_scaled = load_malfunction(
-        base_directory="tests/02_regression_tests/data/alpha_beta",
-        experiment_id=0
     )
     schedule, _ = load_schedule(
         base_directory="tests/02_regression_tests/data/alpha_beta",
@@ -356,20 +340,13 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
         schedule_id=0
     )
 
-    malfunction = load_malfunction(
-        base_directory="tests/02_regression_tests/data/alpha_beta",
-        experiment_id=0
-    )
-
     experiment_result_scaled: ExperimentResults = run_experiment_in_memory(
         schedule=schedule_scaled,
-        experiment_malfunction=malfunction_scaled,
         experiment_parameters=experiment_parameters_scaled,
     )
 
     experiment_result: ExperimentResults = run_experiment_in_memory(
         schedule=schedule,
-        experiment_malfunction=malfunction,
         experiment_parameters=experiment_parameters,
     )
 

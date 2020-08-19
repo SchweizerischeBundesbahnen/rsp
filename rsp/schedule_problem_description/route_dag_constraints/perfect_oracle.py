@@ -1,3 +1,4 @@
+import logging
 import pprint
 from typing import Dict
 
@@ -54,7 +55,8 @@ def perfect_oracle(
     -------
     """
     delta_same_location_and_time = {trainrun_waypoint.waypoint for trainrun_waypoint in set(full_reschedule_trainrun).intersection(set(schedule_trainrun))}
-    rsp_logger.info(f"delta_same_location_and_time={delta_same_location_and_time}")
+    if rsp_logger.isEnabledFor(logging.DEBUG):
+        rsp_logger.debug(f"delta_same_location_and_time={delta_same_location_and_time}")
 
     schedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
     reschedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in full_reschedule_trainrun}
@@ -62,7 +64,8 @@ def perfect_oracle(
     assert reschedule_waypoints.issubset(topo.nodes), f"{reschedule_waypoints} {topo.nodes} {reschedule_waypoints.difference(topo.nodes)}"
 
     delta_same_location = list(schedule_waypoints.intersection(reschedule_waypoints))
-    rsp_logger.info(f"delta_same_location={delta_same_location}")
+    if rsp_logger.isEnabledFor(logging.DEBUG):
+        rsp_logger.debug(f"delta_same_location={delta_same_location}")
 
     topo_out = topo.copy()
     to_remove = set(topo_out.nodes).difference(schedule_waypoints.union(reschedule_waypoints))

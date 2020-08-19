@@ -299,7 +299,7 @@ def extract_schedule_plotting(
                                             release_time=RELEASE_TIME)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
-        grid_depth=experiment_result.experiment_parameters.width,
+        grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
         sorting_agent_id=sorting_agent_id)
     return SchedulePlotting(
         schedule_as_resource_occupations=schedule_as_resource_occupations,

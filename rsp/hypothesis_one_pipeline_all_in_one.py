@@ -11,8 +11,7 @@ from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda
 from rsp.utils.experiments import create_experiment_folder_name
-from rsp.utils.experiments import EXPERIMENT_AGENDA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import hypothesis_one_gen_schedule
+from rsp.utils.experiments import hypothesis_one_setup_full_agenda
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.file_utils import check_create_folder
 
@@ -132,16 +131,14 @@ def hypothesis_one_pipeline_all_in_one(
     # A.1 Experiment Planning: Create an experiment agenda out of the parameter ranges
     experiment_data_directory_name = create_experiment_folder_name(experiment_name)
     experiment_data_directory = f'{experiment_base_directory}/{experiment_data_directory_name}'
-    experiment_agenda_directory = f'{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
 
     check_create_folder(experiment_base_directory)
     check_create_folder(experiment_data_directory)
-    check_create_folder(experiment_agenda_directory)
 
     # Create schedule and malfunction
-    hypothesis_one_gen_schedule(
+    hypothesis_one_setup_full_agenda(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        experiment_agenda_directory=experiment_agenda_directory
+        base_directory=experiment_base_directory
     )
 
     experiment_agenda = create_experiment_agenda(experiment_name=experiment_name,
@@ -153,7 +150,6 @@ def hypothesis_one_pipeline_all_in_one(
         # TODO should only be folder and optional filter of experiment_ids?
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
-        show_results_without_details=True,
         verbose=False,
         experiment_ids=experiment_ids,
         experiment_base_directory=experiment_base_directory

@@ -24,6 +24,8 @@ from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle impor
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
+from rsp.utils.data_types import InfrastructureParameters
+from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.experiments import create_env_from_experiment_parameters
 from rsp.utils.experiments import create_infrastructure_from_rail_env
 from rsp.utils.experiments import create_schedule_problem_description_from_instructure
@@ -31,30 +33,42 @@ from rsp.utils.experiments import gen_infrastructure
 
 _pp = pprint.PrettyPrinter(indent=4)
 
+test_parameters = ExperimentParameters(
+    experiment_id=0,
+    grid_id=0,
+    infra_parameters=InfrastructureParameters(
+        infra_id=0,
+        width=30,
+        height=30,
+        number_of_agents=2,
+        flatland_seed_value=12,
+        max_num_cities=20,
+        grid_mode=True,
+        max_rail_between_cities=2,
+        max_rail_in_city=6,
+        speed_data={1: 1.0},
+        number_of_shortest_paths_per_agent=10
+
+    ),
+    schedule_parameters=ScheduleParameters(
+        infra_id=0,
+        schedule_id=0,
+        asp_seed_value=94,
+        number_of_shortest_paths_per_agent_schedule=1
+    ),
+
+    earliest_malfunction=20,
+    malfunction_duration=20,
+    weight_route_change=1,
+    weight_lateness_seconds=1,
+    max_window_size_from_earliest=np.inf
+)
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Tests full re-scheduling
 # ---------------------------------------------------------------------------------------------------------------------
 def test_rescheduling_no_bottleneck():
-    test_parameters = ExperimentParameters(
-        experiment_id=0,
-        grid_id=0,
-        number_of_agents=2, width=30,
-        height=30,
-        flatland_seed_value=12,
-        asp_seed_value=94,
-        max_num_cities=20,
-        grid_mode=True,
-        max_rail_between_cities=2,
-        max_rail_in_city=6,
-        earliest_malfunction=20,
-        malfunction_duration=20,
-        speed_data={1: 1.0},
-        number_of_shortest_paths_per_agent=10,
-        weight_route_change=1,
-        weight_lateness_seconds=1,
-        max_window_size_from_earliest=np.inf
-    )
     static_env = create_env_from_experiment_parameters(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -216,15 +230,6 @@ def test_rescheduling_no_bottleneck():
 
 
 def test_rescheduling_bottleneck():
-    test_parameters = ExperimentParameters(experiment_id=0, grid_id=0,
-                                           number_of_agents=2,
-                                           width=30, height=30,
-                                           flatland_seed_value=12, asp_seed_value=94,
-                                           max_num_cities=20, grid_mode=True,
-                                           max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20, speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10, weight_route_change=1,
-                                           weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
     static_env = create_env_from_experiment_parameters(params=test_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -847,14 +852,6 @@ def fake_malfunction_generator(fake_malfunction: Malfunction):
 
 
 def _dummy_test_case(fake_malfunction: Malfunction):
-    test_parameters = ExperimentParameters(experiment_id=0, grid_id=0,
-                                           number_of_agents=2, width=30, height=30,
-                                           flatland_seed_value=12, max_num_cities=20, asp_seed_value=94,
-                                           grid_mode=True,
-                                           max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20, speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10, weight_route_change=1,
-                                           weight_lateness_seconds=1, max_window_size_from_earliest=np.inf)
     schedule_problem = ASPProblemDescription.factory_scheduling(
         schedule_problem_description=create_schedule_problem_description_from_instructure(gen_infrastructure(experiment_parameters=test_parameters)))
 

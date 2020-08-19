@@ -1,12 +1,11 @@
 import os
 from typing import Dict
 
-from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_gen_schedule
+from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_setup_full_agenda
 from rsp.hypothesis_testing.utils.tweak_experiment_agenda import tweak_parameter_ranges
 from rsp.logger import rsp_logger
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.experiments import load_parameter_ranges_and_speed_data
 from rsp.utils.experiments import run_experiment_agenda
 
 
@@ -44,22 +43,16 @@ def hypothesis_one_malfunction_analysis(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = None,
         malfunction_ranges: Dict = None,
         flatland_seed: int = 12,
-        parallel_compute: int = 5, EXPERIMENT_AGENDA_SUBDIRECTORY_NAME=None):
+        parallel_compute: int = 5):
     rsp_logger.info(f"MALFUNCTION INVESTIGATION")
 
     # Generate Schedule
     if gen_schedule:
-        experiment_base_folder_name = hypothesis_one_gen_schedule(parameter_ranges_and_speed_data,
-                                                                  experiment_name=experiment_name,
-                                                                  flatland_seed=flatland_seed)
+        experiment_base_folder_name = hypothesis_one_setup_full_agenda(parameter_ranges_and_speed_data,
+                                                                       experiment_name=experiment_name,
+                                                                       flatland_seed=flatland_seed)
     # Use existing Schedule
     else:
-        experiment_agenda_directory = f'{base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}'
-        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = load_parameter_ranges_and_speed_data(experiment_folder_name=experiment_agenda_directory)
-        if parameter_ranges_and_speed_data is None:
-            rsp_logger.info("No parameters found. Reverting to default!")
-            parameter_ranges_and_speed_data: ParameterRangesAndSpeedData = get_agenda_pipeline_malfunction_variation()
-
         experiment_base_folder_name = base_directory
 
     # Update the loaded or provided parameters with the new malfunction parameters

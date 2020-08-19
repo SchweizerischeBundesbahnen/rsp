@@ -67,8 +67,6 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.utils.data_types import _extract_infra_parameters_from_experiment_parameters
-from rsp.utils.data_types import _extract_schedule_parameters_from_experiment_parameters
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -93,7 +91,6 @@ AVAILABLE_CPUS = os.cpu_count()
 
 _pp = pprint.PrettyPrinter(indent=4)
 
-EXPERIMENT_AGENDA_SUBDIRECTORY_NAME = "agenda"
 
 EXPERIMENT_INFRA_SUBDIRECTORY_NAME = "infra"
 EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME = "schedule"
@@ -160,46 +157,6 @@ def save_infrastructure(
     _pickle_dump(obj=infrastructure_parameters, folder=folder, file_name="infrastructure_parameters.pkl")
 
 
-# TODO SIM-650 topo id and schedule id - do we still need it?
-def save_malfunction(experiment_malfunction: ExperimentMalfunction,
-                     base_directory: str,
-                     experiment_id: int):
-    """Persist `ScheduleAndMalfunction` to a file.
-    Parameters
-    ----------
-    experiment_malfunction
-    base_directory
-    experiment_id
-    """
-    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}")
-    _pickle_dump(obj=experiment_malfunction, folder=folder, file_name="malfunction.pkl")
-
-
-def save_experiment_parameters(
-        experiment_parameters: ExperimentParameters,
-        folder: str):
-    """Persist `ScheduleAndMalfunction` to a file.
-    Parameters
-    ----------
-    experiment_parameters: ExperimentParameters
-    folder: str
-    """
-    _pickle_dump(obj=experiment_parameters, folder=folder, file_name=f"experiment_parameters_{experiment_parameters.experiment_id:03d}.pkl")
-
-
-def load_experiment_parameters(
-        folder: str,
-        experiment_id: int
-):
-    """Persist `ScheduleAndMalfunction` to a file.
-    Parameters
-    ----------
-    experiment_id
-    folder: str
-    """
-    return _pickle_load(folder=folder, file_name=f"experiment_parameters_{experiment_id:03d}.pkl")
-
-
 def exists_schedule(base_directory: str, experiment_id: int) -> bool:
     """Does a persisted `Schedule` exist?
     Parameters
@@ -224,34 +181,6 @@ def exists_malfunction(base_directory: str, experiment_id: int) -> bool:
     """
     file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
     return os.path.isfile(file_name)
-
-
-# TODO SIM-650 pass topo_id  - do we still need it?
-def load_malfunction(base_directory: str, experiment_id: int, re_save: bool = False) -> ExperimentMalfunction:
-    """Load a persisted `ExperimentMalfunction` from a file.
-    Parameters
-    ----------
-    base_directory
-    experiment_id
-    re_save
-        activate temporarily if module path used in pickle has changed,
-        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
-
-
-    Returns
-    -------
-    """
-    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"malfunction.pkl")
-
-    with open(file_name, 'rb') as handle:
-        file_data: ExperimentMalfunction = pickle.load(handle)
-
-    # used if module path used in pickle has changed
-    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
-    if re_save:
-        with open(file_name, 'wb') as handle:
-            pickle.dump(ExperimentMalfunction(**file_data._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
-    return file_data
 
 
 def load_infrastructure(base_directory: str, infra_id: int, re_save: bool = False) -> Tuple[Infrastructure, InfrastructureParameters]:
@@ -298,7 +227,6 @@ def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0, re_s
 
 def run_experiment_in_memory(
         schedule: Schedule,
-        experiment_malfunction: ExperimentMalfunction,
         experiment_parameters: ExperimentParameters,
         verbose: bool = False,
         debug: bool = False,
@@ -308,7 +236,7 @@ def run_experiment_in_memory(
 
     Parameters
     ----------
-    schedule_and_malfunction
+    schedule
     experiment_parameters
     verbose
     debug
@@ -321,6 +249,21 @@ def run_experiment_in_memory(
     rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
     schedule_problem, schedule_result = schedule
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
+
+    # --------------------------------------------------------------------------------------
+    # 1. Determine malfunction (deterministically from experiment parameters)
+    # --------------------------------------------------------------------------------------
+    experiment_malfunction = gen_malfunction(
+        earliest_malfunction=experiment_parameters.earliest_malfunction,
+        malfunction_duration=experiment_parameters.malfunction_duration,
+        schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
+    )
+
+    if debug:
+        _visualize_route_dag_constraints_for_schedule_and_malfunction(
+            schedule=schedule,
+            experiment_malfunction=experiment_malfunction
+        )
 
     # --------------------------------------------------------------------------------------
     # 2. Re-schedule Full
@@ -356,7 +299,7 @@ def run_experiment_in_memory(
     full_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=full_reschedule_problem,
         debug=debug,
-        asp_seed_value=experiment_parameters.asp_seed_value
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
 
     full_reschedule_trainruns = full_reschedule_result.trainruns_dict
@@ -399,7 +342,7 @@ def run_experiment_in_memory(
     delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_reschedule_problem,
         debug=debug,
-        asp_seed_value=experiment_parameters.asp_seed_value
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
 
     if verbose:
@@ -478,7 +421,7 @@ def gen_infrastructure(
     """
     return create_infrastructure_from_rail_env(
         env=create_env_from_experiment_parameters(experiment_parameters),
-        k=experiment_parameters.number_of_shortest_paths_per_agent)
+        k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent)
 
 
 def gen_schedule(
@@ -505,7 +448,7 @@ def gen_schedule(
 
     schedule_result = asp_schedule_wrapper(
         schedule_problem_description=schedule_problem,
-        asp_seed_value=experiment_parameters.asp_seed_value,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
         debug=debug
     )
     return Schedule(schedule_problem_description=schedule_problem, schedule_experiment_result=schedule_result)
@@ -561,23 +504,26 @@ def _write_sha_txt(folder_name: str):
         out.write(sha)
 
 
-# TODO SIM-650 refactor to pass topo and schedule for unit testing
 def run_experiment_from_to_file(
         experiment_parameters: ExperimentParameters,
         experiment_base_directory: str,
         experiment_output_directory: str,
         verbose: bool = False,
-        show_results_without_details: bool = True,
         debug: bool = False,
+        # TODO SIM-650 necessary?
         with_file_handler_to_rsp_logger: bool = False
 ):
     """B. Run and save one experiment from experiment parameters.
     Parameters
     ----------
+    experiment_base_directory
+        base for infrastructure and schedules
     experiment_parameters
+        contains reference to infrastructure and schedules
     verbose
-    show_results_without_details
     experiment_output_directory
+    with_file_handler_to_rsp_logger
+    debug
     """
 
     experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
@@ -614,24 +560,18 @@ def run_experiment_from_to_file(
                     experiment_id=experiment_parameters.experiment_id):
             rsp_logger.warn(f"Could not find schedule_and_malfunction for {experiment_parameters.experiment_id} in {experiment_base_directory}")
 
-        rsp_logger.info(f"load_schedule/load_malfunction for {experiment_parameters.experiment_id}")
+        rsp_logger.info(f"load_schedule for {experiment_parameters.experiment_id}")
         schedule, schedule_parameters = load_schedule(
-            base_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
+            base_directory=f"{experiment_base_directory}",
             infra_id=experiment_parameters.experiment_id)
-        experiment_malfunction = load_malfunction(
-            base_directory=f"{experiment_base_directory}/{EXPERIMENT_AGENDA_SUBDIRECTORY_NAME}",
-            experiment_id=experiment_parameters.experiment_id)
 
         if debug:
             _render_route_dags_from_data(experiment_base_directory=experiment_output_directory,
                                          experiment_id=experiment_parameters.experiment_id)
-            _visualize_route_dag_constraints_for_schedule_and_malfunction(
-                schedule=schedule, experiment_malfunction=experiment_malfunction)
 
         # B2: full and delta re-scheduling
         experiment_results: ExperimentResults = run_experiment_in_memory(
             schedule=schedule,
-            experiment_malfunction=experiment_malfunction,
             experiment_parameters=experiment_parameters,
             verbose=verbose,
             debug=debug
@@ -690,20 +630,21 @@ def run_experiment_from_to_file(
 
 
 # TODO SIM-650 topo_filter/schedule_filter and take params instead of agenda
+# TODO SIM-650 methods for composing ExperimentAgenda by looping over infra/schedule and expanding rest
 def run_experiment_agenda(
         experiment_agenda: ExperimentAgenda,
         experiment_base_directory: str,
         experiment_output_base_directory: Optional[str] = None,
         experiment_ids: Optional[List[int]] = None,
-        run_experiments_parallel: int = AVAILABLE_CPUS // 2,
         # take only half of avilable cpus so the machine stays responsive
-        show_results_without_details: bool = True,
+        run_experiments_parallel: int = AVAILABLE_CPUS // 2,
         verbose: bool = False,
         with_file_handler_to_rsp_logger: bool = False
 ) -> str:
     """Run B.
     Parameters
     ----------
+    experiment_output_base_directory
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_base_directory: str
@@ -712,10 +653,10 @@ def run_experiment_agenda(
         List of experiment IDs we want to run
     run_experiments_parallel: in
         run experiments in parallel
-    show_results_without_details: bool
-        Print results
     verbose: bool
         Print additional information
+    with_file_handler_to_rsp_logger
+
     Returns
     -------
     Returns the name of the experiment base and data folders
@@ -769,7 +710,6 @@ def run_experiment_agenda(
             run_experiment_from_to_file,
             verbose=verbose,
             experiment_base_directory=experiment_base_directory,
-            show_results_without_details=show_results_without_details,
             experiment_output_directory=experiment_output_directory,
             with_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
         )
@@ -818,21 +758,21 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
 def create_experiment_agenda(experiment_name: str,
                              parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
                              flatland_seed: int = 12,
-                             experiments_per_grid_element: int = 10,
+                             experiments_per_grid_element: int = 1,
                              debug: bool = False) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
     Parameters
     ----------
+
+    parameter_ranges_and_speed_data
     flatland_seed
     experiment_name: str
         Name of the experiment
-    parameter_ranges: ParameterRanges
-        Ranges of all the parameters we want to vary in our experiments
     experiments_per_grid_element: int
         Number of runs with different seed per parameter set we want to run
-    speed_data
-        Dictionary containing all the desired speeds in the environment
+    debug
+
     Returns
     -------
     ExperimentAgenda built from the ParameterRanges
@@ -870,20 +810,30 @@ def create_experiment_agenda(experiment_name: str,
             current_experiment = ExperimentParameters(
                 experiment_id=experiment_id,
                 grid_id=grid_id,
-                number_of_agents=parameter_set[1],
-                speed_data=parameter_ranges_and_speed_data.speed_data,
-                width=parameter_set[0],
-                height=parameter_set[0],
-                flatland_seed_value=flatland_seed + run_of_this_grid_element,
-                asp_seed_value=parameter_set[9],
-                max_num_cities=parameter_set[4],
-                # Do we need to have this true?
-                grid_mode=False,
-                max_rail_between_cities=parameter_set[3],
-                max_rail_in_city=parameter_set[2],
+
+                infra_parameters=InfrastructureParameters(
+                    infra_id=grid_id,
+                    speed_data=parameter_ranges_and_speed_data.speed_data,
+                    width=parameter_set[0],
+                    height=parameter_set[0],
+                    flatland_seed_value=flatland_seed + run_of_this_grid_element,
+                    max_num_cities=parameter_set[4],
+                    # Do we need to have this true?
+                    grid_mode=False,
+                    max_rail_between_cities=parameter_set[3],
+                    max_rail_in_city=parameter_set[2],
+                    number_of_agents=parameter_set[1],
+                    number_of_shortest_paths_per_agent=parameter_set[7]
+                ),
+                schedule_parameters=ScheduleParameters(
+                    infra_id=grid_id,
+                    schedule_id=grid_id,
+                    asp_seed_value=parameter_set[9],
+                    number_of_shortest_paths_per_agent_schedule=1
+                ),
+
                 earliest_malfunction=parameter_set[5],
                 malfunction_duration=parameter_set[6],
-                number_of_shortest_paths_per_agent=parameter_set[7],
                 weight_route_change=parameter_set[10],
                 weight_lateness_seconds=parameter_set[11],
                 max_window_size_from_earliest=parameter_set[8],
@@ -895,7 +845,38 @@ def create_experiment_agenda(experiment_name: str,
     return experiment_agenda
 
 
-def span_n_grid(collected_parameters: list, open_dimensions: list) -> list:
+# TODO SIM-650 use it
+def expand_range_to_parameter_set(
+        parameter_ranges: List[Tuple[int, int, int]],
+        debug: bool = False
+) -> List[List[int]]:
+    """Expand parameter ranges.
+
+    Parameters
+    ----------
+
+
+    Returns
+    -------
+    ExperimentAgenda built from the ParameterRanges
+    """
+    number_of_dimensions = len(parameter_ranges)
+    parameter_values = [[] for _ in range(number_of_dimensions)]
+
+    # Setup experiment parameters
+    for dim_idx, dimensions in enumerate(parameter_ranges):
+        if dimensions[-1] > 1:
+            if debug:
+                print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
+            parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1],
+                                                  np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
+        else:
+            parameter_values[dim_idx] = [dimensions[0]]
+    full_param_set = span_n_grid([], parameter_values)
+    return full_param_set
+
+
+def span_n_grid(collected_parameters: List, open_dimensions: List) -> list:
     """Recursive function to generate all combinations of parameters given the
     open_dimensions.
     Parameters
@@ -922,7 +903,7 @@ def create_env_from_experiment_parameters(params: ExperimentParameters) -> RailE
     """
     Parameters
     ----------
-    params: ExperimentParameters
+    params: ExperimentParameters2
         Parameter set that we pass to the constructor of the RailEenv
     Returns
     -------
@@ -930,15 +911,15 @@ def create_env_from_experiment_parameters(params: ExperimentParameters) -> RailE
         Static environment where no malfunction occurs
     """
 
-    number_of_agents = params.number_of_agents
-    width = params.width
-    height = params.height
-    flatland_seed_value = params.flatland_seed_value
-    max_num_cities = params.max_num_cities
-    grid_mode = params.grid_mode
-    max_rails_between_cities = params.max_rail_between_cities
-    max_rails_in_city = params.max_rail_in_city
-    speed_data = params.speed_data
+    number_of_agents = params.infra_parameters.number_of_agents
+    width = params.infra_parameters.width
+    height = params.infra_parameters.height
+    flatland_seed_value = params.infra_parameters.flatland_seed_value
+    max_num_cities = params.infra_parameters.max_num_cities
+    grid_mode = params.infra_parameters.grid_mode
+    max_rails_between_cities = params.infra_parameters.max_rail_between_cities
+    max_rails_in_city = params.infra_parameters.max_rail_in_city
+    speed_data = params.infra_parameters.speed_data
 
     # Generate static environment for initial schedule generation
     env_static = create_flatland_environment(number_of_agents=number_of_agents,
@@ -1291,9 +1272,9 @@ def folder_to_name(foldername: str) -> str:
 
 # TODO SIM-650 gen-only given parameter ranges, do not generate malfunction here!!
 # A.2
-def hypothesis_one_gen_schedule(
+def hypothesis_one_setup_full_agenda(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-        experiment_agenda_directory: str,
+        base_directory: str,
         # TODO SIM-650 this should
         flatland_seed: int = 12,
         experiments_per_grid_element: int = 1,
@@ -1301,10 +1282,13 @@ def hypothesis_one_gen_schedule(
     rsp_logger.info("GEN SCHEDULE")
 
     # TODO SIM-650 get rid of agenda, replay by partial expander?
-    experiment_agenda: ExperimentAgenda = create_experiment_agenda(experiment_name=experiment_name,
-                                                                   parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-                                                                   flatland_seed=flatland_seed,
-                                                                   experiments_per_grid_element=experiments_per_grid_element)
+    experiment_agenda: ExperimentAgenda = create_experiment_agenda(
+        experiment_name=experiment_name,
+        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+        flatland_seed=flatland_seed,
+        experiments_per_grid_element=experiments_per_grid_element)
+
+    # TODO SIM-650 instead of looping over ExperimentAgenda, expand params for infra, schedule and re-scheduling, then three consecutive looops.
 
     for experiment_parameters in experiment_agenda.experiments:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
@@ -1314,33 +1298,16 @@ def hypothesis_one_gen_schedule(
         schedule = gen_schedule(
             infrastructure=infra,
             experiment_parameters=experiment_parameters)
-        schedule_parameters = _extract_schedule_parameters_from_experiment_parameters(
-            experiment_parameters=experiment_parameters,
-            infra_id=experiment_parameters.experiment_id,
-            schedule_id=0
-        )
-        infra_parameters = _extract_infra_parameters_from_experiment_parameters(
-            experiment_parameters=experiment_parameters,
-            infra_id=experiment_parameters.experiment_id
-        )
+
         save_infrastructure(
             infrastructure=infra,
-            infra_id=experiment_parameters.experiment_id,
-            base_directory=experiment_agenda_directory,
-            infrastructure_parameters=infra_parameters
+            infra_id=experiment_parameters.infra_parameters.infra_id,
+            base_directory=base_directory,
+            infrastructure_parameters=experiment_parameters.infra_parameters
         )
 
         save_schedule(
             schedule=schedule,
-            schedule_parameters=schedule_parameters,
-            base_directory=experiment_agenda_directory,
-            infra_id=experiment_parameters.experiment_id)
-        experiment_malfunction = gen_malfunction(
-            earliest_malfunction=experiment_parameters.earliest_malfunction,
-            malfunction_duration=experiment_parameters.malfunction_duration,
-            schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
-        )
-        save_malfunction(
-            experiment_malfunction=experiment_malfunction,
-            base_directory=experiment_agenda_directory,
-            experiment_id=experiment_parameters.experiment_id)
+            schedule_parameters=experiment_parameters.schedule_parameters,
+            base_directory=base_directory,
+            infra_id=experiment_parameters.infra_parameters.infra_id)

@@ -36,25 +36,37 @@ SymmetricEncounterGraphDistance = NamedTuple('SymmetricEncounterGraphDistance', 
 
 ParameterRanges = NamedTuple('ParameterRanges', [
     # infrastructure and agent placement
+    # 0: size_range
     ('size_range', List[int]),
+    # 1: agent_range
+    ('agent_range', List[int]),
+    # 2: in_city_rail_range
     ('in_city_rail_range', List[int]),
+    # 3: out_city_rail_range
     ('out_city_rail_range', List[int]),
+    # 4: city_range
     ('city_range', List[int]),
 
-    ('agent_range', List[int]),
     # TODO SIM-650 flatland-seed???
 
     # schedule
 
     # malfunction
+    # 5: earliest_malfunction
     ('earliest_malfunction', List[int]),
+    # 6: malfunction_duration
     ('malfunction_duration', List[int]),
 
     # rescheduling
+    # 7: number_of_shortest_paths_per_agent
     ('number_of_shortest_paths_per_agent', List[int]),
+    # 8: max_window_size_from_earliest
     ('max_window_size_from_earliest', List[int]),
+    # 9: asp_seed_value
     ('asp_seed_value', List[int]),
+    # 10: weight_route_change
     ('weight_route_change', List[int]),
+    # 11: weight_lateness_seconds
     ('weight_lateness_seconds', List[int])
 ])
 ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
@@ -77,19 +89,7 @@ InfrastructureParameters = NamedTuple('InfrastructureParameters', [
     ('number_of_shortest_paths_per_agent', int),
 ])
 
-ScheduleParameters = NamedTuple('ScheduleParameters', [
-    ('infra_id', int),
-    ('schedule_id', int),
-
-    ('asp_seed_value', int),
-    ('number_of_shortest_paths_per_agent_schedule', int),
-])
-
-ExperimentParameters = NamedTuple('ExperimentParameters', [
-    ('experiment_id', int),
-    ('grid_id', int),
-
-    # infrastructure
+InfrastructureParameterRange = NamedTuple('InfrastructureParameters', [
     ('width', int),
     ('height', int),
     ('flatland_seed_value', int),
@@ -97,26 +97,22 @@ ExperimentParameters = NamedTuple('ExperimentParameters', [
     ('grid_mode', bool),
     ('max_rail_between_cities', int),
     ('max_rail_in_city', int),
-
     ('number_of_agents', int),
     ('speed_data', SpeedData),
     ('number_of_shortest_paths_per_agent', int),
+])
 
-    # scheduling
-    # TODO SIM-650 remove?
+ScheduleParameters = NamedTuple('ScheduleParameters', [
+    ('infra_id', int),
+    ('schedule_id', int),
+
     ('asp_seed_value', int),
-
-    # re-scheduling
-    ('earliest_malfunction', int),
-    ('malfunction_duration', int),
-    ('weight_route_change', int),
-    ('weight_lateness_seconds', int),
-    ('max_window_size_from_earliest', int),
-
+    # TODO SIM-650 use this value
+    ('number_of_shortest_paths_per_agent_schedule', int),
 ])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
-ExperimentParameters2 = NamedTuple('ExperimentParameters', [
+ExperimentParameters = NamedTuple('ExperimentParameters', [
     ('experiment_id', int),  # unique per execution (there may be multiple `experiment_id`s for the same `grid_id`
     ('grid_id', int),  # same if all params are the same
 
@@ -127,31 +123,9 @@ ExperimentParameters2 = NamedTuple('ExperimentParameters', [
     ('malfunction_duration', int),
     ('weight_route_change', int),
     ('weight_lateness_seconds', int),
-    ('max_window_size_from_earliest', int),
+    ('max_window_size_from_earliest', int)
 ])
 
-
-def _extract_infra_parameters_from_experiment_parameters(experiment_parameters: ExperimentParameters, infra_id: int):
-    return InfrastructureParameters(infra_id=infra_id, width=experiment_parameters.width, height=experiment_parameters.height,
-                                    flatland_seed_value=experiment_parameters.flatland_seed_value,
-                                    max_num_cities=experiment_parameters.max_num_cities,
-                                    grid_mode=experiment_parameters.grid_mode,
-                                    max_rail_between_cities=experiment_parameters.max_rail_between_cities,
-                                    max_rail_in_city=experiment_parameters.max_rail_in_city,
-                                    number_of_agents=experiment_parameters.number_of_agents,
-                                    speed_data=experiment_parameters.speed_data,
-                                    number_of_shortest_paths_per_agent=experiment_parameters.number_of_shortest_paths_per_agent)
-
-
-def _extract_schedule_parameters_from_experiment_parameters(experiment_parameters: ExperimentParameters, infra_id: int, schedule_id: int):
-    return ScheduleParameters(infra_id=infra_id, schedule_id=schedule_id, asp_seed_value=experiment_parameters.asp_seed_value,
-                              number_of_shortest_paths_per_agent_schedule=10)
-
-
-if COMPATIBILITY_MODE:
-    ExperimentParameters.__new__.__defaults__ = (None,) * len(ExperimentParameters._fields)
-
-# TODO SIM-650 remove?
 ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
                                                    ('experiments', List[ExperimentParameters])])
 
@@ -285,22 +259,6 @@ SchedulingProblemInTimeWindows = NamedTuple('SchedulingProblemInTimeWindows', [
 ])
 
 
-def convert_experiment_results_to_data_frame(experiment_results: ExperimentResults,
-                                             experiment_parameters: ExperimentParameters) -> Dict:
-    """Converts experiment results to data frame.
-
-    Parameters
-    ----------
-    experiment_results: ExperimentResults
-    experiment_parameters: ExperimentParameters
-
-    Returns
-    -------
-    DataFrame
-    """
-    return experiment_results._asdict()
-
-
 def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentResults:
     """Converts data frame back to experiment results structure.
 
@@ -388,7 +346,7 @@ def expand_experiment_results_for_analysis(
     if not isinstance(experiment_results, ExperimentResults):
         experiment_results_as_dict = dict(experiment_results[0])
         experiment_results = ExperimentResults(**experiment_results_as_dict)
-    experiment_parameters = experiment_results.experiment_parameters
+    experiment_parameters: ExperimentParameters = experiment_results.experiment_parameters
     experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
@@ -523,11 +481,11 @@ def expand_experiment_results_for_analysis(
         ),
         experiment_id=experiment_parameters.experiment_id,
         grid_id=experiment_parameters.grid_id,
-        size=experiment_parameters.width,
-        n_agents=experiment_parameters.number_of_agents,
-        max_num_cities=experiment_parameters.max_num_cities,
-        max_rail_between_cities=experiment_parameters.max_rail_between_cities,
-        max_rail_in_city=experiment_parameters.max_rail_in_city,
+        size=experiment_parameters.infra_parameters.width,
+        n_agents=experiment_parameters.infra_parameters.number_of_agents,
+        max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
+        max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
+        max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
         time_full=time_full,
         time_full_after_malfunction=time_full_after_malfunction,
         time_delta_after_malfunction=time_delta_after_malfunction,
