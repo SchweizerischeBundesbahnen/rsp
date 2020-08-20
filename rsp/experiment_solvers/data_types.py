@@ -8,7 +8,6 @@ from typing import Set
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 
@@ -62,11 +61,6 @@ def fake_solver_statistics(elapsed_time):
     }
 
 
-if COMPATIBILITY_MODE:
-    SchedulingExperimentResult.__new__.__defaults__ = (None,) * len(SchedulingExperimentResult._fields)
-else:
-    # backwards compatibility and space reduction: solver_program is optional
-    SchedulingExperimentResult.__new__.__defaults__ = (None,)
 SchedulingExperimentResult.__doc__ = """
     Parameters
     ----------

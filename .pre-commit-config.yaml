@@ -57,7 +57,7 @@ repos:
     #pep8-naming, # Check PEP-8 naming conventions, plugin for flake8
 
         ]
-# TODO SIM-650
+# TODO SIM-650 vulture 60% anschauen
   - repo: local
     hooks:
       # Vulture

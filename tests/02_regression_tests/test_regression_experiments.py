@@ -111,7 +111,7 @@ def test_created_env_tuple():
     )
 
     # Generate the tuple of environments
-    static_env = create_env_from_experiment_parameters(params=test_parameters)
+    static_env = create_env_from_experiment_parameters(params=test_parameters.infra_parameters)
     print(static_env.rail.grid.tolist())
 
     # Check that the same grid was created
@@ -293,7 +293,7 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
             'weight_lateness_seconds': experiment_parameters.weight_lateness_seconds * scale
         }))
 
-    static_rail_env = create_env_from_experiment_parameters(experiment_parameters)
+    static_rail_env = create_env_from_experiment_parameters(experiment_parameters.infra_parameters)
     static_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "static_env_alpha_beta.pkl")
 
     # used if module path used in pickle has changed
@@ -310,25 +310,23 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content
     if regen_schedule:
-        infra_scaled = gen_infrastructure(experiment_parameters=experiment_parameters_scaled)
+        infra_scaled = gen_infrastructure(infra_parameters=experiment_parameters_scaled)
         schedule_scaled = gen_schedule(
             infrastructure=infra_scaled,
-            experiment_parameters=experiment_parameters_scaled)
+            schedule_parameters=experiment_parameters_scaled.schedule_parameters)
 
-        infra = gen_infrastructure(experiment_parameters=experiment_parameters)
+        infra = gen_infrastructure(infra_parameters=experiment_parameters)
         schedule = gen_schedule(
             infrastructure=infra,
-            experiment_parameters=experiment_parameters)
+            schedule_parameters=experiment_parameters.schedule_parameters)
         save_schedule(
             schedule=schedule_scaled,
             schedule_parameters=experiment_parameters_scaled.schedule_parameters,
-            base_directory="tests/02_regression_tests/data/alpha_beta",
-            infra_id=0)
+            base_directory="tests/02_regression_tests/data/alpha_beta")
         save_schedule(
             schedule=schedule,
             schedule_parameters=experiment_parameters.schedule_parameters,
-            base_directory="tests/02_regression_tests/data/alpha_beta",
-            infra_id=0)
+            base_directory="tests/02_regression_tests/data/alpha_beta")
 
     schedule_scaled, _ = load_schedule(
         base_directory="tests/02_regression_tests/data/alpha_beta",

@@ -64,7 +64,7 @@ test_parameters = ExperimentParameters(
 # Tests full re-scheduling
 # ---------------------------------------------------------------------------------------------------------------------
 def test_rescheduling_no_bottleneck():
-    static_env = create_env_from_experiment_parameters(params=test_parameters)
+    static_env = create_env_from_experiment_parameters(params=test_parameters.infra_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -225,7 +225,7 @@ def test_rescheduling_no_bottleneck():
 
 
 def test_rescheduling_bottleneck():
-    static_env = create_env_from_experiment_parameters(params=test_parameters)
+    static_env = create_env_from_experiment_parameters(params=test_parameters.infra_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -801,6 +801,7 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
 
 def _dummy_test_case(fake_malfunction: Malfunction):
     schedule_problem = ASPProblemDescription.factory_scheduling(
-        schedule_problem_description=create_schedule_problem_description_from_instructure(gen_infrastructure(experiment_parameters=test_parameters)))
+        schedule_problem_description=create_schedule_problem_description_from_instructure(
+            gen_infrastructure(infra_parameters=test_parameters.infra_parameters)))
 
     return fake_malfunction, schedule_problem

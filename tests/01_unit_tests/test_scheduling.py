@@ -25,7 +25,6 @@ test_parameters = ExperimentParameters(
         max_rail_in_city=6,
         speed_data={1: 1.0},
         number_of_shortest_paths_per_agent=10
-
     ),
     schedule_parameters=ScheduleParameters(
         infra_id=0,
@@ -43,7 +42,7 @@ test_parameters = ExperimentParameters(
 
 
 def test_scheduling():
-    static_env = create_env_from_experiment_parameters(params=test_parameters)
+    static_env = create_env_from_experiment_parameters(params=test_parameters.infra_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

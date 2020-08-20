@@ -25,6 +25,7 @@ load_experiment_results_to_file
     Load the results form an experiment result file
 """
 import datetime
+import itertools
 import logging
 import multiprocessing
 import os
@@ -74,8 +75,13 @@ from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import ExperimentResults
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import InfrastructureParameters
+from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.data_types import ReScheduleParameters
+from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParameters
+from rsp.utils.data_types import ScheduleParametersRange
+from rsp.utils.data_types import SpeedData
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
@@ -120,19 +126,16 @@ def _pickle_load(file_name: str, folder: Optional[str] = None):
 def save_schedule(schedule: Schedule,
                   schedule_parameters: ScheduleParameters,
                   base_directory: str,
-                  infra_id: int,
-                  schedule_id: int = 0
                   ):
     """Persist `ScheduleAndMalfunction` to a file.
     Parameters
     ----------
-    schedule_id
     schedule_parameters
     schedule
     base_directory
-    infra_id
     """
-    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME, f"{schedule_id:03d}")
+    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{schedule_parameters.infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME,
+                          f"{schedule_parameters.schedule_id:03d}")
     _pickle_dump(obj=schedule, folder=folder, file_name="schedule.pkl")
     _pickle_dump(obj=schedule_parameters, folder=folder, file_name="schedule_parameters.pkl")
 
@@ -140,8 +143,7 @@ def save_schedule(schedule: Schedule,
 def save_infrastructure(
         infrastructure: Infrastructure,
         infrastructure_parameters: InfrastructureParameters,
-        base_directory: str,
-        infra_id: int
+        base_directory: str
 ):
     """Persist `Infrastructure` to a file.
     Parameters
@@ -149,9 +151,8 @@ def save_infrastructure(
     infrastructure_parameters
     infrastructure
     base_directory
-    infra_id
     """
-    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}")
+    folder = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infrastructure_parameters.infra_id:03d}")
     _pickle_dump(obj=infrastructure, folder=folder, file_name="infrastructure.pkl")
     _pickle_dump(obj=infrastructure_parameters, folder=folder, file_name="infrastructure_parameters.pkl")
 
@@ -406,25 +407,25 @@ def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dic
 
 
 def gen_infrastructure(
-        experiment_parameters: ExperimentParameters
+        infra_parameters: InfrastructureParameters
 ) -> Infrastructure:
     """
     A.1 infrastructure generation
     Parameters
     ----------
-    experiment_parameters
+    infra_parameters
 
     Returns
     -------
 
     """
     return create_infrastructure_from_rail_env(
-        env=create_env_from_experiment_parameters(experiment_parameters),
-        k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent)
+        env=create_env_from_experiment_parameters(infra_parameters),
+        k=infra_parameters.number_of_shortest_paths_per_agent)
 
 
 def gen_schedule(
-        experiment_parameters: ExperimentParameters,
+        schedule_parameters: ScheduleParameters,
         infrastructure: Infrastructure,
         debug: bool = False
 
@@ -434,7 +435,7 @@ def gen_schedule(
     Parameters
     ----------
     infrastructure
-    experiment_parameters
+    schedule_parameters
     debug
 
     Returns
@@ -447,7 +448,7 @@ def gen_schedule(
 
     schedule_result = asp_schedule_wrapper(
         schedule_problem_description=schedule_problem,
-        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
+        asp_seed_value=schedule_parameters.asp_seed_value,
         debug=debug
     )
     return Schedule(schedule_problem_description=schedule_problem, schedule_experiment_result=schedule_result)
@@ -754,11 +755,12 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
     return current_experiment_parameters.experiment_id in experiment_ids
 
 
-def create_experiment_agenda_from_parameter_ranges_and_speed_data(experiment_name: str,
-                                                                  parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-                                                                  flatland_seed: int = 12,
-                                                                  experiments_per_grid_element: int = 1,
-                                                                  debug: bool = False) -> ExperimentAgenda:
+def create_experiment_agenda_from_parameter_ranges_and_speed_data(
+        experiment_name: str,
+        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+        flatland_seed: int = 12,
+        experiments_per_grid_element: int = 1,
+        debug: bool = False) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
     Parameters
@@ -783,8 +785,6 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(experiment_nam
     # Setup experiment parameters
     for dim_idx, dimensions in enumerate(parameter_ranges):
         if dimensions[-1] > 1:
-            if debug:
-                print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
             parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1],
                                                   np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
         else:
@@ -844,6 +844,92 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(experiment_nam
     return experiment_agenda
 
 
+def create_infrastructure_and_schedule_from_ranges(
+        infrastructure_parameters_range: InfrastructureParametersRange,
+        schedule_parameters_range: ScheduleParametersRange,
+        base_directory: str
+) -> List[ScheduleParameters]:
+    list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_save(
+        infrastructure_parameter_range=infrastructure_parameters_range,
+        base_directory=base_directory,
+        speed_data={1.: 1.}
+    )
+    list_of_schedule_parameters: List[ScheduleParameters] = list(itertools.chain.from_iterable([
+        expand_schedule_parameter_range_and_save(
+            schedule_parameters_range=schedule_parameters_range,
+            base_directory=base_directory,
+            infra_id=infrastructure_parameters.infra_id
+        )
+        for infrastructure_parameters in list_of_infrastructure_parameters
+    ]))
+    return list_of_schedule_parameters
+
+
+# TODO SIM-650 implement infra_id and schedule_id filters
+def list_infrastructure_and_schedule_params_from_base_directory(
+        base_directory: str
+) -> Tuple[List[InfrastructureParameters], Dict[int, List[ScheduleParameters]]]:
+    infra_schedule_dict = {}
+    infra_parameters_list = []
+    nb_infras = len(os.listdir(f'{base_directory}/infra/'))
+    for infra_id in range(nb_infras):
+        _, infra_parameters = load_infrastructure(
+            base_directory=base_directory,
+            infra_id=infra_id
+        )
+        infra_parameters_list.append(infra_parameters)
+        nb_schedules = len(os.listdir(f'{base_directory}/infra/{infra_id:03d}/schedule'))
+        for schedule_id in range(nb_schedules):
+            _, schedule_parameters = load_schedule(
+                base_directory=base_directory,
+                infra_id=infra_id,
+                schedule_id=schedule_id
+            )
+            infra_schedule_dict.setdefault(infra_parameters.infra_id, []).append(schedule_parameters)
+    return infra_parameters_list, infra_schedule_dict
+
+
+def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
+        experiment_name: str,
+        reschedule_parameters_range: ReScheduleParametersRange,
+        infra_parameters_list: List[InfrastructureParameters],
+        infra_schedule_dict: Dict[InfrastructureParameters, List[ScheduleParameters]],
+        experiments_per_grid_element: int = 1,
+):
+    list_of_re_schedule_parameters = [ReScheduleParameters(*expanded) for expanded in expand_range_to_parameter_set(reschedule_parameters_range)]
+    infra_parameters_dict = {infra_parameters.infra_id: infra_parameters for infra_parameters in infra_parameters_list}
+    experiments = []
+
+    # we want arity not to be the same at the same level, therefore, we increment counters
+    experiment_id = 0
+    grid_id = 0
+    for infra_id, list_of_schedule_parameters in infra_schedule_dict.items():
+        for schedule_parameters in list_of_schedule_parameters:
+            for re_schedule_parameters in list_of_re_schedule_parameters:
+                for _ in range(experiments_per_grid_element):
+                    experiments.append(
+                        ExperimentParameters(
+                            experiment_id=experiment_id,
+
+                            schedule_parameters=schedule_parameters,
+                            infra_parameters=infra_parameters_dict[infra_id],
+
+                            grid_id=grid_id,
+                            earliest_malfunction=re_schedule_parameters.earliest_malfunction,
+                            malfunction_duration=re_schedule_parameters.malfunction_duration,
+                            weight_route_change=re_schedule_parameters.weight_route_change,
+                            weight_lateness_seconds=re_schedule_parameters.weight_lateness_seconds,
+                            max_window_size_from_earliest=re_schedule_parameters.max_window_size_from_earliest,
+                        )
+                    )
+                    experiment_id += 1
+            grid_id += 1
+    return ExperimentAgenda(
+        experiment_name=experiment_name,
+        experiments=experiments
+    )
+
+
 # TODO SIM-650 use it
 def expand_range_to_parameter_set(
         parameter_ranges: List[Tuple[int, int, int]],
@@ -865,14 +951,70 @@ def expand_range_to_parameter_set(
     # Setup experiment parameters
     for dim_idx, dimensions in enumerate(parameter_ranges):
         if dimensions[-1] > 1:
-            if debug:
-                print(f"{dimensions[0]} {dimensions[1]} {np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]}")
             parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1],
                                                   np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
         else:
             parameter_values[dim_idx] = [dimensions[0]]
     full_param_set = span_n_grid([], parameter_values)
     return full_param_set
+
+
+def expand_infrastructure_parameter_range(
+        infrastructure_parameter_range: InfrastructureParametersRange,
+        speed_data: SpeedData,
+        grid_mode: bool = True
+) -> List[InfrastructureParameters]:
+    expanded = expand_range_to_parameter_set(infrastructure_parameter_range)
+    return [
+        InfrastructureParameters(*([infra_id] + params[:4] + [grid_mode] + params[4:7] + [speed_data, params[7]]))
+        for infra_id, params in enumerate(expanded)
+    ]
+
+
+def expand_schedule_parameter_range(schedule_parameter_range: ScheduleParametersRange, infra_id: int) -> List[ScheduleParameters]:
+    expanded = expand_range_to_parameter_set(schedule_parameter_range)
+    return [
+        ScheduleParameters(*([infra_id, schedule_id] + params))
+        for schedule_id, params in enumerate(expanded)
+    ]
+
+
+def expand_infrastructure_parameter_range_and_save(
+        infrastructure_parameter_range: InfrastructureParametersRange,
+        base_directory: str,
+        speed_data: SpeedData,
+        grid_mode: bool = True
+) -> List[InfrastructureParameters]:
+    list_of_infra_parameters = expand_infrastructure_parameter_range(
+        infrastructure_parameter_range=infrastructure_parameter_range,
+        grid_mode=grid_mode,
+        speed_data=speed_data
+    )
+    for infra_parameters in list_of_infra_parameters:
+        infra = gen_infrastructure(infra_parameters=infra_parameters)
+        save_infrastructure(infrastructure=infra, infrastructure_parameters=infra_parameters, base_directory=base_directory)
+    return list_of_infra_parameters
+
+
+def expand_schedule_parameter_range_and_save(
+        schedule_parameters_range: ScheduleParametersRange,
+        base_directory: str,
+        infra_id: int) -> List[ScheduleParameters]:
+    list_of_schedule_parameters = expand_schedule_parameter_range(
+        schedule_parameter_range=schedule_parameters_range,
+        infra_id=infra_id)
+    infra, _ = load_infrastructure(
+        base_directory=base_directory,
+        infra_id=infra_id
+    )
+    for schedule_parameters in list_of_schedule_parameters:
+        schedule = gen_schedule(infrastructure=infra, schedule_parameters=schedule_parameters)
+        save_schedule(
+            schedule=schedule,
+            schedule_parameters=schedule_parameters,
+            base_directory=base_directory
+        )
+    return list_of_schedule_parameters
 
 
 def span_n_grid(collected_parameters: List, open_dimensions: List) -> list:
@@ -898,7 +1040,7 @@ def span_n_grid(collected_parameters: List, open_dimensions: List) -> list:
     return full_params
 
 
-def create_env_from_experiment_parameters(params: ExperimentParameters) -> RailEnv:
+def create_env_from_experiment_parameters(params: InfrastructureParameters) -> RailEnv:
     """
     Parameters
     ----------
@@ -910,15 +1052,15 @@ def create_env_from_experiment_parameters(params: ExperimentParameters) -> RailE
         Static environment where no malfunction occurs
     """
 
-    number_of_agents = params.infra_parameters.number_of_agents
-    width = params.infra_parameters.width
-    height = params.infra_parameters.height
-    flatland_seed_value = params.infra_parameters.flatland_seed_value
-    max_num_cities = params.infra_parameters.max_num_cities
-    grid_mode = params.infra_parameters.grid_mode
-    max_rails_between_cities = params.infra_parameters.max_rail_between_cities
-    max_rails_in_city = params.infra_parameters.max_rail_in_city
-    speed_data = params.infra_parameters.speed_data
+    number_of_agents = params.number_of_agents
+    width = params.width
+    height = params.height
+    flatland_seed_value = int(params.flatland_seed_value)
+    max_num_cities = params.max_num_cities
+    grid_mode = params.grid_mode
+    max_rails_between_cities = params.max_rail_between_cities
+    max_rails_in_city = params.max_rail_in_city
+    speed_data = params.speed_data
 
     # Generate static environment for initial schedule generation
     env_static = create_flatland_environment(number_of_agents=number_of_agents,
@@ -1269,15 +1411,14 @@ def hypothesis_gen_infrastructure_and_schedule_full_agenda(
     for experiment_parameters in experiment_agenda.experiments:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
 
-        infra = gen_infrastructure(experiment_parameters=experiment_parameters)
+        infra = gen_infrastructure(infra_parameters=experiment_parameters.infra_parameters)
 
         schedule = gen_schedule(
             infrastructure=infra,
-            experiment_parameters=experiment_parameters)
+            schedule_parameters=experiment_parameters.schedule_parameters)
 
         save_infrastructure(
             infrastructure=infra,
-            infra_id=experiment_parameters.infra_parameters.infra_id,
             base_directory=base_directory,
             infrastructure_parameters=experiment_parameters.infra_parameters
         )
@@ -1285,5 +1426,5 @@ def hypothesis_gen_infrastructure_and_schedule_full_agenda(
         save_schedule(
             schedule=schedule,
             schedule_parameters=experiment_parameters.schedule_parameters,
-            base_directory=base_directory,
-            infra_id=experiment_parameters.infra_parameters.infra_id)
+            base_directory=base_directory
+        )

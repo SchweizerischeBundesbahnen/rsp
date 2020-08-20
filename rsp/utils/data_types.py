@@ -20,7 +20,6 @@ from pandas import Series
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.experiment_solvers.global_switches import COMPATIBILITY_MODE
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_for_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
@@ -89,17 +88,15 @@ InfrastructureParameters = NamedTuple('InfrastructureParameters', [
     ('number_of_shortest_paths_per_agent', int),
 ])
 
-InfrastructureParameterRange = NamedTuple('InfrastructureParameters', [
-    ('width', int),
-    ('height', int),
-    ('flatland_seed_value', int),
-    ('max_num_cities', int),
-    ('grid_mode', bool),
-    ('max_rail_between_cities', int),
-    ('max_rail_in_city', int),
-    ('number_of_agents', int),
-    ('speed_data', SpeedData),
-    ('number_of_shortest_paths_per_agent', int),
+InfrastructureParametersRange = NamedTuple('InfrastructureParameters', [
+    ('width', List[int]),
+    ('height', List[int]),
+    ('flatland_seed_value', List[int]),
+    ('max_num_cities', List[int]),
+    ('max_rail_between_cities', List[int]),
+    ('max_rail_in_city', List[int]),
+    ('number_of_agents', List[int]),
+    ('number_of_shortest_paths_per_agent', List[int]),
 ])
 
 ScheduleParameters = NamedTuple('ScheduleParameters', [
@@ -109,6 +106,50 @@ ScheduleParameters = NamedTuple('ScheduleParameters', [
     ('asp_seed_value', int),
     # TODO SIM-650 use this value
     ('number_of_shortest_paths_per_agent_schedule', int),
+])
+
+ScheduleParametersRange = NamedTuple('ScheduleParametersRange', [
+    ('asp_seed_value', List[int]),
+    # TODO SIM-650 use this value
+    ('number_of_shortest_paths_per_agent_schedule', List[int]),
+])
+
+ReScheduleParametersRange = NamedTuple('ReScheduleParametersRange', [
+    # 5: earliest_malfunction
+    ('earliest_malfunction', List[int]),
+    # 6: malfunction_duration
+    ('malfunction_duration', List[int]),
+
+    # rescheduling
+    # 7: number_of_shortest_paths_per_agent
+    ('number_of_shortest_paths_per_agent', List[int]),
+    # 8: max_window_size_from_earliest
+    ('max_window_size_from_earliest', List[int]),
+    # 9: asp_seed_value
+    ('asp_seed_value', List[int]),
+    # 10: weight_route_change
+    ('weight_route_change', List[int]),
+    # 11: weight_lateness_seconds
+    ('weight_lateness_seconds', List[int])
+])
+
+ReScheduleParameters = NamedTuple('ReScheduleParameters', [
+    # 5: earliest_malfunction
+    ('earliest_malfunction', int),
+    # 6: malfunction_duration
+    ('malfunction_duration', int),
+
+    # rescheduling
+    # 7: number_of_shortest_paths_per_agent
+    ('number_of_shortest_paths_per_agent', int),
+    # 8: max_window_size_from_earliest
+    ('max_window_size_from_earliest', int),
+    # 9: asp_seed_value
+    ('asp_seed_value', int),
+    # 10: weight_route_change
+    ('weight_route_change', int),
+    # 11: weight_lateness_seconds
+    ('weight_lateness_seconds', int)
 ])
 
 # the experiment_id is unambiguous within the agenda for the full parameter set!
@@ -126,8 +167,40 @@ ExperimentParameters = NamedTuple('ExperimentParameters', [
     ('max_window_size_from_earliest', int)
 ])
 
-ExperimentAgenda = NamedTuple('ExperimentAgenda', [('experiment_name', str),
-                                                   ('experiments', List[ExperimentParameters])])
+ExperimentAgenda = NamedTuple('ExperimentAgenda', [
+    ('experiment_name', str),
+    ('experiments', List[ExperimentParameters])
+])
+
+
+def parameter_ranges_and_speed_data_to_hiearchical(
+        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+        flatland_seed_value: int = 12
+) -> Tuple[InfrastructureParametersRange, SpeedData, ScheduleParametersRange, ReScheduleParametersRange]:
+    return InfrastructureParametersRange(
+        width=parameter_ranges_and_speed_data.parameter_ranges.size_range,
+        height=parameter_ranges_and_speed_data.parameter_ranges.size_range,
+        flatland_seed_value=[flatland_seed_value, flatland_seed_value, 1],
+        max_num_cities=parameter_ranges_and_speed_data.parameter_ranges.city_range,
+        max_rail_in_city=parameter_ranges_and_speed_data.parameter_ranges.in_city_rail_range,
+        max_rail_between_cities=parameter_ranges_and_speed_data.parameter_ranges.out_city_rail_range,
+        number_of_agents=parameter_ranges_and_speed_data.parameter_ranges.agent_range,
+        number_of_shortest_paths_per_agent=parameter_ranges_and_speed_data.parameter_ranges.number_of_shortest_paths_per_agent,
+    ), parameter_ranges_and_speed_data.speed_data, \
+           ScheduleParametersRange(
+               asp_seed_value=parameter_ranges_and_speed_data.parameter_ranges.asp_seed_value,
+               # TODO SIM-622 hard-code to 1/evaluate
+               number_of_shortest_paths_per_agent_schedule=parameter_ranges_and_speed_data.parameter_ranges.number_of_shortest_paths_per_agent,
+           ), ReScheduleParametersRange(
+        earliest_malfunction=parameter_ranges_and_speed_data.parameter_ranges.earliest_malfunction,
+        malfunction_duration=parameter_ranges_and_speed_data.parameter_ranges.malfunction_duration,
+        number_of_shortest_paths_per_agent=parameter_ranges_and_speed_data.parameter_ranges.number_of_shortest_paths_per_agent,
+        max_window_size_from_earliest=parameter_ranges_and_speed_data.parameter_ranges.max_window_size_from_earliest,
+        asp_seed_value=parameter_ranges_and_speed_data.parameter_ranges.asp_seed_value,
+        weight_route_change=parameter_ranges_and_speed_data.parameter_ranges.weight_route_change,
+        weight_lateness_seconds=parameter_ranges_and_speed_data.parameter_ranges.weight_lateness_seconds,
+    )
+
 
 ExperimentResults = NamedTuple('ExperimentResults', [
     ('experiment_parameters', ExperimentParameters),
@@ -139,8 +212,6 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_after_malfunction', SchedulingExperimentResult),
 ])
-if COMPATIBILITY_MODE:
-    ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResults._fields)
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('experiment_parameters', ExperimentParameters),
@@ -213,8 +284,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('user_step_propagations_delta_after_malfunction', float),
 ])
 
-if COMPATIBILITY_MODE:
-    ExperimentResults.__new__.__defaults__ = (None,) * len(ExperimentResultsAnalysis._fields)
 COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
@@ -287,7 +356,7 @@ def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
 
     Parameters
     ----------
-    rows: DataFrame
+    row: DataFrame
 
     Returns
     -------

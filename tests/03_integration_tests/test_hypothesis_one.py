@@ -11,7 +11,7 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
 
 
-def test_hypothesis_one():
+def test_hypothesis_one_all_in_one():
     """Run hypothesis one with qualitative analysis and potassco export and
     check that expected files are present wihout inspecting them."""
     # TODO skip run_analysis under Linux because ffmpeg not available in ci -> make it available or add option to skip ffmpeg conversion

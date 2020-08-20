@@ -42,7 +42,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
         Converts the rendering to mpeg
     """
 
-    rail_env = create_env_from_experiment_parameters(experiment_parameters)
+    rail_env = create_env_from_experiment_parameters(experiment_parameters.infra_parameters)
     train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
     train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction

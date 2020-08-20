@@ -814,7 +814,7 @@ render_flatland_env
     """
 
     # Generate environment for rendering
-    rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
+    rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters.infra_parameters)
 
     # Generate aggregated visualization
     output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
