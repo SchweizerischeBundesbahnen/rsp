@@ -24,13 +24,3 @@ def overlap_interval(interval1, interval2):
     if start > -np.inf and end < np.inf:
         return (start, end)
     return None
-
-
-def overlaps(a, b):
-    """Return the amount of overlap, in bp between a and b.
-
-    If >0, the number of bp of overlap If 0,  they are book-ended. If
-    <0, the distance in bp between them
-    """
-
-    return min(a[1], b[1]) - max(a[0], b[0])

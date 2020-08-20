@@ -12,8 +12,8 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.data_types_and_utils import topo_from_agent_paths
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_running
-from rsp.utils.data_types import experimentFreezeDictPrettyPrint
-from rsp.utils.data_types import experimentFreezePrettyPrint
+from rsp.utils.data_types import experiment_freeze_dict_pretty_print
+from rsp.utils.data_types import experiment_freeze_pretty_print
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
 from rsp.utils.data_types import RouteDAGConstraintsDict
@@ -1360,7 +1360,7 @@ def test_get_freeze_for_delta():
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem_description.route_dag_constraints_dict
 
     print("####freeze_dict")
-    experimentFreezeDictPrettyPrint(freeze_dict)
+    experiment_freeze_dict_pretty_print(freeze_dict)
     assert freeze_dict.keys() == expected_freeze_dict.keys()
     for agent_id in expected_freeze_dict:
         assert freeze_dict[agent_id].freeze_earliest == expected_freeze_dict[agent_id].freeze_earliest, \
@@ -1691,7 +1691,7 @@ def test_bugfix_sim_172():
         topo=topo_from_agent_paths(agent_paths),
         latest_arrival=6667)
 
-    experimentFreezePrettyPrint(actual_route_dag_constraints)
+    experiment_freeze_pretty_print(actual_route_dag_constraints)
 
     expected_freeze_latest = route_dag_constraints_dict_from_list_of_train_run_waypoint(
         [TrainrunWaypoint(waypoint=Waypoint(position=(9, 23), direction=3), scheduled_at=6666 + 1),
@@ -1736,7 +1736,7 @@ def test_bugfix_sim_172():
          TrainrunWaypoint(waypoint=Waypoint(position=(15, 29), direction=0), scheduled_at=6652 + 1),
          TrainrunWaypoint(waypoint=Waypoint(position=(16, 29), direction=0), scheduled_at=6651 + 1),
          ])
-    experimentFreezePrettyPrint(actual_route_dag_constraints)
+    experiment_freeze_pretty_print(actual_route_dag_constraints)
     actual_dict = actual_route_dag_constraints.freeze_latest
     expected_dict = expected_freeze_latest
     compare_dicts(actual_dict, expected_dict)
@@ -1828,7 +1828,7 @@ def test_bugfix_sim_175_no_path_splitting_forward():
 
     )
 
-    experimentFreezePrettyPrint(actual_route_dag_constraints)
+    experiment_freeze_pretty_print(actual_route_dag_constraints)
     # (3,0) must be banned (forward) since the edge (2,0)->(3,1) is frozen and since (3,0) is a forward successor of (2,0)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
@@ -1876,7 +1876,7 @@ def test_bugfix_sim_175_no_path_splitting_backward():
         topo=topo,
         latest_arrival=6667)
 
-    experimentFreezePrettyPrint(actual_route_dag_constraints)
+    experiment_freeze_pretty_print(actual_route_dag_constraints)
     # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
@@ -1925,7 +1925,7 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
         topo=topo,
         latest_arrival=6667)
 
-    experimentFreezePrettyPrint(actual_route_dag_constraints)
+    experiment_freeze_pretty_print(actual_route_dag_constraints)
     # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 

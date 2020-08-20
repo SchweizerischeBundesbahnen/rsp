@@ -629,8 +629,6 @@ def run_experiment_from_to_file(
         rsp_logger.info(f"end experiment {experiment_parameters.experiment_id}")
 
 
-# TODO SIM-650 topo_filter/schedule_filter and take params instead of agenda
-# TODO SIM-650 methods for composing ExperimentAgenda by looping over infra/schedule and expanding rest
 def run_experiment_agenda(
         experiment_agenda: ExperimentAgenda,
         experiment_base_directory: str,
@@ -1362,33 +1360,6 @@ def _make_suffix(alt_index: Optional[int]) -> str:
     if alt_index is not None:
         suffix = f"alt{alt_index:03d}"
     return suffix
-
-
-def folder_to_name(foldername: str) -> str:
-    """Returns a foldername as string to be able to use for naming in other
-    methods.
-
-    Parameters
-    ----------
-    foldername
-        full folder path name
-
-    Returns
-    -------
-        sub-folder name
-    """
-    # Extract name of experiment folder
-    name_only = ''
-    for char in foldername:
-        if char in ['.']:
-            name_only += ''
-        elif char in ['/']:
-            name_only += '_'
-        elif char in ['-']:
-            name_only += '_'
-        else:
-            name_only += char
-    return name_only
 
 
 # TODO SIM-650 labelling A.*???

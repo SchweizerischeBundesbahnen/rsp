@@ -46,7 +46,6 @@ ParameterRanges = NamedTuple('ParameterRanges', [
     # 4: city_range
     ('city_range', List[int]),
 
-    # TODO SIM-650 flatland-seed???
 
     # schedule
 
@@ -97,6 +96,7 @@ InfrastructureParametersRange = NamedTuple('InfrastructureParameters', [
     ('max_rail_in_city', List[int]),
     ('number_of_agents', List[int]),
     ('number_of_shortest_paths_per_agent', List[int]),
+    # TODO SIM-650: flatland_seed in range?!
 ])
 
 ScheduleParameters = NamedTuple('ScheduleParameters', [
@@ -697,13 +697,13 @@ def _prod(l: List[int]):
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def experimentFreezeDictPrettyPrint(d: RouteDAGConstraintsDict):
+def experiment_freeze_dict_pretty_print(d: RouteDAGConstraintsDict):
     for agent_id, route_dag_constraints in d.items():
         prefix = f"agent {agent_id} "
-        experimentFreezePrettyPrint(route_dag_constraints, prefix)
+        experiment_freeze_pretty_print(route_dag_constraints, prefix)
 
 
-def experimentFreezePrettyPrint(route_dag_constraints: RouteDAGConstraints, prefix: str = ""):
+def experiment_freeze_pretty_print(route_dag_constraints: RouteDAGConstraints, prefix: str = ""):
     print(f"{prefix}freeze_visit={_pp.pformat(route_dag_constraints.freeze_visit)}")
     print(f"{prefix}freeze_earliest={_pp.pformat(route_dag_constraints.freeze_earliest)}")
     print(f"{prefix}freeze_latest={_pp.pformat(route_dag_constraints.freeze_latest)}")

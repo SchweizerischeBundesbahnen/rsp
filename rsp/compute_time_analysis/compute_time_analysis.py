@@ -1108,8 +1108,8 @@ def plot_delay_propagation_2d(
 
     """
 
-    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
-    DEPTH_COLOR = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
+    marker_list = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    depth_color = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
     layout = go.Layout(
         plot_bgcolor=GREY_BACKGROUND_COLOR
     )
@@ -1147,7 +1147,7 @@ def plot_delay_propagation_2d(
             x.append(malfunction_resource[1])
             y.append(malfunction_resource[0])
             size.append(max(10, delay_information[agent_id]))
-            marker.append(MARKER_LIST[int(np.clip(resource_occupation.direction, 0, 3))])
+            marker.append(marker_list[int(np.clip(resource_occupation.direction, 0, 3))])
             times.append(time)
             delay.append(delay_information[agent_id])
             if agent_id in depth_dict:
@@ -1155,7 +1155,7 @@ def plot_delay_propagation_2d(
             else:
                 conflict_depth.append("None")
         if agent_id in depth_dict:
-            color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
+            color = depth_color[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
             color = "red"
         fig.add_trace(go.Scattergl(x=x,
@@ -1213,7 +1213,7 @@ def plot_train_paths(
 
     """
 
-    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    marker_list = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
     layout = go.Layout(
         plot_bgcolor=GREY_BACKGROUND_COLOR
     )
@@ -1233,7 +1233,7 @@ def plot_train_paths(
             malfunction_resource = resource_occupation.resource
             x.append(malfunction_resource[1])
             y.append(malfunction_resource[0])
-            marker.append(MARKER_LIST[int(np.clip(resource_occupation.direction, 0, 3))])
+            marker.append(marker_list[int(np.clip(resource_occupation.direction, 0, 3))])
             times.append(time)
             color = PLOTLY_COLORLIST[agent_id]
 

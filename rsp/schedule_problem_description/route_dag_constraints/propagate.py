@@ -41,16 +41,16 @@ def _propagate_earliest(earliest_dict: Dict[Waypoint, int],
         raise e
 
     # update as min(earliest_at_predecessor+minimum_travel_time,current_earliest) until no updates to process.
-    open = deque()
-    open.extend(force_freeze_earliest)
+    open_queue = deque()
+    open_queue.extend(force_freeze_earliest)
 
-    while len(open) > 0:
-        waypoint = open.pop()
+    while len(open_queue) > 0:
+        waypoint = open_queue.pop()
         for successor in topo.successors(waypoint):
             if successor in force_freeze_earliest:
                 continue
             earliest_dict[successor] = min(earliest_dict[waypoint] + minimum_travel_time, earliest_dict.get(successor, np.inf))
-            open.append(successor)
+            open_queue.append(successor)
     return earliest_dict
 
 
@@ -78,15 +78,15 @@ def _propagate_latest(
         raise e
 
     # update max(latest_at_next_node-minimum_travel_time,current_latest) until no updates to process.
-    open = deque()
-    open.extend(force_freeze_latest)
-    while len(open) > 0:
-        waypoint = open.pop()
+    open_queue = deque()
+    open_queue.extend(force_freeze_latest)
+    while len(open_queue) > 0:
+        waypoint = open_queue.pop()
         for predecessor in topo.predecessors(waypoint):
             if predecessor in force_freeze_latest:
                 continue
             latest_dict[predecessor] = max(latest_dict[waypoint] - minimum_travel_time, latest_dict.get(predecessor, -np.inf))
-            open.append(predecessor)
+            open_queue.append(predecessor)
 
 
 def _propagate_latest_forward_constant(earliest_dict: Dict[Waypoint, int],

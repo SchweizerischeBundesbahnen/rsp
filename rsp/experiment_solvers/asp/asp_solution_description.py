@@ -21,7 +21,6 @@ class ASPSolutionDescription():
                  ):
         self.asp_solution: FluxHelperResult = asp_solution
         self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
-        self._action_plan = None
         self.schedule_problem_description: ScheduleProblemDescription = schedule_problem_description
 
     def verify_correctness(self):

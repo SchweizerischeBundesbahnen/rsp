@@ -272,7 +272,7 @@ class ASPProblemDescription:
                         minimum_travel_time=schedule_problem_description.minimum_travel_time_dict[agent_id],
                         route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
 
-            _new_asp_program += self._translate_route_dag_constraints_to_ASP(
+            _new_asp_program += self._translate_route_dag_constraints_to_asp(
                 agent_id=agent_id,
                 topo=schedule_problem_description.topo_dict[agent_id],
                 freeze=freeze)
@@ -298,7 +298,7 @@ class ASPProblemDescription:
         # cleanup
         return _new_asp_program
 
-    def _translate_route_dag_constraints_to_ASP(self,  # noqa: C901
+    def _translate_route_dag_constraints_to_asp(self,  # noqa: C901
                                                 agent_id: int,
                                                 topo: nx.DiGraph,
                                                 freeze: RouteDAGConstraints):

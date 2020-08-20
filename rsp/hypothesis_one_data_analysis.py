@@ -268,10 +268,10 @@ def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]
     Returns
     -------
     """
-    PENALTY_LEAP_AT = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
-    PENALTY_LEAP = 5000000 + PENALTY_LEAP_AT * weight_lateness_seconds
-    return sum([(PENALTY_LEAP
-                 if lateness > PENALTY_LEAP_AT
+    penalty_leap_at = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
+    penalty_leap = 5000000 + penalty_leap_at * weight_lateness_seconds
+    return sum([(penalty_leap
+                 if lateness > penalty_leap_at
                  else (lateness // DELAY_MODEL_RESOLUTION) * DELAY_MODEL_RESOLUTION * weight_lateness_seconds)
                 for agent_id, lateness in lateness_dict.items()])
 
