@@ -90,17 +90,13 @@ def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSp
 
 def hypothesis_one_pipeline_all_in_one(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-        experiment_base_directory: Optional[str] = '.',
+        experiment_base_directory: str,
         experiment_ids: Optional[List[int]] = None,
         qualitative_analysis_experiment_ids: Optional[List[int]] = None,
         asp_export_experiment_ids: Optional[List[int]] = None,
         experiment_name: str = "exp_hypothesis_one",
         run_analysis: bool = True,
-        parallel_compute: int = AVAILABLE_CPUS // 2,
-        # TODO SIM-650 take from params
-        flatland_seed: int = 12,
-        # take only half of avilable cpus so the machine stays responsive
-        experiments_per_grid_element: int = 1
+        parallel_compute: int = AVAILABLE_CPUS // 2
 ) -> Tuple[str, ExperimentAgenda]:
     """
     Run full pipeline A.1 -> A.2 - B - C
