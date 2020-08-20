@@ -9,9 +9,9 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import AVAILABLE_CPUS
-from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
 from rsp.utils.experiments import create_experiment_folder_name
-from rsp.utils.experiments import hypothesis_one_setup_full_agenda
+from rsp.utils.experiments import hypothesis_gen_infrastructure_and_schedule_full_agenda
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.file_utils import check_create_folder
 
@@ -136,15 +136,15 @@ def hypothesis_one_pipeline_all_in_one(
     check_create_folder(experiment_data_directory)
 
     # Create schedule and malfunction
-    hypothesis_one_setup_full_agenda(
+    hypothesis_gen_infrastructure_and_schedule_full_agenda(
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         base_directory=experiment_base_directory
     )
 
-    experiment_agenda = create_experiment_agenda(experiment_name=experiment_name,
-                                                 parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-                                                 flatland_seed=flatland_seed,
-                                                 experiments_per_grid_element=experiments_per_grid_element)
+    experiment_agenda = create_experiment_agenda_from_parameter_ranges_and_speed_data(experiment_name=experiment_name,
+                                                                                      parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
+                                                                                      flatland_seed=flatland_seed,
+                                                                                      experiments_per_grid_element=experiments_per_grid_element)
 
     experiment_output_directory = run_experiment_agenda(
         # TODO should only be folder and optional filter of experiment_ids?

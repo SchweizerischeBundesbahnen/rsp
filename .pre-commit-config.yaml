@@ -67,7 +67,7 @@ repos:
         description: Find dead Python code
         entry: vulture
         args: [
-          "--min-confidence", "100",
+          "--min-confidence", "80",
           "--exclude", "rsp/experiment_solvers/asp/theory.py",
           "rsp", "tests"
         ]

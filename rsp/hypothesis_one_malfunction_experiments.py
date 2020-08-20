@@ -1,7 +1,7 @@
 import os
 from typing import Dict
 
-from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_setup_full_agenda
+from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_gen_infrastructure_and_schedule_full_agenda
 from rsp.hypothesis_testing.utils.tweak_experiment_agenda import tweak_parameter_ranges
 from rsp.logger import rsp_logger
 from rsp.utils.data_types import ParameterRanges
@@ -48,9 +48,9 @@ def hypothesis_one_malfunction_analysis(
 
     # Generate Schedule
     if gen_schedule:
-        experiment_base_folder_name = hypothesis_one_setup_full_agenda(parameter_ranges_and_speed_data,
-                                                                       experiment_name=experiment_name,
-                                                                       flatland_seed=flatland_seed)
+        experiment_base_folder_name = hypothesis_gen_infrastructure_and_schedule_full_agenda(parameter_ranges_and_speed_data,
+                                                                                             experiment_name=experiment_name,
+                                                                                             flatland_seed=flatland_seed)
     # Use existing Schedule
     else:
         experiment_base_folder_name = base_directory

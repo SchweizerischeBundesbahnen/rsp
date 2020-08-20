@@ -2,7 +2,7 @@ import re
 from typing import Optional
 
 from rsp.hypothesis_one_pipeline_all_in_one import get_agenda_pipeline_params_003_a_bit_more_advanced
-from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_setup_full_agenda
+from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_gen_infrastructure_and_schedule_full_agenda
 from rsp.utils.experiments import run_experiment_agenda
 
 
@@ -58,7 +58,7 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
     base_directory
     """
     if gen_schedule:
-        hypothesis_one_setup_full_agenda(
+        hypothesis_gen_infrastructure_and_schedule_full_agenda(
             experiment_name='003_a_bit_more_advanced_schedules_only',
             base_directory=base_directory,
             parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced()

@@ -6,7 +6,7 @@ from rsp.hypothesis_two_encounter_graph import extract_time_windows_and_transmis
 from rsp.hypothesis_two_encounter_graph import plot_transmission_chains_time_window
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiments import create_experiment_agenda
+from rsp.utils.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
@@ -17,7 +17,7 @@ def test_hypothesis_two():
     """Run hypothesis two."""
     experiment_base_directory = './tests/03_integration_tests/mini_toy_example'
 
-    experiment_agenda: ExperimentAgenda = create_experiment_agenda(
+    experiment_agenda: ExperimentAgenda = create_experiment_agenda_from_parameter_ranges_and_speed_data(
         experiment_name='test_hypothesis_two',
         parameter_ranges_and_speed_data=get_agenda_pipeline_params_001_simple_setting())
     experiment_output_directory = run_experiment_agenda(

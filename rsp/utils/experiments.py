@@ -91,7 +91,6 @@ AVAILABLE_CPUS = os.cpu_count()
 
 _pp = pprint.PrettyPrinter(indent=4)
 
-
 EXPERIMENT_INFRA_SUBDIRECTORY_NAME = "infra"
 EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME = "schedule"
 
@@ -755,11 +754,11 @@ def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> b
     return current_experiment_parameters.experiment_id in experiment_ids
 
 
-def create_experiment_agenda(experiment_name: str,
-                             parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-                             flatland_seed: int = 12,
-                             experiments_per_grid_element: int = 1,
-                             debug: bool = False) -> ExperimentAgenda:
+def create_experiment_agenda_from_parameter_ranges_and_speed_data(experiment_name: str,
+                                                                  parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
+                                                                  flatland_seed: int = 12,
+                                                                  experiments_per_grid_element: int = 1,
+                                                                  debug: bool = False) -> ExperimentAgenda:
     """Create an experiment agenda given a range of parameters defined as
     ParameterRanges.
     Parameters
@@ -1029,26 +1028,6 @@ def save_parameter_ranges_and_speed_data(experiment_agenda_folder_name: str, par
         pickle.dump(parameter_ranges_and_speed_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_parameter_ranges_and_speed_data(experiment_folder_name: str) -> ParameterRangesAndSpeedData:
-    """
-    Load experiment parameters and speed data to allow simpler modificaion
-    Parameters
-    ----------
-    experiment_folder_name
-
-    Returns
-    -------
-    Patameterranges and speed data of saved experiment
-    """
-    file_name = os.path.join(experiment_folder_name, "parameter_ranges_and_speed_data.pkl")
-    if os.path.exists(file_name):
-        with open(file_name, 'rb') as handle:
-            file_data: ParameterRangesAndSpeedData = pickle.load(handle)
-            return file_data
-    else:
-        return None
-
-
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
     return "{}_{}".format(experiment_name, datetime_string)
@@ -1270,25 +1249,22 @@ def folder_to_name(foldername: str) -> str:
     return name_only
 
 
-# TODO SIM-650 gen-only given parameter ranges, do not generate malfunction here!!
+# TODO SIM-650 labelling A.*???
 # A.2
-def hypothesis_one_setup_full_agenda(
+def hypothesis_gen_infrastructure_and_schedule_full_agenda(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
         base_directory: str,
         # TODO SIM-650 this should
         flatland_seed: int = 12,
         experiments_per_grid_element: int = 1,
         experiment_name: str = "exp_hypothesis_one"):
-    rsp_logger.info("GEN SCHEDULE")
+    rsp_logger.info("GEN INFRASTRUCTURE AND SCHEDULE")
 
-    # TODO SIM-650 get rid of agenda, replay by partial expander?
-    experiment_agenda: ExperimentAgenda = create_experiment_agenda(
+    experiment_agenda: ExperimentAgenda = create_experiment_agenda_from_parameter_ranges_and_speed_data(
         experiment_name=experiment_name,
         parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
         flatland_seed=flatland_seed,
         experiments_per_grid_element=experiments_per_grid_element)
-
-    # TODO SIM-650 instead of looping over ExperimentAgenda, expand params for infra, schedule and re-scheduling, then three consecutive looops.
 
     for experiment_parameters in experiment_agenda.experiments:
         rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
