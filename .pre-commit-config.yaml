@@ -58,17 +58,18 @@ repos:
 
         ]
 # TODO SIM-650
-#  - repo: local
-#    hooks:
-#      # Vulture
-#      # https://github.com/jendrikseipp/vulture
-#      - id: vulture
-#        name: vulture
-#        description: Find dead Python code
-#        entry: vulture
-#        args: [
-#          "--min-confidence", "100",
-#          "rsp", "tests"
-#        ]
-#        language: system
-#        types: [python]
+  - repo: local
+    hooks:
+      # Vulture
+      # https://github.com/jendrikseipp/vulture
+      - id: vulture
+        name: vulture
+        description: Find dead Python code
+        entry: vulture
+        args: [
+          "--min-confidence", "100",
+          "--exclude", "rsp/experiment_solvers/asp/theory.py",
+          "rsp", "tests"
+        ]
+        language: system
+        types: [python]

@@ -1,17 +1,12 @@
 import pprint
 from typing import Dict
 from typing import List
-from typing import Optional
 
 import numpy as np
-from flatland.envs.agent_utils import EnvAgent
 from flatland.envs.malfunction_generators import Malfunction
-from flatland.envs.malfunction_generators import Malfunction as FLMalfunction
-from flatland.envs.malfunction_generators import MalfunctionProcessData
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from numpy.random.mtrand import RandomState
 
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
@@ -797,53 +792,6 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
     # the delta model does not count the malfunction as costs
     expected_asp_costs = expected_delay - fake_malfunction.malfunction_duration
     assert asp_costs == expected_asp_costs, f"found asp_costs={asp_costs}, expected={expected_asp_costs}"
-
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Test setup helpers
-# ---------------------------------------------------------------------------------------------------------------------
-
-
-def inject_fake_malfunction_into_dynamic_env(dynamic_env, fake_malfunction):
-    malfunction_generator = fake_malfunction_generator(fake_malfunction)
-    dynamic_env.malfunction_generator, dynamic_env.malfunction_process_data = malfunction_generator, MalfunctionProcessData(
-        0, 0, 0)
-
-
-def fake_malfunction_generator(fake_malfunction: Malfunction):
-    global_nr_malfunctions = 0
-    malfunction_calls = dict()
-
-    def generator(agent: EnvAgent = None, np_random: RandomState = None, reset=False) \
-            -> Optional[ExperimentMalfunction]:
-        # We use the global variable to assure only a single malfunction in the env
-        nonlocal global_nr_malfunctions
-        nonlocal malfunction_calls
-
-        # Reset malfunciton generator
-        if reset:
-            nonlocal global_nr_malfunctions
-            nonlocal malfunction_calls
-            global_nr_malfunctions = 0
-            malfunction_calls = dict()
-            return FLMalfunction(0)
-
-        # Update number of calls per agent
-        if agent.handle in malfunction_calls:
-            malfunction_calls[agent.handle] += 1
-        else:
-            malfunction_calls[agent.handle] = 1
-
-        # Break an agent that is active at the time of the malfunction
-        # N.B. we have just incremented the number of malfunction calls!
-        if agent.handle == fake_malfunction.agent_id and \
-                malfunction_calls[agent.handle] - 1 == fake_malfunction.time_step:
-            global_nr_malfunctions += 1
-            return FLMalfunction(20)
-        else:
-            return FLMalfunction(0)
-
-    return generator
 
 
 # ---------------------------------------------------------------------------------------------------------------------
