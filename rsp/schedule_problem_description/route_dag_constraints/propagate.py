@@ -18,36 +18,36 @@ from rsp.utils.data_types import ExperimentMalfunction
 
 
 def _propagate_earliest(earliest_dict: Dict[Waypoint, int],
-                        force_freeze_earliest: Set[Waypoint],
+                        force_earliest: Set[Waypoint],
                         minimum_travel_time: int,
                         topo: nx.DiGraph) -> Dict[Waypoint, int]:
     """Extract earliest times at nodes by moving forward from source(s).
     Earliest time for the agent to reach this vertex given the freezed times.
-    Pre-condition: all waypoints in `force_freeze_earliest` have a finite value (`< np.inf`) in `earliest_dict`.
+    Pre-condition: all waypoints in `force_earliest` have a finite value (`< np.inf`) in `earliest_dict`.
     Caveat: `earliest_dict` is modified.
 
     Parameters
     ----------
     earliest_dict
-    force_freeze_earliest: earliest must not be changed
+    force_earliest: earliest must not be changed
     minimum_travel_time
     topo
     """
-    assert force_freeze_earliest.issubset(set(earliest_dict.keys()))
+    assert force_earliest.issubset(set(earliest_dict.keys()))
     try:
-        assert force_freeze_earliest.issubset(set(topo.nodes))
+        assert force_earliest.issubset(set(topo.nodes))
     except AssertionError as e:
-        rsp_logger.error(f"force_freeze_earliest={force_freeze_earliest}, topo.nodes={list(topo.nodes)}")
+        rsp_logger.error(f"force_earliest={force_earliest}, topo.nodes={list(topo.nodes)}")
         raise e
 
     # update as min(earliest_at_predecessor+minimum_travel_time,current_earliest) until no updates to process.
     open_queue = deque()
-    open_queue.extend(force_freeze_earliest)
+    open_queue.extend(force_earliest)
 
     while len(open_queue) > 0:
         waypoint = open_queue.pop()
         for successor in topo.successors(waypoint):
-            if successor in force_freeze_earliest:
+            if successor in force_earliest:
                 continue
             earliest_dict[successor] = min(earliest_dict[waypoint] + minimum_travel_time, earliest_dict.get(successor, np.inf))
             open_queue.append(successor)
@@ -55,13 +55,13 @@ def _propagate_earliest(earliest_dict: Dict[Waypoint, int],
 
 
 def _propagate_latest(
-        force_freeze_latest: Set[Waypoint],
+        force_latest: Set[Waypoint],
         latest_dict: Dict[Waypoint, int],
         minimum_travel_time: int,
         topo: nx.DiGraph):
     """Extract latest times at nodes by moving backward from sinks.
     Latest time for the agent to reach a target from this vertex given the freezed times.
-    Pre-condition: all waypoints in `force_freeze_latest` have a finite value (`< np.inf`) in `latest_dict`.
+    Pre-condition: all waypoints in `force_latest` have a finite value (`< np.inf`) in `latest_dict`.
     Caveat: `latest_dict` is modified.
 
     Parameters
@@ -70,20 +70,20 @@ def _propagate_latest(
     minimum_travel_time
     topo
     """
-    assert force_freeze_latest.issubset(set(latest_dict.keys()))
+    assert force_latest.issubset(set(latest_dict.keys()))
     try:
-        assert force_freeze_latest.issubset(set(topo.nodes))
+        assert force_latest.issubset(set(topo.nodes))
     except AssertionError as e:
-        rsp_logger.error(f"force_freeze_latest={force_freeze_latest}, topo.nodes={list(topo.nodes)}")
+        rsp_logger.error(f"force_latest={force_latest}, topo.nodes={list(topo.nodes)}")
         raise e
 
     # update max(latest_at_next_node-minimum_travel_time,current_latest) until no updates to process.
     open_queue = deque()
-    open_queue.extend(force_freeze_latest)
+    open_queue.extend(force_latest)
     while len(open_queue) > 0:
         waypoint = open_queue.pop()
         for predecessor in topo.predecessors(waypoint):
-            if predecessor in force_freeze_latest:
+            if predecessor in force_latest:
                 continue
             latest_dict[predecessor] = max(latest_dict[waypoint] - minimum_travel_time, latest_dict.get(predecessor, -np.inf))
             open_queue.append(predecessor)
@@ -154,8 +154,8 @@ def propagate(  # noqa C901
         earliest_dict: Dict[Waypoint, int],
         latest_dict: Dict[Waypoint, int],
         topo: nx.DiGraph,
-        force_freeze_earliest: Set[Waypoint],
-        force_freeze_latest: Set[Waypoint],
+        force_earliest: Set[Waypoint],
+        force_latest: Set[Waypoint],
         must_be_visited: Set[Waypoint],
         minimum_travel_time: int,
         latest_arrival: int,
@@ -168,7 +168,7 @@ def propagate(  # noqa C901
 
     Parameters
     ----------
-    force_freeze_latest
+    force_latest
     earliest_dict
     latest_dict
     latest_arrival
@@ -179,8 +179,8 @@ def propagate(  # noqa C901
         back propagation of latest"
     """
     # remove nodes not reachable given the must_be_visited
-    assert set(force_freeze_earliest).issubset(topo.nodes)
-    assert set(force_freeze_latest).issubset(topo.nodes)
+    assert set(force_earliest).issubset(topo.nodes)
+    assert set(force_latest).issubset(topo.nodes)
     reachable = _get_reachable_given_frozen_set(topo=topo, must_be_visited=must_be_visited)
     to_remove = {v for v in topo.nodes if v not in reachable}
     topo.remove_nodes_from(to_remove)
@@ -189,14 +189,14 @@ def propagate(  # noqa C901
     except AssertionError as e:
         rsp_logger.error(f"must_be_visited={must_be_visited}, reachable={reachable}")
         raise e
-    not_reachable_earliest = force_freeze_earliest.difference(reachable)
+    not_reachable_earliest = force_earliest.difference(reachable)
     if not_reachable_earliest:
         rsp_logger.warn(f"removing {not_reachable_earliest} from earliest_dict, not reachable. {{v: earliest_dict[v] for v in not_reachable_earliest}}")
-    not_reachable_latest = force_freeze_latest.difference(reachable)
+    not_reachable_latest = force_latest.difference(reachable)
     if not_reachable_latest:
         rsp_logger.warn(f"removing {not_reachable_latest} from latest_dict, not reachable. {{v: latest_dict[v] for v in not_reachable_latest}}")
-    force_freeze_earliest.difference_update(not_reachable_earliest)
-    force_freeze_latest.difference_update(not_reachable_latest)
+    force_earliest.difference_update(not_reachable_earliest)
+    force_latest.difference_update(not_reachable_latest)
     for key in not_reachable_earliest:
         del earliest_dict[key]
     for key in not_reachable_latest:
@@ -204,11 +204,11 @@ def propagate(  # noqa C901
 
     _propagate_earliest(
         earliest_dict=earliest_dict,
-        force_freeze_earliest=force_freeze_earliest,
+        force_earliest=force_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo)
     _propagate_latest(
-        force_freeze_latest=force_freeze_latest,
+        force_latest=force_latest,
         latest_dict=latest_dict,
         minimum_travel_time=minimum_travel_time,
         topo=topo
@@ -224,14 +224,13 @@ def propagate(  # noqa C901
             latest_dict[waypoint] = min(latest_forward_time, latest_backward_time)
         # apply latest again for consistency
         _propagate_latest(
-            force_freeze_latest=force_freeze_latest,
+            force_latest=force_latest,
             latest_dict=latest_dict,
             minimum_travel_time=minimum_travel_time,
             topo=topo
         )
 
     def _remove_waypoint_from_earliest_latest_topo(waypoint):
-        # design choice: we give no earliest/latest for banned!
         if waypoint in earliest_dict:
             earliest_dict.pop(waypoint)
         if waypoint in latest_dict:
@@ -314,25 +313,21 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
 
     all_waypoints = topo.nodes
 
-    # 00. TODO SIM-613->SIM-650 (temporary check, to be removed in SIM-650)
-    assert not route_dag_constraints.freeze_visit
-    assert not route_dag_constraints.freeze_banned
-
     # 0. assert all referenced waypoints are in topo
-    for waypoint in route_dag_constraints.freeze_earliest:
+    for waypoint in route_dag_constraints.earliest:
         assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} has earliest, but not in topo"
-    for waypoint in route_dag_constraints.freeze_latest:
+    for waypoint in route_dag_constraints.latest:
         assert waypoint in all_waypoints, f"agent {agent_id}: {waypoint} has latest, but not in topo"
 
     # 1. all waypoints in topo must have earliest and latest s.t. earliest <= latest
     for waypoint in all_waypoints:
-        assert waypoint in route_dag_constraints.freeze_earliest, \
+        assert waypoint in route_dag_constraints.earliest, \
             f"agent {agent_id} has no earliest for {waypoint}"
-        assert waypoint in route_dag_constraints.freeze_latest, \
+        assert waypoint in route_dag_constraints.latest, \
             f"agent {agent_id} has no latest for {waypoint}"
-        assert route_dag_constraints.freeze_earliest[waypoint] <= route_dag_constraints.freeze_latest[waypoint], \
+        assert route_dag_constraints.earliest[waypoint] <= route_dag_constraints.latest[waypoint], \
             f"agent {agent_id} at {waypoint}: earliest should be less or equal to latest, " + \
-            f"found {route_dag_constraints.freeze_earliest[waypoint]} <= {route_dag_constraints.freeze_latest[waypoint]}"
+            f"found {route_dag_constraints.earliest[waypoint]} <= {route_dag_constraints.latest[waypoint]}"
 
     # 2. verify that all points up to malfunction are forced to be visited
     if malfunction:
@@ -343,10 +338,10 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
         for path_vertices in all_path_vertices[1:]:
             vertices_of_all_paths.intersection_update(path_vertices)
 
-        for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+        for waypoint, earliest in route_dag_constraints.earliest.items():
             # everything before malfunction must be the same
             if earliest <= malfunction.time_step:
-                assert route_dag_constraints.freeze_latest[waypoint] == earliest
+                assert route_dag_constraints.latest[waypoint] == earliest
                 assert waypoint in vertices_of_all_paths
             # everything after malfunction must be respect malfunction duration (at least) for malfunction agent
             elif agent_id == malfunction.agent_id:
@@ -354,9 +349,9 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
                     f"agent {agent_id} with malfunction {malfunction}. Found earliest={earliest} for {waypoint}"
 
     # 3. verify that latest-earliest <= max_window_size_from_earliest
-    for waypoint in route_dag_constraints.freeze_earliest:
-        assert (route_dag_constraints.freeze_latest[waypoint] - route_dag_constraints.freeze_earliest[waypoint] <= max_window_size_from_earliest), \
-            f"{waypoint} of {agent_id}: [{route_dag_constraints.freeze_earliest[waypoint]},{route_dag_constraints.freeze_latest[waypoint]}], " \
+    for waypoint in route_dag_constraints.earliest:
+        assert (route_dag_constraints.latest[waypoint] - route_dag_constraints.earliest[waypoint] <= max_window_size_from_earliest), \
+            f"{waypoint} of {agent_id}: [{route_dag_constraints.earliest[waypoint]},{route_dag_constraints.latest[waypoint]}], " \
             f"expected {max_window_size_from_earliest}"
 
 
@@ -378,24 +373,19 @@ def verify_trainrun_satisfies_route_dag_constraints(agent_id, route_dag_constrai
         for trainrun_waypoint in scheduled_trainrun
     }
     for waypoint, scheduled_at in scheduled_dict.items():
-        assert waypoint not in route_dag_constraints.freeze_banned, \
-            f"agent {agent_id}: the known solution has " \
-            f"schedule {waypoint} at {scheduled_at} - " \
-            f"but banned constraint"
-        assert waypoint in route_dag_constraints.freeze_earliest, \
+        assert waypoint in route_dag_constraints.earliest, \
             f"agent {agent_id}: the known solution has " \
             f"schedule {waypoint} at {scheduled_at} - " \
             f"but no earliest constraint"
-        assert scheduled_at >= route_dag_constraints.freeze_earliest[waypoint], \
+        assert scheduled_at >= route_dag_constraints.earliest[waypoint], \
             f"agent {agent_id}: the known solution has " \
             f"schedule {waypoint} at {scheduled_at} - " \
-            f"but found earliest {route_dag_constraints.freeze_latest[waypoint]}"
-        assert waypoint in route_dag_constraints.freeze_latest, \
+            f"but found earliest {route_dag_constraints.latest[waypoint]}"
+        assert waypoint in route_dag_constraints.latest, \
             f"agent {agent_id}: the known solution has " \
             f"schedule {waypoint} at {scheduled_at} - " \
             f"but no latest constraint"
-        assert scheduled_at <= route_dag_constraints.freeze_latest[waypoint], \
+        assert scheduled_at <= route_dag_constraints.latest[waypoint], \
             f"agent {agent_id}: the known solution has " \
             f"schedule {waypoint} at {scheduled_at} - " \
-            f"but found latest {route_dag_constraints.freeze_latest[waypoint]}"
-        assert waypoint not in route_dag_constraints.freeze_banned
+            f"but found latest {route_dag_constraints.latest[waypoint]}"

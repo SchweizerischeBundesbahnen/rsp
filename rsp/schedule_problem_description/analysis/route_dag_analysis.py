@@ -239,7 +239,7 @@ def visualize_route_dag_constraints(
     nx.draw_networkx_edges(topo, plt_pos, edgelist=trainrun_edges, edge_color='red')
 
     # delay labels: delay with respect to earliest and increase in delay wrt earliest (red if non-zero delay or non-zero increase in delay)
-    delay_with_respect_to_earliest = {twp.waypoint: twp.scheduled_at - constraints_to_visualize.freeze_earliest[twp.waypoint] for twp in trainrun_to_visualize}
+    delay_with_respect_to_earliest = {twp.waypoint: twp.scheduled_at - constraints_to_visualize.earliest[twp.waypoint] for twp in trainrun_to_visualize}
     delay_increase = {trainrun_to_visualize[0].waypoint: 0}
     for twp1, twp2 in zip(trainrun_to_visualize, trainrun_to_visualize[1:]):
         delay_increase[twp2.waypoint] = delay_with_respect_to_earliest[twp2.waypoint] - delay_with_respect_to_earliest[twp1.waypoint]
@@ -390,41 +390,33 @@ def _get_edge_label(edge: RouteDagEdge,
 
 
 def _get_label_for_constraint_for_waypoint(waypoint: Waypoint, f: RouteDAGConstraints) -> str:
-    # since we now remove nodes from the topo instead of banning them, we interpret missing nodes as banned.
-    if waypoint in f.freeze_banned or waypoint not in f.freeze_earliest or waypoint not in f.freeze_latest:
+    # mark missing nodes
+    if waypoint not in f.earliest or waypoint not in f.latest:
         return "X"
     s: str = "["
-    if waypoint in f.freeze_visit:
-        s = "! ["
-    s += str(f.freeze_earliest[waypoint])
+    s += str(f.earliest[waypoint])
     s += ","
-    s += str(f.freeze_latest[waypoint])
+    s += str(f.latest[waypoint])
     s += "]"
     return s
 
 
 def _get_color_for_node(n: Waypoint, f: RouteDAGConstraints):
     # https://matplotlib.org/examples/color/named_colors.html
-    # since we now remove nodes from the topo instead of banning them, we interpret missing nodes as banned.
-    if n in f.freeze_banned or n not in f.freeze_earliest or n not in f.freeze_latest:
+    # mark missing nodes
+    if n not in f.earliest or n not in f.latest:
         return 'salmon'
-    elif n in f.freeze_visit and f.freeze_earliest[n] == f.freeze_latest[n]:
-        return 'sandybrown'
-    elif n in f.freeze_visit:
-        return 'darksalmon'
-    elif f.freeze_earliest[n] == f.freeze_latest[n]:
+    elif f.earliest[n] == f.latest[n]:
         return 'yellow'
     else:
         return 'lightgreen'
 
 
 def _get_color_labels():
-    salmon_patch = mpatches.Patch(color='salmon', label='banned')
-    sandybrown_patch = mpatches.Patch(color='sandybrown', label='must be visited and exact time')
-    darksalmon_patch = mpatches.Patch(color='darksalmon', label='must be visited in non-zero length interval')
+    salmon_patch = mpatches.Patch(color='salmon', label='removed')
     yellow_patch = mpatches.Patch(color='yellow', label='exact time if visited')
     lightgreen_patch = mpatches.Patch(color='lightgreen', label='non-zero length interval if visited')
-    legend_patches = [salmon_patch, sandybrown_patch, darksalmon_patch, yellow_patch, lightgreen_patch]
+    legend_patches = [salmon_patch, yellow_patch, lightgreen_patch]
     return legend_patches
 
 

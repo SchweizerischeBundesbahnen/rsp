@@ -79,24 +79,16 @@ class ASPSolutionDescription():
                 f"(1.6) [{agent_id}] cycle"
 
             # 2. verify solution satisfies constraints:
-            for waypoint in route_dag_constraints.freeze_visit:
-                assert waypoint in waypoints, \
-                    f"(2) [{agent_id}] freeze_visit violated: " \
-                    f"{waypoint} must be visited"
-            for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+            for waypoint, earliest in route_dag_constraints.earliest.items():
                 if waypoint in schedule:
                     assert schedule[waypoint] >= earliest, \
-                        f"(2) [{agent_id}] freeze_earliest violated: " \
+                        f"(2) [{agent_id}] earliest violated: " \
                         f"{waypoint} must be not be visited before {earliest}, found {schedule[waypoint]}"
-            for waypoint, latest in route_dag_constraints.freeze_latest.items():
+            for waypoint, latest in route_dag_constraints.latest.items():
                 if waypoint in schedule:
                     assert schedule[waypoint] <= latest, \
-                        f"(2) [{agent_id}] freeze_latest violated: " \
+                        f"(2) [{agent_id}] latest violated: " \
                         f"{waypoint} must be not be visited after {latest}, found {schedule[waypoint]}"
-            for waypoint in route_dag_constraints.freeze_banned:
-                assert waypoint not in waypoints, \
-                    f"(2) [{agent_id}] freeze_banned violated: " \
-                    f"{waypoint} must be not be visited"
 
         # 3. verify mututal exclusion and release time
         resource_occupations = {}

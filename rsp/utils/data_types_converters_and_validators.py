@@ -37,9 +37,9 @@ def extract_time_windows(
     time_windows_per_agent_sorted_by_lower_bound: TimeWindowsPerAgentSortedByLowerBound = {}
 
     for agent_id, route_dag_constraints in route_dag_constraints_dict.items():
-        for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+        for waypoint, earliest in route_dag_constraints.earliest.items():
             # TODO actually, we should take latest leaving event for resource!
-            latest = route_dag_constraints.freeze_latest[waypoint] + minimum_travel_time_dict[agent_id] + release_time
+            latest = route_dag_constraints.latest[waypoint] + minimum_travel_time_dict[agent_id] + release_time
             resource = Resource(*waypoint.position)
             time_window = TimeWindow(
                 interval=LeftClosedInterval(earliest, latest),

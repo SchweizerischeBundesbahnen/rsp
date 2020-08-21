@@ -457,7 +457,7 @@ def expand_experiment_results_for_analysis(
         train_run_full_after_malfunction_constraints_agent = \
             experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
         train_run_full_after_malfunction_target_earliest_agent = \
-            train_run_full_after_malfunction_constraints_agent.freeze_earliest[target_full_after_malfunction_agent]
+            train_run_full_after_malfunction_constraints_agent.earliest[target_full_after_malfunction_agent]
         train_run_full_after_malfunction_scheduled_at_target = \
             train_run_full_after_malfunction_agent[-1].scheduled_at
         lateness_full_after_malfunction[agent_id] = \
@@ -492,7 +492,7 @@ def expand_experiment_results_for_analysis(
         train_run_delta_after_malfunction_constraints_agent = \
             experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
         train_run_delta_after_malfunction_target_earliest_agent = \
-            train_run_delta_after_malfunction_constraints_agent.freeze_earliest[target_delta_after_malfunction_agent]
+            train_run_delta_after_malfunction_constraints_agent.earliest[target_delta_after_malfunction_agent]
         train_run_delta_after_malfunction_scheduled_at_target = \
             train_run_delta_after_malfunction_target_agent.scheduled_at
         lateness_delta_after_malfunction[agent_id] = \
@@ -700,7 +700,5 @@ def experiment_freeze_dict_pretty_print(d: RouteDAGConstraintsDict):
 
 
 def experiment_freeze_pretty_print(route_dag_constraints: RouteDAGConstraints, prefix: str = ""):
-    print(f"{prefix}freeze_visit={_pp.pformat(route_dag_constraints.freeze_visit)}")
-    print(f"{prefix}freeze_earliest={_pp.pformat(route_dag_constraints.freeze_earliest)}")
-    print(f"{prefix}freeze_latest={_pp.pformat(route_dag_constraints.freeze_latest)}")
-    print(f"{prefix}freeze_banned={_pp.pformat(route_dag_constraints.freeze_banned)}")
+    print(f"{prefix}earliest={_pp.pformat(route_dag_constraints.earliest)}")
+    print(f"{prefix}latest={_pp.pformat(route_dag_constraints.latest)}")

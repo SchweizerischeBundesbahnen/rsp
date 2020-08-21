@@ -363,10 +363,10 @@ def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescr
 
     for agent_id, route_dag_constraints in problem.route_dag_constraints_dict.items():
         time_windows_per_agent[agent_id] = []
-        for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+        for waypoint, earliest in route_dag_constraints.earliest.items():
             waypoint: Waypoint = waypoint
             resource = waypoint.position
-            latest = route_dag_constraints.freeze_latest[waypoint]
+            latest = route_dag_constraints.latest[waypoint]
             time_windows_per_agent[agent_id].append(ResourceOccupation(
                 interval=LeftClosedInterval(earliest, latest + RELEASE_TIME),
                 resource=resource,

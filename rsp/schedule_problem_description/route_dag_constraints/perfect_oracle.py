@@ -93,16 +93,16 @@ def perfect_oracle(
     )
     earliest_dict[delayed_trainrun_waypoint_after_malfunction.waypoint] = delayed_trainrun_waypoint_after_malfunction.scheduled_at
 
-    force_freeze_earliest = delta_same_location_and_time.union({delayed_trainrun_waypoint_after_malfunction.waypoint})
-    assert set(force_freeze_earliest).issubset(topo_out.nodes), \
-        f"{force_freeze_earliest.difference(topo_out.nodes)} - {set(topo_out.nodes).difference(force_freeze_earliest)} // " \
-        f"{set(topo_out.nodes).intersection(force_freeze_earliest)} // {delayed_trainrun_waypoint_after_malfunction}"
+    force_earliest = delta_same_location_and_time.union({delayed_trainrun_waypoint_after_malfunction.waypoint})
+    assert set(force_earliest).issubset(topo_out.nodes), \
+        f"{force_earliest.difference(topo_out.nodes)} - {set(topo_out.nodes).difference(force_earliest)} // " \
+        f"{set(topo_out.nodes).intersection(force_earliest)} // {delayed_trainrun_waypoint_after_malfunction}"
     propagate(
         earliest_dict=earliest_dict,
         latest_dict=latest_dict,
         topo=topo_out,
-        force_freeze_earliest=force_freeze_earliest,
-        force_freeze_latest=delta_same_location_and_time.union(sinks),
+        force_earliest=force_earliest,
+        force_latest=delta_same_location_and_time.union(sinks),
         must_be_visited=delta_same_location,
         minimum_travel_time=minimum_travel_time,
         latest_arrival=latest_arrival,
@@ -159,10 +159,8 @@ def perfect_oracle_for_all_agents(
 
         )
         freeze_dict[agent_id] = RouteDAGConstraints(
-            freeze_visit=[],
-            freeze_banned=[],
-            freeze_earliest=earliest_dict,
-            freeze_latest=latest_dict
+            earliest=earliest_dict,
+            latest=latest_dict
         )
         topo_dict[agent_id] = topo
 

@@ -12,10 +12,8 @@ def test_schedule_problem_description_equals():
         topo.add_edge(6, 11)
         return ScheduleProblemDescription(
             route_dag_constraints_dict={0: RouteDAGConstraints(
-                freeze_visit=[],
-                freeze_banned={},
-                freeze_earliest={},
-                freeze_latest={}
+                earliest={},
+                latest={}
             )},
             topo_dict={0: topo},
             minimum_travel_time_dict={0: 1},

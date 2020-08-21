@@ -424,8 +424,7 @@ def test_get_freeze_for_full_rescheduling():
     agent_paths, train_run = _get_data()
     malfunction = ExperimentMalfunction(time_step=19, agent_id=2, malfunction_duration=20)
     expected_route_dag_constraints = RouteDAGConstraints(
-        freeze_visit=[],
-        freeze_earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
+        earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(6, 23), direction=3)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(6, 22), direction=3)),
             TrainrunWaypoint(scheduled_at=3, waypoint=Waypoint(position=(6, 21), direction=3)),
@@ -515,8 +514,8 @@ def test_get_freeze_for_full_rescheduling():
             TrainrunWaypoint(scheduled_at=43 + 20, waypoint=Waypoint(position=(24, 3), direction=1)),
 
         ]),
-        freeze_latest=[],
-        freeze_banned=[])
+        latest=[]
+    )
     topo_dict = _get_topology_from_agents_path_dict({2: agent_paths})
     reschedule_full_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
         minimum_travel_time_dict={2: 1},
@@ -526,21 +525,14 @@ def test_get_freeze_for_full_rescheduling():
         latest_arrival=333
     )
     route_dag_constraints: RouteDAGConstraints = reschedule_full_problem_description.route_dag_constraints_dict[2]
-    print(f"freeze_visit={_pp.pformat(route_dag_constraints.freeze_visit)}")
-    print(f"freeze_earliest={_pp.pformat(route_dag_constraints.freeze_earliest)}")
-    print(f"freeze_latest={_pp.pformat(route_dag_constraints.freeze_latest)}")
-    print(f"freeze_banned={_pp.pformat(route_dag_constraints.freeze_banned)}")
+    print(f"earliest={_pp.pformat(route_dag_constraints.earliest)}")
+    print(f"latest={_pp.pformat(route_dag_constraints.latest)}")
 
-    assert set(route_dag_constraints.freeze_visit) == set(expected_route_dag_constraints.freeze_visit), \
-        f"not expected={set(route_dag_constraints.freeze_visit).difference(set(expected_route_dag_constraints.freeze_visit))}" \
-        f"expected, but missing={set(expected_route_dag_constraints.freeze_visit).difference(set(route_dag_constraints.freeze_visit))}"
-
-    assert dict(route_dag_constraints.freeze_earliest) == dict(expected_route_dag_constraints.freeze_earliest), \
+    assert dict(route_dag_constraints.earliest) == dict(expected_route_dag_constraints.earliest), \
         "\n" \
-        f"actual=  {dict(route_dag_constraints.freeze_earliest)}, \n" \
-        f"expected={expected_route_dag_constraints.freeze_earliest}" \
-        f"not expected keys={set(route_dag_constraints.freeze_earliest.keys()) - set(expected_route_dag_constraints.freeze_earliest.keys())}"
-    assert set(route_dag_constraints.freeze_banned) == set(expected_route_dag_constraints.freeze_banned)
+        f"actual=  {dict(route_dag_constraints.earliest)}, \n" \
+        f"expected={expected_route_dag_constraints.earliest}" \
+        f"not expected keys={set(route_dag_constraints.earliest.keys()) - set(expected_route_dag_constraints.earliest.keys())}"
 
 
 def test_get_freeze_for_delta():
@@ -1181,9 +1173,8 @@ def test_get_freeze_for_delta():
 
     expected_freeze_dict = {
         0: RouteDAGConstraints(
-            freeze_visit=[],
             # agent 0 can run earlier than in schedule!
-            freeze_earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
+            earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
                 TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(8, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(8, 24), direction=1)),
                 TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(8, 25), direction=1)),
@@ -1228,7 +1219,7 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=42, waypoint=Waypoint(position=(16, 28), direction=2)),
                 TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(17, 28), direction=2)),
                 TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(17, 29), direction=1))]),
-            freeze_latest=OrderedDict(
+            latest=OrderedDict(
                 [(Waypoint(position=(24, 23), direction=3), 332 + 1),
                  (Waypoint(position=(8, 23), direction=1), 305),
                  (Waypoint(position=(8, 24), direction=1), 306),
@@ -1273,10 +1264,9 @@ def test_get_freeze_for_delta():
                  (Waypoint(position=(14, 29), direction=2), 316 + 1),
                  (Waypoint(position=(14, 28), direction=2), 315 + 1),
                  (Waypoint(position=(13, 28), direction=3), 314 + 1)]),
-            freeze_banned=[]),
+        ),
         1: RouteDAGConstraints(
-            freeze_visit=[],
-            freeze_earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
+            earliest=route_dag_constraints_dict_from_list_of_train_run_waypoint([
                 TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(23, 23), direction=1)),
                 TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(23, 24), direction=1)),
                 TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(23, 25), direction=1)),
@@ -1312,7 +1302,7 @@ def test_get_freeze_for_delta():
                 TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(7, 26), direction=0)),
                 TrainrunWaypoint(scheduled_at=50, waypoint=Waypoint(position=(8, 27), direction=2))
             ]),
-            freeze_latest=OrderedDict(
+            latest=OrderedDict(
                 [(Waypoint(position=(7, 23), direction=3), 332 + 1),
                  (Waypoint(position=(23, 23), direction=1), 4),
                  (Waypoint(position=(23, 24), direction=1), 6),
@@ -1347,7 +1337,7 @@ def test_get_freeze_for_delta():
                  (Waypoint(position=(12, 29), direction=0), 321 + 1),
                  (Waypoint(position=(13, 29), direction=0), 320 + 1),
                  (Waypoint(position=(14, 29), direction=0), 319 + 1)]),
-            freeze_banned=[])}
+        )}
 
     reschedule_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
         schedule_trainruns=schedule_trainruns,
@@ -1363,26 +1353,18 @@ def test_get_freeze_for_delta():
     experiment_freeze_dict_pretty_print(freeze_dict)
     assert freeze_dict.keys() == expected_freeze_dict.keys()
     for agent_id in expected_freeze_dict:
-        assert freeze_dict[agent_id].freeze_earliest == expected_freeze_dict[agent_id].freeze_earliest, \
+        assert freeze_dict[agent_id].earliest == expected_freeze_dict[agent_id].earliest, \
             f"difference earliest for agent {agent_id}: \n" \
-            f"expected {expected_freeze_dict[agent_id].freeze_earliest}, \n" \
-            f"found {freeze_dict[agent_id].freeze_earliest}, \n" \
-            f"not expected {set(freeze_dict[agent_id].freeze_earliest.items()).difference(set(expected_freeze_dict[agent_id].freeze_earliest.items()))} \n" \
-            f"not found {set(expected_freeze_dict[agent_id].freeze_earliest.items()).difference(set(freeze_dict[agent_id].freeze_earliest.items()))} \n"
-        assert dict(freeze_dict[agent_id].freeze_latest) == dict(expected_freeze_dict[agent_id].freeze_latest), \
+            f"expected {expected_freeze_dict[agent_id].earliest}, \n" \
+            f"found {freeze_dict[agent_id].earliest}, \n" \
+            f"not expected {set(freeze_dict[agent_id].earliest.items()).difference(set(expected_freeze_dict[agent_id].earliest.items()))} \n" \
+            f"not found {set(expected_freeze_dict[agent_id].earliest.items()).difference(set(freeze_dict[agent_id].earliest.items()))} \n"
+        assert dict(freeze_dict[agent_id].latest) == dict(expected_freeze_dict[agent_id].latest), \
             f"difference latest for agent {agent_id}: \n" \
-            f"expected {expected_freeze_dict[agent_id].freeze_latest}, \n" \
-            f"found {freeze_dict[agent_id].freeze_latest}\n" \
-            f"not expected {set(expected_freeze_dict[agent_id].freeze_latest.items()).difference(freeze_dict[agent_id].freeze_latest.items())}, \n" \
-            f"not found {set(freeze_dict[agent_id].freeze_latest.items()).difference(expected_freeze_dict[agent_id].freeze_latest.items())}\n"
-        assert set(freeze_dict[agent_id].freeze_visit) == set(expected_freeze_dict[agent_id].freeze_visit), \
-            f"difference visit for agent {agent_id}: " \
-            f"expected {expected_freeze_dict[agent_id].freeze_visit}, " \
-            f"found {freeze_dict[agent_id].freeze_visit}"
-        assert set(freeze_dict[agent_id].freeze_banned) == set(expected_freeze_dict[agent_id].freeze_banned), \
-            f"difference banned for agent {agent_id}: " \
-            f"expected {expected_freeze_dict[agent_id].freeze_banned}, " \
-            f"found {freeze_dict[agent_id].freeze_banned}"
+            f"expected {expected_freeze_dict[agent_id].latest}, \n" \
+            f"found {freeze_dict[agent_id].latest}\n" \
+            f"not expected {set(expected_freeze_dict[agent_id].latest.items()).difference(freeze_dict[agent_id].latest.items())}, \n" \
+            f"not found {set(freeze_dict[agent_id].latest.items()).difference(expected_freeze_dict[agent_id].latest.items())}\n"
 
 
 def test_bugfix_sim_172():
@@ -1693,7 +1675,7 @@ def test_bugfix_sim_172():
 
     experiment_freeze_pretty_print(actual_route_dag_constraints)
 
-    expected_freeze_latest = route_dag_constraints_dict_from_list_of_train_run_waypoint(
+    expected_latest = route_dag_constraints_dict_from_list_of_train_run_waypoint(
         [TrainrunWaypoint(waypoint=Waypoint(position=(9, 23), direction=3), scheduled_at=6666 + 1),
          TrainrunWaypoint(waypoint=Waypoint(position=(25, 23), direction=1), scheduled_at=4),
          TrainrunWaypoint(waypoint=Waypoint(position=(25, 24), direction=1), scheduled_at=6),
@@ -1737,11 +1719,11 @@ def test_bugfix_sim_172():
          TrainrunWaypoint(waypoint=Waypoint(position=(16, 29), direction=0), scheduled_at=6651 + 1),
          ])
     experiment_freeze_pretty_print(actual_route_dag_constraints)
-    actual_dict = actual_route_dag_constraints.freeze_latest
-    expected_dict = expected_freeze_latest
+    actual_dict = actual_route_dag_constraints.latest
+    expected_dict = expected_latest
     compare_dicts(actual_dict, expected_dict)
 
-    expected_freeze_earliest = route_dag_constraints_dict_from_list_of_train_run_waypoint(
+    expected_earliest = route_dag_constraints_dict_from_list_of_train_run_waypoint(
         [TrainrunWaypoint(scheduled_at=4, waypoint=Waypoint(position=(25, 23), direction=1)),
          TrainrunWaypoint(scheduled_at=6, waypoint=Waypoint(position=(25, 24), direction=1)),
          TrainrunWaypoint(scheduled_at=7, waypoint=Waypoint(position=(25, 25), direction=1)),
@@ -1781,14 +1763,13 @@ def test_bugfix_sim_172():
          TrainrunWaypoint(scheduled_at=54, waypoint=Waypoint(position=(9, 24), direction=3)),
          TrainrunWaypoint(scheduled_at=55, waypoint=Waypoint(position=(9, 23), direction=3)),
          ])
-    compare_dicts(actual_route_dag_constraints.freeze_earliest, expected_freeze_earliest)
-    assert set(actual_route_dag_constraints.freeze_banned) == set([])
+    compare_dicts(actual_route_dag_constraints.earliest, expected_earliest)
 
 
 def test_bugfix_sim_175_no_path_splitting_forward():
     """No path splitting forward.
 
-    When the vertices marked by F are freezed, those marked by X must be banned!
+    When the vertices marked by F are freezed, those marked by X must be removed!
     F(1,0)
        |
     F(2,0) - F(2,1)
@@ -1829,16 +1810,16 @@ def test_bugfix_sim_175_no_path_splitting_forward():
     )
 
     experiment_freeze_pretty_print(actual_route_dag_constraints)
-    # (3,0) must be banned (forward) since the edge (2,0)->(3,1) is frozen and since (3,0) is a forward successor of (2,0)
+    # (3,0) must be removed (forward) since the edge (2,0)->(3,1) is frozen and since (3,0) is a forward successor of (2,0)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
-    # (4,0) must be banned since reachable forward only through (3,0) which is banned
+    # (4,0) must be removed since reachable forward only through (3,0)
     assert Waypoint(position=(4, 0), direction=0) not in topo.nodes
 
 
 def test_bugfix_sim_175_no_path_splitting_backward():
     """No path splitting backward.
-       When the vertices marked by F are freezed, those marked by X must be banned!
+       When the vertices marked by F are freezed, those marked by X must be removed
         (1,0)
           |
         (2,0) -  (2,1)
@@ -1877,16 +1858,16 @@ def test_bugfix_sim_175_no_path_splitting_backward():
         latest_arrival=6667)
 
     experiment_freeze_pretty_print(actual_route_dag_constraints)
-    # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
+    # (4,0) must be removed (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
-    # (3,0) must be since it cannot be reached backwards as (4,0) is banned.
+    # (3,0) must be removed since it cannot be reached backwards as (4,0) is removed.
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
 
 def test_bugfix_sim_175_no_path_splitting_notorious():
     """No path splitting backward.
-       When the vertices marked by F are freezed, those marked by X must be banned!
+       When the vertices marked by F are freezed, those marked by X must be removed!
         (1,0)
           |
         (2,0) -  (2,1)
@@ -1926,10 +1907,10 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
         latest_arrival=6667)
 
     experiment_freeze_pretty_print(actual_route_dag_constraints)
-    # (4,0) must be banned (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
+    # (4,0) must be removed (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
-    # (3,0) must be since it cannot be reached backwards as (4,0) is banned.
+    # (3,0) must be removed since it cannot be reached backwards as (4,0) is removed.
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
 

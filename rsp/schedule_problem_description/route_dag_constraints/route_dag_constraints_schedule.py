@@ -12,21 +12,19 @@ def _get_route_dag_constraints_for_scheduling(
         minimum_travel_time: int,
         latest_arrival: int
 ) -> RouteDAGConstraints:
-    freeze_earliest = {source_waypoint: 0}
-    freeze_latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)}
+    earliest = {source_waypoint: 0}
+    latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)}
     propagate(
-        latest_dict=freeze_latest,
-        earliest_dict=freeze_earliest,
+        latest_dict=latest,
+        earliest_dict=earliest,
         latest_arrival=latest_arrival,
         minimum_travel_time=minimum_travel_time,
-        force_freeze_earliest={source_waypoint},
-        force_freeze_latest=set(get_sinks_for_topo(topo)),
+        force_earliest={source_waypoint},
+        force_latest=set(get_sinks_for_topo(topo)),
         must_be_visited=set(),
         topo=topo,
     )
     return RouteDAGConstraints(
-        freeze_visit=[],
-        freeze_earliest=freeze_earliest,
-        freeze_latest=freeze_latest,
-        freeze_banned=[],
+        earliest=earliest,
+        latest=latest,
     )

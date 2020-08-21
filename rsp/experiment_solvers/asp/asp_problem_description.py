@@ -262,15 +262,13 @@ class ASPProblemDescription:
                                   )
 
             for (entry_waypoint, exit_waypoint) in topo.edges:
-                # do not add edge to the ASP model if one of the two vertices is banned!
-                if entry_waypoint not in freeze.freeze_banned and exit_waypoint not in freeze.freeze_banned:
-                    self._implement_route_section(
-                        agent_id=agent_id,
-                        entry_waypoint=entry_waypoint,
-                        exit_waypoint=exit_waypoint,
-                        resource_id=entry_waypoint.position,
-                        minimum_travel_time=schedule_problem_description.minimum_travel_time_dict[agent_id],
-                        route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
+                self._implement_route_section(
+                    agent_id=agent_id,
+                    entry_waypoint=entry_waypoint,
+                    exit_waypoint=exit_waypoint,
+                    resource_id=entry_waypoint.position,
+                    minimum_travel_time=schedule_problem_description.minimum_travel_time_dict[agent_id],
+                    route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
 
             _new_asp_program += self._translate_route_dag_constraints_to_asp(
                 agent_id=agent_id,
@@ -281,8 +279,8 @@ class ASPProblemDescription:
             for agent_id in self.schedule_problem_description.minimum_travel_time_dict:
                 agent_sink = list(get_sinks_for_topo(self.schedule_problem_description.topo_dict[agent_id]))[0]
                 agent_source = list(get_sources_for_topo(self.schedule_problem_description.topo_dict[agent_id]))[0]
-                earliest_arrival = self.schedule_problem_description.route_dag_constraints_dict[agent_id].freeze_earliest[agent_sink]
-                earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].freeze_earliest[agent_source]
+                earliest_arrival = self.schedule_problem_description.route_dag_constraints_dict[agent_id].earliest[agent_sink]
+                earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
 
@@ -326,7 +324,7 @@ class ASPProblemDescription:
         # 2019-12-03 discussion with Potsdam (SIM-146)
         # - no diff-constraints in addition to earliest/latest -> should be added immediately
         # - no route constraints in addition to visit -> should be added immediately
-        for waypoint, scheduled_at in freeze.freeze_latest.items():
+        for waypoint, scheduled_at in freeze.latest.items():
             vertex = self._sanitize_waypoint(waypoint)
             time = scheduled_at
 
@@ -334,7 +332,7 @@ class ASPProblemDescription:
             # l(t1,1,2).
             frozen.append(f"l({train},{vertex},{time}).")
 
-        for waypoint, scheduled_at in freeze.freeze_earliest.items():
+        for waypoint, scheduled_at in freeze.earliest.items():
             vertex = self._sanitize_waypoint(waypoint)
             time = scheduled_at
 

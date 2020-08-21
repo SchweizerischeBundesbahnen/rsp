@@ -85,7 +85,7 @@ def test_scheduling_propagate_earliest():
     earliest = _propagate_earliest(
         earliest_dict={source_waypoint: 0},
         minimum_travel_time=minimum_travel_time,
-        force_freeze_earliest={source_waypoint},
+        force_earliest={source_waypoint},
         topo=topo_dict[0],
     )
 
@@ -145,8 +145,8 @@ def test_scheduling_propagate_latest_backwards():
     propagate(
         earliest_dict={},
         latest_dict=latest,
-        force_freeze_earliest=set(),
-        force_freeze_latest=set(get_sinks_for_topo(topo_dict[0])),
+        force_earliest=set(),
+        force_latest=set(get_sinks_for_topo(topo_dict[0])),
         latest_arrival=latest_arrival,
         max_window_size_from_earliest=np.inf,
         minimum_travel_time=minimum_travel_time,
@@ -168,8 +168,8 @@ def test_scheduling_propagate_latest_forward():
     propagate(
         earliest_dict=earliest,
         latest_dict=latest,
-        force_freeze_earliest={source_waypoint},
-        force_freeze_latest=set(get_sinks_for_topo(topo_dict[0])),
+        force_earliest={source_waypoint},
+        force_latest=set(get_sinks_for_topo(topo_dict[0])),
         latest_arrival=latest_arrival,
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
@@ -239,8 +239,8 @@ def test_scheduling_propagate_latest_forward_backward_min():
     propagate(
         earliest_dict=earliest,
         latest_dict=latest,
-        force_freeze_earliest={source_waypoint},
-        force_freeze_latest=set(get_sinks_for_topo(topo_dict[0])),
+        force_earliest={source_waypoint},
+        force_latest=set(get_sinks_for_topo(topo_dict[0])),
         latest_arrival=latest_arrival,
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,

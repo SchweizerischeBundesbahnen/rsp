@@ -1,6 +1,5 @@
 from typing import Dict
 from typing import List
-from typing import Set
 
 import networkx as nx
 import numpy as np
@@ -100,8 +99,8 @@ def delta_zero_running(
         earliest_dict=earliest_dict,
         latest_dict=latest_dict,
         topo=topo,
-        force_freeze_earliest=set(earliest_dict.keys()),
-        force_freeze_latest=set(latest_dict.keys()),
+        force_earliest=set(earliest_dict.keys()),
+        force_latest=set(latest_dict.keys()),
         must_be_visited=must_be_visited,
         minimum_travel_time=minimum_travel_time,
         latest_arrival=latest_arrival,
@@ -109,32 +108,9 @@ def delta_zero_running(
     )
 
     return RouteDAGConstraints(
-        # TODO SIM-613->SIM-650 remove freeze_visit from RouteDAGConstraints?
-        freeze_visit=[],
-        freeze_earliest=earliest_dict,
-        # TODO SIM-613->SIM-650 remove freeze_visit from RouteDAGConstraints?
-        freeze_banned=set(),
-        freeze_latest=latest_dict
+        earliest=earliest_dict,
+        latest=latest_dict
     )
-
-
-def _collect_banned_as_not_reached(all_waypoints: List[Waypoint],
-                                   force_freeze_waypoints_set: Set[Waypoint],
-                                   reachable_set: Set[Waypoint]):
-    """Bans all that are not either in the forward or backward funnel of the
-    freezed ones.
-
-    Returns them as list for iteration and as set for containment test.
-    """
-    banned: List[Waypoint] = []
-    banned_set: Set[Waypoint] = set()
-    for waypoint in all_waypoints:
-        if waypoint not in reachable_set:
-            banned.append(waypoint)
-            banned_set.add(waypoint)
-            assert waypoint not in force_freeze_waypoints_set, f"{waypoint}"
-
-    return banned, banned_set
 
 
 def delta_zero(
@@ -185,45 +161,40 @@ def delta_zero(
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
         rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
-        freeze_latest = {sink: latest_arrival for sink in get_sinks_for_topo(topo)}
-        freeze_earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
+        latest = {sink: latest_arrival for sink in get_sinks_for_topo(topo)}
+        earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
         propagate(
-            earliest_dict=freeze_earliest,
-            latest_dict=freeze_latest,
+            earliest_dict=earliest,
+            latest_dict=latest,
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time,
-            force_freeze_earliest={schedule_trainrun[0].waypoint},
-            force_freeze_latest=set(get_sinks_for_topo(topo)),
+            force_earliest={schedule_trainrun[0].waypoint},
+            force_latest=set(get_sinks_for_topo(topo)),
             must_be_visited=set(),
             topo=topo,
         )
         route_dag_constraints = RouteDAGConstraints(
-            freeze_visit=[],
-            freeze_earliest=freeze_earliest,
-            freeze_latest=freeze_latest,
-            freeze_banned=[],
+            earliest=earliest,
+            latest=latest,
         )
         freeze: RouteDAGConstraints = route_dag_constraints
         # N.B. copy keys into new list (cannot delete keys while looping concurrently looping over them)
-        waypoints: List[Waypoint] = list(freeze.freeze_earliest.keys())
+        waypoints: List[Waypoint] = list(freeze.earliest.keys())
         for waypoint in waypoints:
-            if freeze.freeze_earliest[waypoint] > freeze.freeze_latest[waypoint]:
-                del freeze.freeze_latest[waypoint]
-                del freeze.freeze_earliest[waypoint]
-                freeze.freeze_banned.append(waypoint)
+            if freeze.earliest[waypoint] > freeze.latest[waypoint]:
+                del freeze.latest[waypoint]
+                del freeze.earliest[waypoint]
         return freeze
     elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
         rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         topo.remove_nodes_from(set(topo.nodes).difference(visited))
         return RouteDAGConstraints(
-            freeze_visit=[],
-            freeze_earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                             for trainrun_waypoint in schedule_trainrun},
-            freeze_latest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                           for trainrun_waypoint in schedule_trainrun},
-            freeze_banned=[],
+            earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+                      for trainrun_waypoint in schedule_trainrun},
+            latest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+                    for trainrun_waypoint in schedule_trainrun},
         )
     else:
         raise Exception(f"Unexepcted state for agent {agent_id} malfunction {malfunction}")

@@ -69,7 +69,7 @@ def test_costs_forced_delay_one_agent():
             minimum_travel_time=minimum_travel_time_dict[0],
             latest_arrival=latest_arrival)
         forced_delay = 5
-        route_dag_constraints.freeze_earliest[source_waypoint] = forced_delay
+        route_dag_constraints.earliest[source_waypoint] = forced_delay
         schedule_problem_description = ScheduleProblemDescription(
             route_dag_constraints_dict={0: route_dag_constraints},
             minimum_travel_time_dict=minimum_travel_time_dict,

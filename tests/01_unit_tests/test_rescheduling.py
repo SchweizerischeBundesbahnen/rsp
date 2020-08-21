@@ -441,14 +441,11 @@ def test_rescheduling_bottleneck():
         TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(17, 29), direction=0)),
         TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0))
     ]:
-        assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
-        assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_latest[trainrun_waypoint.waypoint]
-
-    print(_pp.pformat(freeze_dict[0].freeze_visit))
-    assert freeze_dict[0].freeze_visit == [], format(f"found {freeze_dict[0].freeze_visit}")
+        assert trainrun_waypoint.scheduled_at == freeze_dict[1].earliest[trainrun_waypoint.waypoint]
+        assert trainrun_waypoint.scheduled_at == freeze_dict[1].latest[trainrun_waypoint.waypoint]
 
     for trainrun_waypoint in [TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(15, 29), direction=0))]:
-        assert trainrun_waypoint.scheduled_at == freeze_dict[1].freeze_earliest[trainrun_waypoint.waypoint]
+        assert trainrun_waypoint.scheduled_at == freeze_dict[1].earliest[trainrun_waypoint.waypoint]
 
     for agent_id, _ in freeze_dict.items():
         verify_consistency_of_route_dag_constraints_for_agent(

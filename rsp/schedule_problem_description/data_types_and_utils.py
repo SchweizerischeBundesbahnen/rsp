@@ -6,7 +6,6 @@ from typing import List
 from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
-from typing import Type
 
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
@@ -19,18 +18,17 @@ AgentPaths = List[List[Waypoint]]
 AgentsPathsDict = Dict[int, AgentPaths]
 
 RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
-    ('freeze_visit', List[Waypoint]),
-    ('freeze_earliest', Dict[Waypoint, int]),
-    ('freeze_latest', Dict[Waypoint, int]),
-    ('freeze_banned', List[Waypoint])
+    ('earliest', Dict[Waypoint, int]),
+    ('latest', Dict[Waypoint, int])
 ])
+
 
 RouteDAGConstraintsDict = Dict[int, RouteDAGConstraints]
 RouteDagEdge = Tuple[Waypoint, Waypoint]
 RouteSectionPenalties = Dict[RouteDagEdge, int]
 WaypointPenalties = Dict[Waypoint, int]
 RouteSectionPenaltiesDict = Dict[int, RouteSectionPenalties]
-ScheduleProblemDescription: Type[ScheduleProblemDescription] = NamedTuple('ScheduleProblemDescription', [
+ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
     ('route_dag_constraints_dict', RouteDAGConstraintsDict),
     ('minimum_travel_time_dict', Dict[int, int]),
     ('topo_dict', Dict[int, nx.DiGraph]),
@@ -166,28 +164,13 @@ def get_paths_for_route_dag_constraints(
 
     Parameters
     ----------
-    agent_paths
     route_dag_constraints
 
     Returns
     -------
     """
-    topo_reduced = get_reduced_dag_by_constraints(route_dag_constraints=route_dag_constraints, topo=topo)
-    paths = get_paths_in_route_dag(topo_reduced)
+    paths = get_paths_in_route_dag(topo)
     return paths
-
-
-def get_reduced_dag_by_constraints(
-        route_dag_constraints: RouteDAGConstraints,
-        topo: nx.DiGraph):
-    """Return new `nx.DiGraph` where banned nodes/edges are removed."""
-    topo_reduced = nx.DiGraph()
-    if route_dag_constraints:
-        for edge in topo.edges:
-            (wp_from, wp_to) = edge
-            if wp_from not in route_dag_constraints.freeze_banned and wp_to not in route_dag_constraints.freeze_banned:
-                topo_reduced.add_edge(*edge)
-    return topo_reduced
 
 
 def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> TopoDict:
