@@ -123,12 +123,12 @@ def _pickle_load(file_name: str, folder: Optional[str] = None):
         return pickle.load(handle)
 
 
-# TODO SIM-650 topo id and schedule id
 def save_schedule(schedule: Schedule,
                   schedule_parameters: ScheduleParameters,
                   base_directory: str,
                   ):
-    """Persist `ScheduleAndMalfunction` to a file.
+    """Persist `Schedule` and `ScheduleParameters` to a file.
+
     Parameters
     ----------
     schedule_parameters
@@ -510,8 +510,6 @@ def run_experiment_from_to_file(
         experiment_output_directory: str,
         verbose: bool = False,
         debug: bool = False,
-        # TODO SIM-650 necessary?
-        with_file_handler_to_rsp_logger: bool = True
 ):
     """A.2 + B. Run and save one experiment from experiment parameters.
     Parameters
@@ -522,18 +520,16 @@ def run_experiment_from_to_file(
         contains reference to infrastructure and schedules
     verbose
     experiment_output_directory
-    with_file_handler_to_rsp_logger
     debug
     """
 
     experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     # add logging file handler in this thread
-    if with_file_handler_to_rsp_logger:
-        stdout_log_file = os.path.join(experiment_data_directory, f"log.txt")
-        stderr_log_file = os.path.join(experiment_data_directory, f"err.txt")
-        stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
-        stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
+    stdout_log_file = os.path.join(experiment_data_directory, f"log.txt")
+    stderr_log_file = os.path.join(experiment_data_directory, f"err.txt")
+    stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
+    stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
 
     rsp_logger.info(f"start experiment {experiment_parameters.experiment_id}")
     try:
@@ -623,9 +619,8 @@ def run_experiment_from_to_file(
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:
-        if with_file_handler_to_rsp_logger:
-            remove_file_handler_from_rsp_logger(stdout_log_fh)
-            remove_file_handler_from_rsp_logger(stderr_log_fh)
+        remove_file_handler_from_rsp_logger(stdout_log_fh)
+        remove_file_handler_from_rsp_logger(stderr_log_fh)
         rsp_logger.info(f"end experiment {experiment_parameters.experiment_id}")
 
 
@@ -637,7 +632,6 @@ def run_experiment_agenda(
         # take only half of avilable cpus so the machine stays responsive
         run_experiments_parallel: int = AVAILABLE_CPUS // 2,
         verbose: bool = False,
-        with_file_handler_to_rsp_logger: bool = True
 ) -> str:
     """Run A.2 + B.
     Parameters
@@ -653,7 +647,6 @@ def run_experiment_agenda(
         run experiments in parallel
     verbose: bool
         Print additional information
-    with_file_handler_to_rsp_logger
 
     Returns
     -------
@@ -671,11 +664,10 @@ def run_experiment_agenda(
             "Using only one process in pool might cause pool to stall sometimes. Use more than one process in pool?")
 
     # tee stdout to log file
-    if with_file_handler_to_rsp_logger:
-        stdout_log_file = os.path.join(experiment_data_directory, "log.txt")
-        stderr_log_file = os.path.join(experiment_data_directory, "err.txt")
-        stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
-        stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
+    stdout_log_file = os.path.join(experiment_data_directory, "log.txt")
+    stderr_log_file = os.path.join(experiment_data_directory, "err.txt")
+    stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
+    stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
     try:
         if experiment_ids is not None:
             filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
@@ -708,7 +700,6 @@ def run_experiment_agenda(
             verbose=verbose,
             experiment_base_directory=experiment_base_directory,
             experiment_output_directory=experiment_output_directory,
-            with_file_handler_to_rsp_logger=with_file_handler_to_rsp_logger
         )
 
         for pid_done in tqdm.tqdm(
@@ -723,12 +714,10 @@ def run_experiment_agenda(
 
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE)
         newline_and_flush_stdout_and_stderr()
-        if with_file_handler_to_rsp_logger:
-            _print_error_summary(experiment_data_directory)
+        _print_error_summary(experiment_data_directory)
     finally:
-        if with_file_handler_to_rsp_logger:
-            remove_file_handler_from_rsp_logger(stdout_log_fh)
-            remove_file_handler_from_rsp_logger(stderr_log_fh)
+        remove_file_handler_from_rsp_logger(stdout_log_fh)
+        remove_file_handler_from_rsp_logger(stderr_log_fh)
 
     return experiment_output_directory
 

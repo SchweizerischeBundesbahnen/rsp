@@ -102,13 +102,11 @@ ScheduleParameters = NamedTuple('ScheduleParameters', [
     ('schedule_id', int),
 
     ('asp_seed_value', int),
-    # TODO SIM-650 use this value
     ('number_of_shortest_paths_per_agent_schedule', int),
 ])
 
 ScheduleParametersRange = NamedTuple('ScheduleParametersRange', [
     ('asp_seed_value', List[int]),
-    # TODO SIM-650 use this value
     ('number_of_shortest_paths_per_agent_schedule', List[int]),
 ])
 

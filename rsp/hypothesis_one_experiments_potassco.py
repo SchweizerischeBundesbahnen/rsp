@@ -78,7 +78,6 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
                 parallel_compute=parallel_compute,
                 experiment_ids=experiment_ids,
                 run_analysis=False,
-                with_file_handler_to_rsp_logger=True
             )
             # effect of SEQ heuristic (SIM-167)
             set_defaults()
@@ -90,7 +89,6 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
                 parallel_compute=parallel_compute,
                 experiment_ids=experiment_ids,
                 run_analysis=False,
-                with_file_handler_to_rsp_logger=True
             )
             # effect of delay model resolution (SIM-542)
             set_defaults()
@@ -102,7 +100,6 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
                 parallel_compute=parallel_compute,
                 experiment_ids=experiment_ids,
                 run_analysis=False,
-                with_file_handler_to_rsp_logger=True
             )
             set_defaults()
             set_delay_model_resolution(5)
@@ -113,7 +110,6 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
                 parallel_compute=parallel_compute,
                 experiment_ids=experiment_ids,
                 run_analysis=False,
-                with_file_handler_to_rsp_logger=True
             )
             set_defaults()
             set_delay_model_resolution(10)
@@ -124,7 +120,6 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
                 parallel_compute=parallel_compute,
                 experiment_ids=experiment_ids,
                 run_analysis=False,
-                with_file_handler_to_rsp_logger=True
             )
             # # effect of --propagate (SIM-543)
             set_defaults()
@@ -136,7 +131,6 @@ def main(gen_schedule: bool = True, run_experiments: bool = True, base_directory
                 parallel_compute=parallel_compute,
                 experiment_ids=experiment_ids,
                 run_analysis=False,
-                with_file_handler_to_rsp_logger=True
             )
         finally:
             set_defaults()
