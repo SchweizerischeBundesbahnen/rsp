@@ -203,16 +203,13 @@ def load_infrastructure(base_directory: str, infra_id: int, re_save: bool = Fals
     return infra, infra_parameters
 
 
-# TODO SIM-650 pass topo_id and schedule_id
-def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0, re_save: bool = False) -> Tuple[Schedule, ScheduleParameters]:
+def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0) -> Tuple[Schedule, ScheduleParameters]:
     """Load a persisted `Schedule` from a file.
     Parameters
     ----------
+    schedule_id
     base_directory
     infra_id
-    re_save
-        activate temporarily if module path used in pickle has changed,
-        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
 
 
     Returns
@@ -232,7 +229,8 @@ def run_experiment_in_memory(
         debug: bool = False,
         visualize_route_dag_constraints: bool = False
 ) -> ExperimentResults:
-    """B2. Runs the main part of the experiment: re-scheduling full and delta.
+    """A.2 + B Runs the main part of the experiment: re-scheduling full and
+    delta.
 
     Parameters
     ----------
@@ -251,7 +249,7 @@ def run_experiment_in_memory(
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
     # --------------------------------------------------------------------------------------
-    # 1. Determine malfunction (deterministically from experiment parameters)
+    # A.2 Determine malfunction (deterministically from experiment parameters)
     # --------------------------------------------------------------------------------------
     experiment_malfunction = gen_malfunction(
         earliest_malfunction=experiment_parameters.earliest_malfunction,
@@ -266,7 +264,7 @@ def run_experiment_in_memory(
         )
 
     # --------------------------------------------------------------------------------------
-    # 2. Re-schedule Full
+    # B.1. Re-schedule Full
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
     # clone topos since propagation will modify them
@@ -308,7 +306,7 @@ def run_experiment_in_memory(
         print(f"  **** full re-schedule_solution=\n{full_reschedule_trainruns}")
 
     # --------------------------------------------------------------------------------------
-    # 3. Re-Schedule Delta
+    # B.2 Re-Schedule Delta
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3. reschedule delta")
     # clone topos since propagation will modify them
@@ -350,7 +348,7 @@ def run_experiment_in_memory(
         print(delta_reschedule_result.trainruns_dict)
 
     # --------------------------------------------------------------------------------------
-    # 4. Result
+    # B.3. Result
     # --------------------------------------------------------------------------------------
     current_results = ExperimentResults(
         experiment_parameters=experiment_parameters,
@@ -410,7 +408,7 @@ def gen_infrastructure(
         infra_parameters: InfrastructureParameters
 ) -> Infrastructure:
     """
-    A.1 infrastructure generation
+    A.1.1 infrastructure generation
     Parameters
     ----------
     infra_parameters
@@ -430,7 +428,7 @@ def gen_schedule(
         debug: bool = False
 
 ) -> Schedule:
-    """A.2 Create schedule and malfunction from experiment parameters.
+    """A.1.2 Create schedule from parameter ranges.
 
     Parameters
     ----------
@@ -511,9 +509,9 @@ def run_experiment_from_to_file(
         verbose: bool = False,
         debug: bool = False,
         # TODO SIM-650 necessary?
-        with_file_handler_to_rsp_logger: bool = False
+        with_file_handler_to_rsp_logger: bool = True
 ):
-    """B. Run and save one experiment from experiment parameters.
+    """A.2 + B. Run and save one experiment from experiment parameters.
     Parameters
     ----------
     experiment_base_directory
@@ -637,9 +635,9 @@ def run_experiment_agenda(
         # take only half of avilable cpus so the machine stays responsive
         run_experiments_parallel: int = AVAILABLE_CPUS // 2,
         verbose: bool = False,
-        with_file_handler_to_rsp_logger: bool = False
+        with_file_handler_to_rsp_logger: bool = True
 ) -> str:
-    """Run B.
+    """Run A.2 + B.
     Parameters
     ----------
     experiment_output_base_directory
@@ -677,7 +675,6 @@ def run_experiment_agenda(
         stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
         stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
     try:
-        # TODO SIM-650 here we should loop over the files in the agenda folder instead of inspecting the agenda!
         if experiment_ids is not None:
             filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
             experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
@@ -863,14 +860,16 @@ def create_infrastructure_and_schedule_from_ranges(
     return list_of_schedule_parameters
 
 
-# TODO SIM-650 implement infra_id and schedule_id filters
 def list_infrastructure_and_schedule_params_from_base_directory(
-        base_directory: str
+        base_directory: str,
+        infra_ids: List[int] = None
 ) -> Tuple[List[InfrastructureParameters], Dict[int, List[ScheduleParameters]]]:
     infra_schedule_dict = {}
     infra_parameters_list = []
     nb_infras = len(os.listdir(f'{base_directory}/infra/'))
     for infra_id in range(nb_infras):
+        if infra_ids is not None and infra_id not in infra_ids:
+            continue
         _, infra_parameters = load_infrastructure(
             base_directory=base_directory,
             infra_id=infra_id
@@ -928,7 +927,6 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
     )
 
 
-# TODO SIM-650 use it
 def expand_range_to_parameter_set(
         parameter_ranges: List[Tuple[int, int, int]],
         debug: bool = False
@@ -1362,15 +1360,22 @@ def _make_suffix(alt_index: Optional[int]) -> str:
     return suffix
 
 
-# TODO SIM-650 labelling A.*???
-# A.2
 def hypothesis_gen_infrastructure_and_schedule_full_agenda(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
         base_directory: str,
-        # TODO SIM-650 this should
         flatland_seed: int = 12,
         experiments_per_grid_element: int = 1,
         experiment_name: str = "exp_hypothesis_one"):
+    """A.1 + A.2.
+
+    Parameters
+    ----------
+    parameter_ranges_and_speed_data
+    base_directory
+    flatland_seed
+    experiments_per_grid_element
+    experiment_name
+    """
     rsp_logger.info("GEN INFRASTRUCTURE AND SCHEDULE")
 
     experiment_agenda: ExperimentAgenda = create_experiment_agenda_from_parameter_ranges_and_speed_data(

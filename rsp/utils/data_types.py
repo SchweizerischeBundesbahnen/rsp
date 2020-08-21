@@ -33,6 +33,7 @@ SymmetricEncounterGraphDistance = NamedTuple('SymmetricEncounterGraphDistance', 
     ('proximity', float)
 ])
 
+# @deprecated(reason="You should use hiearchy level ranges.")
 ParameterRanges = NamedTuple('ParameterRanges', [
     # infrastructure and agent placement
     # 0: size_range
@@ -45,9 +46,6 @@ ParameterRanges = NamedTuple('ParameterRanges', [
     ('out_city_rail_range', List[int]),
     # 4: city_range
     ('city_range', List[int]),
-
-
-    # schedule
 
     # malfunction
     # 5: earliest_malfunction
@@ -67,6 +65,7 @@ ParameterRanges = NamedTuple('ParameterRanges', [
     # 11: weight_lateness_seconds
     ('weight_lateness_seconds', List[int])
 ])
+# @deprecated(reason="You should use hiearchy level ranges.")
 ParameterRangesAndSpeedData = NamedTuple('ParameterRangesAndSpeedData', [
     ('parameter_ranges', ParameterRanges),
     ('speed_data', SpeedData)
