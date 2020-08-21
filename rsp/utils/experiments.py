@@ -63,6 +63,7 @@ from rsp.schedule_problem_description.analysis.rescheduling_verification_utils i
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import apply_weight_route_change
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
@@ -441,7 +442,8 @@ def gen_schedule(
     """
 
     schedule_problem = create_schedule_problem_description_from_instructure(
-        infrastructure=infrastructure
+        infrastructure=infrastructure,
+        number_of_shortest_paths_per_agent_schedule=schedule_parameters.number_of_shortest_paths_per_agent_schedule
     )
 
     schedule_result = asp_schedule_wrapper(
@@ -1092,20 +1094,33 @@ def create_infrastructure_from_rail_env(env: RailEnv, k: int):
 
 
 def create_schedule_problem_description_from_instructure(
-        infrastructure: Infrastructure
+        infrastructure: Infrastructure,
+        number_of_shortest_paths_per_agent_schedule: int
 ) -> ScheduleProblemDescription:
+    # deep copy dict
+    topo_dict = {
+        agent_id: topo.copy()
+        for agent_id, topo in infrastructure.topo_dict.items()
+    }
+    # reduce topo_dict to number_of_shortest_paths_per_agent_schedule
+    for _, topo in topo_dict.items():
+        paths = get_paths_in_route_dag(topo)
+        paths = paths[:number_of_shortest_paths_per_agent_schedule]
+        remaining_vertices = {vertex for path in paths for vertex in path}
+        topo.remove_nodes_from(set(topo.nodes).difference(remaining_vertices))
+
     schedule_problem_description = ScheduleProblemDescription(
         route_dag_constraints_dict={
             agent_id: _get_route_dag_constraints_for_scheduling(
                 minimum_travel_time=infrastructure.minimum_travel_time_dict[agent_id],
-                topo=infrastructure.topo_dict[agent_id],
-                source_waypoint=next(get_sources_for_topo(infrastructure.topo_dict[agent_id])),
+                topo=topo_dict[agent_id],
+                source_waypoint=next(get_sources_for_topo(topo_dict[agent_id])),
                 latest_arrival=infrastructure.max_episode_steps)
-            for agent_id, topo in infrastructure.topo_dict.items()},
+            for agent_id, topo in topo_dict.items()},
         minimum_travel_time_dict=infrastructure.minimum_travel_time_dict,
-        topo_dict=infrastructure.topo_dict,
+        topo_dict=topo_dict,
         max_episode_steps=infrastructure.max_episode_steps,
-        route_section_penalties={agent_id: {} for agent_id in infrastructure.topo_dict.keys()},
+        route_section_penalties={agent_id: {} for agent_id in topo_dict.keys()},
         weight_lateness_seconds=1
     )
     return schedule_problem_description

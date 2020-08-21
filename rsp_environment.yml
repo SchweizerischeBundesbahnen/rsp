@@ -37,7 +37,7 @@ dependencies:
       - cssselect2==0.2.2
       - cycler==0.10.0
       - defusedxml==0.6.0
-      - deprecated=1.2.10
+      - deprecated==1.2.10
       - entrypoints==0.3
       - eradicate==1.0
       - ffmpeg-python==0.2.0

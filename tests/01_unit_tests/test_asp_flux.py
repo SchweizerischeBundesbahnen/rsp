@@ -66,7 +66,10 @@ def test_simple_rail_asp_one_agent():
     start_solver = time.time()
 
     k = 1
-    tc = create_schedule_problem_description_from_instructure(create_infrastructure_from_rail_env(env, k=k))
+    tc = create_schedule_problem_description_from_instructure(
+        infrastructure=create_infrastructure_from_rail_env(env, k=k),
+        number_of_shortest_paths_per_agent_schedule=k
+    )
     problem = ASPProblemDescription.factory_scheduling(schedule_problem_description=tc)
 
     print(problem.asp_program)

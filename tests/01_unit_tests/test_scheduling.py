@@ -94,7 +94,10 @@ def test_scheduling():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
     assert static_env.rail.grid.tolist() == expected_grid
 
-    schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(create_infrastructure_from_rail_env(static_env, 10))
+    schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(
+        infrastructure=create_infrastructure_from_rail_env(static_env, 10),
+        number_of_shortest_paths_per_agent_schedule=10
+    )
     schedule_result = asp_schedule_wrapper(
         schedule_problem_description=schedule_problem,
         asp_seed_value=94,

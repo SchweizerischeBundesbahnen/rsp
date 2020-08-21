@@ -95,7 +95,6 @@ InfrastructureParametersRange = NamedTuple('InfrastructureParameters', [
     ('max_rail_in_city', List[int]),
     ('number_of_agents', List[int]),
     ('number_of_shortest_paths_per_agent', List[int]),
-    # TODO SIM-650: flatland_seed in range?!
 ])
 
 ScheduleParameters = NamedTuple('ScheduleParameters', [
