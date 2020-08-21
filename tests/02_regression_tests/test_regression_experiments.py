@@ -251,7 +251,7 @@ def test_hypothesis_one_pipeline_all_in_one():
         f"expected={experiment_parameters.asp_seed_value}"
 
 
-def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
+def test_run_alpha_beta(regen_schedule: bool = False):
     """Ensure that we get the exact same solution if we multiply the weights
     for route change and lateness by the same factor."""
 
@@ -295,17 +295,6 @@ def test_run_alpha_beta(regen_schedule: bool = False, re_save: bool = False):
 
     static_rail_env = create_env_from_experiment_parameters(experiment_parameters.infra_parameters)
     static_rail_env.load_resource('tests.02_regression_tests.data.alpha_beta', "static_env_alpha_beta.pkl")
-
-    # used if module path used in pickle has changed
-    # use with wrapper file https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
-    # TODO remove re_save stuff?
-    if re_save:
-        for experiment_id in range(2):
-            load_schedule(
-                base_directory="tests/02_regression_tests/data/alpha_beta",
-                infra_id=experiment_id,
-                re_save=True
-            )
 
     # since schedule generation is not deterministic, we need to pickle the output of A.2 experiment setup
     # regen_schedule to fix the regression test in case of breaking API change in the pickled content

@@ -184,15 +184,12 @@ def exists_malfunction(base_directory: str, experiment_id: int) -> bool:
     return os.path.isfile(file_name)
 
 
-def load_infrastructure(base_directory: str, infra_id: int, re_save: bool = False) -> Tuple[Infrastructure, InfrastructureParameters]:
+def load_infrastructure(base_directory: str, infra_id: int) -> Tuple[Infrastructure, InfrastructureParameters]:
     """Load a persisted `Infrastructure` from a file.
     Parameters
     ----------
     base_directory
     infra_id
-    re_save
-        activate temporarily if module path used in pickle has changed,
-        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
 
 
     Returns
@@ -1199,12 +1196,11 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name: str,
-                                                        experiment_ids: List[int] = None,
-                                                        nonify_problem_and_results: bool = False,
-                                                        re_save: bool = False
-                                                        ) -> \
-        List[ExperimentResultsAnalysis]:
+def load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name: str,
+        experiment_ids: List[int] = None,
+        nonify_problem_and_results: bool = False,
+) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
     Parameters
     ----------
@@ -1215,9 +1211,6 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
     nonify_problem_and_results
         in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
-    re_save
-        activate temporarily if module path used in pickle has changed,
-        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
     Returns
     -------
     DataFrame containing the loaded experiment results
@@ -1240,10 +1233,6 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
             continue
         with open(file_name, 'rb') as handle:
             file_data: ExperimentResults = pickle.load(handle)
-        if re_save:
-            with open(file_name, 'wb') as handle:
-                file_data = ExperimentResults(**file_data._asdict())
-                pickle.dump(file_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
         experiment_results_list.append(expand_experiment_results_for_analysis(
             file_data,
             nonify_problem_and_results=nonify_problem_and_results))
@@ -1256,7 +1245,6 @@ def load_and_expand_experiment_results_from_data_folder(experiment_data_folder_n
 def load_experiment_result_without_expanding(
         experiment_data_folder_name: str,
         experiment_id: int,
-        re_save: bool = False
 ) -> Tuple[ExperimentResults, str]:
     """
 
@@ -1264,10 +1252,6 @@ def load_experiment_result_without_expanding(
     ----------
     experiment_data_folder_name
     experiment_id
-    re_save
-        activate temporarily if module path used in pickle has changed,
-        use together with wrapper file for the old module https://stackoverflow.com/questions/13398462/unpickling-python-objects-with-a-changed-module-path
-
 
     Returns
     -------
@@ -1287,9 +1271,6 @@ def load_experiment_result_without_expanding(
             continue
         with open(file_name, 'rb') as handle:
             experiment_result: ExperimentResults = pickle.load(handle)
-        if re_save:
-            with open(file_name, 'wb') as handle:
-                pickle.dump(ExperimentResults(**experiment_result._asdict()), handle, protocol=pickle.HIGHEST_PROTOCOL)
         return experiment_result, file_name
 
 
