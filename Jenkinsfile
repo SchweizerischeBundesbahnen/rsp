@@ -147,16 +147,16 @@ git submodule update --init --recursive
                 }
             }
         }
-        stage("Integration Test Notebooks") {
-            when {
-                anyOf {
-                    // if the build was triggered manually with deploy=true, skip image building
-                    expression { !params.deploy }
-                    // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
-                    expression { env.CHANGE_ID == null }
-                }
-            }
 // TODO SIM-622 temporarily commented out notebook tests -> we first need to generate data in rsp-data again.
+//        stage("Integration Test Notebooks") {
+//            when {
+//                anyOf {
+//                    // if the build was triggered manually with deploy=true, skip image building
+//                    expression { !params.deploy }
+//                    // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
+//                    expression { env.CHANGE_ID == null }
+//                }
+//            }
 //            steps {
 //                script {
 //                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
