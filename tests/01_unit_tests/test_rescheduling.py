@@ -12,6 +12,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
@@ -54,6 +55,7 @@ test_parameters = ExperimentParameters(
 
     earliest_malfunction=20,
     malfunction_duration=20,
+    malfunction_agend_id=0,
     weight_route_change=1,
     weight_lateness_seconds=1,
     max_window_size_from_earliest=np.inf
@@ -410,9 +412,10 @@ def test_rescheduling_bottleneck():
 
     # we derive the re-schedule problem from the schedule problem
     k = 10
+    infrastructure = create_infrastructure_from_rail_env(static_env, k=k)
     schedule_problem = create_schedule_problem_description_from_instructure(
-        infrastructure=create_infrastructure_from_rail_env(static_env, k=k),
-        number_of_shortest_paths_per_agent_schedule=k
+        infrastructure=infrastructure,
+        number_of_shortest_paths_per_agent_schedule=10
     )
     verify_trainrun_dict_for_schedule_problem(schedule_problem=schedule_problem, trainrun_dict=fake_schedule)
     reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
@@ -420,7 +423,7 @@ def test_rescheduling_bottleneck():
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                   for agent in static_env.agents},
-        topo_dict=schedule_problem.topo_dict,
+        topo_dict=infrastructure.topo_dict,
         latest_arrival=static_env._max_episode_steps
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem.route_dag_constraints_dict
@@ -453,14 +456,15 @@ def test_rescheduling_bottleneck():
             route_dag_constraints=freeze_dict[agent_id],
             topo=reschedule_problem.topo_dict[agent_id])
 
+    for agent_id, topo in schedule_problem.topo_dict.items():
+        print(f"schedule_problem {agent_id} has {len(get_paths_in_route_dag(topo))}")
+        print(list(topo.nodes))
+    for agent_id, topo in reschedule_problem.topo_dict.items():
+        print(f"reschedule_problem {agent_id} has {len(get_paths_in_route_dag(topo))}")
+        print(list(topo.nodes))
+
     full_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_zero_for_all_agents(
-            malfunction=fake_malfunction,
-            schedule_trainruns=fake_schedule,
-            minimum_travel_time_dict=reschedule_problem.minimum_travel_time_dict,
-            latest_arrival=static_env._max_episode_steps,
-            topo_dict=reschedule_problem.topo_dict
-        ),
+        reschedule_problem=reschedule_problem,
         asp_seed_value=94
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict

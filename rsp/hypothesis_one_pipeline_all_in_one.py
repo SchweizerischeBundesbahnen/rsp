@@ -1,3 +1,4 @@
+from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -6,6 +7,7 @@ import numpy as np
 
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.utils.data_types import ExperimentAgenda
+from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import parameter_ranges_and_speed_data_to_hiearchical
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
@@ -92,7 +94,6 @@ def get_agenda_pipeline_params_003_a_bit_more_advanced() -> ParameterRangesAndSp
 def hypothesis_one_pipeline_all_in_one(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
         experiment_base_directory: str,
-        experiment_ids: Optional[List[int]] = None,
         qualitative_analysis_experiment_ids: Optional[List[int]] = None,
         asp_export_experiment_ids: Optional[List[int]] = None,
         experiment_name: str = "exp_hypothesis_one",
@@ -149,7 +150,6 @@ def hypothesis_one_pipeline_all_in_one(
         experiment_base_directory=experiment_base_directory,
         reschedule_parameters_range=reschedule_parameters_range,
         experiment_name=experiment_name,
-        experiment_ids=experiment_ids,
         parallel_compute=parallel_compute,
     )
 
@@ -169,7 +169,7 @@ def list_from_base_directory_and_run_experiment_agenda(
         reschedule_parameters_range: ReScheduleParametersRange,
         experiment_base_directory: str,
         experiment_name: str,
-        experiment_ids: List[int] = None,
+        filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiments_per_grid_element: int = 1
 ):
@@ -187,8 +187,8 @@ def list_from_base_directory_and_run_experiment_agenda(
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
+        filter_experiment_agenda=filter_experiment_agenda,
         verbose=False,
-        experiment_ids=experiment_ids,
         experiment_base_directory=experiment_base_directory
     )
     return experiment_agenda, experiment_output_directory

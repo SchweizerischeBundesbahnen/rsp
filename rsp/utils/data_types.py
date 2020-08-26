@@ -116,6 +116,9 @@ ReScheduleParametersRange = NamedTuple('ReScheduleParametersRange', [
     # 6: malfunction_duration
     ('malfunction_duration', List[int]),
 
+    #
+    ('malfunction_agent_id', List[int]),
+
     # rescheduling
     # 7: number_of_shortest_paths_per_agent
     ('number_of_shortest_paths_per_agent', List[int]),
@@ -134,6 +137,8 @@ ReScheduleParameters = NamedTuple('ReScheduleParameters', [
     ('earliest_malfunction', int),
     # 6: malfunction_duration
     ('malfunction_duration', int),
+
+    ('malfunction_agend_id', int),
 
     # rescheduling
     # 7: number_of_shortest_paths_per_agent
@@ -158,6 +163,7 @@ ExperimentParameters = NamedTuple('ExperimentParameters', [
 
     ('earliest_malfunction', int),
     ('malfunction_duration', int),
+    ('malfunction_agend_id', int),
     ('weight_route_change', int),
     ('weight_lateness_seconds', int),
     ('max_window_size_from_earliest', int)
@@ -190,6 +196,7 @@ def parameter_ranges_and_speed_data_to_hiearchical(
            ), ReScheduleParametersRange(
         earliest_malfunction=parameter_ranges_and_speed_data.parameter_ranges.earliest_malfunction,
         malfunction_duration=parameter_ranges_and_speed_data.parameter_ranges.malfunction_duration,
+        malfunction_agent_id=[0, 0, 1],
         number_of_shortest_paths_per_agent=parameter_ranges_and_speed_data.parameter_ranges.number_of_shortest_paths_per_agent,
         max_window_size_from_earliest=parameter_ranges_and_speed_data.parameter_ranges.max_window_size_from_earliest,
         asp_seed_value=parameter_ranges_and_speed_data.parameter_ranges.asp_seed_value,

@@ -22,6 +22,7 @@ from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import gen_infrastructure
 from rsp.utils.experiments import gen_schedule
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.utils.experiments import load_infrastructure
 from rsp.utils.experiments import load_schedule
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_in_memory
@@ -105,6 +106,7 @@ def test_created_env_tuple():
 
         earliest_malfunction=10,
         malfunction_duration=20,
+        malfunction_agend_id=0,
         weight_route_change=1,
         weight_lateness_seconds=1,
         max_window_size_from_earliest=np.inf
@@ -153,6 +155,7 @@ def test_regression_experiment_agenda(regen: bool = False):
 
             earliest_malfunction=20,
             malfunction_duration=20,
+            malfunction_agend_id=0,
             weight_route_change=1,
             weight_lateness_seconds=1,
             max_window_size_from_earliest=np.inf
@@ -281,6 +284,7 @@ def test_run_alpha_beta(regen_schedule: bool = False):
 
         earliest_malfunction=20,
         malfunction_duration=20,
+        malfunction_agend_id=0,
         weight_route_change=20,
         weight_lateness_seconds=1,
         max_window_size_from_earliest=np.inf
@@ -316,7 +320,14 @@ def test_run_alpha_beta(regen_schedule: bool = False):
             schedule=schedule,
             schedule_parameters=experiment_parameters.schedule_parameters,
             base_directory="tests/02_regression_tests/data/alpha_beta")
-
+    infra_scaled, _ = load_infrastructure(
+        base_directory="tests/02_regression_tests/data/alpha_beta",
+        infra_id=0
+    )
+    infra, _ = load_infrastructure(
+        base_directory="tests/02_regression_tests/data/alpha_beta",
+        infra_id=0
+    )
     schedule_scaled, _ = load_schedule(
         base_directory="tests/02_regression_tests/data/alpha_beta",
         infra_id=0
@@ -330,11 +341,13 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     experiment_result_scaled: ExperimentResults = run_experiment_in_memory(
         schedule=schedule_scaled,
         experiment_parameters=experiment_parameters_scaled,
+        infrastructure_topo_dict=infra_scaled.topo_dict
     )
 
     experiment_result: ExperimentResults = run_experiment_in_memory(
         schedule=schedule,
         experiment_parameters=experiment_parameters,
+        infrastructure_topo_dict=infra.topo_dict
     )
 
     # although re-scheduling is not deterministic, it should produce solutions with the same costs

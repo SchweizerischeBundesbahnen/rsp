@@ -39,6 +39,7 @@ import time
 import traceback
 from functools import partial
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -262,6 +263,7 @@ def run_experiment_in_memory(
     experiment_malfunction = gen_malfunction(
         earliest_malfunction=experiment_parameters.earliest_malfunction,
         malfunction_duration=experiment_parameters.malfunction_duration,
+        malfunction_agent_id=experiment_parameters.malfunction_agend_id,
         schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
     )
 
@@ -285,6 +287,7 @@ def run_experiment_in_memory(
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         topo_dict=full_reschedule_topo_dict
     )
+    # TODO SIM-650 move apply_weight_route_change into delta_???
     full_reschedule_problem = apply_weight_route_change(
         schedule_problem=full_reschedule_problem,
         weight_route_change=experiment_parameters.weight_route_change,
@@ -328,6 +331,7 @@ def run_experiment_in_memory(
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
     )
+    # TODO SIM-650 move apply_weight_route_change into delta_???
     delta_reschedule_problem = apply_weight_route_change(
         schedule_problem=delta_reschedule_problem,
         weight_route_change=experiment_parameters.weight_route_change,
@@ -464,8 +468,7 @@ def gen_malfunction(
         earliest_malfunction: int,
         malfunction_duration: int,
         schedule_trainruns: TrainrunDict,
-        # TODO SIM-516 agent_id=0 hard-coded?
-        malfunction_agent_id: int = 0,
+        malfunction_agent_id: int,
 ) -> ExperimentMalfunction:
     """A.2.2. Create malfunction.
 
@@ -642,7 +645,7 @@ def run_experiment_agenda(
         experiment_agenda: ExperimentAgenda,
         experiment_base_directory: str,
         experiment_output_base_directory: Optional[str] = None,
-        experiment_ids: Optional[List[int]] = None,
+        filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
         # take only half of avilable cpus so the machine stays responsive
         run_experiments_parallel: int = AVAILABLE_CPUS // 2,
         verbose: bool = False,
@@ -650,13 +653,14 @@ def run_experiment_agenda(
     """Run A.2 + B.
     Parameters
     ----------
+
     experiment_output_base_directory
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_base_directory: str
         where are schedules etc?
-    experiment_ids: Optional[List[int]]
-        List of experiment IDs we want to run
+    filter_experiment_agenda
+        filter which experiment to run
     run_experiments_parallel: in
         run experiments in parallel
     verbose: bool
@@ -683,9 +687,8 @@ def run_experiment_agenda(
     stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
     stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
     try:
-        if experiment_ids is not None:
-            filter_experiment_agenda_partial = partial(filter_experiment_agenda, experiment_ids=experiment_ids)
-            experiments_filtered = filter(filter_experiment_agenda_partial, experiment_agenda.experiments)
+        if filter_experiment_agenda is not None:
+            experiments_filtered = filter(filter_experiment_agenda, experiment_agenda.experiments)
             experiment_agenda = ExperimentAgenda(
                 experiment_name=experiment_agenda.experiment_name,
                 experiments=list(experiments_filtered)
@@ -833,6 +836,7 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
 
                 earliest_malfunction=parameter_set[5],
                 malfunction_duration=parameter_set[6],
+                malfunction_agend_id=0,
                 weight_route_change=parameter_set[10],
                 weight_lateness_seconds=parameter_set[11],
                 max_window_size_from_earliest=parameter_set[8],
@@ -933,6 +937,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                             grid_id=grid_id,
                             earliest_malfunction=re_schedule_parameters.earliest_malfunction,
                             malfunction_duration=re_schedule_parameters.malfunction_duration,
+                            malfunction_agend_id=re_schedule_parameters.malfunction_agend_id,
                             weight_route_change=re_schedule_parameters.weight_route_change,
                             weight_lateness_seconds=re_schedule_parameters.weight_lateness_seconds,
                             max_window_size_from_earliest=re_schedule_parameters.max_window_size_from_earliest,

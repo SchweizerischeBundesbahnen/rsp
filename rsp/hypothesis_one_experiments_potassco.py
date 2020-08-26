@@ -11,8 +11,6 @@ from rsp.utils.file_utils import check_create_folder
 
 
 # TODO pass arguments instead of hacky file editing
-
-
 def enable_seq(enable=True):
     off = "RESCHEDULE_HEURISTICS = []"
     on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
@@ -53,6 +51,7 @@ def run_potassco_agenda(base_directory: str):
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[1, 1, 1],
         malfunction_duration=[50, 50, 1],
+        malfunction_agent_id=[0, 0, 1],
 
         number_of_shortest_paths_per_agent=[10, 10, 1],
 
@@ -165,8 +164,8 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None)
 
 if __name__ == '__main__':
     generate_potassco_infras_and_schedules(
-        base_directory="h1_2020_08_24T21_04_42"
+        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
     )
     run_potassco_agenda(
-        base_directory="h1_2020_08_24T21_04_42"
+        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
     )

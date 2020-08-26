@@ -30,7 +30,8 @@ def test_create_experiment_agenda_from_infrastructure_and_schedule():
     create_infrastructure_and_schedule_from_ranges(
         base_directory=base_directory,
         infrastructure_parameters_range=infrastructure_parameter_range,
-        schedule_parameters_range=schedule_parameters_range
+        schedule_parameters_range=schedule_parameters_range,
+        speed_data={1.0: 1.0}
     )
     infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
         base_directory=base_directory
@@ -40,6 +41,7 @@ def test_create_experiment_agenda_from_infrastructure_and_schedule():
         reschedule_parameters_range=ReScheduleParametersRange(
             earliest_malfunction=[1, 3, 2],
             malfunction_duration=[50, 50, 1],
+            malfunction_agent_id=[0, 0, 1],
             number_of_shortest_paths_per_agent=[10, 10, 1],
             max_window_size_from_earliest=[100, 100, 1],
             asp_seed_value=[1, 1, 1],
