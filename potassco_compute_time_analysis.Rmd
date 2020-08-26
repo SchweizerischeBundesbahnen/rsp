@@ -36,7 +36,14 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 experiments_of_interest = None
 agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_baseline_2020_07_15T17_14_34'
+
 experiment_base_directory_baseline = f'../rsp-data/{agenda_name_baseline}'
+
+
+agenda_name_baseline = 'hypothesis_one_experiments_potassco_2020_08_24T21_04_42_baseline_2020_08_25T09_43_46'
+experiment_base_directory_baseline = f'./h1_2020_08_24T21_04_42/{agenda_name_baseline}'
+
+
 experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
 experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(

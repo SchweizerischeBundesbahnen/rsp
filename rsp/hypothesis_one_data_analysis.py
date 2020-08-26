@@ -164,15 +164,22 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
         (experiment_data['total_time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
         (experiment_data['total_time_delta_after_malfunction'] - experiment_data['solve_time_delta_after_malfunction'])
 
-    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+    for axis_of_interest, axis_of_interest_suffix in {
+        'experiment_id': '',
+        'n_agents': '',
+        'size': '',
+        'size_used': '',
+        'solve_time_full_after_malfunction': '[s]'
+    }.items():
         for speed_up_col, y_axis_title in [
-            ('speed_up', 'total solver time'),
-            ('speed_up_solve_time', 'solver time solving only'),
-            ('speed_up_non_solve_time', 'solver time non-processing (grounding etc.)'),
+            ('speed_up', 'Speed-up full solver time [-]'),
+            ('speed_up_solve_time', 'Speed-up solver time solving only [-]'),
+            ('speed_up_non_solve_time', 'Speed-up solver time non-processing (grounding etc.) [-]'),
         ]:
             plot_speed_up(
                 experiment_data=experiment_data,
                 axis_of_interest=axis_of_interest,
+                axis_of_interest_suffix=axis_of_interest_suffix,
                 output_folder=output_folder,
                 col=speed_up_col,
                 y_axis_title=y_axis_title

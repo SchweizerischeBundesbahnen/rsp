@@ -214,7 +214,8 @@ def plot_speed_up(
         axis_of_interest: str,
         output_folder: Optional[str] = None,
         col: str = 'speed_up',
-        y_axis_title: str = "Speed Up Factor"
+        y_axis_title: str = "Speed Up Factor",
+        axis_of_interest_suffix: str = ""
 ):
     """
 
@@ -227,6 +228,12 @@ def plot_speed_up(
         Defines along what axis the data will be plotted
     output_folder
         if defined, do not show plot but write to file in this folder
+    col
+        column for y axis
+    y_axis_title
+        title for y axis instead of technical column name
+    axis_of_interest_suffix
+        label for x axis will be technical `axis_of_interest` column name plus this suffix
     Returns
     -------
 
@@ -254,7 +261,7 @@ def plot_speed_up(
 
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"Speed Up Factors {y_axis_title} per {axis_of_interest}")
-    fig.update_xaxes(title=axis_of_interest)
+    fig.update_xaxes(title=f"{axis_of_interest} {axis_of_interest_suffix}")
     fig.update_yaxes(title=y_axis_title)
     if output_folder is None:
         fig.show()

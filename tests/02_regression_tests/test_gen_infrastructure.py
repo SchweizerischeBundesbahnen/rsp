@@ -4,7 +4,7 @@ from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import expand_infrastructure_parameter_range
-from rsp.utils.experiments import expand_infrastructure_parameter_range_and_save
+from rsp.utils.experiments import expand_infrastructure_parameter_range_and_generate_infrastructure
 from rsp.utils.experiments import load_infrastructure
 from rsp.utils.file_utils import check_create_folder
 
@@ -45,7 +45,7 @@ def test_expand_infrastructure_parameter_range_and_save():
     check_create_folder(folder_name)
 
     try:
-        list_of_infra_parameters = expand_infrastructure_parameter_range_and_save(
+        list_of_infra_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
             infrastructure_parameter_range=infrastructure_parameter_range,
             base_directory=folder_name,
             speed_data={1.: 1.}

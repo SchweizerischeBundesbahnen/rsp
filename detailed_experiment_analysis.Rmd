@@ -41,8 +41,10 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 
 ```{python}
 experiment_base_directory = '../rsp-data/agent_82_malfunction_base_rsp_data_schedule_90_agents_2020_07_06T21_22_53_new__2020_07_07T08_19_42/'
-experiment_of_interest = 0
-agent_of_interest = 82
+experiment_base_directory = './h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_08_25T11_57_53'
+
+experiment_of_interest = 1
+agent_of_interest = 0
 ```
 
 ```{python}
@@ -60,6 +62,21 @@ plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_exper
 
 
 The figure below shows the initial schedule we use as input to our re-scheduling pipeline. It is taken as given as used as target for optimization (minimal delay to initial schedule)
+
+```{python}
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
+
+
+items = {
+    'problem_full': exp_results_of_experiment_of_interest.problem_full,
+    'problem_full_after_malfunction': exp_results_of_experiment_of_interest.problem_full_after_malfunction,
+    'problem_delta_after_malfunction': exp_results_of_experiment_of_interest.problem_delta_after_malfunction
+}
+for item, problem in items.items():
+    for agent_id, topo in problem.topo_dict.items():
+        print(f"    {agent_id} has {len(get_paths_in_route_dag(problem.topo_dict[agent_id]))} paths in {item}")
+
+```
 
 ```{python}
 trajectories = trajectories_from_resource_occupations_per_agent(
@@ -128,15 +145,15 @@ Detailed paths of single trains
 ```{python}
 plot_train_paths(
         plotting_data= plotting_data,
-        agent_ids= [82])
+        agent_ids= [agent_of_interest])
 ```
 
 ```{python}
 video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory,
                         experiment_data=exp_results_of_experiment_of_interest,
-                        experiment_id=0,
+                        experiment_id=experiment_of_interest,
                         render_schedule = True,
-                        render_reschedule = False)
+                        render_reschedule = True)
 ```
 
 ```{python}

@@ -8,6 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.logger import rsp_logger
+from rsp.logger import VERBOSE
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenaltiesDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
@@ -147,7 +148,7 @@ def delta_zero(
     """
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
             malfunction.time_step < schedule_trainrun[-1].scheduled_at):
-        rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
+        rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
         return delta_zero_running(
             agent_id=agent_id,
             schedule_trainrun=schedule_trainrun,
@@ -160,7 +161,7 @@ def delta_zero(
 
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
-        rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
+        rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
         latest = {sink: latest_arrival for sink in get_sinks_for_topo(topo)}
         earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
         propagate(
@@ -187,7 +188,7 @@ def delta_zero(
                 del freeze.earliest[waypoint]
         return freeze
     elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
-        rsp_logger.info(f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
+        rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         topo.remove_nodes_from(set(topo.nodes).difference(visited))
         return RouteDAGConstraints(

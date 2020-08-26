@@ -7,9 +7,9 @@ from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.data_types import ScheduleParametersRange
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
-from rsp.utils.experiments import expand_infrastructure_parameter_range_and_save
+from rsp.utils.experiments import expand_infrastructure_parameter_range_and_generate_infrastructure
 from rsp.utils.experiments import expand_schedule_parameter_range
-from rsp.utils.experiments import expand_schedule_parameter_range_and_save
+from rsp.utils.experiments import expand_schedule_parameter_range_and_generate_schedule
 from rsp.utils.experiments import load_schedule
 from rsp.utils.file_utils import check_create_folder
 
@@ -48,13 +48,13 @@ def test_expand_schedule_parameter_range_and_save():
             asp_seed_value=[33, 37, 3],
             number_of_shortest_paths_per_agent_schedule=[34, 36, 2]
         )
-        list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_save(
+        list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
             infrastructure_parameter_range=infrastructure_parameter_range,
             base_directory=folder_name,
             speed_data={1.: 1.}
         )
         list_of_schedule_parameters: List[ScheduleParameters] = list(itertools.chain.from_iterable([
-            expand_schedule_parameter_range_and_save(
+            expand_schedule_parameter_range_and_generate_schedule(
                 schedule_parameters_range=schedule_parameters_range,
                 base_directory=folder_name,
                 infra_id=infrastructure_parameters.infra_id

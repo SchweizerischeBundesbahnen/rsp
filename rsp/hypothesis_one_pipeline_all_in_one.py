@@ -9,6 +9,7 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import parameter_ranges_and_speed_data_to_hiearchical
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_agenda_from_infrastructure_and_schedule_ranges
 from rsp.utils.experiments import create_experiment_folder_name
@@ -140,26 +141,16 @@ def hypothesis_one_pipeline_all_in_one(
     create_infrastructure_and_schedule_from_ranges(
         base_directory=experiment_base_directory,
         infrastructure_parameters_range=infra_parameters_range,
-        schedule_parameters_range=schedule_parameters_range
+        schedule_parameters_range=schedule_parameters_range,
+        speed_data=parameter_ranges_and_speed_data.speed_data
     )
 
-    infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
-        base_directory=experiment_base_directory
-    )
-
-    experiment_agenda = create_experiment_agenda_from_infrastructure_and_schedule_ranges(
-        experiment_name=experiment_name,
+    experiment_agenda, experiment_output_directory = list_from_base_directory_and_run_experiment_agenda(
+        experiment_base_directory=experiment_base_directory,
         reschedule_parameters_range=reschedule_parameters_range,
-        infra_parameters_list=infra_parameters_list,
-        infra_schedule_dict=infra_schedule_dict
-    )
-
-    experiment_output_directory = run_experiment_agenda(
-        experiment_agenda=experiment_agenda,
-        run_experiments_parallel=parallel_compute,
-        verbose=False,
+        experiment_name=experiment_name,
         experiment_ids=experiment_ids,
-        experiment_base_directory=experiment_base_directory
+        parallel_compute=parallel_compute,
     )
 
     # C. Experiment Analysis
@@ -172,3 +163,32 @@ def hypothesis_one_pipeline_all_in_one(
         )
 
     return experiment_output_directory, experiment_agenda
+
+
+def list_from_base_directory_and_run_experiment_agenda(
+        reschedule_parameters_range: ReScheduleParametersRange,
+        experiment_base_directory: str,
+        experiment_name: str,
+        experiment_ids: List[int] = None,
+        parallel_compute: int = AVAILABLE_CPUS // 2,
+        experiments_per_grid_element: int = 1
+):
+    infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
+        base_directory=experiment_base_directory
+    )
+
+    experiment_agenda = create_experiment_agenda_from_infrastructure_and_schedule_ranges(
+        experiment_name=experiment_name,
+        reschedule_parameters_range=reschedule_parameters_range,
+        infra_parameters_list=infra_parameters_list,
+        infra_schedule_dict=infra_schedule_dict,
+        experiments_per_grid_element=experiments_per_grid_element
+    )
+    experiment_output_directory = run_experiment_agenda(
+        experiment_agenda=experiment_agenda,
+        run_experiments_parallel=parallel_compute,
+        verbose=False,
+        experiment_ids=experiment_ids,
+        experiment_base_directory=experiment_base_directory
+    )
+    return experiment_agenda, experiment_output_directory

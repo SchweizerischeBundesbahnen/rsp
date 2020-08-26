@@ -51,6 +51,7 @@ from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
 
+from rsp.experiment_solvers.asp.asp_helper import _print_stats
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import Infrastructure
 from rsp.experiment_solvers.data_types import Schedule
@@ -66,6 +67,7 @@ from rsp.schedule_problem_description.data_types_and_utils import apply_weight_r
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
@@ -158,16 +160,16 @@ def save_infrastructure(
     _pickle_dump(obj=infrastructure_parameters, folder=folder, file_name="infrastructure_parameters.pkl")
 
 
-def exists_schedule(base_directory: str, experiment_id: int) -> bool:
-    """Does a persisted `Schedule` exist?
-    Parameters
-    ----------
-    base_directory
-    experiment_id
-    Returns
-    -------
-    """
-    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
+def exists_schedule(base_directory: str, infra_id: int, schedule_id: int) -> bool:
+    """Does a persisted `Schedule` exist?"""
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME, f"{schedule_id:03d}",
+                             f"schedule.pkl")
+    return os.path.isfile(file_name)
+
+
+def exists_infrastructure(base_directory: str, infra_id: int) -> bool:
+    """Does a persisted `Infrastructure` exist?"""
+    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", "infrastructure.pkl")
     return os.path.isfile(file_name)
 
 
@@ -223,6 +225,7 @@ def load_schedule(base_directory: str, infra_id: int, schedule_id: int = 0) -> T
 def run_experiment_in_memory(
         schedule: Schedule,
         experiment_parameters: ExperimentParameters,
+        infrastructure_topo_dict: TopoDict,
         verbose: bool = False,
         debug: bool = False,
         visualize_route_dag_constraints: bool = False
@@ -233,10 +236,17 @@ def run_experiment_in_memory(
     Parameters
     ----------
     schedule
+        operational schedule that where malfunction happened
     experiment_parameters
+        hierarchical experiment parameters
+    infrastructure_topo_dict
+        the "full" topology for each agent
     verbose
+        verbose logging
     debug
+        debug logging
     visualize_route_dag_constraints
+        save route dag constraints visualization for debugging
 
     Returns
     -------
@@ -266,7 +276,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
     # clone topos since propagation will modify them
-    full_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
+    full_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
     full_reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=experiment_malfunction,
         schedule_trainruns=schedule_trainruns,
@@ -308,7 +318,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3. reschedule delta")
     # clone topos since propagation will modify them
-    delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in schedule_problem.topo_dict.items()}
+    delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
     delta_reschedule_problem = perfect_oracle_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         malfunction=experiment_malfunction,
@@ -405,19 +415,13 @@ def _get_asp_solver_details_from_statistics(elapsed_time: float, statistics: Dic
 def gen_infrastructure(
         infra_parameters: InfrastructureParameters
 ) -> Infrastructure:
-    """
-    A.1.1 infrastructure generation
-    Parameters
-    ----------
-    infra_parameters
-
-    Returns
-    -------
-
-    """
-    return create_infrastructure_from_rail_env(
+    """A.1.1 infrastructure generation."""
+    rsp_logger.info(f"gen_infrastructure {infra_parameters}")
+    infra = create_infrastructure_from_rail_env(
         env=create_env_from_experiment_parameters(infra_parameters),
         k=infra_parameters.number_of_shortest_paths_per_agent)
+    rsp_logger.info(f"done gen_infrastructure {infra_parameters}")
+    return infra
 
 
 def gen_schedule(
@@ -437,17 +441,22 @@ def gen_schedule(
     Returns
     -------
     """
-
+    rsp_logger.info(f"gen_schedule {schedule_parameters}")
     schedule_problem = create_schedule_problem_description_from_instructure(
         infrastructure=infrastructure,
         number_of_shortest_paths_per_agent_schedule=schedule_parameters.number_of_shortest_paths_per_agent_schedule
     )
+    if debug:
+        for agent_id, topo in schedule_problem.topo_dict.items():
+            rsp_logger.info(f"    {agent_id} has {len(get_paths_in_route_dag(topo))} paths in scheduling")
+            rsp_logger.info(f"    {agent_id} has {len(get_paths_in_route_dag(infrastructure.topo_dict[agent_id]))} paths in infrastructure")
 
     schedule_result = asp_schedule_wrapper(
         schedule_problem_description=schedule_problem,
         asp_seed_value=schedule_parameters.asp_seed_value,
         debug=debug
     )
+    rsp_logger.info(f"done gen_schedule {schedule_parameters}")
     return Schedule(schedule_problem_description=schedule_problem, schedule_experiment_result=schedule_result)
 
 
@@ -544,28 +553,36 @@ def run_experiment_from_to_file(
                         .format(experiment_parameters.experiment_id,
                                 _pp.pformat(experiment_parameters)))
 
-        if experiment_base_directory is None or \
-                not exists_schedule(
-                    base_directory=experiment_base_directory,
-                    experiment_id=experiment_parameters.experiment_id) or \
-                not exists_malfunction(
-                    base_directory=experiment_base_directory,
-                    experiment_id=experiment_parameters.experiment_id):
-            rsp_logger.warn(f"Could not find schedule_and_malfunction for {experiment_parameters.experiment_id} in {experiment_base_directory}")
+        if experiment_base_directory is None or not exists_schedule(
+                base_directory=experiment_base_directory,
+                infra_id=experiment_parameters.infra_parameters.infra_id,
+                schedule_id=experiment_parameters.schedule_parameters.schedule_id
+        ):
+            rsp_logger.warn(f"Could not find schedule for {experiment_parameters.experiment_id} in {experiment_base_directory}")
+            return
 
         rsp_logger.info(f"load_schedule for {experiment_parameters.experiment_id}")
         schedule, schedule_parameters = load_schedule(
             base_directory=f"{experiment_base_directory}",
-            infra_id=experiment_parameters.experiment_id)
+            infra_id=experiment_parameters.infra_parameters.infra_id,
+            schedule_id=experiment_parameters.schedule_parameters.schedule_id
+        )
+        infrastructure, _ = load_infrastructure(
+            base_directory=f"{experiment_base_directory}",
+            infra_id=experiment_parameters.infra_parameters.infra_id
+        )
 
         if debug:
-            _render_route_dags_from_data(experiment_base_directory=experiment_output_directory,
-                                         experiment_id=experiment_parameters.experiment_id)
+            _render_route_dags_from_data(
+                experiment_base_directory=experiment_output_directory,
+                experiment_id=experiment_parameters.experiment_id
+            )
 
         # B2: full and delta re-scheduling
         experiment_results: ExperimentResults = run_experiment_in_memory(
             schedule=schedule,
             experiment_parameters=experiment_parameters,
+            infrastructure_topo_dict=infrastructure.topo_dict,
             verbose=verbose,
             debug=debug
         )
@@ -830,15 +847,18 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
 def create_infrastructure_and_schedule_from_ranges(
         infrastructure_parameters_range: InfrastructureParametersRange,
         schedule_parameters_range: ScheduleParametersRange,
-        base_directory: str
+        base_directory: str,
+        speed_data: SpeedData,
+        grid_mode: bool = True
 ) -> List[ScheduleParameters]:
-    list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_save(
+    list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range=infrastructure_parameters_range,
         base_directory=base_directory,
-        speed_data={1.: 1.}
+        speed_data=speed_data,
+        grid_mode=grid_mode
     )
     list_of_schedule_parameters: List[ScheduleParameters] = list(itertools.chain.from_iterable([
-        expand_schedule_parameter_range_and_save(
+        expand_schedule_parameter_range_and_generate_schedule(
             schedule_parameters_range=schedule_parameters_range,
             base_directory=base_directory,
             infra_id=infrastructure_parameters.infra_id
@@ -850,7 +870,8 @@ def create_infrastructure_and_schedule_from_ranges(
 
 def list_infrastructure_and_schedule_params_from_base_directory(
         base_directory: str,
-        infra_ids: List[int] = None
+        infra_ids: List[int] = None,
+        debug: bool = False
 ) -> Tuple[List[InfrastructureParameters], Dict[int, List[ScheduleParameters]]]:
     infra_schedule_dict = {}
     infra_parameters_list = []
@@ -858,18 +879,28 @@ def list_infrastructure_and_schedule_params_from_base_directory(
     for infra_id in range(nb_infras):
         if infra_ids is not None and infra_id not in infra_ids:
             continue
-        _, infra_parameters = load_infrastructure(
+        infra, infra_parameters = load_infrastructure(
             base_directory=base_directory,
             infra_id=infra_id
         )
+        if debug:
+            for agent_id, topo in infra.topo_dict.items():
+                print(f"    {agent_id} has {len(get_paths_in_route_dag(topo))} paths in infra {infra_id}")
         infra_parameters_list.append(infra_parameters)
-        nb_schedules = len(os.listdir(f'{base_directory}/infra/{infra_id:03d}/schedule'))
+        schedule_dir = f'{base_directory}/infra/{infra_id:03d}/schedule'
+        if not os.path.isdir(schedule_dir):
+            continue
+        nb_schedules = len(os.listdir(schedule_dir))
         for schedule_id in range(nb_schedules):
-            _, schedule_parameters = load_schedule(
+            schedule, schedule_parameters = load_schedule(
                 base_directory=base_directory,
                 infra_id=infra_id,
                 schedule_id=schedule_id
             )
+            if debug:
+                for agent_id, topo in schedule.schedule_problem_description.topo_dict.topo_dict.items():
+                    print(
+                        f"    {agent_id} has {len(get_paths_in_route_dag(topo))} paths in infra {infra_id} / schedule {schedule_id}")
             infra_schedule_dict.setdefault(infra_parameters.infra_id, []).append(schedule_parameters)
     return infra_parameters_list, infra_schedule_dict
 
@@ -963,7 +994,7 @@ def expand_schedule_parameter_range(schedule_parameter_range: ScheduleParameters
     ]
 
 
-def expand_infrastructure_parameter_range_and_save(
+def expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range: InfrastructureParametersRange,
         base_directory: str,
         speed_data: SpeedData,
@@ -975,29 +1006,38 @@ def expand_infrastructure_parameter_range_and_save(
         speed_data=speed_data
     )
     for infra_parameters in list_of_infra_parameters:
+        if exists_infrastructure(base_directory=base_directory, infra_id=infra_parameters.infra_id):
+            rsp_logger.info(f"skipping gen infrastructure for [{infra_parameters.infra_id}] {infra_parameters} -> infrastructure already exists")
+            continue
         infra = gen_infrastructure(infra_parameters=infra_parameters)
         save_infrastructure(infrastructure=infra, infrastructure_parameters=infra_parameters, base_directory=base_directory)
     return list_of_infra_parameters
 
 
-def expand_schedule_parameter_range_and_save(
+def expand_schedule_parameter_range_and_generate_schedule(
         schedule_parameters_range: ScheduleParametersRange,
         base_directory: str,
         infra_id: int) -> List[ScheduleParameters]:
     list_of_schedule_parameters = expand_schedule_parameter_range(
         schedule_parameter_range=schedule_parameters_range,
         infra_id=infra_id)
-    infra, _ = load_infrastructure(
+    infra, infra_parameters = load_infrastructure(
         base_directory=base_directory,
         infra_id=infra_id
     )
     for schedule_parameters in list_of_schedule_parameters:
+        if exists_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_parameters.schedule_id):
+            rsp_logger.info(f"skipping gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
+                            f"-> schedule already exists")
+            continue
+        rsp_logger.info(f"gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters}")
         schedule = gen_schedule(infrastructure=infra, schedule_parameters=schedule_parameters)
         save_schedule(
             schedule=schedule,
             schedule_parameters=schedule_parameters,
             base_directory=base_directory
         )
+        _print_stats(schedule.schedule_experiment_result.solver_statistics)
     return list_of_schedule_parameters
 
 
@@ -1060,6 +1100,7 @@ def create_env_from_experiment_parameters(params: InfrastructureParameters) -> R
 
 
 def create_infrastructure_from_rail_env(env: RailEnv, k: int):
+    rsp_logger.info("create_infrastructure_from_rail_env")
     agents_paths_dict = {
         # TODO https://gitlab.aicrowd.com/flatland/flatland/issues/302: add method to FLATland to create of k shortest paths for all agents
         i: get_k_shortest_paths(env,
@@ -1069,6 +1110,7 @@ def create_infrastructure_from_rail_env(env: RailEnv, k: int):
                                 k)
         for i, agent in enumerate(env.agents)
     }
+    rsp_logger.info("create_infrastructure_from_rail_env: shortest paths done")
     minimum_travel_time_dict = {agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                 for agent in env.agents}
     topo_dict = _get_topology_from_agents_path_dict(agents_paths_dict)
