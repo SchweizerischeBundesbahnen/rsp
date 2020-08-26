@@ -462,9 +462,11 @@ def test_rescheduling_bottleneck():
     for agent_id, topo in reschedule_problem.topo_dict.items():
         print(f"reschedule_problem {agent_id} has {len(get_paths_in_route_dag(topo))}")
         print(list(topo.nodes))
+    print(reschedule_problem.weight_lateness_seconds)
+    print(reschedule_problem.route_section_penalties)
 
     full_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem=reschedule_problem,
+        reschedule_problem_description=reschedule_problem,
         asp_seed_value=94
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
@@ -478,6 +480,8 @@ def test_rescheduling_bottleneck():
 
     expected_delay_wr_schedule = 22
     assert expected_delay_wr_schedule == get_delay_trainruns_dict(fake_schedule, expected_reschedule)
+    print(fake_schedule)
+    print(expected_reschedule)
     actual_delay_wr_schedule = get_delay_trainruns_dict(fake_schedule, full_reschedule_trainruns)
     assert actual_delay_wr_schedule == expected_delay_wr_schedule, \
         f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
