@@ -12,7 +12,6 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
-from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
@@ -455,15 +454,6 @@ def test_rescheduling_bottleneck():
             agent_id=agent_id,
             route_dag_constraints=freeze_dict[agent_id],
             topo=reschedule_problem.topo_dict[agent_id])
-
-    for agent_id, topo in schedule_problem.topo_dict.items():
-        print(f"schedule_problem {agent_id} has {len(get_paths_in_route_dag(topo))}")
-        print(list(topo.nodes))
-    for agent_id, topo in reschedule_problem.topo_dict.items():
-        print(f"reschedule_problem {agent_id} has {len(get_paths_in_route_dag(topo))}")
-        print(list(topo.nodes))
-    print(reschedule_problem.weight_lateness_seconds)
-    print(reschedule_problem.route_section_penalties)
 
     full_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=reschedule_problem,
