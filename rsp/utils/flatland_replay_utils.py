@@ -107,7 +107,6 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
     train_schedule_dict: TrainScheduleDict = convert_trainrun_dict_to_train_schedule_dict(trainrun_dict=trainruns)
     max_episode_steps = np.max([time_step for agent_id, train_schedule in train_schedule_dict.items() for time_step in train_schedule.keys()])
     renderer = init_renderer_for_env(rail_env)
-    print(max_episode_steps)
 
     for time_step in range(max_episode_steps):
         for agent_id, train_schedule in train_schedule_dict.items():

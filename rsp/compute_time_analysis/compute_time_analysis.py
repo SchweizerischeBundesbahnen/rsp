@@ -760,7 +760,8 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
     problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
     problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_after_malfunction
-    topo = problem_schedule.topo_dict[agent_id]
+    # TODO hacky, we should take the topo_dict from infrastructure maybe?
+    topo = experiment_results_analysis.problem_full_after_malfunction.topo_dict[agent_id]
 
     config = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: [
