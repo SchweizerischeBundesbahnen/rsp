@@ -192,7 +192,9 @@ def test_rescheduling_no_bottleneck():
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         topo_dict=schedule_problem.topo_dict,
-        latest_arrival=static_env._max_episode_steps
+        latest_arrival=static_env._max_episode_steps,
+        weight_lateness_seconds=1,
+        weight_route_change=1
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem_description.route_dag_constraints_dict
 
@@ -214,7 +216,9 @@ def test_rescheduling_no_bottleneck():
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
             latest_arrival=static_env._max_episode_steps,
-            topo_dict=schedule_problem.topo_dict
+            topo_dict=schedule_problem.topo_dict,
+            weight_lateness_seconds=1,
+            weight_route_change=1
         ),
         asp_seed_value=94
     )
@@ -423,7 +427,9 @@ def test_rescheduling_bottleneck():
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                   for agent in static_env.agents},
         topo_dict=infrastructure.topo_dict,
-        latest_arrival=static_env._max_episode_steps
+        latest_arrival=static_env._max_episode_steps,
+        weight_lateness_seconds=1,
+        weight_route_change=1
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem.route_dag_constraints_dict
 
@@ -774,7 +780,10 @@ def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
         max_episode_steps=schedule_problem.schedule_problem_description.max_episode_steps,
         schedule_topo_dict=schedule_problem.schedule_problem_description.topo_dict,
         schedule_trainrun_dict=fake_schedule,
-        minimum_travel_time_dict=schedule_problem.schedule_problem_description.minimum_travel_time_dict
+        minimum_travel_time_dict=schedule_problem.schedule_problem_description.minimum_travel_time_dict,
+        weight_lateness_seconds=1,
+        weight_route_change=1
+
     )
     delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_reschedule_problem,

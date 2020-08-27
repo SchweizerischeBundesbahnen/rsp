@@ -37,7 +37,7 @@ repos:
       - id: flake8
         # https://dev.to/mmphego/why-you-need-to-stop-using-git-hooks-41
         additional_dependencies: [
-          # TODO SIM-650
+          # TODO SIM-675 enable flake8-docstrings
           flake8-2020, # flake8 plugin which checks for misuse of `sys.version` or `sys.version_info`
           flake8-blind-except, # A flake8 extension that checks for blind except: statements
           flake8-bugbear, # A plugin for flake8 finding likely bugs and design problems in your program.
@@ -59,7 +59,7 @@ repos:
         args: [
           "--exclude", "rsp/experiment_solvers/asp/theory.py"
         ]
-# TODO SIM-650 vulture 60% anschauen
+# TODO SIM-SIM-674 vulture 60% anschauen
   - repo: local
     hooks:
       # Vulture

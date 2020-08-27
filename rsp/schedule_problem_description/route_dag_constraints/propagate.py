@@ -252,7 +252,7 @@ def _get_delayed_trainrun_waypoint_after_malfunction(
         trainrun: Trainrun,
         malfunction: ExperimentMalfunction,
         minimum_travel_time: int) -> TrainrunWaypoint:
-    """Returns the trainrun waypoint after the malfunction that needs to be re.
+    """Returns the first trainrun waypoint after the malfunction.
 
     Parameters
     ----------
@@ -262,6 +262,7 @@ def _get_delayed_trainrun_waypoint_after_malfunction(
 
     Returns
     -------
+    TrainrunWaypoint
     """
     previous_scheduled = 0
     for trainrun_waypoint in trainrun:

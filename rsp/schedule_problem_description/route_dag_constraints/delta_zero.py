@@ -21,7 +21,11 @@ from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
 
 
-def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict: TopoDict):
+def _extract_route_section_penalties(
+        schedule_trainruns: TrainrunDict,
+        topo_dict: TopoDict,
+        weight_route_change: int
+):
     """Penalize edges by 1 in the topology departing from scheduled
     trainrun."""
     route_section_penalties: RouteSectionPenaltiesDict = {}
@@ -32,7 +36,7 @@ def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict
         for edge in topo.edges:
             (from_waypoint, to_waypoint) = edge
             if from_waypoint in waypoints_in_schedule and to_waypoint not in waypoints_in_schedule:
-                route_section_penalties[agent_id][edge] = 1
+                route_section_penalties[agent_id][edge] = weight_route_change
     return route_section_penalties
 
 
@@ -123,12 +127,14 @@ def delta_zero(
         latest_arrival: int,
         max_window_size_from_earliest: int
 ) -> RouteDAGConstraints:
-    """Derives the experiment freeze given the malfunction and optionally a
-    force freeze from an Oracle. The node after the malfunction time has to be
-    visited with an earliest constraint.
+    """Derives the `RouteDAGConstraints` given the malfunction. The node after
+    the malfunction time has to be visited with an earliest constraint. Given
+    the past up to the malfunction, nodes not reachable in space or time, are
+    removed.
 
     Parameters
     ----------
+
     schedule_trainrun
         the schedule before the malfunction happened
     minimum_travel_time
@@ -137,6 +143,8 @@ def delta_zero(
         the topos for the agents
     malfunction
         malfunction
+    agent_id
+        which agent for
     latest_arrival
         end of the global time window
     max_window_size_from_earliest
@@ -145,6 +153,7 @@ def delta_zero(
 
     Returns
     -------
+    RouteDAGConstraints
     """
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
             malfunction.time_step < schedule_trainrun[-1].scheduled_at):
@@ -201,13 +210,16 @@ def delta_zero(
         raise Exception(f"Unexepcted state for agent {agent_id} malfunction {malfunction}")
 
 
-def delta_zero_for_all_agents(malfunction: ExperimentMalfunction,
-                              schedule_trainruns: TrainrunDict,
-                              minimum_travel_time_dict: Dict[int, int],
-                              topo_dict: Dict[int, nx.DiGraph],
-                              latest_arrival: int,
-                              max_window_size_from_earliest: int = np.inf
-                              ) -> ScheduleProblemDescription:
+def delta_zero_for_all_agents(
+        malfunction: ExperimentMalfunction,
+        schedule_trainruns: TrainrunDict,
+        minimum_travel_time_dict: Dict[int, int],
+        topo_dict: Dict[int, nx.DiGraph],
+        latest_arrival: int,
+        weight_route_change: int,
+        weight_lateness_seconds: int,
+        max_window_size_from_earliest: int = np.inf,
+) -> ScheduleProblemDescription:
     """Returns the experiment freeze for the full re-scheduling problem. Wraps
     the generic freeze by freezing everything up to and including the
     malfunction.
@@ -229,8 +241,9 @@ def delta_zero_for_all_agents(malfunction: ExperimentMalfunction,
         topo_dict=topo_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         max_episode_steps=latest_arrival,
-        route_section_penalties=_extract_route_section_penalties(schedule_trainruns, topo_dict),
-        weight_lateness_seconds=1
+        route_section_penalties=_extract_route_section_penalties(schedule_trainruns, topo_dict, weight_route_change),
+        weight_lateness_seconds=weight_lateness_seconds
+
     )
     # TODO SIM-324 pull out verification
     for agent_id in spd.route_dag_constraints_dict:

@@ -22,7 +22,6 @@ RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
     ('latest', Dict[Waypoint, int])
 ])
 
-
 RouteDAGConstraintsDict = Dict[int, RouteDAGConstraints]
 RouteDagEdge = Tuple[Waypoint, Waypoint]
 RouteSectionPenalties = Dict[RouteDagEdge, int]
@@ -179,36 +178,3 @@ def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> T
                  for agent_id in agents_paths_dict}
 
     return topo_dict
-
-
-def apply_weight_route_change(
-        schedule_problem: ScheduleProblemDescription,
-        weight_route_change: int,
-        weight_lateness_seconds: int
-):
-    """Returns a new `ScheduleProblemDescription` with all route section
-    penalties scaled by the factor and with `weight_lateness_seconds`set as
-    given.
-
-    Parameters
-    ----------
-    schedule_problem: ScheduleProblemDescription
-    weight_route_change: int
-    weight_lateness_seconds: int
-
-    Returns
-    -------
-    ScheduleProblemDescription
-    """
-    problem_weights = dict(
-        schedule_problem._asdict(),
-        **{
-            'route_section_penalties': {agent_id: {
-                edge: penalty * weight_route_change
-                for edge, penalty in agent_route_section_penalties.items()
-            } for agent_id, agent_route_section_penalties in
-                schedule_problem.route_section_penalties.items()},
-            'weight_lateness_seconds': weight_lateness_seconds
-        })
-    schedule_problem = ScheduleProblemDescription(**problem_weights)
-    return schedule_problem

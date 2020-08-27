@@ -64,7 +64,6 @@ from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
-from rsp.schedule_problem_description.data_types_and_utils import apply_weight_route_change
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
@@ -285,11 +284,7 @@ def run_experiment_in_memory(
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        topo_dict=full_reschedule_topo_dict
-    )
-    # TODO SIM-650 move apply_weight_route_change into delta_???
-    full_reschedule_problem = apply_weight_route_change(
-        schedule_problem=full_reschedule_problem,
+        topo_dict=full_reschedule_topo_dict,
         weight_route_change=experiment_parameters.weight_route_change,
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
     )
@@ -329,11 +324,7 @@ def run_experiment_in_memory(
         schedule_topo_dict=delta_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest
-    )
-    # TODO SIM-650 move apply_weight_route_change into delta_???
-    delta_reschedule_problem = apply_weight_route_change(
-        schedule_problem=delta_reschedule_problem,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         weight_route_change=experiment_parameters.weight_route_change,
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
     )

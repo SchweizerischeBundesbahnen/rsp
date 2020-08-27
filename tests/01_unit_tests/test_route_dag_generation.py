@@ -522,7 +522,9 @@ def test_get_freeze_for_full_rescheduling():
         topo_dict=topo_dict,
         malfunction=malfunction,
         schedule_trainruns={2: train_run},
-        latest_arrival=333
+        latest_arrival=333,
+        weight_lateness_seconds=1,
+        weight_route_change=1
     )
     route_dag_constraints: RouteDAGConstraints = reschedule_full_problem_description.route_dag_constraints_dict[2]
     print(f"earliest={_pp.pformat(route_dag_constraints.earliest)}")
@@ -1345,7 +1347,9 @@ def test_get_freeze_for_delta():
         topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
                    for agent_id in agents_path_dict},
         malfunction=malfunction,
-        latest_arrival=333
+        latest_arrival=333,
+        weight_lateness_seconds=1,
+        weight_route_change=1
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem_description.route_dag_constraints_dict
 

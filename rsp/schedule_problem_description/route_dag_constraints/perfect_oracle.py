@@ -118,12 +118,15 @@ def perfect_oracle_for_all_agents(
         max_episode_steps: int,
         schedule_topo_dict: TopoDict,
         schedule_trainrun_dict: TrainrunDict,
+        weight_route_change: int,
+        weight_lateness_seconds: int,
         max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
     """The perfect oracle only opens up the differences between the schedule
     and the imaginary re-schedule. It gives no additional routing flexibility!
 
     Parameters
     ----------
+
     full_reschedule_trainrun_dict: TrainrunDict
         the magic information of the full re-schedule
     malfunction: ExperimentMalfunction
@@ -139,7 +142,9 @@ def perfect_oracle_for_all_agents(
     max_window_size_from_earliest: int
         maximum window size as offset from earliest. => "Cuts off latest at earliest + earliest_time_windows when doing
         back propagation of latest"
-
+    weight_lateness_seconds
+        how much
+    weight_route_change
     Returns
     -------
     ScheduleProblemDesccription
@@ -185,6 +190,6 @@ def perfect_oracle_for_all_agents(
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
         max_episode_steps=max_episode_steps,
-        route_section_penalties=_extract_route_section_penalties(schedule_trainrun_dict, topo_dict),
-        weight_lateness_seconds=1
+        route_section_penalties=_extract_route_section_penalties(schedule_trainrun_dict, topo_dict, weight_lateness_seconds),
+        weight_lateness_seconds=weight_lateness_seconds
     )
