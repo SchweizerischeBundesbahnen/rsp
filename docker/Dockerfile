@@ -25,7 +25,7 @@ RUN set -e && \
     apt-get -y install --no-install-recommends python3-dev && \
     # https://stackoverflow.com/questions/58245255/how-to-force-git-to-use-socks-proxy-over-its-ssh-connection
     apt-get -y install connect-proxy && \
-    apt-get -y install git-lfs apt-get install texlive-full && \
+    apt-get -y install git-lfs texlive-full && \
     python3 -m pip config set global.cert /etc/ssl/certs/ca-certificates.crt && \
     which pdflatex
 
