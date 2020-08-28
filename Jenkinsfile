@@ -18,15 +18,6 @@ pipeline {
         // maximal 5 Builds und maximal 30 Tage
         buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5', daysToKeepStr: '30', artifactDaysToKeepStr: '30'))
     }
-    parameters {
-        booleanParam(
-                name: 'deploy',
-                defaultValue: false,
-                description: 'Deploy Jupyter Workspace? If ticked, no image will be built, workspace deployment only.'
-        )
-        string(name: 'version', defaultValue: 'latest', description: 'Version of rsp-workspace (use latest/<commit sha>)')
-        string(name: 'helm_release_name', defaultValue: 'rsp-workspace-0', description: 'Workspace id (Helm release to install). If it does not exist, a new will be created.')
-    }
     environment {
         // access token with repo:status permission created via https://github.com/settings/tokens in personal account
         // uploaded to Jenkins via https://ssp.app.ose.sbb-cloud.net/wzu/jenkinscredentials
@@ -79,50 +70,11 @@ git submodule update --init --recursive
                 }
             }
         }
-        stage('pre-commit, pytest and pydeps') {
-            when {
-                allOf {
-                    // if the build was triggered manually with deploy=true, skip testing
-                    expression { !params.deploy }
-                }
-            }
-            steps {
-                tox_conda_wrapper(
-                        ENVIRONMENT_YAML: 'rsp_environment.yml',
-                        JENKINS_CLOSURE: {
-                            sh """
-
-        # set up shell for conda
-        conda init bash
-        source ~/.bashrc
-
-        # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-        conda env create --file rsp_environment.yml --force
-        conda activate rsp
-
-        export PYTHONPATH=\$PWD
-        echo PYTHONPATH=\$PYTHONPATH
-
-        # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
-        pre-commit install
-        SKIP=docformatter pre-commit run --all --verbose
-
-        # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
-        python -m pytest tests/01_unit_tests tests/02_regression_tests tests/03_integration_tests
-
-        python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
-        python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
-"""
-                        }
-                )
-            }
-        }
         // if we're on master, tag the docker image with the new semantic version
         stage("Build and Tag Docker Image if on master") {
             when {
                 allOf {
                     expression { BRANCH_NAME == 'master' }
-                    expression { !params.deploy }
                 }
             }
             steps {
@@ -150,21 +102,12 @@ git submodule update --init --recursive
         stage("Integration Test Notebooks") {
             when {
                 anyOf {
-                    // if the build was triggered manually with deploy=true, skip image building
-                    expression { !params.deploy }
                     // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
                     expression { env.CHANGE_ID == null }
                 }
             }
             steps {
                 script {
-                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
-                        sh '''
-oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
-oc project $OPENSHIFT_PROJECT
-(helm delete rsp-ci-$GIT_COMMIT && sleep 10) || true
-'''
-                    }
                     cloud_helmchartsDeploy(
                             cluster: OPENSHIFT_CLUSTER,
                             project: env.OPENSHIFT_PROJECT,
@@ -185,42 +128,7 @@ oc project $OPENSHIFT_PROJECT
                             release: 'rsp-ci-$GIT_COMMIT',
                             timeoutInSeconds: 2700
                     )
-                    echo "helm test succesful -> cleanup."
-                    withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
-                        sh """
-oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
-oc project $OPENSHIFT_PROJECT
-helm delete rsp-ci-$GIT_COMMIT || true
-
-# delete all failed test pods older than 1 day (https://stackoverflow.com/questions/48934491/kubernetes-how-to-delete-pods-based-on-age-creation-time/48960060#48960060)
-oc get pods --field-selector status.phase=Failed -o go-template --template '{{range .items}}{{.metadata.name}} {{.metadata.creationTimestamp}}{{"\\n"}}{{end}}' | awk '\$2 <= "'\$(date -d 'yesterday' -Ins --utc | sed 's/+0000/Z/')'" { print \$1 }' | fgrep test-pod | xargs --no-run-if-empty oc delete pod
-"""
-                    }
-                }
-            }
-        }
-        stage("Run Jupyter Workspace") {
-            when {
-                allOf {
-                    expression { params.deploy }
-                }
-            }
-            steps {
-                script {
-                    echo """params.version=${params.version}"""
-                    // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_helmchartsDeploy()-LintanddeployaHelmChart
-                    cloud_helmchartsDeploy(
-                            cluster: OPENSHIFT_CLUSTER,
-                            project: env.OPENSHIFT_PROJECT,
-                            credentialId: SERVICE_ACCOUNT_TOKEN,
-                            chart: env.HELM_CHART,
-                            release: params.helm_release_name,
-                            additionalValues: [
-                                    RspWorkspaceVersion: "${params.version}",
-                                    RspVersion         : GIT_COMMIT
-                            ]
-                    )
-                    echo "Jupyter notebook will be available under https://${params.helm_release_name}.app.gpu.otc.sbb.ch"
+                    echo "helm test succesful."
                 }
             }
         }
@@ -247,6 +155,20 @@ curl --insecure -v --request POST -H "Authorization: token ${
 """
         }
         always {
+            withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
+                echo """get logs from https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"""
+                sh """
+oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
+oc project $OPENSHIFT_PROJECT
+
+oc logs rsp-ci-$GIT_COMMIT-test-pod || true
+
+helm delete rsp-ci-$GIT_COMMIT || true
+
+# delete all failed test pods older than 1 day (https://stackoverflow.com/questions/48934491/kubernetes-how-to-delete-pods-based-on-age-creation-time/48960060#48960060)
+oc get pods --field-selector status.phase=Failed -o go-template --template '{{range .items}}{{.metadata.name}} {{.metadata.creationTimestamp}}{{"\\n"}}{{end}}' | awk '\$2 <= "'\$(date -d 'yesterday' -Ins --utc | sed 's/+0000/Z/')'" { print \$1 }' | fgrep test-pod | xargs --no-run-if-empty oc delete pod
+"""
+            }
             archiveArtifacts artifacts: 'rsp_*.png', onlyIfSuccessful: true, allowEmptyArchive: true
             cleanWs()
         }

@@ -4,7 +4,7 @@ metadata:
   name: "{{ .Release.Name }}-test-pod"
   annotations:
     "helm.sh/hook": test-success
-    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   restartPolicy: Never
   containers:
@@ -41,14 +41,29 @@ spec:
           cd $WORKDIR
 
           date
-          git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          if [ ! -d /home/jovyan/data/rsp-data ]; then
+            cd /home/jovyan/data
+            git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
+          fi
+
           date
-          cd rsp-data
+          cd /home/jovyan/data/rsp-data
+          find . -maxdepth 1 -print0 | xargs -0 -n 1 du -sh
+          df -h
+          git reset --hard
           git status
+          git pull
           $GIT_SSH_COMMAND git@github.com git-lfs-authenticate SchweizerischeBundesbahnen/rsp download
-          git lfs pull
+          git lfs pull --include 003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_baseline_2020_07_15T17_14_34
+          git lfs pull --include agent_82_malfunction_base_rsp_data_schedule_90_agents_2020_07_06T21_22_53_new__2020_07_07T08_19_42
+          git lfs pull --include agent_34_malfunction_base__rsp_data_schedule_90_agents_2020_07_06T21_22_53__new__2020_07_09T15_24_53
+          git lfs pull --include h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06
           date
+          find . -maxdepth 1 -print0 | xargs -0 -n 1 du -sh
+          df -h
           cd $WORKDIR
+          ln -s /home/jovyan/data/rsp-data/ $WORKDIR/rsp-data
+          ls -al $WORKDIR/rsp-data/
 
           # activate conda activate
           # https://docs.anaconda.com/anaconda/install/silent-mode/
@@ -63,13 +78,22 @@ spec:
 
           # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
           date
-          conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force
-          conda activate $WORKDIR/rsp-conda
+          conda env update --prefix /home/jovyan/data/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml
+          conda activate /home/jovyan/data/rsp-conda
 
           # run unit and integration tests
           date
-          export PYTHONPATH=$WORKDIR/rsp
+          export PYTHONPATH=$WORKDIR/rsp:$PYTHONPATH
           cd $WORKDIR/rsp
+
+          # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
+          pre-commit install
+          SKIP=docformatter pre-commit run --all --verbose
+
+          # TODO SIM-623 why does it not work?
+          #python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+          #python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
+
           export QT_DEBUG_PLUGINS=1
           xvfb-run python -m pytest tests
           date
@@ -78,8 +102,15 @@ spec:
       volumeMounts:
         - mountPath: "/home/jovyan/ssh"
           name: ssh-volume
+        - name: rsp-volume
+          mountPath: /home/jovyan/data
+
   volumes:
     - name: ssh-volume
       secret:
         secretName: jenkins-master-key
         defaultMode: 256
+    - name: rsp-volume
+      {{/* volum rsp-volume created via https://ssp.app.ose.sbb-cloud.net/ose/volume/new*/}}
+      persistentVolumeClaim:
+        claimName: rsp-volume
