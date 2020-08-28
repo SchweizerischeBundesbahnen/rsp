@@ -407,6 +407,7 @@ def plot_time_window_resource_trajectories(
         plot_time_resource_trajectories(trajectories=trajectories, title=title, schedule_plotting=schedule_plotting)
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis):
     """Plot a heat map of how many shareds are on the resources.
 
@@ -473,6 +474,7 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     fig.show()
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
@@ -684,6 +686,7 @@ def plot_time_resource_trajectories(
         fig.show()
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis):
     """
     Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
@@ -797,6 +800,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     )
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def render_flatland_env(data_folder: str,
                         experiment_data: ExperimentResultsAnalysis,
                         experiment_id: int,
