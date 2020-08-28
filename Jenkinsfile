@@ -161,7 +161,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
 oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
 oc project $OPENSHIFT_PROJECT
 
-oc logs rsp-ci-$GIT_COMMIT-test-pod
+oc logs rsp-ci-$GIT_COMMIT-test-pod || true
 
 helm delete rsp-ci-$GIT_COMMIT || true
 
