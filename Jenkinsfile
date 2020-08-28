@@ -163,6 +163,7 @@ oc project $OPENSHIFT_PROJECT
 
 oc logs rsp-ci-$GIT_COMMIT-test-pod || true
 
+oc delete rsp-ci-$GIT_COMMIT-test-pod || true
 helm delete rsp-ci-$GIT_COMMIT || true
 
 # delete all failed test pods older than 1 day (https://stackoverflow.com/questions/48934491/kubernetes-how-to-delete-pods-based-on-age-creation-time/48960060#48960060)
