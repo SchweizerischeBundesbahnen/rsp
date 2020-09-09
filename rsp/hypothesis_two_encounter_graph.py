@@ -50,7 +50,7 @@ def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
 
     # 2. non-symmetric distance matrix of primary, secondary etc. effects
     number_of_trains = len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent)
-    distance_matrix, minimal_depth, wave_fronts_reaching_other_agent = distance_matrix_from_tranmission_chains(
+    distance_matrix, minimal_depth, _ = distance_matrix_from_tranmission_chains(
         number_of_trains=number_of_trains, transmission_chains=transmission_chains)
 
     return transmission_chains, distance_matrix, minimal_depth

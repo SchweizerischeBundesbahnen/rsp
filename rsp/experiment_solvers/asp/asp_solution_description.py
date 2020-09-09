@@ -115,11 +115,6 @@ class ASPSolutionDescription():
         # take stats of last multi-shot call
         return self.asp_solution.stats['summary']['models']['enumerated'] > 0
 
-    def is_optimal_solution(self):
-        """Is an optimal solution found?"""
-        # take stats of last multi-shot call
-        return self.asp_solution.stats['summary']['models']['optimal'] > 0
-
     @staticmethod
     def _parse_dl_fact(value: str) -> TrainrunWaypoint:
         # dl((t0,((3,5),3)),5) # NOQA
@@ -131,20 +126,6 @@ class ASPSolutionDescription():
         entry = int(m.group(4))
 
         return TrainrunWaypoint(scheduled_at=entry, waypoint=Waypoint(position=(r, c), direction=d))
-
-    def get_entry_time(self, agent_id: int, v: Waypoint) -> int:
-        # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
-        # hack since Python's tuple representations has spaces, but ASP gives us them without.
-        position_part = str(tuple(v)).replace(" ", "")
-        var_prefix = "dl((t{},{}),".format(agent_id, position_part)
-        value: str = self._get_solver_variable_value(var_prefix)
-        return int(value.replace(var_prefix, "").replace(")", ""))
-
-    def _print_entry_times(self, answer_set):
-        print(self._get_entry_times_from_string_answer_set(answer_set))
-
-    def _get_entry_times_from_string_answer_set(self, answer_set):
-        return list(filter(lambda s: s.startswith(str("dl")), answer_set))
 
     def get_trainrun_for_agent(self, agent_id: int) -> Trainrun:
         """Get train run of the agent in the solution."""
