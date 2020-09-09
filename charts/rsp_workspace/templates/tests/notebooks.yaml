@@ -4,7 +4,7 @@ metadata:
   name: "{{ .Release.Name }}-test-pod"
   annotations:
     "helm.sh/hook": test-success
-    "helm.sh/hook-delete-policy": hook-succeeded,before-hook-creation
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   restartPolicy: Never
   containers:
@@ -43,6 +43,7 @@ spec:
           date
           if [ ! -d /home/jovyan/data/rsp-data ]; then
             cd /home/jovyan/data
+            ls -al
             git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
           fi
 
@@ -83,13 +84,20 @@ spec:
 
           # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
           date
-          conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force
-          conda activate $WORKDIR/rsp-conda
+          conda env update --prefix /home/jovyan/data/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml
+          conda activate /home/jovyan/data/rsp-conda
+          date
+           export PYTHONPATH=$WORKDIR/rsp:$PYTHONPATH
+          cd $WORKDIR/rsp
+
+          # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
+          pre-commit install
+          SKIP=docformatter pre-commit run --all --verbose
+          # TODO SIM-623 why does it not work?
+          #python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+          #python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
 
           # run unit and integration tests
-          date
-          export PYTHONPATH=$WORKDIR/rsp
-          cd $WORKDIR/rsp
           export QT_DEBUG_PLUGINS=1
           xvfb-run python -m pytest tests
           date
@@ -98,8 +106,14 @@ spec:
       volumeMounts:
         - mountPath: "/home/jovyan/ssh"
           name: ssh-volume
+        - name: rsp-volume
+          mountPath: /home/jovyan/data
   volumes:
     - name: ssh-volume
       secret:
         secretName: jenkins-master-key
         defaultMode: 256
+    - name: rsp-volume
+      {{/* volum rsp-volume created via https://ssp.app.ose.sbb-cloud.net/ose/volume/new*/}}
+      persistentVolumeClaim:
+        claimName: rsp-volume
