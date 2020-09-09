@@ -45,11 +45,18 @@ spec:
           date
           cd rsp-data
           git status
+          git clean -xdf
+          git status
           $GIT_SSH_COMMAND git@github.com git-lfs-authenticate SchweizerischeBundesbahnen/rsp download
           git lfs pull
           date
           cd $WORKDIR
 
+          # check article compiles
+          cd $WORKDIR/doc/overleaf
+          pdflatex main.tex
+
+          cd $WORKDIR
           # activate conda activate
           # https://docs.anaconda.com/anaconda/install/silent-mode/
           eval "$(conda shell.bash hook)"
@@ -65,6 +72,9 @@ spec:
           date
           conda env create --prefix $WORKDIR/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml --force
           conda activate $WORKDIR/rsp-conda
+
+
+
 
           # run unit and integration tests
           date
