@@ -66,6 +66,7 @@ from rsp.schedule_problem_description.data_types_and_utils import get_sources_fo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.naive_oracle import naive_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
@@ -312,16 +313,16 @@ def run_experiment_in_memory(
         print(f"  **** full re-schedule_solution=\n{full_reschedule_trainruns}")
 
     # --------------------------------------------------------------------------------------
-    # B.2 Re-Schedule Delta
+    # B.2.a Lower bound: Re-Schedule Delta with "perfect" oracle
     # --------------------------------------------------------------------------------------
-    rsp_logger.info("3. reschedule delta")
+    rsp_logger.info("3. reschedule delta perfect (lower bound)")
     # clone topos since propagation will modify them
-    delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_reschedule_problem = perfect_oracle_for_all_agents(
+    perfect_delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    perfect_delta_reschedule_problem = perfect_oracle_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
-        schedule_topo_dict=delta_reschedule_topo_dict,
+        perfect_delta_reschedule_topo_dict_=perfect_delta_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
@@ -333,35 +334,74 @@ def run_experiment_in_memory(
     if visualize_route_dag_constraints:
         for agent_id in schedule_trainruns:
             visualize_route_dag_constraints_simple_wrapper(
-                schedule_problem_description=delta_reschedule_problem,
+                schedule_problem_description=perfect_delta_reschedule_problem,
                 trainrun_dict=None,
                 experiment_malfunction=experiment_malfunction,
                 agent_id=agent_id,
-                file_name=f"delta_rescheduling_neu_agent_{agent_id}.pdf",
+                file_name=f"perfect_delta_rescheduling_neu_agent_{agent_id}.pdf",
             )
 
-    delta_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_reschedule_problem,
+    perfect_delta_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=perfect_delta_reschedule_problem,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
 
     if verbose:
         print(f"  **** delta re-schedule solution")
-        print(delta_reschedule_result.trainruns_dict)
+        print(perfect_delta_reschedule_result.trainruns_dict)
+
+    # --------------------------------------------------------------------------------------
+    # B.2.b Upper bound: naive predictor
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("4. reschedule delta naive: upper bound")
+    # clone topos since propagation will modify them
+    naive_delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    naive_delta_reschedule_problem = naive_oracle_for_all_agents(
+        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+        full_reschedule_problem=full_reschedule_problem,
+        malfunction=experiment_malfunction,
+        max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
+        # pytorch convention for in-place operations: postfixed with underscore.
+        naive_delta_topo_dict_to_=naive_delta_reschedule_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+
+    # activate visualize_route_dag_constraints for debugging
+    if visualize_route_dag_constraints:
+        for agent_id in schedule_trainruns:
+            visualize_route_dag_constraints_simple_wrapper(
+                schedule_problem_description=naive_delta_reschedule_problem,
+                trainrun_dict=None,
+                experiment_malfunction=experiment_malfunction,
+                agent_id=agent_id,
+                file_name=f"naive_delta_rescheduling_neu_agent_{agent_id}.pdf",
+            )
+
+    asp_reschedule_wrapper(
+        reschedule_problem_description=naive_delta_reschedule_problem,
+        debug=debug,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
+    )
 
     # --------------------------------------------------------------------------------------
     # B.3. Result
     # --------------------------------------------------------------------------------------
+    rsp_logger.info("5. gathering results")
     current_results = ExperimentResults(
         experiment_parameters=experiment_parameters,
         malfunction=experiment_malfunction,
         problem_full=schedule_problem,
         problem_full_after_malfunction=full_reschedule_problem,
-        problem_delta_after_malfunction=delta_reschedule_problem,
+        # TODO SIM-672 add naive problem and result
+        problem_delta_after_malfunction=perfect_delta_reschedule_problem,
         results_full=schedule_result,
         results_full_after_malfunction=full_reschedule_result,
-        results_delta_after_malfunction=delta_reschedule_result
+        results_delta_after_malfunction=perfect_delta_reschedule_result
     )
     rsp_logger.info(f"done re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
     return current_results

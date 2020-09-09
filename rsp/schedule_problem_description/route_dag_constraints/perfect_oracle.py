@@ -25,7 +25,8 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 def perfect_oracle(
         agent_id: int,
-        topo: nx.DiGraph,
+        # pytorch convention for in-place operations: postfixed with underscore.
+        topo_: nx.DiGraph,
         schedule_trainrun: Trainrun,
         full_reschedule_trainrun: Trainrun,
         malfunction: ExperimentMalfunction,
@@ -43,7 +44,7 @@ def perfect_oracle(
     Parameters
     ----------
     agent_id
-    topo
+    topo_
     schedule_trainrun
     full_reschedule_trainrun
     malfunction
@@ -60,14 +61,14 @@ def perfect_oracle(
 
     schedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
     reschedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in full_reschedule_trainrun}
-    assert schedule_waypoints.issubset(topo.nodes), f"{schedule_waypoints} {topo.nodes} {schedule_waypoints.difference(topo.nodes)}"
-    assert reschedule_waypoints.issubset(topo.nodes), f"{reschedule_waypoints} {topo.nodes} {reschedule_waypoints.difference(topo.nodes)}"
+    assert schedule_waypoints.issubset(topo_.nodes), f"{schedule_waypoints} {topo_.nodes} {schedule_waypoints.difference(topo_.nodes)}"
+    assert reschedule_waypoints.issubset(topo_.nodes), f"{reschedule_waypoints} {topo_.nodes} {reschedule_waypoints.difference(topo_.nodes)}"
 
     delta_same_location = list(schedule_waypoints.intersection(reschedule_waypoints))
     if rsp_logger.isEnabledFor(logging.DEBUG):
         rsp_logger.debug(f"delta_same_location={delta_same_location}")
 
-    topo_out = topo.copy()
+    topo_out = topo_.copy()
     to_remove = set(topo_out.nodes).difference(schedule_waypoints.union(reschedule_waypoints))
     topo_out.remove_nodes_from(to_remove)
 
@@ -116,7 +117,7 @@ def perfect_oracle_for_all_agents(
         malfunction: ExperimentMalfunction,
         minimum_travel_time_dict: Dict[int, int],
         max_episode_steps: int,
-        schedule_topo_dict: TopoDict,
+        perfect_delta_reschedule_topo_dict_: TopoDict,
         schedule_trainrun_dict: TrainrunDict,
         weight_route_change: int,
         weight_lateness_seconds: int,
@@ -135,7 +136,7 @@ def perfect_oracle_for_all_agents(
         the minimumum travel times for the agents
     max_episode_steps:
         latest arrival
-    schedule_topo_dict:
+    perfect_delta_reschedule_topo_dict_:
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
@@ -154,7 +155,7 @@ def perfect_oracle_for_all_agents(
     for agent_id in schedule_trainrun_dict.keys():
         earliest_dict, latest_dict, topo = perfect_oracle(
             agent_id=agent_id,
-            topo=schedule_topo_dict[agent_id],
+            topo_=perfect_delta_reschedule_topo_dict_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
             full_reschedule_trainrun=full_reschedule_trainrun_dict[agent_id],
             malfunction=malfunction,
@@ -190,6 +191,10 @@ def perfect_oracle_for_all_agents(
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
         max_episode_steps=max_episode_steps,
-        route_section_penalties=_extract_route_section_penalties(schedule_trainrun_dict, topo_dict, weight_lateness_seconds),
+        route_section_penalties=_extract_route_section_penalties(
+            schedule_trainruns=schedule_trainrun_dict,
+            topo_dict=topo_dict,
+            weight_route_change=weight_route_change
+        ),
         weight_lateness_seconds=weight_lateness_seconds
     )
