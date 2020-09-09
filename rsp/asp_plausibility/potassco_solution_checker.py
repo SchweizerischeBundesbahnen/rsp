@@ -3,13 +3,13 @@ import argparse
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import _get_asp_solver_details_from_statistics
 from rsp.utils.experiments import create_experiment_filename
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import save_experiment_results_to_file
+from rsp.utils.rsp_logger import rsp_logger
 
 
 def main(experiment_data_folder_name: str,

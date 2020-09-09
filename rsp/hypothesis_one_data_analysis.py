@@ -26,7 +26,6 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_computational_t
 from rsp.compute_time_analysis.compute_time_analysis import plot_computional_times_from_traces
 from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
@@ -42,6 +41,7 @@ from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
 from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
 from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
+from rsp.utils.rsp_logger import rsp_logger
 
 
 def _derive_numbers_for_correlation_analysis(

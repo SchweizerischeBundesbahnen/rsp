@@ -4,9 +4,9 @@ from typing import Optional
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import experiment_freeze_dict_pretty_print
+from rsp.utils.rsp_logger import rsp_logger
 
 _pp = pprint.PrettyPrinter(indent=4)
 

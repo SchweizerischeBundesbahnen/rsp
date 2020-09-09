@@ -58,9 +58,6 @@ from rsp.experiment_solvers.data_types import Infrastructure
 from rsp.experiment_solvers.data_types import Schedule
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
-from rsp.logger import add_file_handler_to_rsp_logger
-from rsp.logger import remove_file_handler_from_rsp_logger
-from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
@@ -91,6 +88,9 @@ from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.psutil_helpers import current_process_stats_human_readable
 from rsp.utils.psutil_helpers import virtual_memory_human_readable
+from rsp.utils.rsp_logger import add_file_handler_to_rsp_logger
+from rsp.utils.rsp_logger import remove_file_handler_from_rsp_logger
+from rsp.utils.rsp_logger import rsp_logger
 
 #  B008 Do not perform function calls in argument defaults.
 #  The call is performed only once at function definition time.

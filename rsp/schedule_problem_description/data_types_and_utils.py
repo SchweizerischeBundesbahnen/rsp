@@ -11,7 +11,7 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.logger import rsp_logger
+from rsp.utils.rsp_logger import rsp_logger
 
 TopoDict = Dict[int, nx.DiGraph]
 AgentPaths = List[List[Waypoint]]

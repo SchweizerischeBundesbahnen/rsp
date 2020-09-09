@@ -14,14 +14,14 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.logger import rsp_logger
-from rsp.logger import VERBOSE
 from rsp.schedule_problem_description.data_types_and_utils import AgentPaths
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import RouteDagEdge
 from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenalties
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import WaypointPenalties
+from rsp.utils.rsp_logger import rsp_logger
+from rsp.utils.rsp_logger import VERBOSE
 
 OFFSET = 0.25
 FLATLAND_OFFSET_PATTERN = {

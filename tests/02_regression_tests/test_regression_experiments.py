@@ -5,7 +5,6 @@ import numpy as np
 
 from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
-from rsp.logger import rsp_logger
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -27,6 +26,7 @@ from rsp.utils.experiments import load_schedule
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_in_memory
 from rsp.utils.experiments import save_schedule
+from rsp.utils.rsp_logger import rsp_logger
 
 
 def test_created_env_tuple():

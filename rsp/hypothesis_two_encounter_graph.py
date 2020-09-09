@@ -15,7 +15,6 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_t
 from rsp.compute_time_analysis.compute_time_analysis import time_windows_as_resource_occupations_per_agent
 from rsp.compute_time_analysis.compute_time_analysis import Trajectories
 from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
-from rsp.logger import rsp_logger
 from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_time_windows
@@ -26,6 +25,7 @@ from rsp.utils.data_types import SchedulingProblemInTimeWindows
 from rsp.utils.data_types_converters_and_validators import extract_time_windows
 from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import SchedulePlotting
+from rsp.utils.rsp_logger import rsp_logger
 
 _pp = pprint.PrettyPrinter(indent=4)
 
