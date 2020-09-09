@@ -381,10 +381,10 @@ def run_experiment_in_memory(
         problem_full=schedule_problem,
         problem_full_after_malfunction=full_reschedule_problem,
         # TODO SIM-672 add naive problem and result
-        problem_delta_after_malfunction=perfect_delta_reschedule_problem,
+        problem_delta_perfect_after_malfunction=perfect_delta_reschedule_problem,
         results_full=schedule_result,
         results_full_after_malfunction=full_reschedule_result,
-        results_delta_after_malfunction=perfect_delta_reschedule_result
+        results_delta_perfect_after_malfunction=perfect_delta_reschedule_result
     )
     rsp_logger.info(f"done re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
     return current_results
@@ -620,17 +620,17 @@ def run_experiment_from_to_file(
             _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
                                                     statistics=experiment_results.results_full_after_malfunction.solver_statistics),
             _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
-                                                    statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
+                                                    statistics=experiment_results.results_delta_perfect_after_malfunction.solver_statistics),
         )
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
         solver_time_full_after_malfunction = \
             experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        solver_time_delta_after_malfunction = \
-            experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        solver_time_delta_perfect_after_malfunction = \
+            experiment_results.results_delta_perfect_after_malfunction.solver_statistics["summary"]["times"]["total"]
         elapsed_overhead_time = (
                 elapsed_time - solver_time_full -
                 solver_time_full_after_malfunction -
-                solver_time_delta_after_malfunction)
+                solver_time_delta_perfect_after_malfunction)
         s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
             elapsed_overhead_time,
             elapsed_overhead_time / elapsed_time * 100,

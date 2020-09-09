@@ -205,10 +205,10 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('malfunction', ExperimentMalfunction),
     ('problem_full', ScheduleProblemDescription),
     ('problem_full_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
 ])
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
@@ -216,10 +216,10 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('malfunction', ExperimentMalfunction),
     ('problem_full', ScheduleProblemDescription),
     ('problem_full_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
     ('experiment_id', int),
     ('grid_id', int),
     ('size', int),
@@ -229,18 +229,18 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('max_rail_in_city', int),
     ('time_full', float),
     ('time_full_after_malfunction', float),
-    ('time_delta_after_malfunction', float),
+    ('time_delta_perfect_after_malfunction', float),
     ('solution_full', TrainrunDict),
     ('solution_full_after_malfunction', TrainrunDict),
-    ('solution_delta_after_malfunction', TrainrunDict),
+    ('solution_delta_perfect_after_malfunction', TrainrunDict),
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),
     # TODO SIM-325 total delay at target over all agents with respect to schedule
-    ('costs_delta_after_malfunction', float),
+    ('costs_delta_perfect_after_malfunction', float),
     # TODO SIM-325 total delay at target over all agents with respect to schedule
     ('nb_resource_conflicts_full', int),
     ('nb_resource_conflicts_full_after_malfunction', int),
-    ('nb_resource_conflicts_delta_after_malfunction', int),
+    ('nb_resource_conflicts_delta_perfect_after_malfunction', int),
     ('speed_up', float),
     ('factor_resource_conflicts', int),
     ('path_search_space_schedule', int),
@@ -250,12 +250,12 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('size_used', int),
     ('lateness_full_after_malfunction', Dict[int, int]),
     ('sum_route_section_penalties_full_after_malfunction', int),
-    ('lateness_delta_after_malfunction', Dict[int, int]),
-    ('sum_route_section_penalties_delta_after_malfunction', int),
+    ('lateness_delta_perfect_after_malfunction', Dict[int, int]),
+    ('sum_route_section_penalties_delta_perfect_after_malfunction', int),
     ('vertex_eff_lateness_full_after_malfunction', Dict[Waypoint, int]),
     ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
-    ('vertex_eff_lateness_delta_after_malfunction', Dict[Waypoint, int]),
-    ('edge_eff_route_penalties_delta_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
+    ('vertex_eff_lateness_delta_perfect_after_malfunction', Dict[Waypoint, int]),
+    ('edge_eff_route_penalties_delta_perfect_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
     ('solve_total_ratio_full', float),
     ('solve_time_full', float),
     ('total_time_full', float),
@@ -272,14 +272,14 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('conflicts_full_after_malfunction', float),
     ('user_accu_propagations_full_after_malfunction', float),
     ('user_step_propagations_full_after_malfunction', float),
-    ('solve_total_ratio_delta_after_malfunction', float),
-    ('solve_time_delta_after_malfunction', float),
-    ('total_time_delta_after_malfunction', float),
-    ('choice_conflict_ratio_delta_after_malfunction', float),
-    ('choices_delta_after_malfunction', float),
-    ('conflicts_delta_after_malfunction', float),
-    ('user_accu_propagations_delta_after_malfunction', float),
-    ('user_step_propagations_delta_after_malfunction', float),
+    ('solve_total_ratio_delta_perfect_after_malfunction', float),
+    ('solve_time_delta_perfect_after_malfunction', float),
+    ('total_time_delta_perfect_after_malfunction', float),
+    ('choice_conflict_ratio_delta_perfect_after_malfunction', float),
+    ('choices_delta_perfect_after_malfunction', float),
+    ('conflicts_delta_perfect_after_malfunction', float),
+    ('user_accu_propagations_delta_perfect_after_malfunction', float),
+    ('user_step_propagations_delta_perfect_after_malfunction', float),
 ])
 
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
@@ -360,16 +360,16 @@ def expand_experiment_results_for_analysis(
     time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
     time_full_after_malfunction = \
         experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    time_delta_after_malfunction = \
-        experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    nb_resource_conflicts_delta_after_malfunction = experiment_results.results_delta_after_malfunction.nb_conflicts
+    time_delta_perfect_after_malfunction = \
+        experiment_results.results_delta_perfect_after_malfunction.solver_statistics["summary"]["times"]["total"]
+    nb_resource_conflicts_delta_perfect_after_malfunction = experiment_results.results_delta_perfect_after_malfunction.nb_conflicts
     nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
-    speed_up = time_full_after_malfunction / time_delta_after_malfunction
+    speed_up = time_full_after_malfunction / time_delta_perfect_after_malfunction
     # search space indiciators
     factor_resource_conflicts = -1
     try:
         factor_resource_conflicts = \
-            nb_resource_conflicts_delta_after_malfunction / \
+            nb_resource_conflicts_delta_perfect_after_malfunction / \
             nb_resource_conflicts_full_after_malfunction
     except ZeroDivisionError:
         warnings.warn(f"no resource conflicts for experiment {experiment_id} -> set ratio to -1")
@@ -384,12 +384,12 @@ def expand_experiment_results_for_analysis(
     # costs: lateness and routing penalties
     lateness_full_after_malfunction = {}
     sum_route_section_penalties_full_after_malfunction = {}
-    lateness_delta_after_malfunction = {}
-    sum_route_section_penalties_delta_after_malfunction = {}
+    lateness_delta_perfect_after_malfunction = {}
+    sum_route_section_penalties_delta_perfect_after_malfunction = {}
     vertex_eff_lateness_full_after_malfunction = {}
     edge_eff_route_penalties_full_after_malfunction = {}
-    vertex_eff_lateness_delta_after_malfunction = {}
-    edge_eff_route_penalties_delta_after_malfunction = {}
+    vertex_eff_lateness_delta_perfect_after_malfunction = {}
+    edge_eff_route_penalties_delta_perfect_after_malfunction = {}
     for agent_id in experiment_results.results_full.trainruns_dict.keys():
         # full re-scheduling
         train_run_full_after_malfunction_agent: Trainrun = experiment_results.results_full_after_malfunction.trainruns_dict[
@@ -427,46 +427,46 @@ def expand_experiment_results_for_analysis(
             edge_eff_route_penalties_full_after_malfunction_agent.values())
 
         # delta re-scheduling
-        train_run_delta_after_malfunction_agent = experiment_results.results_delta_after_malfunction.trainruns_dict[
+        train_run_delta_perfect_after_malfunction_agent = experiment_results.results_delta_perfect_after_malfunction.trainruns_dict[
             agent_id]
-        target_delta_after_malfunction_agent: Waypoint = train_run_delta_after_malfunction_agent[-1].waypoint
-        train_run_delta_after_malfunction_target_agent = train_run_delta_after_malfunction_agent[-1]
-        train_run_delta_after_malfunction_constraints_agent = \
-            experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_delta_after_malfunction_target_earliest_agent = \
-            train_run_delta_after_malfunction_constraints_agent.earliest[target_delta_after_malfunction_agent]
-        train_run_delta_after_malfunction_scheduled_at_target = \
-            train_run_delta_after_malfunction_target_agent.scheduled_at
-        lateness_delta_after_malfunction[agent_id] = \
+        target_delta_perfect_after_malfunction_agent: Waypoint = train_run_delta_perfect_after_malfunction_agent[-1].waypoint
+        train_run_delta_perfect_after_malfunction_target_agent = train_run_delta_perfect_after_malfunction_agent[-1]
+        train_run_delta_perfect_after_malfunction_constraints_agent = \
+            experiment_results.problem_delta_perfect_after_malfunction.route_dag_constraints_dict[agent_id]
+        train_run_delta_perfect_after_malfunction_target_earliest_agent = \
+            train_run_delta_perfect_after_malfunction_constraints_agent.earliest[target_delta_perfect_after_malfunction_agent]
+        train_run_delta_perfect_after_malfunction_scheduled_at_target = \
+            train_run_delta_perfect_after_malfunction_target_agent.scheduled_at
+        lateness_delta_perfect_after_malfunction[agent_id] = \
             max(
-                train_run_delta_after_malfunction_scheduled_at_target - train_run_delta_after_malfunction_target_earliest_agent,
+                train_run_delta_perfect_after_malfunction_scheduled_at_target - train_run_delta_perfect_after_malfunction_target_earliest_agent,
                 0)
         # TODO SIM-325 extend to all vertices
-        vertex_eff_lateness_delta_after_malfunction[agent_id] = {
-            target_delta_after_malfunction_agent: lateness_delta_after_malfunction[agent_id]
+        vertex_eff_lateness_delta_perfect_after_malfunction[agent_id] = {
+            target_delta_perfect_after_malfunction_agent: lateness_delta_perfect_after_malfunction[agent_id]
         }
-        edges_delta_after_malfunction_agent = {
+        edges_delta_perfect_after_malfunction_agent = {
             (wp1.waypoint, wp2.waypoint)
             for wp1, wp2 in
-            zip(train_run_delta_after_malfunction_agent, train_run_delta_after_malfunction_agent[1:])
+            zip(train_run_delta_perfect_after_malfunction_agent, train_run_delta_perfect_after_malfunction_agent[1:])
         }
-        edge_eff_route_penalties_delta_after_malfunction_agent = {
+        edge_eff_route_penalties_delta_perfect_after_malfunction_agent = {
             edge: penalty
             for edge, penalty in
-            experiment_results.problem_delta_after_malfunction.route_section_penalties[agent_id].items()
-            if edge in edges_delta_after_malfunction_agent
+            experiment_results.problem_delta_perfect_after_malfunction.route_section_penalties[agent_id].items()
+            if edge in edges_delta_perfect_after_malfunction_agent
         }
-        edge_eff_route_penalties_delta_after_malfunction[
-            agent_id] = edge_eff_route_penalties_delta_after_malfunction_agent
-        sum_route_section_penalties_delta_after_malfunction[agent_id] = sum(
-            edge_eff_route_penalties_delta_after_malfunction_agent.values())
+        edge_eff_route_penalties_delta_perfect_after_malfunction[
+            agent_id] = edge_eff_route_penalties_delta_perfect_after_malfunction_agent
+        sum_route_section_penalties_delta_perfect_after_malfunction[agent_id] = sum(
+            edge_eff_route_penalties_delta_perfect_after_malfunction_agent.values())
     if debug:
         print(f"[{experiment_id}] lateness_full_after_malfunction={lateness_full_after_malfunction}")
         print(
             f"[{experiment_id}] sum_route_section_penalties_full_after_malfunction={sum_route_section_penalties_full_after_malfunction}")
-        print(f"[{experiment_id}] lateness_delta_after_malfunction={lateness_delta_after_malfunction}")
+        print(f"[{experiment_id}] lateness_delta_perfect_after_malfunction={lateness_delta_perfect_after_malfunction}")
         print(
-            f"[{experiment_id}] sum_route_section_penalties_delta_after_malfunction={sum_route_section_penalties_delta_after_malfunction}")
+            f"[{experiment_id}] sum_route_section_penalties_delta_perfect_after_malfunction={sum_route_section_penalties_delta_perfect_after_malfunction}")
 
     return ExperimentResultsAnalysis(
         **dict(
@@ -474,16 +474,16 @@ def expand_experiment_results_for_analysis(
             **({
                    'problem_full': None,
                    'problem_full_after_malfunction': None,
-                   'problem_delta_after_malfunction': None,
+                   'problem_delta_perfect_after_malfunction': None,
                    'results_full': None,
                    'results_full_after_malfunction': None,
-                   'results_delta_after_malfunction': None,
+                   'results_delta_perfect_after_malfunction': None,
                } if nonify_problem_and_results else {}),
             **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full, suffix="full"),
             **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full_after_malfunction,
                                                            suffix="full_after_malfunction"),
-            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_delta_after_malfunction,
-                                                           suffix="delta_after_malfunction"),
+            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_delta_perfect_after_malfunction,
+                                                           suffix="delta_perfect_after_malfunction"),
 
         ),
         experiment_id=experiment_parameters.experiment_id,
@@ -495,18 +495,18 @@ def expand_experiment_results_for_analysis(
         max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
         time_full=time_full,
         time_full_after_malfunction=time_full_after_malfunction,
-        time_delta_after_malfunction=time_delta_after_malfunction,
+        time_delta_perfect_after_malfunction=time_delta_perfect_after_malfunction,
         solution_full=experiment_results.results_full.trainruns_dict,
         solution_full_after_malfunction=experiment_results.results_full_after_malfunction.trainruns_dict,
-        solution_delta_after_malfunction=experiment_results.results_delta_after_malfunction.trainruns_dict,
+        solution_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.trainruns_dict,
         # scheduling without optimization has no empty costs array
         costs_full=(experiment_results.results_full.solver_statistics["summary"]["costs"][0]
                     if len(experiment_results.results_full.solver_statistics["summary"]["costs"]) > 0 else -1),
         costs_full_after_malfunction=experiment_results.results_full_after_malfunction.optimization_costs,
-        costs_delta_after_malfunction=experiment_results.results_delta_after_malfunction.optimization_costs,
+        costs_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.optimization_costs,
         nb_resource_conflicts_full=experiment_results.results_full.nb_conflicts,
         nb_resource_conflicts_full_after_malfunction=experiment_results.results_full_after_malfunction.nb_conflicts,
-        nb_resource_conflicts_delta_after_malfunction=experiment_results.results_delta_after_malfunction.nb_conflicts,
+        nb_resource_conflicts_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.nb_conflicts,
         speed_up=speed_up,
         factor_resource_conflicts=factor_resource_conflicts,
         path_search_space_schedule=path_search_space_schedule,
@@ -516,12 +516,12 @@ def expand_experiment_results_for_analysis(
         factor_path_search_space=factor_path_search_space,
         lateness_full_after_malfunction=lateness_full_after_malfunction,
         sum_route_section_penalties_full_after_malfunction=sum_route_section_penalties_full_after_malfunction,
-        lateness_delta_after_malfunction=lateness_delta_after_malfunction,
-        sum_route_section_penalties_delta_after_malfunction=sum_route_section_penalties_delta_after_malfunction,
+        lateness_delta_perfect_after_malfunction=lateness_delta_perfect_after_malfunction,
+        sum_route_section_penalties_delta_perfect_after_malfunction=sum_route_section_penalties_delta_perfect_after_malfunction,
         vertex_eff_lateness_full_after_malfunction=vertex_eff_lateness_full_after_malfunction,
         edge_eff_route_penalties_full_after_malfunction=edge_eff_route_penalties_full_after_malfunction,
-        vertex_eff_lateness_delta_after_malfunction=vertex_eff_lateness_delta_after_malfunction,
-        edge_eff_route_penalties_delta_after_malfunction=edge_eff_route_penalties_delta_after_malfunction,
+        vertex_eff_lateness_delta_perfect_after_malfunction=vertex_eff_lateness_delta_perfect_after_malfunction,
+        edge_eff_route_penalties_delta_perfect_after_malfunction=edge_eff_route_penalties_delta_perfect_after_malfunction,
     )
 
 
@@ -559,16 +559,16 @@ def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, 
 
 
 def extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
-    route_dag_constraints_delta_afer_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
-    route_dag_constraints_full_after_malfunction = experiment_results.problem_delta_after_malfunction.route_dag_constraints_dict
+    route_dag_constraints_delta_afer_malfunction = experiment_results.problem_delta_perfect_after_malfunction.route_dag_constraints_dict
+    route_dag_constraints_full_after_malfunction = experiment_results.problem_delta_perfect_after_malfunction.route_dag_constraints_dict
     route_dag_constraints_schedule = experiment_results.problem_full.route_dag_constraints_dict
     topo_dict_schedule = experiment_results.problem_full.topo_dict
     topo_dict_full_after_malfunction = experiment_results.problem_full_after_malfunction.topo_dict
-    topo_dict_delta_after_malfunction = experiment_results.problem_delta_after_malfunction.topo_dict
+    topo_dict_delta_perfect_after_malfunction = experiment_results.problem_delta_perfect_after_malfunction.topo_dict
     all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = extract_number_of_path_alternatives(
         topo_dict_full_after_malfunction=topo_dict_full_after_malfunction,
         topo_dict_schedule=topo_dict_schedule,
-        topo_dict_delta_afer_malfunction=topo_dict_delta_after_malfunction,
+        topo_dict_delta_afer_malfunction=topo_dict_delta_perfect_after_malfunction,
         route_dag_constraints_schedule=route_dag_constraints_schedule,
         route_dag_constraints_delta_afer_malfunction=route_dag_constraints_delta_afer_malfunction,
         route_dag_constraints_full_after_malfunction=route_dag_constraints_full_after_malfunction

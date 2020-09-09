@@ -248,7 +248,7 @@ def plot_speed_up(
                                                experiment_data['size'],
                                                experiment_data['time_full'],
                                                experiment_data['time_full_after_malfunction'],
-                                               experiment_data['time_delta_after_malfunction']))[0],
+                                               experiment_data['time_delta_perfect_after_malfunction']))[0],
                          hovertext=experiment_data['experiment_id'],
                          hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
                                        '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
@@ -288,7 +288,7 @@ def extract_schedule_plotting(
     """
     schedule = experiment_result.solution_full
     reschedule_full = experiment_result.solution_full_after_malfunction
-    reschedule_delta = experiment_result.solution_delta_after_malfunction
+    reschedule_delta = experiment_result.solution_delta_perfect_after_malfunction
     schedule_as_resource_occupations: ScheduleAsResourceOccupations = extract_resource_occupations(
         schedule=schedule,
         release_time=RELEASE_TIME)
@@ -398,7 +398,7 @@ def plot_time_window_resource_trajectories(
     for title, problem in {
         'Schedule': experiment_result.problem_full,
         'Full Re-Schedule': experiment_result.problem_full_after_malfunction,
-        'Delta Re-Schedule': experiment_result.problem_delta_after_malfunction
+        'Delta Re-Schedule': experiment_result.problem_delta_perfect_after_malfunction
     }.items():
         resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
         trajectories = trajectories_from_resource_occupations_per_agent(
@@ -424,7 +424,7 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     for title, result in {
         'Schedule': experiment_result.results_full,
         'Full Re-Schedule': experiment_result.results_full_after_malfunction,
-        'Delta Re-Schedule': experiment_result.results_delta_after_malfunction
+        'Delta Re-Schedule': experiment_result.results_delta_perfect_after_malfunction
     }.items():
         shared = list(filter(lambda s: s.startswith('shared'), result.solver_result))
         shared_per_resource = {}
@@ -701,9 +701,9 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
     """
 
     lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
-    lateness_delta_after_malfunction = experiment_results.lateness_delta_after_malfunction
+    lateness_delta_perfect_after_malfunction = experiment_results.lateness_delta_perfect_after_malfunction
     lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
-    lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
+    lateness_delta_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
 
     fig = go.Figure()
     fig.add_trace(go.Histogram(x=lateness_full_values, name='Full Reschedule'
@@ -731,9 +731,9 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
     """
 
     lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
-    lateness_delta_after_malfunction = experiment_results.lateness_delta_after_malfunction
+    lateness_delta_perfect_after_malfunction = experiment_results.lateness_delta_perfect_after_malfunction
     lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
-    lateness_delta_values = [v for v in lateness_delta_after_malfunction.values()]
+    lateness_delta_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
 
     fig = go.Figure()
     fig.add_trace(go.Bar(x=np.arange(len(lateness_full_values)), y=lateness_full_values, name='Full Reschedule'
@@ -756,13 +756,13 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
                    ):
     train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
-    train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
+    train_runs_delta_perfect_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_perfect_after_malfunction
     train_run_full: Trainrun = train_runs_full[agent_id]
     train_run_full_after_malfunction: Trainrun = train_runs_full_after_malfunction[agent_id]
-    train_run_delta_after_malfunction: Trainrun = train_runs_delta_after_malfunction[agent_id]
+    train_run_delta_perfect_after_malfunction: Trainrun = train_runs_delta_perfect_after_malfunction[agent_id]
     problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
     problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
-    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_after_malfunction
+    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_perfect_after_malfunction
     # TODO hacky, we should take the topo_dict from infrastructure maybe?
     topo = experiment_results_analysis.problem_full_after_malfunction.topo_dict[agent_id]
 
@@ -778,7 +778,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
         ScheduleProblemEnum.PROBLEM_RSP_DELTA: [
             problem_rsp_delta,
             f'Delta Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
-            train_run_delta_after_malfunction],
+            train_run_delta_perfect_after_malfunction],
     }
 
     problem_to_visualize, title, trainrun_to_visualize = config[suffix_of_constraints_to_visualize]
@@ -787,7 +787,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
         topo=topo,
         train_run_full=train_run_full,
         train_run_full_after_malfunction=train_run_full_after_malfunction,
-        train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+        train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
         constraints_to_visualize=problem_to_visualize.route_dag_constraints_dict[agent_id],
         trainrun_to_visualize=trainrun_to_visualize,
         vertex_eff_lateness={},

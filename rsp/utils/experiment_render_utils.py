@@ -45,21 +45,21 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
     rail_env = create_env_from_experiment_parameters(experiment_parameters.infra_parameters)
     train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
-    train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
+    train_runs_delta_perfect_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_perfect_after_malfunction
 
     problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
     costs_full_after_malfunction: ScheduleProblemDescription = experiment_results_analysis.costs_full_after_malfunction
-    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_after_malfunction
-    costs_delta_after_malfunction: ScheduleProblemDescription = experiment_results_analysis.costs_delta_after_malfunction
+    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_perfect_after_malfunction
+    costs_delta_perfect_after_malfunction: ScheduleProblemDescription = experiment_results_analysis.costs_delta_perfect_after_malfunction
     problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
     malfunction: ExperimentMalfunction = experiment_results_analysis.malfunction
     n_agents: int = experiment_results_analysis.n_agents
     lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_full_after_malfunction
     sum_route_section_penalties_full_after_malfunction: Dict[int, int] = \
         experiment_results_analysis.sum_route_section_penalties_full_after_malfunction
-    lateness_delta_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_delta_after_malfunction
-    sum_route_section_penalties_delta_after_malfunction: Dict[int, int] = \
-        experiment_results_analysis.sum_route_section_penalties_delta_after_malfunction
+    lateness_delta_perfect_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_delta_perfect_after_malfunction
+    sum_route_section_penalties_delta_perfect_after_malfunction: Dict[int, int] = \
+        experiment_results_analysis.sum_route_section_penalties_delta_perfect_after_malfunction
 
     experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
     route_dag_folder = f"{experiment_output_folder}/route_graphs"
@@ -78,7 +78,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
             #  we should visualize with respect to the full route DAG as in infrastructure and visualize removed edges
             topo = problem_schedule.topo_dict[agent_id]
             train_run_full_after_malfunction = train_runs_full_after_malfunction[agent_id]
-            train_run_delta_after_malfunction = train_runs_delta_after_malfunction[agent_id]
+            train_run_delta_perfect_after_malfunction = train_runs_delta_perfect_after_malfunction[agent_id]
             train_run_full: Trainrun = train_runs_full[agent_id]
 
             # schedule input
@@ -98,23 +98,23 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 topo=topo,
                 train_run_full=train_run_full,
                 train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+                train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
             )
             # delta after malfunction
             visualize_route_dag_constraints(
                 constraints_to_visualize=problem_rsp_delta.route_dag_constraints_dict[agent_id],
-                trainrun_to_visualize=train_run_delta_after_malfunction,
-                vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_after_malfunction[agent_id],
-                edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_after_malfunction[
+                trainrun_to_visualize=train_run_delta_perfect_after_malfunction,
+                vertex_eff_lateness=experiment_results_analysis.vertex_eff_lateness_delta_perfect_after_malfunction[agent_id],
+                edge_eff_route_penalties=experiment_results_analysis.edge_eff_route_penalties_delta_perfect_after_malfunction[
                     agent_id],
                 route_section_penalties=problem_rsp_delta.route_section_penalties[agent_id],
                 title=_make_title(
                     agent_id, experiment_parameters, malfunction, n_agents, topo,
                     problem_rsp_delta.route_dag_constraints_dict[agent_id],
                     k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent,
-                    costs=costs_delta_after_malfunction,
-                    eff_lateness_agent=lateness_delta_after_malfunction[agent_id],
-                    eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[
+                    costs=costs_delta_perfect_after_malfunction,
+                    eff_lateness_agent=lateness_delta_perfect_after_malfunction[agent_id],
+                    eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_perfect_after_malfunction[
                         agent_id]),
                 file_name=(os.path.join(route_dag_folder,
                                         f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta.pdf")
@@ -123,7 +123,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 topo=topo,
                 train_run_full=train_runs_full[agent_id],
                 train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+                train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
 
             )
             # full rescheduling
@@ -148,7 +148,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 topo=topo,
                 train_run_full=train_runs_full[agent_id],
                 train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_after_malfunction=train_run_delta_after_malfunction,
+                train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
             )
 
     # Generate aggregated visualization

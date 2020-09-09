@@ -137,7 +137,7 @@ def visualize_route_dag_constraints(
         vertex_eff_lateness: WaypointPenalties,
         train_run_full: Trainrun,
         train_run_full_after_malfunction: Trainrun,
-        train_run_delta_after_malfunction: Trainrun,
+        train_run_delta_perfect_after_malfunction: Trainrun,
         file_name: Optional[str] = None,
         title: Optional[str] = None,
         scale: int = 4,
@@ -166,7 +166,7 @@ def visualize_route_dag_constraints(
         used in labels for S0
     train_run_full_after_malfunction
         used in labels for S
-    train_run_delta_after_malfunction
+    train_run_delta_perfect_after_malfunction
         used in labels for S'
     """
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
@@ -199,7 +199,7 @@ def visualize_route_dag_constraints(
     }
     tr_dam_d: Dict[Waypoint, int] = {
         trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-        for trainrun_waypoint in train_run_delta_after_malfunction
+        for trainrun_waypoint in train_run_delta_perfect_after_malfunction
     }
 
     plt_color_map = [_get_color_for_node(node, constraints_to_visualize) for node in topo.nodes()]
@@ -314,13 +314,13 @@ def _get_label_for_schedule_for_waypoint(
         waypoint: Waypoint,
         train_run_input_dict: Dict[Waypoint, int],
         train_run_full_after_malfunction_dict: Dict[Waypoint, int],
-        train_run_delta_after_malfunction_dict: Dict[Waypoint, int]
+        train_run_delta_perfect_after_malfunction_dict: Dict[Waypoint, int]
 ) -> str:
     s = []
     if waypoint in train_run_input_dict:
         s.append(f"S0: {train_run_input_dict[waypoint]}")
     if waypoint in train_run_full_after_malfunction_dict:
         s.append(f"S: {train_run_full_after_malfunction_dict[waypoint]}")
-    if waypoint in train_run_delta_after_malfunction_dict:
-        s.append(f"S': {train_run_delta_after_malfunction_dict[waypoint]}")
+    if waypoint in train_run_delta_perfect_after_malfunction_dict:
+        s.append(f"S': {train_run_delta_perfect_after_malfunction_dict[waypoint]}")
     return "\n".join(s)

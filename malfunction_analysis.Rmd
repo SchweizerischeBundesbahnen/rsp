@@ -107,7 +107,7 @@ Spatially the influence of the malfunction would have spread according to the fo
 
 ```{python}
 plot_delay_propagation_2d(plotting_data=plotting_data,
-                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_after_malfunction,
+                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_perfect_after_malfunction,
                           depth_dict=minimal_depth)
 ```
 
@@ -125,7 +125,7 @@ The spatial spread of the malfunction can be seen below. The arrows indicate dir
 
 ```{python}
 plot_delay_propagation_2d(plotting_data=plotting_data,
-                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_after_malfunction,
+                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_perfect_after_malfunction,
                           depth_dict=minimal_depth,
                           changed_agents=changed_agents_dict)
 ```

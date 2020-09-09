@@ -66,7 +66,7 @@ experiment_results_list = load_and_expand_experiment_results_from_data_folder(
 )
 for experiment in experiment_results_list:
 #     print(experiment.experiment_id)
-    for agent_id, topo in experiment.problem_delta_after_malfunction.topo_dict.items():
+    for agent_id, topo in experiment.problem_delta_perfect_after_malfunction.topo_dict.items():
          for node, in_degree in topo.in_degree:
                 if in_degree > 1 and agent_id != experiment.malfunction.agent_id:
                      print(f"experiment_id={experiment.experiment_id}, agent_id={agent_id}, node={node}, in_degree={in_degree}")
@@ -113,7 +113,7 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 ```{python}
 choices_full_schedule = exp_results_of_experiment_of_interest.results_full.solver_statistics["solving"]["solvers"]["choices"]
 choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 ```
 
 ```{python}
@@ -121,9 +121,9 @@ import pandas as pd
 experiment_details = pd.DataFrame([exp_results_of_experiment_of_interest._asdict()],columns=['experiment_id','malfunction','size',
        'n_agents', 'max_num_cities', 'max_rail_between_cities',
        'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
-       'time_delta_after_malfunction','speed_up','nb_resource_conflicts_full',
+       'time_delta_perfect_after_malfunction','speed_up','nb_resource_conflicts_full',
        'nb_resource_conflicts_full_after_malfunction',
-       'nb_resource_conflicts_delta_after_malfunction'])
+       'nb_resource_conflicts_delta_perfect_after_malfunction'])
 
 experiment_details['choices_full_schedule'] = choices_full_schedule
 experiment_details['choices_full_reschedule'] = choices_full_reschedule
@@ -179,9 +179,9 @@ print(f"= {experiment_base_directory} results_full_after_malfunction ")
 print("=================================================================================")
 _print_stats(exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics)
 print("=================================================================================")
-print(f"= {experiment_base_directory} results_delta_after_malfunction ")
+print(f"= {experiment_base_directory} results_delta_perfect_after_malfunction ")
 print("=================================================================================")
-_print_stats(exp_results_of_experiment_of_interest.results_delta_after_malfunction.solver_statistics)
+_print_stats(exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics)
 ```
 
 ```{python}

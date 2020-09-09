@@ -9,13 +9,13 @@ from rsp.compute_time_analysis.compute_time_analysis import plot_computional_tim
 def visualize_hypotheses_asp(
         experiment_data: pd.DataFrame,
         output_folder: Optional[str] = None):
-    suffixes = ['full', 'full_after_malfunction', 'delta_after_malfunction']
+    suffixes = ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']
 
     # problem reduction in terms of shared, conflicts, choices
     for column_prefix in ['nb_resource_conflicts', 'conflicts', 'choices']:
         experiment_data[f'{column_prefix}_ratio'] = \
             experiment_data[f'{column_prefix}_full_after_malfunction'] / \
-            experiment_data[f'{column_prefix}_delta_after_malfunction']
+            experiment_data[f'{column_prefix}_delta_perfect_after_malfunction']
 
     plot_computational_times(
         experiment_data=experiment_data,

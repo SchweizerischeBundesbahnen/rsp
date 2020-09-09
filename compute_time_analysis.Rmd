@@ -48,7 +48,7 @@ display(experiment_data)
 
 ```{python}
 axis_of_interest = 'n_agents'
-columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
+columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_perfect_after_malfunction']
 ```
 
 ### Visualize Compuational time comparison
