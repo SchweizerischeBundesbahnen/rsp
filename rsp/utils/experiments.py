@@ -15,8 +15,6 @@ span_n_grid
 create_env_pair_for_experiment
     Create a pair of environments for the desired research. One environment has no malfunciton, the other one has
     exactly one malfunciton
-save_experiment_agenda_and_hash_to_file
-    Save a generated experiment agenda to be used for later reruns
 load_experiment_agenda_from_file
     Load a ExperimentAgenda
 save_experiment_results_to_file
@@ -50,7 +48,6 @@ import tqdm as tqdm
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from pandas import DataFrame
 
 from rsp.experiment_solvers.asp.asp_helper import _print_stats
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
@@ -71,7 +68,6 @@ from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -170,19 +166,6 @@ def exists_schedule(base_directory: str, infra_id: int, schedule_id: int) -> boo
 def exists_infrastructure(base_directory: str, infra_id: int) -> bool:
     """Does a persisted `Infrastructure` exist?"""
     file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{infra_id:03d}", "infrastructure.pkl")
-    return os.path.isfile(file_name)
-
-
-def exists_malfunction(base_directory: str, experiment_id: int) -> bool:
-    """Does a persisted `ExperimentMalfunction` exist?
-    Parameters
-    ----------
-    base_directory
-    experiment_id
-    Returns
-    -------
-    """
-    file_name = os.path.join(base_directory, EXPERIMENT_INFRA_SUBDIRECTORY_NAME, f"{experiment_id:03d}", f"schedule.pkl")
     return os.path.isfile(file_name)
 
 
@@ -693,6 +676,11 @@ def run_experiment_agenda(
                 rsp_logger.info(f"{file_name}: {content.read()}")
         rsp_logger.info(f"============================================================================================================")
 
+        save_experiment_agenda_and_hash_to_file(
+            experiment_agenda_folder_name=experiment_output_directory,
+            experiment_agenda=experiment_agenda
+        )
+
         # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
         # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
         # N.B. even with parallelization degree 1, we want to run each experiment in a new process
@@ -1187,29 +1175,6 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
         return file_data
 
 
-def save_parameter_ranges_and_speed_data(experiment_agenda_folder_name: str, parameter_ranges_and_speed_data: ParameterRangesAndSpeedData):
-    """
-    Save experiment parameters and speed data to allow for easier modification after reloading
-    Parameters
-    ----------
-    experiment_agenda_folder_name
-        Folder to store parameter ranges and speed data
-    parameter_ranges_and_speed_data
-        Data to store
-
-    Returns
-    -------
-
-    """
-    if parameter_ranges_and_speed_data is None:
-        return
-
-    file_name = os.path.join(experiment_agenda_folder_name, "parameter_ranges_and_speed_data.pkl")
-    check_create_folder(experiment_agenda_folder_name)
-    with open(file_name, 'wb') as handle:
-        pickle.dump(parameter_ranges_and_speed_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
     return "{}_{}".format(experiment_name, datetime_string)
@@ -1285,54 +1250,6 @@ def load_and_expand_experiment_results_from_data_folder(
     return experiment_results_list
 
 
-def load_experiment_result_without_expanding(
-        experiment_data_folder_name: str,
-        experiment_id: int,
-) -> Tuple[ExperimentResults, str]:
-    """
-
-    Parameters
-    ----------
-    experiment_data_folder_name
-    experiment_id
-
-    Returns
-    -------
-
-    """
-    files = os.listdir(experiment_data_folder_name)
-    rsp_logger.info(f"loading experiment results from {experiment_data_folder_name}")
-    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
-    for file in tqdm.tqdm([file for file in files if 'agenda' not in file]):
-        file_name = os.path.join(experiment_data_folder_name, file)
-        if not file_name.endswith(".pkl"):
-            continue
-
-        # filter experiments according to defined experiment_ids
-        exp_id = get_experiment_id_from_filename(file_name)
-        if exp_id != experiment_id:
-            continue
-        with open(file_name, 'rb') as handle:
-            experiment_result: ExperimentResults = pickle.load(handle)
-        return experiment_result, file_name
-
-
-def load_without_average(data_folder: str) -> DataFrame:
-    """Load all data from the folder, expand and convert to data frame.
-    Parameters
-    ----------
-    data_folder: str
-        folder with pkl files.
-    Returns
-    -------
-    DataFrame
-    """
-    experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
-        data_folder)
-    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-    return experiment_data
-
-
 def delete_experiment_folder(experiment_folder_name: str):
     """Delete experiment folder.
     Parameters
@@ -1343,92 +1260,3 @@ def delete_experiment_folder(experiment_folder_name: str):
     -------
     """
     shutil.rmtree(experiment_folder_name)
-
-
-# -----------------------
-# Agenda tweaking methods
-# -----------------------
-
-def tweak_name(
-        agenda_null: ExperimentAgenda,
-        alt_index: Optional[int],
-        experiment_name: str) -> ExperimentAgenda:
-    """Produce a new `ExperimentAgenda` under a "tweaked" name.
-
-    Parameters
-    ----------
-    agenda_null
-    alt_index
-    experiment_name
-
-    Returns
-    -------
-    """
-    suffix = _make_suffix(alt_index)
-    return ExperimentAgenda(
-        experiment_name=f"{experiment_name}_{suffix}",
-        experiments=agenda_null.experiments
-    )
-
-
-def _make_suffix(alt_index: Optional[int]) -> str:
-    """Make suffix for experiment name: either "null" if `alt_index` is `None`,
-    else `alt{alt_index:03d}`
-
-    Parameters
-    ----------
-    alt_index
-
-    Returns
-    -------
-    """
-    suffix = "null"
-    if alt_index is not None:
-        suffix = f"alt{alt_index:03d}"
-    return suffix
-
-
-def hypothesis_gen_infrastructure_and_schedule_full_agenda(
-        parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-        base_directory: str,
-        flatland_seed: int = 12,
-        experiments_per_grid_element: int = 1,
-        experiment_name: str = "exp_hypothesis_one"):
-    """A.1 + A.2.
-
-    Parameters
-    ----------
-    parameter_ranges_and_speed_data
-    base_directory
-    flatland_seed
-    experiments_per_grid_element
-    experiment_name
-    """
-    rsp_logger.info("GEN INFRASTRUCTURE AND SCHEDULE")
-
-    experiment_agenda: ExperimentAgenda = create_experiment_agenda_from_parameter_ranges_and_speed_data(
-        experiment_name=experiment_name,
-        parameter_ranges_and_speed_data=parameter_ranges_and_speed_data,
-        flatland_seed=flatland_seed,
-        experiments_per_grid_element=experiments_per_grid_element)
-
-    for experiment_parameters in experiment_agenda.experiments:
-        rsp_logger.info(f"create_schedule_and_malfunction for {experiment_parameters.experiment_id}")
-
-        infra = gen_infrastructure(infra_parameters=experiment_parameters.infra_parameters)
-
-        schedule = gen_schedule(
-            infrastructure=infra,
-            schedule_parameters=experiment_parameters.schedule_parameters)
-
-        save_infrastructure(
-            infrastructure=infra,
-            base_directory=base_directory,
-            infrastructure_parameters=experiment_parameters.infra_parameters
-        )
-
-        save_schedule(
-            schedule=schedule,
-            schedule_parameters=experiment_parameters.schedule_parameters,
-            base_directory=base_directory
-        )

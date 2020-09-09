@@ -79,10 +79,6 @@ class ASPProblemDescription:
         )
         return asp_problem
 
-    def get_solver_name(self) -> str:
-        """Return the solver name for printing."""
-        return "ASP"
-
     @staticmethod
     def _sanitize_waypoint(waypoint: Waypoint):
         return tuple([tuple(waypoint.position), int(waypoint.direction)])
@@ -102,42 +98,6 @@ class ASPProblemDescription:
             self.asp_program.append("start(t{}, {}).".format(agent_id, self._sanitize_waypoint(start_waypoint)))
         for target_waypoint in target_vertices:
             self.asp_program.append("end(t{}, {}).".format(agent_id, self._sanitize_waypoint(target_waypoint)))
-
-    def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """Rule 102 Time windows for earliest-requirements. If a
-        section_requirement specifies an entry_earliest and/or exit_earliest
-        time, then the event times for the entry_event and/or exit_event on the
-        corresponding trainrun_section MUST be >= the specified time.
-
-        Parameters
-        ----------
-        agent_id
-        waypoint
-        time
-        """
-        # ASP fact e(T,V,E)
-        self.asp_program.append("e(t{},{},{}).".format(agent_id, self._sanitize_waypoint(waypoint), int(time)))
-
-    def _implement_agent_latest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """Rule 101 Time windows for latest-requirements. If a
-        section_requirement specifies a entry_latest and/or exit_latest time
-        then the event times for the entry_event and/or exit_event on the
-        corresponding trainrun_section SHOULD be <= the specified time. If the
-        scheduled time is later than required, the solution will still be
-        accepted, but it will be penalized by the objective function, see
-        below. Important Remark: Among the 12 business rules, this is the only
-        'soft' constraint, i.e. a rule that may be violated and the solution
-        still accepted.
-
-        Parameters
-        ----------
-        agent_id
-        waypoint
-        time
-        """
-
-        # ASP fact l(T,V,E)
-        self.asp_program.append("l(t{},{},{}).".format(agent_id, self._sanitize_waypoint(waypoint), int(time)))
 
     def _implement_route_section(self, agent_id: int,
                                  entry_waypoint: Waypoint,

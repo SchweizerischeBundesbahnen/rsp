@@ -16,7 +16,6 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
-from pandas import Series
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
@@ -28,10 +27,6 @@ from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
 
 SpeedData = Mapping[float, float]
-
-SymmetricEncounterGraphDistance = NamedTuple('SymmetricEncounterGraphDistance', [
-    ('proximity', float)
-])
 
 # @deprecated(reason="You should use hiearchy level ranges.")
 ParameterRanges = NamedTuple('ParameterRanges', [
@@ -287,7 +282,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('user_step_propagations_delta_after_malfunction', float),
 ])
 
-COLUMNS = ExperimentResults._fields
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
 LeftClosedInterval = NamedTuple('LeftClosedInterval', [
@@ -331,67 +325,8 @@ SchedulingProblemInTimeWindows = NamedTuple('SchedulingProblemInTimeWindows', [
 ])
 
 
-def convert_data_frame_row_to_experiment_results(rows: DataFrame) -> ExperimentResults:
-    """Converts data frame back to experiment results structure.
-
-    Parameters
-    ----------
-    rows: DataFrame
-
-    Returns
-    -------
-    ExperimentResults
-    """
-    return ExperimentResults(
-        experiment_parameters=rows['experiment_parameters'].iloc[0],
-        malfunction=rows['malfunction'].iloc[0],
-        problem_full=rows['problem_full'].iloc[0],
-        problem_full_after_malfunction=rows['problem_full_after_malfunction'].iloc[0],
-        problem_delta_after_malfunction=rows['problem_delta_after_malfunction'].iloc[0],
-        results_full=rows['results_full'].iloc[0],
-        results_full_after_malfunction=rows['results_full_after_malfunction'].iloc[0],
-        results_delta_after_malfunction=rows['results_delta_after_malfunction'].iloc[0],
-    )
-
-
-def convert_pandas_series_experiment_results(row: Series) -> ExperimentResults:
-    """Converts data frame back to experiment results structure.
-
-    Parameters
-    ----------
-    row: DataFrame
-
-    Returns
-    -------
-    ExperimentResults
-    """
-    return ExperimentResults(**row)
-
-
-def convert_pandas_series_experiment_results_analysis(row: Series) -> ExperimentResultsAnalysis:
-    """Converts data frame back to experiment results structure.
-
-    Parameters
-    ----------
-    rows: DataFrame
-
-    Returns
-    -------
-    ExperimentResults
-    """
-    return ExperimentResultsAnalysis(**row)
-
-
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
     return pd.DataFrame(columns=COLUMNS_ANALYSIS, data=[r._asdict() for r in l])
-
-
-def convert_list_of_experiment_results_to_data_frame(l: List[ExperimentResults]) -> DataFrame:
-    return pd.DataFrame(columns=COLUMNS, data=[r._asdict() for r in l])
-
-
-def expand_experiment_results_list_for_analysis(l: List[ExperimentResults]) -> List[ExperimentResultsAnalysis]:
-    return list(map(expand_experiment_results_for_analysis, l))
 
 
 def expand_experiment_results_for_analysis(
@@ -621,20 +556,6 @@ def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, 
                     r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])) /
             len(r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"]),
     }
-
-
-def convert_experiment_results_analysis_to_data_frame(experiment_results: ExperimentResultsAnalysis) -> DataFrame:
-    """Converts experiment results to data frame.
-
-    Parameters
-    ----------
-    experiment_results: ExperimentResults
-
-    Returns
-    -------
-    DataFrame
-    """
-    return experiment_results._asdict()
 
 
 def extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
