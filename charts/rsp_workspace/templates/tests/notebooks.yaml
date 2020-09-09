@@ -53,7 +53,7 @@ spec:
           cd $WORKDIR
 
           # check article compiles
-          cd $WORKDIR/doc/overleaf
+          cd $WORKDIR/rsp/doc/overleaf
           pdflatex main.tex
 
           cd $WORKDIR
