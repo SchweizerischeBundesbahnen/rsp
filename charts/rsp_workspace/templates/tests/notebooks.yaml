@@ -87,7 +87,7 @@ spec:
           conda env update --prefix /home/jovyan/data/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml
           conda activate /home/jovyan/data/rsp-conda
           date
-           export PYTHONPATH=$WORKDIR/rsp:$PYTHONPATH
+          export PYTHONPATH=$WORKDIR/rsp:$PYTHONPATH
           cd $WORKDIR/rsp
 
           # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
