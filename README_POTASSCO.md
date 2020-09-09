@@ -5,7 +5,7 @@ Workflow SBB <-> Potassco.
 
 Installation
 ------------
-Clone with submodules
+Clone
 ```
 git clone  git@github.com:SchweizerischeBundesbahnen/rsp.git
 ```
