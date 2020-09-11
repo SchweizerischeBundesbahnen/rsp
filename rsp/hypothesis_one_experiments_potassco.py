@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Optional
 
@@ -65,7 +66,7 @@ def run_potassco_agenda(base_directory: str):
 
     try:
         experiments_per_grid_element = 1
-        experiment_name_prefix = base_directory + "_"
+        experiment_name_prefix = os.path.basename(base_directory) + "_"
         parallel_compute = 2
         # baseline with defaults
         set_defaults()
