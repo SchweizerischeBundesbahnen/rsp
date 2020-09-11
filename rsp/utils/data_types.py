@@ -206,9 +206,11 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('problem_full', ScheduleProblemDescription),
     ('problem_full_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_naive_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
 ])
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
@@ -217,9 +219,11 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('problem_full', ScheduleProblemDescription),
     ('problem_full_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_naive_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
     ('experiment_id', int),
     ('grid_id', int),
     ('size', int),

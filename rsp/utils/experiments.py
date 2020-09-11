@@ -365,7 +365,7 @@ def run_experiment_in_memory(
                 file_name=f"naive_delta_rescheduling_neu_agent_{agent_id}.pdf",
             )
 
-    asp_reschedule_wrapper(
+    naive_delta_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=naive_delta_reschedule_problem,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
@@ -380,11 +380,12 @@ def run_experiment_in_memory(
         malfunction=experiment_malfunction,
         problem_full=schedule_problem,
         problem_full_after_malfunction=full_reschedule_problem,
-        # TODO SIM-672 add naive problem and result
         problem_delta_perfect_after_malfunction=perfect_delta_reschedule_problem,
+        problem_delta_naive_after_malfunction=naive_delta_reschedule_problem,
         results_full=schedule_result,
         results_full_after_malfunction=full_reschedule_result,
-        results_delta_perfect_after_malfunction=perfect_delta_reschedule_result
+        results_delta_perfect_after_malfunction=perfect_delta_reschedule_result,
+        results_delta_naive_after_malfunction=naive_delta_reschedule_result
     )
     rsp_logger.info(f"done re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
     return current_results
