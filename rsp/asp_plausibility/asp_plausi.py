@@ -2,8 +2,8 @@ from typing import Optional
 
 import pandas as pd
 
-from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
-from rsp.compute_time_analysis.compute_time_analysis import plot_computional_times_from_traces
+from rsp.analysis.compute_time_analysis import plot_computational_times
+from rsp.analysis.compute_time_analysis import plot_computional_times_from_traces
 
 
 def visualize_hypotheses_asp(
@@ -87,7 +87,7 @@ def visualize_hypotheses_asp(
     plot_computational_times(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
-        columns_of_interest=[f'solve_time_' + item for item in suffixes] + [f'total_time_' + item for item in suffixes],
+        columns_of_interest=[f'solve_time_' + item for item in suffixes] + [f'time_' + item for item in suffixes],
         title=f'002_asp_absolute_total_solver_times:\n'
               f' solver should spend most of the time solving: comparison total_time time and solve_time ',
         output_folder=output_folder,
@@ -136,7 +136,7 @@ def visualize_hypotheses_asp(
     # Choices as predictor?
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
-        traces=[('total_time_' + item, 'choices_' + item) for item in suffixes],
+        traces=[('time_' + item, 'choices_' + item) for item in suffixes],
         title=f'XXX_choices_are_good_predictor_of_solution_time: '
               'Choices represent the size of the solution space (how many routing alternatives, '
               f'how many potential resource conflicts).\n'
@@ -148,7 +148,7 @@ def visualize_hypotheses_asp(
     # Conflicts as predictor?
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
-        traces=[('total_time_' + item, 'conflicts_' + item) for item in suffixes],
+        traces=[('time_' + item, 'conflicts_' + item) for item in suffixes],
         title=f'XXX_conflicts_are_good_predictor_of_longer_solution_time_than_expected: '
               'Conflicts represent the number of routing alternatives and .\n'
               f'How much are conflicts and solution times correlated?',
@@ -159,7 +159,7 @@ def visualize_hypotheses_asp(
     # Shared as predictor?
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
-        traces=[('total_time_' + item, 'nb_resource_conflicts_' + item) for item in suffixes],
+        traces=[('time_' + item, 'nb_resource_conflicts_' + item) for item in suffixes],
         title=f'XXX_shared_are_good_predictor_of_longer_solution_time_than_expected: '
               'Shared are resource conflicts of time windows.\n'
               f'How much does number of resource conflicts predict solution times?',
@@ -182,7 +182,7 @@ def visualize_hypotheses_asp(
     )
     plot_computional_times_from_traces(
         experiment_data=experiment_data,
-        traces=[('total_time_' + item, 'costs_' + item) for item in suffixes],
+        traces=[('time_' + item, 'costs_' + item) for item in suffixes],
         title=f'XXX_low_cost_optimal_solutions_may_be_harder_to_find\n'
               f'Are solver times and optimization costs correlated? '
               f'Final optimization costs per total_time',

@@ -25,15 +25,15 @@ from IPython.display import Video
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
-from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
-from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
-from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
-from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.analysis.compute_time_analysis import plot_computational_times
+from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.analysis.compute_time_analysis import plot_resource_time_diagrams
+from rsp.analysis.compute_time_analysis import plot_speed_up
+from rsp.analysis.compute_time_analysis import render_flatland_env
+from rsp.analysis.compute_time_analysis import plot_route_dag
+from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_shared_heatmap
+from rsp.analysis.compute_time_analysis import extract_schedule_plotting
 
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
@@ -121,7 +121,7 @@ import pandas as pd
 experiment_details = pd.DataFrame([exp_results_of_experiment_of_interest._asdict()],columns=['experiment_id','malfunction','size',
        'n_agents', 'max_num_cities', 'max_rail_between_cities',
        'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
-       'time_delta_perfect_after_malfunction','speed_up','nb_resource_conflicts_full',
+       'time_delta_perfect_after_malfunction','speed_up_lower_bound','nb_resource_conflicts_full',
        'nb_resource_conflicts_full_after_malfunction',
        'nb_resource_conflicts_delta_perfect_after_malfunction'])
 

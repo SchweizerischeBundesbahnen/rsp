@@ -22,15 +22,15 @@ import sys
 
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
-from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
-from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_agent_specific_delay
-from rsp.compute_time_analysis.compute_time_analysis import print_situation_overview
+from rsp.analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_resource_time_diagrams
+from rsp.analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.analysis.compute_time_analysis import plot_delay_propagation_2d
+from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.analysis.compute_time_analysis import plot_agent_specific_delay
+from rsp.analysis.compute_time_analysis import print_situation_overview
 
 
 from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
@@ -42,7 +42,7 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ### Load Experiment Data
 
 ```{python}
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06'
+experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31'
 experiment_of_interest = 1
 agent_of_interest = 0
 ```
@@ -157,7 +157,7 @@ plot_delay_propagation_graph(minimal_depth = minimal_depth,
 
 ```{python}
 from rsp.hypothesis_two_encounter_graph import extract_time_windows_and_transmission_chains,plot_transmission_chains_time_window
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
 ```
 
 ```{python}

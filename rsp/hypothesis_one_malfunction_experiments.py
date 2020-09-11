@@ -1,6 +1,7 @@
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from rsp.experiment_solvers.data_types import Schedule
@@ -127,6 +128,7 @@ def malfunction_variation_for_one_schedule(
         schedule_id: int,
         experiments_per_grid_element: int,
         experiment_base_directory: str,
+        experiment_output_base_directory: Optional[str] = None,
         latest_malfunction_as_fraction_of_max_episode_steps: float = 0.5,
         malfunction_interval_as_fraction_of_max_episode_steps: float = 0.1,
         fraction_of_malfunction_agents: float = 1.0,
@@ -159,7 +161,8 @@ def malfunction_variation_for_one_schedule(
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         verbose=False,
-        experiment_base_directory=experiment_base_directory
+        experiment_base_directory=experiment_base_directory,
+        experiment_output_base_directory=experiment_output_base_directory
     )
     return experiment_output_directory
 

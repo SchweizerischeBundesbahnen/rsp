@@ -213,6 +213,30 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
 ])
 
+all_speed_up_series = {
+    'lower_bound': 'delta_perfect',
+    'upper_bound': 'delta_naive'
+}
+
+after_malfunction_scopes = ['full_after_malfunction', ] + [f'{scope}_after_malfunction' for scope in all_speed_up_series.values()]
+all_scopes = ['full'] + after_malfunction_scopes
+
+
+def time_from_experiment_results(results: ExperimentResults) -> float:
+    return results.solver_statistics["summary"]["times"]["total"]
+
+
+def solve_time_from_experiment_results(results: ExperimentResults) -> float:
+    return results.solver_statistics["summary"]["times"]["solve"]
+
+
+experiment_results_analysis_all_scopes_fields = {
+    'time': (float, time_from_experiment_results),
+    'solve_time': (float, solve_time_from_experiment_results)
+}
+experiment_results_analysis_after_malfunction_scopes_fields = {
+}
+
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('experiment_parameters', ExperimentParameters),
     ('malfunction', ExperimentMalfunction),
@@ -231,60 +255,82 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('max_num_cities', int),
     ('max_rail_between_cities', int),
     ('max_rail_in_city', int),
-    ('time_full', float),
-    ('time_full_after_malfunction', float),
-    ('time_delta_perfect_after_malfunction', float),
+
+    # TODO SIM-672 should it be separated?
+    ('size_used', int),
+
+    # ========================================
+    # full/full_after_malfunction/delta_*
+    # ========================================
+
     ('solution_full', TrainrunDict),
     ('solution_full_after_malfunction', TrainrunDict),
     ('solution_delta_perfect_after_malfunction', TrainrunDict),
+
     ('costs_full', float),  # sum of travelling times in scheduling solution
     ('costs_full_after_malfunction', float),
-    # TODO SIM-325 total delay at target over all agents with respect to schedule
+    # TODO SIM-672 total delay at target over all agents with respect to schedule
     ('costs_delta_perfect_after_malfunction', float),
-    # TODO SIM-325 total delay at target over all agents with respect to schedule
+    # TODO SIM-672 total delay at target over all agents with respect to schedule
+
     ('nb_resource_conflicts_full', int),
     ('nb_resource_conflicts_full_after_malfunction', int),
     ('nb_resource_conflicts_delta_perfect_after_malfunction', int),
-    ('speed_up', float),
-    ('factor_resource_conflicts', int),
+    # TODO SIM-672 speed_up uppper bound???
+
     ('path_search_space_schedule', int),
     ('path_search_space_rsp_full', int),
     ('path_search_space_rsp_delta', int),
-    ('factor_path_search_space', int),
-    ('size_used', int),
-    ('lateness_full_after_malfunction', Dict[int, int]),
-    ('sum_route_section_penalties_full_after_malfunction', int),
-    ('lateness_delta_perfect_after_malfunction', Dict[int, int]),
-    ('sum_route_section_penalties_delta_perfect_after_malfunction', int),
-    ('vertex_eff_lateness_full_after_malfunction', Dict[Waypoint, int]),
-    ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
-    ('vertex_eff_lateness_delta_perfect_after_malfunction', Dict[Waypoint, int]),
-    ('edge_eff_route_penalties_delta_perfect_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
+
     ('solve_total_ratio_full', float),
-    ('solve_time_full', float),
-    ('total_time_full', float),
     ('choice_conflict_ratio_full', float),
     ('choices_full', float),
     ('conflicts_full', float),
     ('user_accu_propagations_full', float),
     ('user_step_propagations_full', float),
     ('solve_total_ratio_full_after_malfunction', float),
-    ('solve_time_full_after_malfunction', float),
-    ('total_time_full_after_malfunction', float),
     ('choice_conflict_ratio_full_after_malfunction', float),
     ('choices_full_after_malfunction', float),
     ('conflicts_full_after_malfunction', float),
     ('user_accu_propagations_full_after_malfunction', float),
     ('user_step_propagations_full_after_malfunction', float),
     ('solve_total_ratio_delta_perfect_after_malfunction', float),
-    ('solve_time_delta_perfect_after_malfunction', float),
-    ('total_time_delta_perfect_after_malfunction', float),
     ('choice_conflict_ratio_delta_perfect_after_malfunction', float),
     ('choices_delta_perfect_after_malfunction', float),
     ('conflicts_delta_perfect_after_malfunction', float),
     ('user_accu_propagations_delta_perfect_after_malfunction', float),
     ('user_step_propagations_delta_perfect_after_malfunction', float),
-])
+
+    # ========================================
+    # full_after_malfunction/delta_*
+    # ========================================
+
+    ('lateness_full_after_malfunction', Dict[int, int]),
+    ('lateness_delta_perfect_after_malfunction', Dict[int, int]),
+
+    ('sum_route_section_penalties_full_after_malfunction', int),
+    ('sum_route_section_penalties_delta_perfect_after_malfunction', int),
+
+    ('vertex_eff_lateness_full_after_malfunction', Dict[Waypoint, int]),
+    ('vertex_eff_lateness_delta_perfect_after_malfunction', Dict[Waypoint, int]),
+
+    ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
+    ('edge_eff_route_penalties_delta_perfect_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
+
+    # ========================================
+    # lower_bound / upper_bound
+    # ========================================
+
+    ('speed_up_lower_bound', float),
+    ('speed_up_upper_bound', float),
+
+    ('factor_resource_conflicts', int),
+
+    ('factor_path_search_space', int),
+
+] + [(f'{prefix}_{scope}', type_) for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes]
+
+                                       )
 
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
@@ -361,14 +407,10 @@ def expand_experiment_results_for_analysis(
     experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
-    time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
     time_full_after_malfunction = \
         experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-    time_delta_perfect_after_malfunction = \
-        experiment_results.results_delta_perfect_after_malfunction.solver_statistics["summary"]["times"]["total"]
     nb_resource_conflicts_delta_perfect_after_malfunction = experiment_results.results_delta_perfect_after_malfunction.nb_conflicts
     nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
-    speed_up = time_full_after_malfunction / time_delta_perfect_after_malfunction
     # search space indiciators
     factor_resource_conflicts = -1
     try:
@@ -473,6 +515,13 @@ def expand_experiment_results_for_analysis(
             f"[{experiment_id}] sum_route_section_penalties_delta_perfect_after_malfunction={sum_route_section_penalties_delta_perfect_after_malfunction}")
 
     return ExperimentResultsAnalysis(
+        experiment_id=experiment_parameters.experiment_id,
+        grid_id=experiment_parameters.grid_id,
+        size=experiment_parameters.infra_parameters.width,
+        n_agents=experiment_parameters.infra_parameters.number_of_agents,
+        max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
+        max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
+        max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
         **dict(
             experiment_results._asdict(),
             **({
@@ -488,18 +537,20 @@ def expand_experiment_results_for_analysis(
                                                            suffix="full_after_malfunction"),
             **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_delta_perfect_after_malfunction,
                                                            suffix="delta_perfect_after_malfunction"),
+            **{
+                f'speed_up_{speed_up_series}':
+                    time_full_after_malfunction /
+                    experiment_results._asdict()[f'results_{scoper_infix}_after_malfunction'].solver_statistics["summary"]["times"]["total"]
+                for speed_up_series, scoper_infix in all_speed_up_series.items()
 
+            },
+            **{
+                f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}'])
+                for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
+                for scope in all_scopes
+            }
         ),
-        experiment_id=experiment_parameters.experiment_id,
-        grid_id=experiment_parameters.grid_id,
-        size=experiment_parameters.infra_parameters.width,
-        n_agents=experiment_parameters.infra_parameters.number_of_agents,
-        max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
-        max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
-        max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
-        time_full=time_full,
-        time_full_after_malfunction=time_full_after_malfunction,
-        time_delta_perfect_after_malfunction=time_delta_perfect_after_malfunction,
+
         solution_full=experiment_results.results_full.trainruns_dict,
         solution_full_after_malfunction=experiment_results.results_full_after_malfunction.trainruns_dict,
         solution_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.trainruns_dict,
@@ -511,7 +562,6 @@ def expand_experiment_results_for_analysis(
         nb_resource_conflicts_full=experiment_results.results_full.nb_conflicts,
         nb_resource_conflicts_full_after_malfunction=experiment_results.results_full_after_malfunction.nb_conflicts,
         nb_resource_conflicts_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.nb_conflicts,
-        speed_up=speed_up,
         factor_resource_conflicts=factor_resource_conflicts,
         path_search_space_schedule=path_search_space_schedule,
         path_search_space_rsp_full=path_search_space_rsp_full,
@@ -537,10 +587,6 @@ def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, 
                 r.solver_statistics["summary"]["times"]["solve"] /
                 r.solver_statistics["summary"]["times"]["total"]
             ),
-        f'solve_time_{suffix}':
-            r.solver_statistics["summary"]["times"]["solve"],
-        f'total_time_{suffix}':
-            r.solver_statistics["summary"]["times"]["total"],
         f'choice_conflict_ratio_{suffix}':
             catch_zero_division_error_as_minus_one(
                 lambda:

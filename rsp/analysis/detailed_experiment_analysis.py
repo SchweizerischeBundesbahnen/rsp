@@ -20,15 +20,16 @@ import pandas as pd
 import tqdm
 from pandas import DataFrame
 
+from rsp.analysis.compute_time_analysis import plot_computational_times
+from rsp.analysis.compute_time_analysis import plot_computional_times_from_traces
+from rsp.analysis.compute_time_analysis import plot_speed_up
 from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
 from rsp.asp_plausibility.potassco_export import potassco_export
-from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
-from rsp.compute_time_analysis.compute_time_analysis import plot_computional_times_from_traces
-from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.utils.data_types import all_speed_up_series
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiment_render_utils import visualize_experiment
@@ -116,15 +117,16 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
         output_folder=output_folder,
         pdf_file="009_nb_resource_conflict__time.pdf",
         title="009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps:\n"
-              'Correlation of ratio of nb_resource_conflicts and speed_up?',
-        traces=[('ratio_nb_resource_conflicts', 'speed_up')],
+              'Correlation of ratio of nb_resource_conflicts and speed_up_lower_bound?',
+        traces=[('ratio_nb_resource_conflicts', 'speed_up_lower_bound')],
         x_axis_title='ratio_nb_resource_conflicts'
     )
 
 
-HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = ['time_full', 'time_full_after_malfunction', 'time_delta_perfect_after_malfunction']
+HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = ['time_full', 'time_full_after_malfunction', 'time_delta_perfect_after_malfunction', 'time_delta_naive_after_malfunction']
 
 
+# TODO SIM-672 should we remove analysis stuff from pipeline, only have it in notebooks and tests (from dummydata maybe?)
 def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data: DataFrame,
         experiment_data_baseline: Optional[DataFrame] = None,
@@ -155,14 +157,17 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
             )
 
 
+# TODO SIM-672 plot upper and lower bound
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
-    experiment_data['speed_up_solve_time'] = \
-        experiment_data['solve_time_full_after_malfunction'] / \
-        experiment_data['solve_time_delta_perfect_after_malfunction']
-    experiment_data['speed_up_non_solve_time'] = \
-        (experiment_data['total_time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
-        (experiment_data['total_time_delta_perfect_after_malfunction'] - experiment_data['solve_time_delta_perfect_after_malfunction'])
+
+    for speed_up_series, scoper_infix in all_speed_up_series.items():
+        experiment_data[f'speed_up_{speed_up_series}_solve_time'] = \
+            experiment_data['solve_time_full_after_malfunction'] / \
+            experiment_data[f'solve_time_{scoper_infix}_after_malfunction']
+        experiment_data[f'speed_up_{speed_up_series}_non_solve_time'] = \
+            (experiment_data['time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
+            (experiment_data[f'time_{scoper_infix}_after_malfunction'] - experiment_data[f'solve_time_{scoper_infix}_after_malfunction'])
 
     for axis_of_interest, axis_of_interest_suffix in {
         'experiment_id': '',
@@ -171,17 +176,17 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
         'size_used': '',
         'solve_time_full_after_malfunction': '[s]'
     }.items():
-        for speed_up_col, y_axis_title in [
-            ('speed_up', 'Speed-up full solver time [-]'),
-            ('speed_up_solve_time', 'Speed-up solver time solving only [-]'),
-            ('speed_up_non_solve_time', 'Speed-up solver time non-processing (grounding etc.) [-]'),
+        for speed_up_col_pattern, y_axis_title in [
+            ('speed_up_{}', 'Speed-up full solver time [-]'),
+            ('speed_up_{}_solve_time', 'Speed-up solver time solving only [-]'),
+            ('speed_up_{}_non_solve_time', 'Speed-up solver time non-processing (grounding etc.) [-]'),
         ]:
             plot_speed_up(
                 experiment_data=experiment_data,
                 axis_of_interest=axis_of_interest,
                 axis_of_interest_suffix=axis_of_interest_suffix,
                 output_folder=output_folder,
-                col=speed_up_col,
+                cols=[speed_up_col_pattern.format(speed_up_series) for speed_up_series in all_speed_up_series],
                 y_axis_title=y_axis_title
             )
 
@@ -225,7 +230,7 @@ def hypothesis_one_data_analysis(experiment_output_directory: str,
         experiment_data.to_csv(f"{experiment_data_directory}/data.tsv", sep="\t")
 
     # quantitative analysis
-    # TODO should we remove analysis_2d in favor of notebooks which are tested in ci?
+    # TODO SIM-672 should we remove analysis_2d in favor of notebooks which are tested in ci?
     if analysis_2d:
         # main results
         hypothesis_one_analysis_visualize_computational_time_comparison(
@@ -326,6 +331,7 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 
 if __name__ == '__main__':
+    # TODO SIM-672 make unit test instead? do we need an offline version? extract main from here in the latter case.
     hypothesis_one_data_analysis(
         experiment_output_directory='./rsp/exp_hypothesis_one_2020_03_21T12_57_55',
         analysis_2d=True,

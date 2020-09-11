@@ -24,23 +24,24 @@ from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 
-from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
-from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import time_windows_as_resource_occupations_per_agent
-from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_density
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_occupation_heat_map
-from rsp.compute_time_analysis.compute_time_analysis import plot_train_paths
+from rsp.analysis.compute_time_analysis import render_flatland_env
+from rsp.analysis.compute_time_analysis import plot_route_dag
+from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_shared_heatmap
+from rsp.analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.analysis.compute_time_analysis import time_windows_as_resource_occupations_per_agent
+from rsp.analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_time_density
+from rsp.analysis.compute_time_analysis import plot_resource_occupation_heat_map
+from rsp.analysis.compute_time_analysis import plot_train_paths
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06'
+# TODO SIM-672 / SIM-656 make configuration easier, use dummydata in integration tests and use full data in notebooks
+experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31'
 
 experiment_of_interest = 1
 agent_of_interest = 0

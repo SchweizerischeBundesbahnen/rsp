@@ -710,7 +710,7 @@ def run_experiment_agenda(
             )
 
         rsp_logger.info(f"============================================================================================================")
-        rsp_logger.info(f"RUNNING agenda {experiment_base_directory} -> {experiment_data_directory}")
+        rsp_logger.info(f"RUNNING agenda {experiment_base_directory} -> {experiment_data_directory} ({len(experiment_agenda.experiments)} experiments)")
         rsp_logger.info(f"============================================================================================================")
         for file_name in ["rsp/utils/global_constants.py"]:
             with open(file_name, "r") as content:

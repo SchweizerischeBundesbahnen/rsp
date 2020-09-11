@@ -5,7 +5,7 @@ from typing import Tuple
 
 import numpy as np
 
-from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_data_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import parameter_ranges_and_speed_data_to_hiearchical
@@ -122,6 +122,7 @@ def list_from_base_directory_and_run_experiment_agenda(
         reschedule_parameters_range: ReScheduleParametersRange,
         experiment_base_directory: str,
         experiment_name: str,
+        experiment_output_base_directory: Optional[str] = None,
         filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiments_per_grid_element: int = 1
@@ -142,6 +143,7 @@ def list_from_base_directory_and_run_experiment_agenda(
         run_experiments_parallel=parallel_compute,
         filter_experiment_agenda=filter_experiment_agenda,
         verbose=False,
-        experiment_base_directory=experiment_base_directory
+        experiment_base_directory=experiment_base_directory,
+        experiment_output_base_directory=experiment_output_base_directory
     )
     return experiment_agenda, experiment_output_directory

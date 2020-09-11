@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_data_analysis
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
