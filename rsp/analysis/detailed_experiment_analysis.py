@@ -29,6 +29,7 @@ from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.utils.data_types import after_malfunction_scopes
 from rsp.utils.data_types import all_speed_up_series
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentResultsAnalysis
@@ -155,12 +156,21 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
                 output_folder=output_folder,
                 title='Computational Times ratio (baseline / new data)'
             )
+    plot_computational_times(
+        experiment_data=experiment_data,
+        experiment_data_baseline=experiment_data_baseline,
+        experiment_data_baseline_suffix=experiment_data_baseline_suffix,
+        experiment_data_suffix=experiment_data_suffix,
+        axis_of_interest='experiment_id',
+        columns_of_interest=[f'total_delay_{scope}' for scope in after_malfunction_scopes],
+        output_folder=output_folder,
+        title='Total delay'
+    )
 
 
 # TODO SIM-672 plot upper and lower bound
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
-
     for speed_up_series, scoper_infix in all_speed_up_series.items():
         experiment_data[f'speed_up_{speed_up_series}_solve_time'] = \
             experiment_data['solve_time_full_after_malfunction'] / \

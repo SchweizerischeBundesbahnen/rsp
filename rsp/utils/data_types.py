@@ -222,19 +222,34 @@ after_malfunction_scopes = ['full_after_malfunction', ] + [f'{scope}_after_malfu
 all_scopes = ['full'] + after_malfunction_scopes
 
 
-def time_from_experiment_results(results: ExperimentResults) -> float:
+def time_from_experiment_results(results: SchedulingExperimentResult) -> float:
     return results.solver_statistics["summary"]["times"]["total"]
 
 
-def solve_time_from_experiment_results(results: ExperimentResults) -> float:
+def solve_time_from_experiment_results(results: SchedulingExperimentResult) -> float:
     return results.solver_statistics["summary"]["times"]["solve"]
+
+
+def total_delay_from_results(results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult) -> float:
+    # TODO SIM-672 duplicate code
+    def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_dict_reschedule: TrainrunDict):
+        return sum([
+            max(trainruns_dict_reschedule[agent_id][-1].scheduled_at - trainruns_dict_schedule[agent_id][-1].scheduled_at,
+                0)
+            for agent_id in trainruns_dict_reschedule])
+    return get_delay_trainruns_dict(
+        trainruns_dict_schedule=results_schedule.trainruns_dict,
+        trainruns_dict_reschedule=results_reschedule.trainruns_dict
+    )
 
 
 experiment_results_analysis_all_scopes_fields = {
     'time': (float, time_from_experiment_results),
     'solve_time': (float, solve_time_from_experiment_results)
 }
+
 experiment_results_analysis_after_malfunction_scopes_fields = {
+    'total_delay': (float, total_delay_from_results)
 }
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
@@ -328,9 +343,15 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
 
     ('factor_path_search_space', int),
 
-] + [(f'{prefix}_{scope}', type_) for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes]
-
-                                       )
+] + [
+                                           (f'{prefix}_{scope}', type_)
+                                           for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items()
+                                           for scope in all_scopes
+                                       ] + [
+                                           (f'{prefix}_{scope}', type_)
+                                           for prefix, (type_, _) in experiment_results_analysis_after_malfunction_scopes_fields.items()
+                                           for scope in after_malfunction_scopes
+                                       ])
 
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
@@ -548,6 +569,11 @@ def expand_experiment_results_for_analysis(
                 f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}'])
                 for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
                 for scope in all_scopes
+            },
+            **{
+                f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_full'], experiment_results._asdict()[f'results_{scope}'])
+                for prefix, (_, results_extractor) in experiment_results_analysis_after_malfunction_scopes_fields.items()
+                for scope in after_malfunction_scopes
             }
         ),
 
