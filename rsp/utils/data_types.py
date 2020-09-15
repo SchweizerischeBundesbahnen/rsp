@@ -12,9 +12,9 @@ from typing import Set
 from typing import Tuple
 
 import pandas as pd
-from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+from numpy import inf
 from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
@@ -230,26 +230,159 @@ def solve_time_from_experiment_results(results: SchedulingExperimentResult) -> f
     return results.solver_statistics["summary"]["times"]["solve"]
 
 
-def total_delay_from_results(results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult) -> float:
+def total_delay_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription
+) -> float:
     # TODO SIM-672 duplicate code
     def get_delay_trainruns_dict(trainruns_dict_schedule: TrainrunDict, trainruns_dict_reschedule: TrainrunDict):
         return sum([
             max(trainruns_dict_reschedule[agent_id][-1].scheduled_at - trainruns_dict_schedule[agent_id][-1].scheduled_at,
                 0)
             for agent_id in trainruns_dict_reschedule])
+
     return get_delay_trainruns_dict(
         trainruns_dict_schedule=results_schedule.trainruns_dict,
         trainruns_dict_reschedule=results_reschedule.trainruns_dict
     )
 
 
+def trainrun_dict_from_results(results: SchedulingExperimentResult) -> TrainrunDict:
+    return results.trainruns_dict
+
+
+def costs_from_results(results: SchedulingExperimentResult) -> float:
+    return results.solver_statistics["summary"]["costs"][0] \
+        if len(results.solver_statistics["summary"]["costs"]) > 0 \
+        else -1
+
+
+def nb_resource_conflicts_from_results(results: SchedulingExperimentResult) -> float:
+    return results.nb_conflicts
+
+
+def solve_total_ratio_from_results(r: SchedulingExperimentResult) -> float:
+    return catch_zero_division_error_as_minus_one(
+        lambda:
+        r.solver_statistics["summary"]["times"]["solve"] /
+        r.solver_statistics["summary"]["times"]["total"])
+
+
+def choice_conflict_ratio_from_results(r: SchedulingExperimentResult) -> float:
+    return catch_zero_division_error_as_minus_one(
+        lambda:
+        r.solver_statistics["solving"]["solvers"]["choices"] /
+        r.solver_statistics["solving"]["solvers"]["conflicts"]
+    )
+
+
+def choices_from_results(r: SchedulingExperimentResult) -> float:
+    return r.solver_statistics["solving"]["solvers"]["choices"]
+
+
+def conflicts_from_results(r: SchedulingExperimentResult) -> float:
+    return r.solver_statistics["solving"]["solvers"]["conflicts"]
+
+
+def user_accu_propagations_from_results(r: SchedulingExperimentResult) -> float:
+    return sum(map(lambda d: d["Propagation(s)"],
+                   r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])) / len(r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])
+
+
+def user_step_propagations_from_results(r: SchedulingExperimentResult) -> float:
+    return sum(map(lambda d: d["Propagation(s)"],
+                   r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])) / len(r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])
+
+
+def lateness_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription):
+    return {
+        agent_id: max(
+            results_reschedule.trainruns_dict[agent_id][-1].scheduled_at -
+            problem_reschedule.route_dag_constraints_dict[agent_id].earliest[results_schedule.trainruns_dict[agent_id][-1].waypoint],
+            0)
+        for agent_id in results_reschedule.trainruns_dict.keys()
+    }
+
+
+def vertex_eff_lateness_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription) -> Dict[int, Dict[Waypoint, float]]:
+    schedule = {
+        agent_id: {
+            trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
+            for trainrun_waypoint in trainrun
+        }
+        for agent_id, trainrun in results_schedule.trainruns_dict.items()
+    }
+    return {
+        agent_id: {
+            trainrun_waypoint.waypoint: max(trainrun_waypoint.scheduled_at - schedule[agent_id].get(trainrun_waypoint.waypoint, inf), 0)
+            for trainrun_waypoint in reschedule_trainrun
+        }
+        for agent_id, reschedule_trainrun in results_reschedule.trainruns_dict.items()
+    }
+
+
+def edge_eff_route_penalties_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription) -> Dict[int, Dict[Tuple[Waypoint, Waypoint], int]]:
+    edges_rescheduling = {
+        agent_id: {
+            (wp1.waypoint, wp2.waypoint)
+            for wp1, wp2 in zip(reschedule_trainrun, reschedule_trainrun[1:])
+        }
+        for agent_id, reschedule_trainrun in results_reschedule.trainruns_dict.items()
+    }
+
+    return {
+        agent_id: {
+            edge: penalty
+            for edge, penalty in problem_reschedule.route_section_penalties[agent_id].items()
+            if edge in edges_rescheduling[agent_id]
+        }
+        for agent_id in results_reschedule.trainruns_dict.keys()
+    }
+
+
+def sum_route_section_penalties_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription) -> Dict[int, float]:
+    # TODO we should avoid redundant computations?
+    edge_penalties = edge_eff_route_penalties_from_results(
+        results_schedule=results_schedule,
+        results_reschedule=results_reschedule,
+        problem_reschedule=problem_reschedule)
+    return {agent_id: sum(edge_penalties.values()) for agent_id, edge_penalties in edge_penalties.items()}
+
+
 experiment_results_analysis_all_scopes_fields = {
     'time': (float, time_from_experiment_results),
-    'solve_time': (float, solve_time_from_experiment_results)
+    'solve_time': (float, solve_time_from_experiment_results),
+    'solution': (TrainrunDict, trainrun_dict_from_results),
+    'costs': (float, costs_from_results),
+    'nb_resource_conflicts': (float, nb_resource_conflicts_from_results),
+    'solve_total_ratio': (float, solve_total_ratio_from_results),
+    'choice_conflict_ratio': (float, choice_conflict_ratio_from_results),
+    'choices': (float, choices_from_results),
+    'conflicts': (float, conflicts_from_results),
+    'user_accu_propagations': (float, user_accu_propagations_from_results),
+    'user_step_propagations': (float, user_step_propagations_from_results),
 }
 
 experiment_results_analysis_after_malfunction_scopes_fields = {
-    'total_delay': (float, total_delay_from_results)
+    'total_delay': (float, total_delay_from_results),
+    'lateness': (Dict[int, int], lateness_from_results),
+    'sum_route_section_penalties': (Dict[int, float], sum_route_section_penalties_from_results),
+    'vertex_eff_lateness': (Dict[int, Dict[Waypoint, float]], vertex_eff_lateness_from_results),
+    'edge_eff_route_penalties': (Dict[int, Dict[Tuple[Waypoint, Waypoint], float]], edge_eff_route_penalties_from_results)
+
 }
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
@@ -275,64 +408,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('size_used', int),
 
     # ========================================
-    # full/full_after_malfunction/delta_*
-    # ========================================
-
-    ('solution_full', TrainrunDict),
-    ('solution_full_after_malfunction', TrainrunDict),
-    ('solution_delta_perfect_after_malfunction', TrainrunDict),
-
-    ('costs_full', float),  # sum of travelling times in scheduling solution
-    ('costs_full_after_malfunction', float),
-    # TODO SIM-672 total delay at target over all agents with respect to schedule
-    ('costs_delta_perfect_after_malfunction', float),
-    # TODO SIM-672 total delay at target over all agents with respect to schedule
-
-    ('nb_resource_conflicts_full', int),
-    ('nb_resource_conflicts_full_after_malfunction', int),
-    ('nb_resource_conflicts_delta_perfect_after_malfunction', int),
-    # TODO SIM-672 speed_up uppper bound???
-
-    ('path_search_space_schedule', int),
-    ('path_search_space_rsp_full', int),
-    ('path_search_space_rsp_delta', int),
-
-    ('solve_total_ratio_full', float),
-    ('choice_conflict_ratio_full', float),
-    ('choices_full', float),
-    ('conflicts_full', float),
-    ('user_accu_propagations_full', float),
-    ('user_step_propagations_full', float),
-    ('solve_total_ratio_full_after_malfunction', float),
-    ('choice_conflict_ratio_full_after_malfunction', float),
-    ('choices_full_after_malfunction', float),
-    ('conflicts_full_after_malfunction', float),
-    ('user_accu_propagations_full_after_malfunction', float),
-    ('user_step_propagations_full_after_malfunction', float),
-    ('solve_total_ratio_delta_perfect_after_malfunction', float),
-    ('choice_conflict_ratio_delta_perfect_after_malfunction', float),
-    ('choices_delta_perfect_after_malfunction', float),
-    ('conflicts_delta_perfect_after_malfunction', float),
-    ('user_accu_propagations_delta_perfect_after_malfunction', float),
-    ('user_step_propagations_delta_perfect_after_malfunction', float),
-
-    # ========================================
-    # full_after_malfunction/delta_*
-    # ========================================
-
-    ('lateness_full_after_malfunction', Dict[int, int]),
-    ('lateness_delta_perfect_after_malfunction', Dict[int, int]),
-
-    ('sum_route_section_penalties_full_after_malfunction', int),
-    ('sum_route_section_penalties_delta_perfect_after_malfunction', int),
-
-    ('vertex_eff_lateness_full_after_malfunction', Dict[Waypoint, int]),
-    ('vertex_eff_lateness_delta_perfect_after_malfunction', Dict[Waypoint, int]),
-
-    ('edge_eff_route_penalties_full_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
-    ('edge_eff_route_penalties_delta_perfect_after_malfunction', Dict[Tuple[Waypoint, Waypoint], int]),
-
-    # ========================================
     # lower_bound / upper_bound
     # ========================================
 
@@ -340,8 +415,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('speed_up_upper_bound', float),
 
     ('factor_resource_conflicts', int),
-
-    ('factor_path_search_space', int),
 
 ] + [
                                            (f'{prefix}_{scope}', type_)
@@ -351,7 +424,8 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
                                            (f'{prefix}_{scope}', type_)
                                            for prefix, (type_, _) in experiment_results_analysis_after_malfunction_scopes_fields.items()
                                            for scope in after_malfunction_scopes
-                                       ])
+                                       ]
+                                       )
 
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
@@ -440,100 +514,11 @@ def expand_experiment_results_for_analysis(
             nb_resource_conflicts_full_after_malfunction
     except ZeroDivisionError:
         warnings.warn(f"no resource conflicts for experiment {experiment_id} -> set ratio to -1")
-    path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule = extract_path_search_space(
-        experiment_results=experiment_results)
-    factor_path_search_space = path_search_space_rsp_delta / path_search_space_rsp_full
     used_cells: Set[Waypoint] = {
         waypoint for agent_id, topo in
         experiment_results.problem_full.topo_dict.items()
         for waypoint in topo.nodes
     }
-    # costs: lateness and routing penalties
-    lateness_full_after_malfunction = {}
-    sum_route_section_penalties_full_after_malfunction = {}
-    lateness_delta_perfect_after_malfunction = {}
-    sum_route_section_penalties_delta_perfect_after_malfunction = {}
-    vertex_eff_lateness_full_after_malfunction = {}
-    edge_eff_route_penalties_full_after_malfunction = {}
-    vertex_eff_lateness_delta_perfect_after_malfunction = {}
-    edge_eff_route_penalties_delta_perfect_after_malfunction = {}
-    for agent_id in experiment_results.results_full.trainruns_dict.keys():
-        # full re-scheduling
-        train_run_full_after_malfunction_agent: Trainrun = experiment_results.results_full_after_malfunction.trainruns_dict[
-            agent_id]
-        target_full_after_malfunction_agent: Waypoint = train_run_full_after_malfunction_agent[-1].waypoint
-
-        train_run_full_after_malfunction_constraints_agent = \
-            experiment_results.problem_full_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_full_after_malfunction_target_earliest_agent = \
-            train_run_full_after_malfunction_constraints_agent.earliest[target_full_after_malfunction_agent]
-        train_run_full_after_malfunction_scheduled_at_target = \
-            train_run_full_after_malfunction_agent[-1].scheduled_at
-        lateness_full_after_malfunction[agent_id] = \
-            max(
-                train_run_full_after_malfunction_scheduled_at_target -
-                train_run_full_after_malfunction_target_earliest_agent,
-                0)
-        # TODO SIM-325 extend to all vertices
-        vertex_eff_lateness_full_after_malfunction[agent_id] = {
-            target_full_after_malfunction_agent: lateness_full_after_malfunction[agent_id]
-        }
-        edges_full_after_malfunction_agent = {
-            (wp1.waypoint, wp2.waypoint)
-            for wp1, wp2 in zip(train_run_full_after_malfunction_agent, train_run_full_after_malfunction_agent[1:])
-        }
-        edge_eff_route_penalties_full_after_malfunction_agent = {
-            edge: penalty
-            for edge, penalty in
-            experiment_results.problem_full_after_malfunction.route_section_penalties[agent_id].items()
-            if edge in edges_full_after_malfunction_agent
-        }
-        edge_eff_route_penalties_full_after_malfunction[
-            agent_id] = edge_eff_route_penalties_full_after_malfunction_agent
-        sum_route_section_penalties_full_after_malfunction[agent_id] = sum(
-            edge_eff_route_penalties_full_after_malfunction_agent.values())
-
-        # delta re-scheduling
-        train_run_delta_perfect_after_malfunction_agent = experiment_results.results_delta_perfect_after_malfunction.trainruns_dict[
-            agent_id]
-        target_delta_perfect_after_malfunction_agent: Waypoint = train_run_delta_perfect_after_malfunction_agent[-1].waypoint
-        train_run_delta_perfect_after_malfunction_target_agent = train_run_delta_perfect_after_malfunction_agent[-1]
-        train_run_delta_perfect_after_malfunction_constraints_agent = \
-            experiment_results.problem_delta_perfect_after_malfunction.route_dag_constraints_dict[agent_id]
-        train_run_delta_perfect_after_malfunction_target_earliest_agent = \
-            train_run_delta_perfect_after_malfunction_constraints_agent.earliest[target_delta_perfect_after_malfunction_agent]
-        train_run_delta_perfect_after_malfunction_scheduled_at_target = \
-            train_run_delta_perfect_after_malfunction_target_agent.scheduled_at
-        lateness_delta_perfect_after_malfunction[agent_id] = \
-            max(
-                train_run_delta_perfect_after_malfunction_scheduled_at_target - train_run_delta_perfect_after_malfunction_target_earliest_agent,
-                0)
-        # TODO SIM-325 extend to all vertices
-        vertex_eff_lateness_delta_perfect_after_malfunction[agent_id] = {
-            target_delta_perfect_after_malfunction_agent: lateness_delta_perfect_after_malfunction[agent_id]
-        }
-        edges_delta_perfect_after_malfunction_agent = {
-            (wp1.waypoint, wp2.waypoint)
-            for wp1, wp2 in
-            zip(train_run_delta_perfect_after_malfunction_agent, train_run_delta_perfect_after_malfunction_agent[1:])
-        }
-        edge_eff_route_penalties_delta_perfect_after_malfunction_agent = {
-            edge: penalty
-            for edge, penalty in
-            experiment_results.problem_delta_perfect_after_malfunction.route_section_penalties[agent_id].items()
-            if edge in edges_delta_perfect_after_malfunction_agent
-        }
-        edge_eff_route_penalties_delta_perfect_after_malfunction[
-            agent_id] = edge_eff_route_penalties_delta_perfect_after_malfunction_agent
-        sum_route_section_penalties_delta_perfect_after_malfunction[agent_id] = sum(
-            edge_eff_route_penalties_delta_perfect_after_malfunction_agent.values())
-    if debug:
-        print(f"[{experiment_id}] lateness_full_after_malfunction={lateness_full_after_malfunction}")
-        print(
-            f"[{experiment_id}] sum_route_section_penalties_full_after_malfunction={sum_route_section_penalties_full_after_malfunction}")
-        print(f"[{experiment_id}] lateness_delta_perfect_after_malfunction={lateness_delta_perfect_after_malfunction}")
-        print(
-            f"[{experiment_id}] sum_route_section_penalties_delta_perfect_after_malfunction={sum_route_section_penalties_delta_perfect_after_malfunction}")
 
     return ExperimentResultsAnalysis(
         experiment_id=experiment_parameters.experiment_id,
@@ -555,11 +540,6 @@ def expand_experiment_results_for_analysis(
                    'results_delta_perfect_after_malfunction': None,
                    'results_delta_naive_after_malfunction': None,
                } if nonify_problem_and_results else {}),
-            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full, suffix="full"),
-            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full_after_malfunction,
-                                                           suffix="full_after_malfunction"),
-            **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_delta_perfect_after_malfunction,
-                                                           suffix="delta_perfect_after_malfunction"),
             **{
                 f'speed_up_{speed_up_series}':
                     time_full_after_malfunction /
@@ -573,71 +553,20 @@ def expand_experiment_results_for_analysis(
                 for scope in all_scopes
             },
             **{
-                f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_full'], experiment_results._asdict()[f'results_{scope}'])
+                f'{prefix}_{scope}': results_extractor(
+                    results_schedule=experiment_results._asdict()[f'results_full'],
+                    results_reschedule=experiment_results._asdict()[f'results_{scope}'],
+                    problem_reschedule=experiment_results._asdict()[f'problem_{scope}'],
+                )
                 for prefix, (_, results_extractor) in experiment_results_analysis_after_malfunction_scopes_fields.items()
                 for scope in after_malfunction_scopes
             }
         ),
 
-        solution_full=experiment_results.results_full.trainruns_dict if not nonify_problem_and_results else None,
-        solution_full_after_malfunction=experiment_results.results_full_after_malfunction.trainruns_dict if not nonify_problem_and_results else None,
-        solution_delta_perfect_after_malfunction=(experiment_results.results_delta_perfect_after_malfunction.trainruns_dict
-                                                  if not nonify_problem_and_results
-                                                  else None),
         # scheduling without optimization has no empty costs array
-        costs_full=(experiment_results.results_full.solver_statistics["summary"]["costs"][0]
-                    if len(experiment_results.results_full.solver_statistics["summary"]["costs"]) > 0 else -1),
-        costs_full_after_malfunction=experiment_results.results_full_after_malfunction.optimization_costs,
-        costs_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.optimization_costs,
-        nb_resource_conflicts_full=experiment_results.results_full.nb_conflicts,
-        nb_resource_conflicts_full_after_malfunction=experiment_results.results_full_after_malfunction.nb_conflicts,
-        nb_resource_conflicts_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.nb_conflicts,
         factor_resource_conflicts=factor_resource_conflicts,
-        path_search_space_schedule=path_search_space_schedule,
-        path_search_space_rsp_full=path_search_space_rsp_full,
-        path_search_space_rsp_delta=path_search_space_rsp_delta,
-        size_used=len(used_cells),
-        factor_path_search_space=factor_path_search_space,
-        lateness_full_after_malfunction=lateness_full_after_malfunction if not nonify_problem_and_results else None,
-        sum_route_section_penalties_full_after_malfunction=sum_route_section_penalties_full_after_malfunction if not nonify_problem_and_results else None,
-        lateness_delta_perfect_after_malfunction=lateness_delta_perfect_after_malfunction if not nonify_problem_and_results else None,
-        sum_route_section_penalties_delta_perfect_after_malfunction=sum_route_section_penalties_delta_perfect_after_malfunction,
-        vertex_eff_lateness_full_after_malfunction=vertex_eff_lateness_full_after_malfunction if not nonify_problem_and_results else None,
-        edge_eff_route_penalties_full_after_malfunction=edge_eff_route_penalties_full_after_malfunction if not nonify_problem_and_results else None,
-        vertex_eff_lateness_delta_perfect_after_malfunction=vertex_eff_lateness_delta_perfect_after_malfunction if not nonify_problem_and_results else None,
-        edge_eff_route_penalties_delta_perfect_after_malfunction=(edge_eff_route_penalties_delta_perfect_after_malfunction
-                                                                  if not nonify_problem_and_results
-                                                                  else None),
+        size_used=len(used_cells)
     )
-
-
-def _expand_asp_solver_statistics_for_asp_plausi(r: SchedulingExperimentResult, suffix: str):
-    return {
-        f'solve_total_ratio_{suffix}':
-            catch_zero_division_error_as_minus_one(
-                lambda:
-                r.solver_statistics["summary"]["times"]["solve"] /
-                r.solver_statistics["summary"]["times"]["total"]
-            ),
-        f'choice_conflict_ratio_{suffix}':
-            catch_zero_division_error_as_minus_one(
-                lambda:
-                r.solver_statistics["solving"]["solvers"]["choices"] /
-                r.solver_statistics["solving"]["solvers"]["conflicts"]
-            ),
-        f'choices_{suffix}':
-            r.solver_statistics["solving"]["solvers"]["choices"],
-        f'conflicts_{suffix}':
-            r.solver_statistics["solving"]["solvers"]["conflicts"],
-        f'user_accu_propagations_{suffix}':
-            sum(map(lambda d: d["Propagation(s)"],
-                    r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])) /
-            len(r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"]),
-        f'user_step_propagations_{suffix}':
-            sum(map(lambda d: d["Propagation(s)"],
-                    r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])) /
-            len(r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"]),
-    }
 
 
 def extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
