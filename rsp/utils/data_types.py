@@ -549,9 +549,11 @@ def expand_experiment_results_for_analysis(
                    'problem_full': None,
                    'problem_full_after_malfunction': None,
                    'problem_delta_perfect_after_malfunction': None,
+                   'problem_delta_naive_after_malfunction': None,
                    'results_full': None,
                    'results_full_after_malfunction': None,
                    'results_delta_perfect_after_malfunction': None,
+                   'results_delta_naive_after_malfunction': None,
                } if nonify_problem_and_results else {}),
             **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full, suffix="full"),
             **_expand_asp_solver_statistics_for_asp_plausi(r=experiment_results.results_full_after_malfunction,
@@ -577,9 +579,11 @@ def expand_experiment_results_for_analysis(
             }
         ),
 
-        solution_full=experiment_results.results_full.trainruns_dict,
-        solution_full_after_malfunction=experiment_results.results_full_after_malfunction.trainruns_dict,
-        solution_delta_perfect_after_malfunction=experiment_results.results_delta_perfect_after_malfunction.trainruns_dict,
+        solution_full=experiment_results.results_full.trainruns_dict if not nonify_problem_and_results else None,
+        solution_full_after_malfunction=experiment_results.results_full_after_malfunction.trainruns_dict if not nonify_problem_and_results else None,
+        solution_delta_perfect_after_malfunction=(experiment_results.results_delta_perfect_after_malfunction.trainruns_dict
+                                                  if not nonify_problem_and_results
+                                                  else None),
         # scheduling without optimization has no empty costs array
         costs_full=(experiment_results.results_full.solver_statistics["summary"]["costs"][0]
                     if len(experiment_results.results_full.solver_statistics["summary"]["costs"]) > 0 else -1),
@@ -594,14 +598,16 @@ def expand_experiment_results_for_analysis(
         path_search_space_rsp_delta=path_search_space_rsp_delta,
         size_used=len(used_cells),
         factor_path_search_space=factor_path_search_space,
-        lateness_full_after_malfunction=lateness_full_after_malfunction,
-        sum_route_section_penalties_full_after_malfunction=sum_route_section_penalties_full_after_malfunction,
-        lateness_delta_perfect_after_malfunction=lateness_delta_perfect_after_malfunction,
+        lateness_full_after_malfunction=lateness_full_after_malfunction if not nonify_problem_and_results else None,
+        sum_route_section_penalties_full_after_malfunction=sum_route_section_penalties_full_after_malfunction if not nonify_problem_and_results else None,
+        lateness_delta_perfect_after_malfunction=lateness_delta_perfect_after_malfunction if not nonify_problem_and_results else None,
         sum_route_section_penalties_delta_perfect_after_malfunction=sum_route_section_penalties_delta_perfect_after_malfunction,
-        vertex_eff_lateness_full_after_malfunction=vertex_eff_lateness_full_after_malfunction,
-        edge_eff_route_penalties_full_after_malfunction=edge_eff_route_penalties_full_after_malfunction,
-        vertex_eff_lateness_delta_perfect_after_malfunction=vertex_eff_lateness_delta_perfect_after_malfunction,
-        edge_eff_route_penalties_delta_perfect_after_malfunction=edge_eff_route_penalties_delta_perfect_after_malfunction,
+        vertex_eff_lateness_full_after_malfunction=vertex_eff_lateness_full_after_malfunction if not nonify_problem_and_results else None,
+        edge_eff_route_penalties_full_after_malfunction=edge_eff_route_penalties_full_after_malfunction if not nonify_problem_and_results else None,
+        vertex_eff_lateness_delta_perfect_after_malfunction=vertex_eff_lateness_delta_perfect_after_malfunction if not nonify_problem_and_results else None,
+        edge_eff_route_penalties_delta_perfect_after_malfunction=(edge_eff_route_penalties_delta_perfect_after_malfunction
+                                                                  if not nonify_problem_and_results
+                                                                  else None),
     )
 
 

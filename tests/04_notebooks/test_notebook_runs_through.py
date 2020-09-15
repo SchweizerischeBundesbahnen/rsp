@@ -38,5 +38,11 @@ def test_notebooks_run_through():
             # tweak 3: do not show Video
             dest_text = re.sub('^Video', r'#Video', dest_text, flags=re.MULTILINE)
 
+            # tweak 4: insert
+            # TODO SIM-672 global configuration?
+            dest_text = re.sub('^experiment_base_directory =.*',
+                               """experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31'""", dest_text,
+                               flags=re.MULTILINE)
+
             print(dest_text)
             multiline_eval(dest_text)

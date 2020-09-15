@@ -67,7 +67,7 @@ def run_potassco_agenda(base_directory: str):
     try:
         experiments_per_grid_element = 1
         experiment_name_prefix = os.path.basename(base_directory) + "_"
-        parallel_compute = 2
+        parallel_compute = 5
         # baseline with defaults
         set_defaults()
         list_from_base_directory_and_run_experiment_agenda(
