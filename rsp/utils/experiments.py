@@ -63,8 +63,8 @@ from rsp.schedule_problem_description.data_types_and_utils import get_sources_fo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
-from rsp.schedule_problem_description.route_dag_constraints.naive_oracle import naive_oracle_for_all_agents
-from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.naive_scoper import naive_scoper_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.perfect_scoper import perfect_scoper_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -296,12 +296,12 @@ def run_experiment_in_memory(
         print(f"  **** full re-schedule_solution=\n{full_reschedule_trainruns}")
 
     # --------------------------------------------------------------------------------------
-    # B.2.a Lower bound: Re-Schedule Delta with "perfect" oracle
+    # B.2.a Lower bound: Re-Schedule Delta with "perfect" scoper
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3. reschedule delta perfect (lower bound)")
     # clone topos since propagation will modify them
     perfect_delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    perfect_delta_reschedule_problem = perfect_oracle_for_all_agents(
+    perfect_delta_reschedule_problem = perfect_scoper_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
@@ -331,7 +331,7 @@ def run_experiment_in_memory(
     )
 
     if verbose:
-        print(f"  **** delta re-schedule solution")
+        print(f"  **** delta perfect re-schedule solution")
         print(perfect_delta_reschedule_result.trainruns_dict)
 
     # --------------------------------------------------------------------------------------
@@ -340,7 +340,7 @@ def run_experiment_in_memory(
     rsp_logger.info("4. reschedule delta naive: upper bound")
     # clone topos since propagation will modify them
     naive_delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    naive_delta_reschedule_problem = naive_oracle_for_all_agents(
+    naive_delta_reschedule_problem = naive_scoper_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         full_reschedule_problem=full_reschedule_problem,
         malfunction=experiment_malfunction,
@@ -1282,9 +1282,14 @@ def load_and_expand_experiment_results_from_data_folder(
             continue
         with open(file_name, 'rb') as handle:
             file_data: ExperimentResults = pickle.load(handle)
-        experiment_results_list.append(expand_experiment_results_for_analysis(
-            file_data,
-            nonify_problem_and_results=nonify_problem_and_results))
+        try:
+            experiment_results_list.append(expand_experiment_results_for_analysis(
+                file_data,
+                nonify_problem_and_results=nonify_problem_and_results))
+        except Exception as e:
+            # print and ignore
+            print(f"skipped {file_name}: {e}")
+
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")

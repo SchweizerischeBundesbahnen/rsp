@@ -23,7 +23,7 @@ from rsp.utils.rsp_logger import rsp_logger
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def perfect_oracle(
+def perfect_scoper(
         agent_id: int,
         # pytorch convention for in-place operations: postfixed with underscore.
         topo_: nx.DiGraph,
@@ -34,7 +34,7 @@ def perfect_oracle(
         latest_arrival: int,
         max_window_size_from_earliest: int = np.inf
 ):
-    """"Perfect oracle":
+    """"Perfect scoper":
 
     - allow only paths either in schedule or re-schedule
     - if the same in location and time in schedule and re-schedule -> stay (implicitly includes everything up to malfunction)
@@ -112,7 +112,7 @@ def perfect_oracle(
     return earliest_dict, latest_dict, topo_out
 
 
-def perfect_oracle_for_all_agents(
+def perfect_scoper_for_all_agents(
         full_reschedule_trainrun_dict: TrainrunDict,
         malfunction: ExperimentMalfunction,
         minimum_travel_time_dict: Dict[int, int],
@@ -122,7 +122,7 @@ def perfect_oracle_for_all_agents(
         weight_route_change: int,
         weight_lateness_seconds: int,
         max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
-    """The perfect oracle only opens up the differences between the schedule
+    """The perfect scoper only opens up the differences between the schedule
     and the imaginary re-schedule. It gives no additional routing flexibility!
 
     Parameters
@@ -153,7 +153,7 @@ def perfect_oracle_for_all_agents(
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = perfect_oracle(
+        earliest_dict, latest_dict, topo = perfect_scoper(
             agent_id=agent_id,
             topo_=perfect_delta_reschedule_topo_dict_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],

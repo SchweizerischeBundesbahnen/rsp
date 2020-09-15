@@ -18,7 +18,7 @@ from rsp.utils.data_types import RouteDAGConstraintsDict
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def naive_oracle(
+def naive_scoper(
         agent_id: int,
         # pytorch convention for in-place operations: postfixed with underscore.
         topo_: nx.DiGraph,
@@ -26,7 +26,7 @@ def naive_oracle(
         full_reschedule_trainrun: Trainrun,
         full_reschedule_problem: ScheduleProblemDescription
 ):
-    """"naive oracle":
+    """"naive scoper":
 
     - if no change for train between schedule and re-schedule, keep the exact train run
     - if any change for train between schedule and re-schedule, open up everything as in full re-scheduling
@@ -43,7 +43,7 @@ def naive_oracle(
         return schedule, schedule, topo_
 
 
-def naive_oracle_for_all_agents(
+def naive_scoper_for_all_agents(
         full_reschedule_trainrun_dict: TrainrunDict,
         full_reschedule_problem: ScheduleProblemDescription,
         malfunction: ExperimentMalfunction,
@@ -55,7 +55,7 @@ def naive_oracle_for_all_agents(
         weight_route_change: int,
         weight_lateness_seconds: int,
         max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
-    """The naive oracle only opens up the differences between the schedule and
+    """The naive scoper only opens up the differences between the schedule and
     the imaginary re-schedule. It gives no additional routing flexibility!
 
     Parameters
@@ -87,7 +87,7 @@ def naive_oracle_for_all_agents(
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = naive_oracle(
+        earliest_dict, latest_dict, topo = naive_scoper(
             agent_id=agent_id,
             topo_=naive_delta_topo_dict_to_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],

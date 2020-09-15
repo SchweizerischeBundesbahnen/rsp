@@ -51,13 +51,20 @@ axis_of_interest = 'n_agents'
 columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_perfect_after_malfunction']
 ```
 
+### Filter data depending on full rescheduling time (>10s and within 97% percentile)
+
+```{python}
+experiment_data_filtered = experiment_data[(experiment_data['time_full_after_malfunction'] > 10) & (experiment_data['time_full_after_malfunction'] <=experiment_data['time_full_after_malfunction'].quantile(.97))]
+
+```
+
 ### Visualize Compuational time comparison
 
 ```{python}
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 # display(experiment_data.dtypes)
 
-hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
+hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data_filtered)
 
 
 
@@ -71,7 +78,7 @@ hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=
 
 ```{python}
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_speed_up
-hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
+hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_filtered)
 
 # for exploration, use:
 # plot_speed_up(experiment_data=experiment_data,

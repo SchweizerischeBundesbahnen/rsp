@@ -51,7 +51,7 @@ def delta_zero_running(
 ) -> RouteDAGConstraints:
     """Construct route DAG constraints for this agent. Consider only case where
     malfunction happens during schedule or if there is a (force freeze from the
-    oracle).
+    scoper).
 
     Parameters
     ----------

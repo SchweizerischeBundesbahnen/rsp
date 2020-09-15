@@ -173,7 +173,7 @@ def plot_computional_times_from_traces(
                              boxpoints='all',
                              customdata=np.dstack((experiment_data['n_agents'],
                                                    experiment_data['size'],
-                                                   experiment_data['speed_up_lower_bound']))[0],
+                                                   experiment_data['speed_up_delta_perfect_after_malfunction']))[0],
                              hovertext=experiment_data['experiment_id'],
                              hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
                                            '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
@@ -189,7 +189,7 @@ def plot_computional_times_from_traces(
                                  boxpoints='all',
                                  customdata=np.dstack((experiment_data['n_agents'],
                                                        experiment_data['size'],
-                                                       experiment_data['speed_up_lower_bound']))[0],
+                                                       experiment_data['speed_up_delta_perfect_after_malfunction']))[0],
                                  hovertext=experiment_data['experiment_id'],
                                  hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
                                                '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
@@ -214,7 +214,7 @@ def plot_speed_up(
         experiment_data: DataFrame,
         axis_of_interest: str,
         output_folder: Optional[str] = None,
-        cols: List[str] = ('speed_up_upper_bound', 'speed_up_lower_bound'),
+        cols: List[str] = ('speed_up_delta_naive_after_malfunction', 'speed_up_delta_perfect_after_malfunction'),
         y_axis_title: str = "Speed Up Factor",
         axis_of_interest_suffix: str = ""
 ):
@@ -241,30 +241,57 @@ def plot_speed_up(
     """
     fig = go.Figure()
     for col in cols:
-        fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
-                             y=experiment_data[col],
-                             pointpos=-1,
-                             boxpoints='all',
-                             name=col,
-                             customdata=np.dstack((experiment_data['n_agents'],
-                                                   experiment_data['size'],
-                                                   experiment_data['time_full'],
-                                                   experiment_data['time_full_after_malfunction'],
-                                                   experiment_data['time_delta_perfect_after_malfunction'],
-                                                   experiment_data['time_delta_naive_after_malfunction'],
-                                                   ))[0],
-                             hovertext=experiment_data['experiment_id'],
-                             hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
-                                           '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
-                                           '<b>Grid Size:</b> %{customdata[1]}<br>' +
-                                           '<b>Full Time:</b> %{customdata[2]:.2f}s<br>' +
-                                           '<b>Full Time after:</b> %{customdata[3]:.2f}s<br>' +
-                                           '<b>Lower Bound Delta after:</b> %{customdata[4]:.2f}s<br>' +
-                                           '<b>Upper Bound Delta after:</b> %{customdata[5]:.2f}s<br>' +
-                                           '<b>Experiment id:</b>%{hovertext}'
-                             ))
+        nb_x_values = len(experiment_data[axis_of_interest].value_counts())
+        print(f"nb_x_values={nb_x_values} for {axis_of_interest}")
+        # TODO SIM-672 configurable?
+        if nb_x_values > 10:
+            fig.add_trace(go.Histogram(x=experiment_data[axis_of_interest],
+                                       y=experiment_data[col],
+                                       name=col,
+                                       # TODO SIM-672 configurable?
+                                       nbinsx=50,
+                                       customdata=np.dstack((experiment_data['n_agents'],
+                                                             experiment_data['size'],
+                                                             experiment_data['time_full'],
+                                                             experiment_data['time_full_after_malfunction'],
+                                                             experiment_data['time_delta_perfect_after_malfunction'],
+                                                             experiment_data['time_delta_naive_after_malfunction'],
+                                                             ))[0],
+                                       hovertext=experiment_data['experiment_id'],
+                                       hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
+                                                     '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                                     '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                                     '<b>Full Time:</b> %{customdata[2]:.2f}s<br>' +
+                                                     '<b>Full Time after:</b> %{customdata[3]:.2f}s<br>' +
+                                                     '<b>Lower Bound Delta after:</b> %{customdata[4]:.2f}s<br>' +
+                                                     '<b>Upper Bound Delta after:</b> %{customdata[5]:.2f}s<br>' +
+                                                     '<b>Experiment id:</b>%{hovertext}'
+                                       ))
+        else:
+            fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
+                                 y=experiment_data[col],
+                                 pointpos=-1,
+                                 boxpoints='all',
+                                 name=col,
+                                 customdata=np.dstack((experiment_data['n_agents'],
+                                                       experiment_data['size'],
+                                                       experiment_data['time_full'],
+                                                       experiment_data['time_full_after_malfunction'],
+                                                       experiment_data['time_delta_perfect_after_malfunction'],
+                                                       experiment_data['time_delta_naive_after_malfunction'],
+                                                       ))[0],
+                                 hovertext=experiment_data['experiment_id'],
+                                 hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
+                                               '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                                               '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                                               '<b>Full Time:</b> %{customdata[2]:.2f}s<br>' +
+                                               '<b>Full Time after:</b> %{customdata[3]:.2f}s<br>' +
+                                               '<b>Lower Bound Delta after:</b> %{customdata[4]:.2f}s<br>' +
+                                               '<b>Upper Bound Delta after:</b> %{customdata[5]:.2f}s<br>' +
+                                               '<b>Experiment id:</b>%{hovertext}'
+                                 ))
 
-    fig.update_layout(title_text=f"Speed Up Factors {y_axis_title} per {axis_of_interest}")
+    fig.update_layout(title_text=f"{y_axis_title} per {axis_of_interest}")
     fig.update_xaxes(title=f"{axis_of_interest} {axis_of_interest_suffix}")
     fig.update_yaxes(title=y_axis_title)
     if output_folder is None:

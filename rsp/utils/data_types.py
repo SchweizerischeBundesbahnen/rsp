@@ -213,12 +213,10 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
 ])
 
-all_speed_up_series = {
-    'lower_bound': 'delta_perfect',
-    'upper_bound': 'delta_naive'
-}
+# TODO SIM-672 naming???
+speed_up_scopes = ['delta_perfect_after_malfunction', 'delta_naive_after_malfunction']
 
-after_malfunction_scopes = ['full_after_malfunction', ] + [f'{scope}_after_malfunction' for scope in all_speed_up_series.values()]
+after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
 
 
@@ -308,6 +306,16 @@ def lateness_from_results(
     }
 
 
+def changed_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription):
+    return sum([
+        1 if set(results_schedule.trainruns_dict[agent_id]) != set(results_reschedule.trainruns_dict[agent_id]) else 0
+        for agent_id in results_reschedule.trainruns_dict.keys()
+    ]) / len(results_reschedule.trainruns_dict)
+
+
 def vertex_eff_lateness_from_results(
         results_schedule: SchedulingExperimentResult,
         results_reschedule: SchedulingExperimentResult,
@@ -362,6 +370,15 @@ def sum_route_section_penalties_from_results(
     return {agent_id: sum(edge_penalties.values()) for agent_id, edge_penalties in edge_penalties.items()}
 
 
+def speed_up_from_results(results_full_schedule: SchedulingExperimentResult,
+                          results_other_reschedule: SchedulingExperimentResult) -> float:
+    return sum([
+        1
+        for agent_id, edge_penalties in results_other_reschedule.trainruns_dict.items()
+        if set(results_full_schedule.trainruns_dict[agent_id]) != set(results_other_reschedule.trainruns_dict[agent_id])
+    ]) / len(results_other_reschedule.trainruns_dict)
+
+
 experiment_results_analysis_all_scopes_fields = {
     'time': (float, time_from_experiment_results),
     'solve_time': (float, solve_time_from_experiment_results),
@@ -379,10 +396,14 @@ experiment_results_analysis_all_scopes_fields = {
 experiment_results_analysis_after_malfunction_scopes_fields = {
     'total_delay': (float, total_delay_from_results),
     'lateness': (Dict[int, int], lateness_from_results),
+    'changed_agents_percentage': (float, changed_from_results),
     'sum_route_section_penalties': (Dict[int, float], sum_route_section_penalties_from_results),
     'vertex_eff_lateness': (Dict[int, Dict[Waypoint, float]], vertex_eff_lateness_from_results),
     'edge_eff_route_penalties': (Dict[int, Dict[Tuple[Waypoint, Waypoint], float]], edge_eff_route_penalties_from_results)
+}
 
+speedup_scopes_fields = {
+    'speed_up': (float, speed_up_from_results),
 }
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
@@ -411,9 +432,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     # lower_bound / upper_bound
     # ========================================
 
-    ('speed_up_lower_bound', float),
-    ('speed_up_upper_bound', float),
-
     ('factor_resource_conflicts', int),
 
 ] + [
@@ -424,6 +442,10 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
                                            (f'{prefix}_{scope}', type_)
                                            for prefix, (type_, _) in experiment_results_analysis_after_malfunction_scopes_fields.items()
                                            for scope in after_malfunction_scopes
+                                       ] + [
+                                           (f'{prefix}_{scope}', type_)
+                                           for prefix, (type_, _) in speedup_scopes_fields.items()
+                                           for scope in speed_up_scopes
                                        ]
                                        )
 
@@ -476,7 +498,7 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
 
 def expand_experiment_results_for_analysis(
         experiment_results: ExperimentResults,
-        debug: bool = False,
+        # TODO SIM-672 rename: nonify_all_structured_fields?
         nonify_problem_and_results: bool = False
 ) -> ExperimentResultsAnalysis:
     """
@@ -502,8 +524,6 @@ def expand_experiment_results_for_analysis(
     experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
-    time_full_after_malfunction = \
-        experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
     nb_resource_conflicts_delta_perfect_after_malfunction = experiment_results.results_delta_perfect_after_malfunction.nb_conflicts
     nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
     # search space indiciators
@@ -519,6 +539,66 @@ def expand_experiment_results_for_analysis(
         experiment_results.problem_full.topo_dict.items()
         for waypoint in topo.nodes
     }
+    d = dict(
+        **experiment_results._asdict(),
+        **{
+            f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}']) for prefix, (_, results_extractor) in
+            experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes
+        },
+        **{
+            f'{prefix}_{scope}': results_extractor(
+                results_schedule=experiment_results._asdict()[f'results_full'],
+                results_reschedule=experiment_results._asdict()[f'results_{scope}'],
+                problem_reschedule=experiment_results._asdict()[f'problem_{scope}'],
+            )
+            for prefix, (_, results_extractor) in experiment_results_analysis_after_malfunction_scopes_fields.items()
+            for scope in after_malfunction_scopes
+        },
+        **{
+            f'{prefix}_{scope}': results_extractor(results_full_schedule=experiment_results._asdict()[f'results_full'],
+                                                   results_other_reschedule=experiment_results._asdict()[f'results_{scope}'],
+                                                   )
+            for prefix, (_, results_extractor) in speedup_scopes_fields.items()
+            for scope in speed_up_scopes
+        }
+    )
+    # nonify all non-float fields
+    d.update({
+                 'problem_full': None,
+                 'problem_full_after_malfunction': None,
+                 'problem_delta_perfect_after_malfunction': None,
+                 'problem_delta_naive_after_malfunction': None,
+
+                 'results_full': None,
+                 'results_full_after_malfunction': None,
+                 'results_delta_perfect_after_malfunction': None,
+                 'results_delta_naive_after_malfunction': None,
+
+                 'solution_full': None,
+                 'solution_full_after_malfunction': None,
+                 'solution_delta_perfect_after_malfunction': None,
+                 'solution_delta_naive_after_malfunction': None,
+
+                 'lateness_full_after_malfunction': None,
+                 'lateness_delta_perfect_after_malfunction': None,
+                 'lateness_delta_naive_after_malfunction': None,
+
+                 'sum_route_section_penalties_full_after_malfunction': None,
+                 'sum_route_section_penalties_delta_perfect_after_malfunction': None,
+                 'sum_route_section_penalties_delta_naive_after_malfunction': None,
+
+                 'vertex_eff_lateness_full_after_malfunction': None,
+                 'vertex_eff_lateness_delta_perfect_after_malfunction': None,
+                 'vertex_eff_lateness_delta_naive_after_malfunction': None,
+
+                 'edge_eff_route_penalties_full_after_malfunction': None,
+                 'edge_eff_route_penalties_delta_perfect_after_malfunction': None,
+                 'edge_eff_route_penalties_delta_naive_after_malfunction': None,
+
+                 'experiment_parameters': None,
+
+                 'malfunction': None,
+             } if nonify_problem_and_results else {})
 
     return ExperimentResultsAnalysis(
         experiment_id=experiment_parameters.experiment_id,
@@ -528,44 +608,9 @@ def expand_experiment_results_for_analysis(
         max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
         max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
         max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
-        **dict(
-            experiment_results._asdict(),
-            **({
-                   'problem_full': None,
-                   'problem_full_after_malfunction': None,
-                   'problem_delta_perfect_after_malfunction': None,
-                   'problem_delta_naive_after_malfunction': None,
-                   'results_full': None,
-                   'results_full_after_malfunction': None,
-                   'results_delta_perfect_after_malfunction': None,
-                   'results_delta_naive_after_malfunction': None,
-               } if nonify_problem_and_results else {}),
-            **{
-                f'speed_up_{speed_up_series}':
-                    time_full_after_malfunction /
-                    experiment_results._asdict()[f'results_{scoper_infix}_after_malfunction'].solver_statistics["summary"]["times"]["total"]
-                for speed_up_series, scoper_infix in all_speed_up_series.items()
-
-            },
-            **{
-                f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}'])
-                for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
-                for scope in all_scopes
-            },
-            **{
-                f'{prefix}_{scope}': results_extractor(
-                    results_schedule=experiment_results._asdict()[f'results_full'],
-                    results_reschedule=experiment_results._asdict()[f'results_{scope}'],
-                    problem_reschedule=experiment_results._asdict()[f'problem_{scope}'],
-                )
-                for prefix, (_, results_extractor) in experiment_results_analysis_after_malfunction_scopes_fields.items()
-                for scope in after_malfunction_scopes
-            }
-        ),
-
-        # scheduling without optimization has no empty costs array
         factor_resource_conflicts=factor_resource_conflicts,
-        size_used=len(used_cells)
+        size_used=len(used_cells),
+        **d
     )
 
 

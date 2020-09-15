@@ -30,9 +30,9 @@ from rsp.schedule_problem_description.analysis.rescheduling_verification_utils i
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import after_malfunction_scopes
-from rsp.utils.data_types import all_speed_up_series
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import speed_up_scopes
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -118,8 +118,8 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
         output_folder=output_folder,
         pdf_file="009_nb_resource_conflict__time.pdf",
         title="009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps:\n"
-              'Correlation of ratio of nb_resource_conflicts and speed_up_lower_bound?',
-        traces=[('ratio_nb_resource_conflicts', 'speed_up_lower_bound')],
+              'Correlation of ratio of nb_resource_conflicts and speed_up_delta_perfect_after_malfunction?',
+        traces=[('ratio_nb_resource_conflicts', 'speed_up_delta_perfect_after_malfunction')],
         x_axis_title='ratio_nb_resource_conflicts'
     )
 
@@ -134,7 +134,7 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data_baseline_suffix: Optional[str] = '_baseline',
         experiment_data_suffix: Optional[str] = '',
         output_folder: str = None):
-    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used', 'time_full_after_malfunction']:
         plot_computational_times(
             experiment_data=experiment_data,
             experiment_data_baseline=experiment_data_baseline,
@@ -171,13 +171,13 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
 # TODO SIM-672 plot upper and lower bound
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
-    for speed_up_series, scoper_infix in all_speed_up_series.items():
-        experiment_data[f'speed_up_{speed_up_series}_solve_time'] = \
+    for scope in speed_up_scopes:
+        experiment_data[f'speed_up_{scope}_solve_time'] = \
             experiment_data['solve_time_full_after_malfunction'] / \
-            experiment_data[f'solve_time_{scoper_infix}_after_malfunction']
-        experiment_data[f'speed_up_{speed_up_series}_non_solve_time'] = \
+            experiment_data[f'solve_time_{scope}']
+        experiment_data[f'speed_up_{scope}_non_solve_time'] = \
             (experiment_data['time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
-            (experiment_data[f'time_{scoper_infix}_after_malfunction'] - experiment_data[f'solve_time_{scoper_infix}_after_malfunction'])
+            (experiment_data[f'time_{scope}'] - experiment_data[f'solve_time_{scope}'])
 
     for axis_of_interest, axis_of_interest_suffix in {
         'experiment_id': '',
@@ -190,13 +190,14 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
             ('speed_up_{}', 'Speed-up full solver time [-]'),
             ('speed_up_{}_solve_time', 'Speed-up solver time solving only [-]'),
             ('speed_up_{}_non_solve_time', 'Speed-up solver time non-processing (grounding etc.) [-]'),
+            ('changed_agents_percentage_{}', 'Percentage of changed agents [-]'),
         ]:
             plot_speed_up(
                 experiment_data=experiment_data,
                 axis_of_interest=axis_of_interest,
                 axis_of_interest_suffix=axis_of_interest_suffix,
                 output_folder=output_folder,
-                cols=[speed_up_col_pattern.format(speed_up_series) for speed_up_series in all_speed_up_series],
+                cols=[speed_up_col_pattern.format(speed_up_series) for speed_up_series in speed_up_scopes],
                 y_axis_title=y_axis_title
             )
 
