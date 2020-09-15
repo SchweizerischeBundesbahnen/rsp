@@ -106,14 +106,14 @@ plot_time_resource_trajectories(trajectories=trajectories,
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
 
 ```{python}
-resource_occupations_delta_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_perfect_after_malfunction)
+resource_occupations_delta_perfect_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_perfect_after_malfunction)
 trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=resource_occupations_delta_reschedule,
+    resource_occupations_schedule=resource_occupations_delta_perfect_reschedule,
     plotting_information=plotting_data.plotting_information)
-choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_delta_reschedule))
+choices_delta_perfect_reschedule = exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_delta_perfect_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Delta Reschedule Problem",
+                                title="Delta Perfect Reschedule Problem",
                                 schedule_plotting=plotting_data)
 ```
 
@@ -172,5 +172,5 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_REDUCED_SCOPE)
 ```

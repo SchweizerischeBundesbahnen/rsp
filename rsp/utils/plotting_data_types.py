@@ -20,7 +20,7 @@ PlottingInformation = NamedTuple('PlottingInformation', [
 SchedulePlotting = NamedTuple('SchedulePlotting', [
     ('schedule_as_resource_occupations', ScheduleAsResourceOccupations),
     ('reschedule_full_as_resource_occupations', ScheduleAsResourceOccupations),
-    ('reschedule_delta_as_resource_occupations', ScheduleAsResourceOccupations),
+    ('reschedule_delta_perfect_as_resource_occupations', ScheduleAsResourceOccupations),
     ('malfunction', ExperimentMalfunction),
     ('plotting_information', PlottingInformation)
 ])

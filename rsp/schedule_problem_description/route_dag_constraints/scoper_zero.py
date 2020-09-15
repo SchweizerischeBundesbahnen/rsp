@@ -40,7 +40,7 @@ def _extract_route_section_penalties(
     return route_section_penalties
 
 
-def delta_zero_running(
+def scoper_zero_running(
         agent_id: int,
         schedule_trainrun: Trainrun,
         malfunction: ExperimentMalfunction,
@@ -118,7 +118,7 @@ def delta_zero_running(
     )
 
 
-def delta_zero(
+def scoper_zero(
         schedule_trainrun: Trainrun,
         minimum_travel_time: int,
         topo: nx.DiGraph,
@@ -159,7 +159,7 @@ def delta_zero(
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
             malfunction.time_step < schedule_trainrun[-2].scheduled_at):
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
-        return delta_zero_running(
+        return scoper_zero_running(
             agent_id=agent_id,
             schedule_trainrun=schedule_trainrun,
             malfunction=malfunction,
@@ -229,7 +229,7 @@ def delta_zero_for_all_agents(
     """
     spd = ScheduleProblemDescription(
         route_dag_constraints_dict={
-            agent_id: delta_zero(
+            agent_id: scoper_zero(
                 schedule_trainrun=schedule_trainruns[agent_id],
                 minimum_travel_time=minimum_travel_time_dict[agent_id],
                 topo=topo_dict[agent_id],

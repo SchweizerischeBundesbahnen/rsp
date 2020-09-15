@@ -40,7 +40,7 @@ ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
 class ScheduleProblemEnum(Enum):
     PROBLEM_SCHEDULE = "PROBLEM_SCHEDULE"
     PROBLEM_RSP_FULL = "PROBLEM_RSP_FULL"
-    PROBLEM_RSP_DELTA = "PROBLEM_RSP_DELTA"
+    PROBLEM_RSP_REDUCED_SCOPE = "PROBLEM_RSP_REDUCED_SCOPE"
 
 
 def schedule_problem_description_equals(s1: ScheduleProblemDescription, s2: ScheduleProblemDescription):

@@ -2,8 +2,6 @@
 project."""
 import pprint
 import warnings
-from functools import reduce
-from operator import mul
 from typing import Dict
 from typing import List
 from typing import Mapping
@@ -19,11 +17,9 @@ from pandas import DataFrame
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.schedule_problem_description.data_types_and_utils import get_paths_for_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
 
 SpeedData = Mapping[float, float]
@@ -612,66 +608,6 @@ def expand_experiment_results_for_analysis(
         size_used=len(used_cells),
         **d
     )
-
-
-def extract_path_search_space(experiment_results: ExperimentResults) -> Tuple[int, int, int]:
-    route_dag_constraints_delta_afer_malfunction = experiment_results.problem_delta_perfect_after_malfunction.route_dag_constraints_dict
-    route_dag_constraints_full_after_malfunction = experiment_results.problem_delta_perfect_after_malfunction.route_dag_constraints_dict
-    route_dag_constraints_schedule = experiment_results.problem_full.route_dag_constraints_dict
-    topo_dict_schedule = experiment_results.problem_full.topo_dict
-    topo_dict_full_after_malfunction = experiment_results.problem_full_after_malfunction.topo_dict
-    topo_dict_delta_perfect_after_malfunction = experiment_results.problem_delta_perfect_after_malfunction.topo_dict
-    all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule = extract_number_of_path_alternatives(
-        topo_dict_full_after_malfunction=topo_dict_full_after_malfunction,
-        topo_dict_schedule=topo_dict_schedule,
-        topo_dict_delta_afer_malfunction=topo_dict_delta_perfect_after_malfunction,
-        route_dag_constraints_schedule=route_dag_constraints_schedule,
-        route_dag_constraints_delta_afer_malfunction=route_dag_constraints_delta_afer_malfunction,
-        route_dag_constraints_full_after_malfunction=route_dag_constraints_full_after_malfunction
-    )
-    path_search_space_schedule = _prod(all_nb_alternatives_schedule)
-    path_search_space_rsp_full = _prod(all_nb_alternatives_rsp_full)
-    path_search_space_rsp_delta = _prod(all_nb_alternatives_rsp_delta)
-    return path_search_space_rsp_delta, path_search_space_rsp_full, path_search_space_schedule
-
-
-def extract_number_of_path_alternatives(
-        topo_dict_schedule: TopoDict,
-        topo_dict_delta_afer_malfunction: TopoDict,
-        topo_dict_full_after_malfunction: TopoDict,
-        route_dag_constraints_schedule: RouteDAGConstraintsDict,
-        route_dag_constraints_delta_afer_malfunction: RouteDAGConstraintsDict,
-        route_dag_constraints_full_after_malfunction: RouteDAGConstraintsDict
-) -> Tuple[List[int], List[int], List[int]]:
-    """Extract number of path alternatives for schedule, rsp full and rsp delta
-    for each agent."""
-    all_nb_alternatives_schedule = []
-    all_nb_alternatives_rsp_full = []
-    all_nb_alternatives_rsp_delta = []
-
-    for agent_id in route_dag_constraints_delta_afer_malfunction:
-        alternatives_schedule = get_paths_for_route_dag_constraints(
-            topo=topo_dict_schedule[agent_id],
-            route_dag_constraints=route_dag_constraints_schedule[agent_id]
-        )
-        alternatives_rsp_full = get_paths_for_route_dag_constraints(
-            topo=topo_dict_full_after_malfunction[agent_id],
-            route_dag_constraints=route_dag_constraints_full_after_malfunction[agent_id]
-        )
-        alternatives_rsp_delta = get_paths_for_route_dag_constraints(
-            topo=topo_dict_delta_afer_malfunction[agent_id],
-            route_dag_constraints=route_dag_constraints_delta_afer_malfunction[agent_id]
-        )
-        all_nb_alternatives_schedule.append(len(alternatives_schedule))
-        all_nb_alternatives_rsp_full.append(len(alternatives_rsp_full))
-        all_nb_alternatives_rsp_delta.append(len(alternatives_rsp_delta))
-    return all_nb_alternatives_rsp_delta, all_nb_alternatives_rsp_full, all_nb_alternatives_schedule
-
-
-# numpy produces overflow -> python ints are unbounded,
-# see https://stackoverflow.com/questions/2104782/returning-the-product-of-a-list
-def _prod(l: List[int]):
-    return reduce(mul, l, 1)
 
 
 _pp = pprint.PrettyPrinter(indent=4)

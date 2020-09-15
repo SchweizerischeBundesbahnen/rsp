@@ -32,7 +32,7 @@ if __name__ == '__main__':
         schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
         schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations, plotting_data.plotting_information)
 
-        reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+        reschedule_resource_occupations = plotting_data.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
         reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
                                                                                    plotting_data.plotting_information)
 

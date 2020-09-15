@@ -262,9 +262,9 @@ def plot_speed_up(
                                                      '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
                                                      '<b>Grid Size:</b> %{customdata[1]}<br>' +
                                                      '<b>Full Time:</b> %{customdata[2]:.2f}s<br>' +
-                                                     '<b>Full Time after:</b> %{customdata[3]:.2f}s<br>' +
-                                                     '<b>Lower Bound Delta after:</b> %{customdata[4]:.2f}s<br>' +
-                                                     '<b>Upper Bound Delta after:</b> %{customdata[5]:.2f}s<br>' +
+                                                     '<b>Full Time:</b> %{customdata[3]:.2f}s<br>' +
+                                                     '<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>' +
+                                                     '<b>Delta naive:</b> %{customdata[5]:.2f}s<br>' +
                                                      '<b>Experiment id:</b>%{hovertext}'
                                        ))
         else:
@@ -285,9 +285,9 @@ def plot_speed_up(
                                                '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
                                                '<b>Grid Size:</b> %{customdata[1]}<br>' +
                                                '<b>Full Time:</b> %{customdata[2]:.2f}s<br>' +
-                                               '<b>Full Time after:</b> %{customdata[3]:.2f}s<br>' +
-                                               '<b>Lower Bound Delta after:</b> %{customdata[4]:.2f}s<br>' +
-                                               '<b>Upper Bound Delta after:</b> %{customdata[5]:.2f}s<br>' +
+                                               '<b>Full Time:</b> %{customdata[3]:.2f}s<br>' +
+                                               '<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>' +
+                                               '<b>Delta naive:</b> %{customdata[5]:.2f}s<br>' +
                                                '<b>Experiment id:</b>%{hovertext}'
                                  ))
 
@@ -319,7 +319,7 @@ def extract_schedule_plotting(
     """
     schedule = experiment_result.solution_full
     reschedule_full = experiment_result.solution_full_after_malfunction
-    reschedule_delta = experiment_result.solution_delta_perfect_after_malfunction
+    reschedule_delta_perfect = experiment_result.solution_delta_perfect_after_malfunction
     schedule_as_resource_occupations: ScheduleAsResourceOccupations = extract_resource_occupations(
         schedule=schedule,
         release_time=RELEASE_TIME)
@@ -330,10 +330,10 @@ def extract_schedule_plotting(
         release_time=RELEASE_TIME)
     verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_full_as_resource_occupations,
                                             release_time=RELEASE_TIME)
-    reschedule_delta_as_resource_occupations = extract_resource_occupations(
-        schedule=reschedule_delta,
+    reschedule_delta_perfect_as_resource_occupations = extract_resource_occupations(
+        schedule=reschedule_delta_perfect,
         release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_delta_as_resource_occupations,
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations,
                                             release_time=RELEASE_TIME)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
@@ -342,7 +342,7 @@ def extract_schedule_plotting(
     return SchedulePlotting(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
         reschedule_full_as_resource_occupations=reschedule_full_as_resource_occupations,
-        reschedule_delta_as_resource_occupations=reschedule_delta_as_resource_occupations,
+        reschedule_delta_perfect_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations,
         plotting_information=plotting_information,
         malfunction=experiment_result.malfunction
     )
@@ -429,7 +429,7 @@ def plot_time_window_resource_trajectories(
     for title, problem in {
         'Schedule': experiment_result.problem_full,
         'Full Re-Schedule': experiment_result.problem_full_after_malfunction,
-        'Delta Re-Schedule': experiment_result.problem_delta_perfect_after_malfunction
+        'scope perfect re-schedule': experiment_result.problem_delta_perfect_after_malfunction
     }.items():
         resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
         trajectories = trajectories_from_resource_occupations_per_agent(
@@ -455,7 +455,7 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     for title, result in {
         'Schedule': experiment_result.results_full,
         'Full Re-Schedule': experiment_result.results_full_after_malfunction,
-        'Delta Re-Schedule': experiment_result.results_delta_perfect_after_malfunction
+        'scope perfect re-schedule': experiment_result.results_delta_perfect_after_malfunction
     }.items():
         shared = list(filter(lambda s: s.startswith('shared'), result.solver_result))
         shared_per_resource = {}
@@ -523,16 +523,16 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
     resource_occupations_reschedule_full: SortedResourceOccupationsPerAgent = \
         schedule_plotting.reschedule_full_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_delta: SortedResourceOccupationsPerAgent = \
-        schedule_plotting.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_reschedule_delta_perfect: SortedResourceOccupationsPerAgent = \
+        schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
     trajectories_schedule: Trajectories = trajectories_from_resource_occupations_per_agent(
         resource_occupations_schedule=resource_occupations_schedule,
         plotting_information=plotting_information)
     trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
         resource_occupations_schedule=resource_occupations_reschedule_full,
         plotting_information=plotting_information)
-    trajectories_reschedule_delta: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_reschedule_delta,
+    trajectories_reschedule_delta_perfect: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=resource_occupations_reschedule_delta_perfect,
         plotting_information=plotting_information)
 
     # Plot Schedule
@@ -559,10 +559,10 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
             schedule_plotting=schedule_plotting
         )
 
-    # Plot Reschedule Delta with additional data
+    # Plot Reschedule Delta Perfect with additional data
     plot_time_resource_trajectories(
-        title='Delta Reschedule', schedule_plotting=schedule_plotting,
-        trajectories=trajectories_reschedule_delta,
+        title='Delta Perfect Reschedule', schedule_plotting=schedule_plotting,
+        trajectories=trajectories_reschedule_delta_perfect,
     )
 
     # Plot difference if asked for
@@ -580,13 +580,13 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
     # Printing situation overview
     malfunction = schedule_plotting.malfunction
     resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_delta: SortedResourceOccupationsPerAgent = \
-        schedule_plotting.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_reschedule_delta_perfect: SortedResourceOccupationsPerAgent = \
+        schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
 
     nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
     total_delay = sum(
-        max(sorted_resource_occupations_reschedule_delta[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
-        for agent_id, sorted_resource_occupations_reschedule_delta in resource_occupations_reschedule_delta.items()
+        max(sorted_resource_occupations_reschedule_delta_perfect[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
+        for agent_id, sorted_resource_occupations_reschedule_delta_perfect in resource_occupations_reschedule_delta_perfect.items()
     )
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
@@ -720,7 +720,7 @@ def plot_time_resource_trajectories(
 # TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis):
     """
-    Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
+    Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
     Parameters
     ----------
     experiment_data_frame
@@ -734,12 +734,12 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
     lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
     lateness_delta_perfect_after_malfunction = experiment_results.lateness_delta_perfect_after_malfunction
     lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
-    lateness_delta_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
+    lateness_delta_perfect_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
 
     fig = go.Figure()
     fig.add_trace(go.Histogram(x=lateness_full_values, name='Full Reschedule'
                                ))
-    fig.add_trace(go.Histogram(x=lateness_delta_values, name='Delta Reschedule'
+    fig.add_trace(go.Histogram(x=lateness_delta_perfect_values, name='Delta Perfect Reschedule'
                                ))
     fig.update_layout(barmode='overlay')
     fig.update_traces(opacity=0.75)
@@ -750,7 +750,7 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
 
 def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
     """
-    Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
+    Plot a histogram of the delay of agents in the full and reschedule delta perfect compared to the schedule
     Parameters
     ----------
     experiment_data_frame
@@ -764,12 +764,12 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
     lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
     lateness_delta_perfect_after_malfunction = experiment_results.lateness_delta_perfect_after_malfunction
     lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
-    lateness_delta_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
+    lateness_delta_perfect_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
 
     fig = go.Figure()
     fig.add_trace(go.Bar(x=np.arange(len(lateness_full_values)), y=lateness_full_values, name='Full Reschedule'
                          ))
-    fig.add_trace(go.Bar(x=np.arange(len(lateness_delta_values)), y=lateness_delta_values, name='Delta Reschedule'
+    fig.add_trace(go.Bar(x=np.arange(len(lateness_delta_perfect_values)), y=lateness_delta_perfect_values, name='Delta Perfect Reschedule'
                          ))
     fig.update_layout(barmode='overlay')
     fig.update_traces(opacity=0.75)
@@ -793,7 +793,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     train_run_delta_perfect_after_malfunction: Trainrun = train_runs_delta_perfect_after_malfunction[agent_id]
     problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
     problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
-    problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_perfect_after_malfunction
+    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results_analysis.problem_delta_perfect_after_malfunction
     # TODO hacky, we should take the topo_dict from infrastructure maybe?
     topo = experiment_results_analysis.problem_full_after_malfunction.topo_dict[agent_id]
 
@@ -806,9 +806,9 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
             problem_rsp_full,
             f'Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
             train_run_full_after_malfunction],
-        ScheduleProblemEnum.PROBLEM_RSP_DELTA: [
-            problem_rsp_delta,
-            f'Delta Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
+        ScheduleProblemEnum.PROBLEM_RSP_REDUCED_SCOPE: [
+            problem_rsp_reduced_scope_perfect,
+            f'Delta Perfect Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
             train_run_delta_perfect_after_malfunction],
     }
 
@@ -987,7 +987,7 @@ def plot_resource_occupation_heat_map(
     fig = go.Figure(layout=layout)
 
     schedule_as_resource_occupations = schedule_plotting.schedule_as_resource_occupations
-    reschedule_as_resource_occupations = schedule_plotting.reschedule_delta_as_resource_occupations
+    reschedule_as_resource_occupations = schedule_plotting.reschedule_delta_perfect_as_resource_occupations
 
     # Count agents per resource for full episode
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():

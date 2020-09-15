@@ -101,7 +101,7 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_REDUCED_SCOPE)
 ```
 
 
@@ -113,7 +113,7 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 ```{python}
 choices_full_schedule = exp_results_of_experiment_of_interest.results_full.solver_statistics["solving"]["solvers"]["choices"]
 choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_perfect_reschedule = exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
 ```
 
 ```{python}
@@ -127,7 +127,7 @@ experiment_details = pd.DataFrame([exp_results_of_experiment_of_interest._asdict
 
 experiment_details['choices_full_schedule'] = choices_full_schedule
 experiment_details['choices_full_reschedule'] = choices_full_reschedule
-experiment_details['choices_delta_reschedule'] = choices_delta_reschedule
+experiment_details['choices_delta_perfect_reschedule'] = choices_delta_perfect_reschedule
 display(experiment_details.transpose())
 ```
 

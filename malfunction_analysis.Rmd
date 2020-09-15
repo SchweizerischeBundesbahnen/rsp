@@ -72,7 +72,7 @@ schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedul
                                                                          ,plotting_data.plotting_information)
 # Get resource occupation and time-space trajectories for full reschedule
 
-reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+reschedule_resource_occupations = plotting_data.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
 reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
                                                                            plotting_data.plotting_information)
 changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(

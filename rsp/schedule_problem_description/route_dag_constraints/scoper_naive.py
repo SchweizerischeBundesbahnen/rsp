@@ -9,16 +9,16 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
-from rsp.schedule_problem_description.route_dag_constraints.delta_zero import _extract_route_section_penalties
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_trainrun_satisfies_route_dag_constraints
+from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraintsDict
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def naive_scoper(
+def scoper_naive(
         agent_id: int,
         # pytorch convention for in-place operations: postfixed with underscore.
         topo_: nx.DiGraph,
@@ -26,7 +26,7 @@ def naive_scoper(
         full_reschedule_trainrun: Trainrun,
         full_reschedule_problem: ScheduleProblemDescription
 ):
-    """"naive scoper":
+    """"scoper naive":
 
     - if no change for train between schedule and re-schedule, keep the exact train run
     - if any change for train between schedule and re-schedule, open up everything as in full re-scheduling
@@ -43,19 +43,19 @@ def naive_scoper(
         return schedule, schedule, topo_
 
 
-def naive_scoper_for_all_agents(
+def scoper_naive_for_all_agents(
         full_reschedule_trainrun_dict: TrainrunDict,
         full_reschedule_problem: ScheduleProblemDescription,
         malfunction: ExperimentMalfunction,
         minimum_travel_time_dict: Dict[int, int],
         max_episode_steps: int,
         # pytorch convention for in-place operations: postfixed with underscore.
-        naive_delta_topo_dict_to_: TopoDict,
+        delta_naive_topo_dict_to_: TopoDict,
         schedule_trainrun_dict: TrainrunDict,
         weight_route_change: int,
         weight_lateness_seconds: int,
         max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
-    """The naive scoper only opens up the differences between the schedule and
+    """The scoper naive only opens up the differences between the schedule and
     the imaginary re-schedule. It gives no additional routing flexibility!
 
     Parameters
@@ -70,7 +70,7 @@ def naive_scoper_for_all_agents(
         the minimumum travel times for the agents
     max_episode_steps:
         latest arrival
-    naive_delta_topo_dict_to_:
+    delta_naive_topo_dict_to_:
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
@@ -87,9 +87,9 @@ def naive_scoper_for_all_agents(
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = naive_scoper(
+        earliest_dict, latest_dict, topo = scoper_naive(
             agent_id=agent_id,
-            topo_=naive_delta_topo_dict_to_[agent_id],
+            topo_=delta_naive_topo_dict_to_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
             full_reschedule_trainrun=full_reschedule_trainrun_dict[agent_id],
             full_reschedule_problem=full_reschedule_problem

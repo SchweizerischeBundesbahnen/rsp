@@ -10,8 +10,8 @@ from rsp.schedule_problem_description.data_types_and_utils import _get_topology_
 from rsp.schedule_problem_description.data_types_and_utils import route_dag_constraints_dict_from_list_of_train_run_waypoint
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import topo_from_agent_paths
-from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
-from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_running
+from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import scoper_zero_running
 from rsp.utils.data_types import experiment_freeze_dict_pretty_print
 from rsp.utils.data_types import experiment_freeze_pretty_print
 from rsp.utils.data_types import ExperimentMalfunction
@@ -537,7 +537,7 @@ def test_get_freeze_for_full_rescheduling():
         f"not expected keys={set(route_dag_constraints.earliest.keys()) - set(expected_route_dag_constraints.earliest.keys())}"
 
 
-def test_get_freeze_for_delta():
+def test_get_freeze_for_delta_perfect():
     agents_path_dict = {0: [(
         Waypoint(position=(8, 23), direction=1),
         Waypoint(position=(8, 24), direction=1),
@@ -1669,7 +1669,7 @@ def test_bugfix_sim_172():
                          TrainrunWaypoint(scheduled_at=35, waypoint=Waypoint(position=(9, 23), direction=3))]
     malfunction = ExperimentMalfunction(time_step=19, agent_id=4, malfunction_duration=20)
 
-    actual_route_dag_constraints = delta_zero_running(
+    actual_route_dag_constraints = scoper_zero_running(
         agent_id=malfunction.agent_id,
         schedule_trainrun=schedule_trainrun,
         malfunction=malfunction,
@@ -1803,7 +1803,7 @@ def test_bugfix_sim_175_no_path_splitting_forward():
                     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = delta_zero_running(
+    actual_route_dag_constraints = scoper_zero_running(
         agent_id=0,
         malfunction=ExperimentMalfunction(agent_id=1, time_step=55, malfunction_duration=55),
         schedule_trainrun=force_freeze,
@@ -1853,7 +1853,7 @@ def test_bugfix_sim_175_no_path_splitting_backward():
     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = delta_zero_running(
+    actual_route_dag_constraints = scoper_zero_running(
         agent_id=0,
         malfunction=ExperimentMalfunction(time_step=4, agent_id=0, malfunction_duration=20),
         schedule_trainrun=force_freeze,
@@ -1902,7 +1902,7 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = delta_zero_running(
+    actual_route_dag_constraints = scoper_zero_running(
         agent_id=0,
         malfunction=ExperimentMalfunction(agent_id=1, time_step=55, malfunction_duration=55),
         schedule_trainrun=force_freeze,

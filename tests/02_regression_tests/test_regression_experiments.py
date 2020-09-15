@@ -184,7 +184,7 @@ def test_regression_experiment_agenda(regen: bool = False):
     result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
     expected_result_dict = {
-        # costs in full and delta are delay with respect to constraints induced by malfunction,
+        # costs in full and delta perfect are delay with respect to constraints induced by malfunction,
         # i.e. malfunction has to be added to get delay with respect to initial schedule!
         'costs_delta_perfect_after_malfunction': {0: 0.0}, 'costs_full': {0: 0.0}, 'costs_full_after_malfunction': {0: 0.0},
         'experiment_id': {0: 0}, 'max_num_cities': {0: 20}, 'max_rail_between_cities': {0: 2},
