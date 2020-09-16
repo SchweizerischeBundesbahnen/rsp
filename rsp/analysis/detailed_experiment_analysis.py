@@ -91,7 +91,7 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
         f'nb_resource_conflicts_{item}'
         for item in ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']
     ]
-    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used', 'changed_agents_percentage_delta_perfect_after_malfunction']:
         plot_computational_times(
             experiment_data=data_frame,
             axis_of_interest=axis_of_interest,
@@ -184,7 +184,8 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
         'n_agents': '',
         'size': '',
         'size_used': '',
-        'solve_time_full_after_malfunction': '[s]'
+        'solve_time_full_after_malfunction': '[s]',
+        'changed_agents_percentage_delta_perfect_after_malfunction': 'blabla'
     }.items():
         for speed_up_col_pattern, y_axis_title in [
             ('speed_up_{}', 'Speed-up full solver time [-]'),

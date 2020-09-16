@@ -46,7 +46,9 @@ def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
     """
 
     # 1. compute the forward-only wave of the malfunction
-    transmission_chains = extract_transmission_chains_from_schedule(schedule_plotting=schedule_plotting)
+    transmission_chains = extract_transmission_chains_from_schedule(
+        malfunction=schedule_plotting.malfunction,
+        occupations=schedule_plotting.schedule_as_resource_occupations)
 
     # 2. non-symmetric distance matrix of primary, secondary etc. effects
     number_of_trains = len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent)

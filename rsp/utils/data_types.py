@@ -203,14 +203,17 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('problem_full_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_naive_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
     ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_online_after_malfunction', SchedulingExperimentResult),
+    ('delta_online_after_malfunction_predicted_agents', Set[int]),
 ])
 
 # TODO SIM-672 naming???
-speed_up_scopes = ['delta_perfect_after_malfunction', 'delta_naive_after_malfunction']
+speed_up_scopes = ['delta_perfect_after_malfunction', 'delta_naive_after_malfunction', 'delta_online_after_malfunction']
 
 after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
@@ -366,13 +369,9 @@ def sum_route_section_penalties_from_results(
     return {agent_id: sum(edge_penalties.values()) for agent_id, edge_penalties in edge_penalties.items()}
 
 
-def speed_up_from_results(results_full_schedule: SchedulingExperimentResult,
+def speed_up_from_results(results_full_reschedule: SchedulingExperimentResult,
                           results_other_reschedule: SchedulingExperimentResult) -> float:
-    return sum([
-        1
-        for agent_id, edge_penalties in results_other_reschedule.trainruns_dict.items()
-        if set(results_full_schedule.trainruns_dict[agent_id]) != set(results_other_reschedule.trainruns_dict[agent_id])
-    ]) / len(results_other_reschedule.trainruns_dict)
+    return results_full_reschedule.solver_statistics["summary"]["times"]["total"] / results_other_reschedule.solver_statistics["summary"]["times"]["total"]
 
 
 experiment_results_analysis_all_scopes_fields = {
@@ -409,10 +408,13 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('problem_full_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_naive_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
     ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_online_after_malfunction', SchedulingExperimentResult),
+    ('delta_online_after_malfunction_predicted_agents', Set[int]),
     ('experiment_id', int),
     ('grid_id', int),
     ('size', int),
@@ -420,6 +422,11 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('max_num_cities', int),
     ('max_rail_between_cities', int),
     ('max_rail_in_city', int),
+
+    ('ground_truth_changed_percentage', float),
+    ('online_predicted_changed_percentage', float),
+    ('online_false_positives_percentage', float),
+    ('online_false_negatives_percentage', float),
 
     # TODO SIM-672 should it be separated?
     ('size_used', int),
@@ -551,7 +558,7 @@ def expand_experiment_results_for_analysis(
             for scope in after_malfunction_scopes
         },
         **{
-            f'{prefix}_{scope}': results_extractor(results_full_schedule=experiment_results._asdict()[f'results_full'],
+            f'{prefix}_{scope}': results_extractor(results_full_reschedule=experiment_results._asdict()[f'results_full_after_malfunction'],
                                                    results_other_reschedule=experiment_results._asdict()[f'results_{scope}'],
                                                    )
             for prefix, (_, results_extractor) in speedup_scopes_fields.items()
@@ -594,8 +601,15 @@ def expand_experiment_results_for_analysis(
                  'experiment_parameters': None,
 
                  'malfunction': None,
-             } if nonify_problem_and_results else {})
 
+                 'delta_online_after_malfunction_predicted_agents': None
+             } if nonify_problem_and_results else {})
+    ground_truth_changed_agents = {
+        agent_id
+        for agent_id, trainrun_full_after_malfunction in experiment_results.results_full_after_malfunction.trainruns_dict.items()
+        if set(experiment_results.results_full.trainruns_dict[agent_id]) == set(trainrun_full_after_malfunction)
+    }
+    nb_agents = len(experiment_results.results_full_after_malfunction.trainruns_dict)
     return ExperimentResultsAnalysis(
         experiment_id=experiment_parameters.experiment_id,
         grid_id=experiment_parameters.grid_id,
@@ -606,6 +620,13 @@ def expand_experiment_results_for_analysis(
         max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
         factor_resource_conflicts=factor_resource_conflicts,
         size_used=len(used_cells),
+        ground_truth_changed_percentage=(len(ground_truth_changed_agents) / nb_agents),
+        online_predicted_changed_percentage=(len(experiment_results.delta_online_after_malfunction_predicted_agents) / nb_agents),
+        online_false_positives_percentage=(
+                len(experiment_results.delta_online_after_malfunction_predicted_agents.difference(ground_truth_changed_agents)) / nb_agents),
+        online_false_negatives_percentage=(
+                len((set(range(nb_agents)) - experiment_results.delta_online_after_malfunction_predicted_agents).difference(ground_truth_changed_agents))
+                / nb_agents),
         **d
     )
 

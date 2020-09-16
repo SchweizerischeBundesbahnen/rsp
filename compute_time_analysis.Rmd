@@ -31,6 +31,9 @@ from rsp.analysis.compute_time_analysis import plot_speed_up
 from rsp.analysis.compute_time_analysis import render_flatland_env
 from rsp.analysis.compute_time_analysis import plot_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
+
+from IPython.core.display import display, HTML
+display(HTML("<style>.container { width:80% !important; }</style>"))
 ```
 
 ```{python}
@@ -56,6 +59,10 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_per
 ```{python}
 experiment_data_filtered = experiment_data[(experiment_data['time_full_after_malfunction'] > 10) & (experiment_data['time_full_after_malfunction'] <=experiment_data['time_full_after_malfunction'].quantile(.97))]
 
+```
+
+```{python}
+print(f"removed {len(experiment_data)-len(experiment_data_filtered)}/{len(experiment_data)} rows")
 ```
 
 ### Visualize Compuational time comparison

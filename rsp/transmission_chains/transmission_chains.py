@@ -7,8 +7,8 @@ import numpy as np
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ResourceOccupation
+from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SchedulingProblemInTimeWindows
-from rsp.utils.plotting_data_types import SchedulePlotting
 from rsp.utils.rsp_logger import rsp_logger
 
 TransmissionLeg = NamedTuple('TransmissionLeg', [
@@ -87,23 +87,21 @@ def extract_transmission_chains_from_time_windows(  # noqa: C901
 
 
 # TODO we probably too much work here!
-def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlotting) -> List[TransmissionChain]:
+def extract_transmission_chains_from_schedule(malfunction: ExperimentMalfunction, occupations: ScheduleAsResourceOccupations) -> List[TransmissionChain]:
     """Propagation of delay.
-
     Parameters
     ----------
-    schedule_plotting
 
     Returns
     -------
     List of transmission chains
     """
 
-    malfunction = schedule_plotting.malfunction
     malfunction_agent_id = malfunction.agent_id
     delay_time = malfunction.malfunction_duration
-    resource_occupations_per_agent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_per_resource = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_resource
+
+    resource_occupations_per_agent = occupations.sorted_resource_occupations_per_agent
+    resource_occupations_per_resource = occupations.sorted_resource_occupations_per_resource
 
     open_wave_front: List[Tuple[ResourceOccupation, TransmissionChain]] = []
     transmission_chains: List[TransmissionChain] = []
