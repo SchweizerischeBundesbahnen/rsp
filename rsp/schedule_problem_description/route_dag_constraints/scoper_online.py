@@ -17,6 +17,7 @@ from rsp.schedule_problem_description.route_dag_constraints.propagate import ver
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import TransmissionChain
+from rsp.transmission_chains.transmission_chains import validate_transmission_chains
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraintsDict
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
@@ -95,6 +96,7 @@ def scoper_online_for_all_agents(
     transmission_chains: List[TransmissionChain] = extract_transmission_chains_from_schedule(
         malfunction=malfunction,
         occupations=extract_resource_occupations(schedule=schedule_trainrun_dict, release_time=RELEASE_TIME))
+    validate_transmission_chains(transmission_chains=transmission_chains)
 
     # 2. compute reached agents
     reached_agents = {

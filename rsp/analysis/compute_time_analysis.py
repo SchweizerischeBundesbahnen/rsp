@@ -12,6 +12,7 @@ from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
+from _plotly_utils.colors.qualitative import Plotly
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.core.grid.grid_utils import position_to_coordinate
 from flatland.envs.rail_trainrun_data_structures import Trainrun
@@ -95,7 +96,8 @@ def plot_computational_times(
         output_folder: Optional[str] = None,
         y_axis_title: str = "Time[s]",
         title: str = "Computational Times",
-        file_name_prefix: str = ""
+        file_name_prefix: str = "",
+        color_offset: int = 0
 ):
     """Plot the computational times of experiments.
 
@@ -130,10 +132,10 @@ def plot_computational_times(
                                        x_axis_title=axis_of_interest,
                                        y_axis_title=y_axis_title,
                                        pdf_file=pdf_file,
-                                       title=f"{title} {axis_of_interest}")
+                                       title=f"{title} {axis_of_interest}",
+                                       color_offset=color_offset)
 
 
-# TODO SIM-672 plot upper and lower bound
 def plot_computional_times_from_traces(
         experiment_data: DataFrame,
         traces: List[Tuple[str, str]],
@@ -144,7 +146,9 @@ def plot_computional_times_from_traces(
         experiment_data_suffix: Optional[str] = '',
         output_folder: Optional[str] = None,
         pdf_file: Optional[str] = None,
-        title: str = "Computational Times"):
+        title: str = "Computational Times",
+        color_offset: int = 0
+):
     """Plot the computational times of experiments.
 
     Parameters
@@ -165,7 +169,7 @@ def plot_computional_times_from_traces(
     -------
     """
     fig = go.Figure()
-    for axis_of_interest, column in traces:
+    for index, (axis_of_interest, column) in enumerate(traces):
         fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                              y=experiment_data[column],
                              name=str(column) + experiment_data_suffix,
@@ -180,7 +184,9 @@ def plot_computional_times_from_traces(
                                            '<b>Grid Size:</b> %{customdata[1]}<br>' +
                                            '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                            '<b>Experiment id:</b>%{hovertext}',
-                             marker=dict(size=3)))
+                             marker=dict(size=3),
+                             marker_color=Plotly[index + color_offset]
+                             ))
         if experiment_data_baseline is not None:
             fig.add_trace(go.Box(x=experiment_data_baseline[axis_of_interest],
                                  y=experiment_data_baseline[column],
@@ -196,7 +202,8 @@ def plot_computional_times_from_traces(
                                                '<b>Grid Size:</b> %{customdata[1]}<br>' +
                                                '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                                '<b>Experiment id:</b>%{hovertext}',
-                                 marker=dict(size=3)))
+                                 marker=dict(size=3),
+                                 marker_color=Plotly[index + color_offset]))
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"{title}")
     fig.update_xaxes(title=x_axis_title)
@@ -213,8 +220,8 @@ def plot_computional_times_from_traces(
 def plot_speed_up(
         experiment_data: DataFrame,
         axis_of_interest: str,
+        cols: List[str],
         output_folder: Optional[str] = None,
-        cols: List[str] = ('speed_up_delta_naive_after_malfunction', 'speed_up_delta_perfect_after_malfunction'),
         y_axis_title: str = "Speed Up Factor",
         axis_of_interest_suffix: str = ""
 ):
@@ -256,29 +263,35 @@ def plot_speed_up(
         experiment_data[axis_of_interest_binned] = experiment_data[axis_of_interest].astype(float).map(
             lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(((fl - min_value) // inc) + 1) * inc + min_value :.2f}]")
 
-    for col in cols:
-        fig.add_trace(go.Box(x=experiment_data[axis_of_interest_binned if binned else axis_of_interest],
-                             y=experiment_data[col],
-                             pointpos=-1,
-                             boxpoints='all',
-                             name=col,
-                             customdata=np.dstack((experiment_data['n_agents'],
-                                                   experiment_data['size'],
-                                                   experiment_data['time_full'],
-                                                   experiment_data['time_full_after_malfunction'],
-                                                   experiment_data['time_delta_perfect_after_malfunction'],
-                                                   experiment_data['time_delta_naive_after_malfunction'],
-                                                   ))[0],
-                             hovertext=experiment_data['experiment_id'],
-                             hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
-                                           '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
-                                           '<b>Grid Size:</b> %{customdata[1]}<br>' +
-                                           '<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>' +
-                                           '<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>' +
-                                           '<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>' +
-                                           '<b>Delta naive:</b> %{customdata[5]:.2f}s<br>' +
-                                           '<b>Experiment id:</b>%{hovertext}'
-                             ))
+    for col_index, col in enumerate(cols):
+        fig.add_trace(
+            go.Box(
+                x=experiment_data[axis_of_interest_binned if binned else axis_of_interest],
+                y=experiment_data[col],
+                pointpos=-1,
+                boxpoints='all',
+                name=col,
+                # TODO SIM-672 mean?
+                customdata=np.dstack((experiment_data['n_agents'],
+                                      experiment_data['size'],
+                                      experiment_data['time_full'],
+                                      experiment_data['time_full_after_malfunction'],
+                                      experiment_data['time_delta_perfect_after_malfunction'],
+                                      experiment_data['time_delta_naive_after_malfunction'],
+                                      ))[0],
+                hovertext=experiment_data['experiment_id'],
+                hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
+                              '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
+                              '<b>Grid Size:</b> %{customdata[1]}<br>' +
+                              '<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>' +
+                              '<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>' +
+                              '<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>' +
+                              '<b>Delta naive:</b> %{customdata[5]:.2f}s<br>' +
+                              '<b>Experiment id:</b>%{hovertext}',
+                # dirty workaround: use same color as if we had trace for schedule as well
+                marker_color=Plotly[col_index + 2]
+            )
+        )
 
     fig.update_layout(title_text=f"{y_axis_title} per {axis_of_interest}")
     fig.update_xaxes(title=f"{axis_of_interest} {axis_of_interest_suffix}")

@@ -30,6 +30,7 @@ from rsp.schedule_problem_description.analysis.rescheduling_verification_utils i
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import after_malfunction_scopes
+from rsp.utils.data_types import all_scopes
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import speed_up_scopes
@@ -124,7 +125,7 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
     )
 
 
-HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = ['time_full', 'time_full_after_malfunction', 'time_delta_perfect_after_malfunction', 'time_delta_naive_after_malfunction']
+HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'time_{scope}' for scope in all_scopes]
 
 
 # TODO SIM-672 should we remove analysis stuff from pipeline, only have it in notebooks and tests (from dummydata maybe?)
@@ -156,6 +157,8 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
                 output_folder=output_folder,
                 title='Computational Times ratio (baseline / new data)'
             )
+    # TODO SIM-672 split function?
+    # TODO SIM-672 use offset in colorset
     plot_computational_times(
         experiment_data=experiment_data,
         experiment_data_baseline=experiment_data_baseline,
@@ -164,11 +167,12 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
         axis_of_interest='experiment_id',
         columns_of_interest=[f'total_delay_{scope}' for scope in after_malfunction_scopes],
         output_folder=output_folder,
-        title='Total delay'
+        title='Total delay',
+        color_offset=1
     )
 
 
-# TODO SIM-672 plot upper and lower bound
+# TODO SIM-672 use color offset?
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
     for scope in speed_up_scopes:
@@ -185,7 +189,7 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
         'size': '',
         'size_used': '',
         'solve_time_full_after_malfunction': '[s]',
-        'changed_agents_percentage_delta_perfect_after_malfunction': 'blabla'
+        'changed_agents_percentage_delta_perfect_after_malfunction': '[-]'
     }.items():
         for speed_up_col_pattern, y_axis_title in [
             ('speed_up_{}', 'Speed-up full solver time [-]'),

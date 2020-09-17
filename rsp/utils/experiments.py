@@ -1075,7 +1075,7 @@ def expand_schedule_parameter_range_and_generate_schedule(
     )
     for schedule_parameters in list_of_schedule_parameters:
         if exists_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_parameters.schedule_id):
-            rsp_logger.info(f"skipping gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
+            rsp_logger.info(f"skipping gen schedule for [infra {infra_id}/schedule{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
                             f"-> schedule already exists")
             continue
         rsp_logger.info(f"gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters}")
@@ -1221,19 +1221,6 @@ def save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name: str, 
     _write_sha_txt(experiment_agenda_folder_name)
 
 
-def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
-    """Save experiment agenda to the folder with the experiments.
-    Parameters
-    ----------
-    experiment_folder_name: str
-        Folder name of experiment where all experiment files and agenda are stored
-    """
-    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
-    with open(file_name, 'rb') as handle:
-        file_data: ExperimentAgenda = pickle.load(handle)
-        return file_data
-
-
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
     return "{}_{}".format(experiment_name, datetime_string)
@@ -1307,7 +1294,6 @@ def load_and_expand_experiment_results_from_data_folder(
         except Exception as e:
             # print and ignore
             print(f"skipped {file_name}: {e}")
-            raise e
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()

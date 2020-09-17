@@ -309,6 +309,17 @@ def changed_from_results(
         results_schedule: SchedulingExperimentResult,
         results_reschedule: SchedulingExperimentResult,
         problem_reschedule: ScheduleProblemDescription):
+    return len([
+        agent_id
+        for agent_id in results_reschedule.trainruns_dict.keys()
+        if set(results_schedule.trainruns_dict[agent_id]) != set(results_reschedule.trainruns_dict[agent_id])
+    ])
+
+
+def changed_percentage_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription):
     return sum([
         1 if set(results_schedule.trainruns_dict[agent_id]) != set(results_reschedule.trainruns_dict[agent_id]) else 0
         for agent_id in results_reschedule.trainruns_dict.keys()
@@ -391,7 +402,8 @@ experiment_results_analysis_all_scopes_fields = {
 experiment_results_analysis_after_malfunction_scopes_fields = {
     'total_delay': (float, total_delay_from_results),
     'lateness': (Dict[int, int], lateness_from_results),
-    'changed_agents_percentage': (float, changed_from_results),
+    'changed_agents': (float, changed_from_results),
+    'changed_agents_percentage': (float, changed_percentage_from_results),
     'sum_route_section_penalties': (Dict[int, float], sum_route_section_penalties_from_results),
     'vertex_eff_lateness': (Dict[int, Dict[Waypoint, float]], vertex_eff_lateness_from_results),
     'edge_eff_route_penalties': (Dict[int, Dict[Tuple[Waypoint, Waypoint], float]], edge_eff_route_penalties_from_results)
@@ -423,10 +435,12 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('max_rail_between_cities', int),
     ('max_rail_in_city', int),
 
-    ('ground_truth_changed_percentage', float),
-    ('online_predicted_changed_percentage', float),
-    ('online_false_positives_percentage', float),
-    ('online_false_negatives_percentage', float),
+    ('online_predicted_changed_agents_percentage', float),
+    ('online_predicted_changed_agents_false_positives_percentage', float),
+    ('online_predicted_changed_agents_false_negatives_percentage', float),
+    ('online_predicted_changed_agents', int),
+    ('online_predicted_changed_agents_false_positives', int),
+    ('online_predicted_changed_agents_false_negatives', int),
 
     # TODO SIM-672 should it be separated?
     ('size_used', int),
@@ -542,6 +556,19 @@ def expand_experiment_results_for_analysis(
         experiment_results.problem_full.topo_dict.items()
         for waypoint in topo.nodes
     }
+    nb_agents = experiment_parameters.infra_parameters.number_of_agents
+    online_predicted_changed_agents = experiment_results.delta_online_after_malfunction_predicted_agents
+    ground_truth_positive_changed_agents = {
+        agent_id
+        for agent_id, trainrun_full_after_malfunction in experiment_results.results_full_after_malfunction.trainruns_dict.items()
+        if set(experiment_results.results_full.trainruns_dict[agent_id]) != set(trainrun_full_after_malfunction)
+    }
+    ground_truth_negative_changed_agents = \
+        (set(range(nb_agents)).difference(ground_truth_positive_changed_agents))
+    online_predicted_changed_agents_false_positives = \
+        (online_predicted_changed_agents.intersection(ground_truth_negative_changed_agents))
+    online_predicted_changed_agents_false_negatives = \
+        (set(range(nb_agents)).difference(online_predicted_changed_agents)).intersection(ground_truth_positive_changed_agents)
     d = dict(
         **experiment_results._asdict(),
         **{
@@ -566,50 +593,20 @@ def expand_experiment_results_for_analysis(
         }
     )
     # nonify all non-float fields
-    d.update({
-                 'problem_full': None,
-                 'problem_full_after_malfunction': None,
-                 'problem_delta_perfect_after_malfunction': None,
-                 'problem_delta_naive_after_malfunction': None,
+    if nonify_problem_and_results:
+        d.update({f"problem_{scope}": None for scope in all_scopes})
+        d.update({f"results_{scope}": None for scope in all_scopes})
+        d.update({f"solution_{scope}": None for scope in all_scopes})
+        d.update({f"lateness_{scope}": None for scope in after_malfunction_scopes})
+        d.update({f"sum_route_section_penalties_{scope}": None for scope in after_malfunction_scopes})
+        d.update({f"vertex_eff_lateness_{scope}": None for scope in after_malfunction_scopes})
+        d.update({f"edge_eff_route_penalties_{scope}": None for scope in after_malfunction_scopes})
+        d.update({
+            'experiment_parameters': None,
+            'malfunction': None,
+            'delta_online_after_malfunction_predicted_agents': None
+        })
 
-                 'results_full': None,
-                 'results_full_after_malfunction': None,
-                 'results_delta_perfect_after_malfunction': None,
-                 'results_delta_naive_after_malfunction': None,
-
-                 'solution_full': None,
-                 'solution_full_after_malfunction': None,
-                 'solution_delta_perfect_after_malfunction': None,
-                 'solution_delta_naive_after_malfunction': None,
-
-                 'lateness_full_after_malfunction': None,
-                 'lateness_delta_perfect_after_malfunction': None,
-                 'lateness_delta_naive_after_malfunction': None,
-
-                 'sum_route_section_penalties_full_after_malfunction': None,
-                 'sum_route_section_penalties_delta_perfect_after_malfunction': None,
-                 'sum_route_section_penalties_delta_naive_after_malfunction': None,
-
-                 'vertex_eff_lateness_full_after_malfunction': None,
-                 'vertex_eff_lateness_delta_perfect_after_malfunction': None,
-                 'vertex_eff_lateness_delta_naive_after_malfunction': None,
-
-                 'edge_eff_route_penalties_full_after_malfunction': None,
-                 'edge_eff_route_penalties_delta_perfect_after_malfunction': None,
-                 'edge_eff_route_penalties_delta_naive_after_malfunction': None,
-
-                 'experiment_parameters': None,
-
-                 'malfunction': None,
-
-                 'delta_online_after_malfunction_predicted_agents': None
-             } if nonify_problem_and_results else {})
-    ground_truth_changed_agents = {
-        agent_id
-        for agent_id, trainrun_full_after_malfunction in experiment_results.results_full_after_malfunction.trainruns_dict.items()
-        if set(experiment_results.results_full.trainruns_dict[agent_id]) == set(trainrun_full_after_malfunction)
-    }
-    nb_agents = len(experiment_results.results_full_after_malfunction.trainruns_dict)
     return ExperimentResultsAnalysis(
         experiment_id=experiment_parameters.experiment_id,
         grid_id=experiment_parameters.grid_id,
@@ -620,13 +617,14 @@ def expand_experiment_results_for_analysis(
         max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
         factor_resource_conflicts=factor_resource_conflicts,
         size_used=len(used_cells),
-        ground_truth_changed_percentage=(len(ground_truth_changed_agents) / nb_agents),
-        online_predicted_changed_percentage=(len(experiment_results.delta_online_after_malfunction_predicted_agents) / nb_agents),
-        online_false_positives_percentage=(
-                len(experiment_results.delta_online_after_malfunction_predicted_agents.difference(ground_truth_changed_agents)) / nb_agents),
-        online_false_negatives_percentage=(
-                len((set(range(nb_agents)) - experiment_results.delta_online_after_malfunction_predicted_agents).difference(ground_truth_changed_agents))
-                / nb_agents),
+        online_predicted_changed_agents=len(online_predicted_changed_agents),
+        online_predicted_changed_agents_false_positives=len(online_predicted_changed_agents_false_positives),
+        online_predicted_changed_agents_false_negatives=len(online_predicted_changed_agents_false_negatives),
+        online_predicted_changed_agents_percentage=(len(online_predicted_changed_agents) / nb_agents),
+        online_predicted_changed_agents_false_positives_percentage=(len(online_predicted_changed_agents_false_positives) /
+                                                                    len(ground_truth_negative_changed_agents)),
+        online_predicted_changed_agents_false_negatives_percentage=(len(online_predicted_changed_agents_false_negatives) /
+                                                                    len(ground_truth_positive_changed_agents)),
         **d
     )
 
