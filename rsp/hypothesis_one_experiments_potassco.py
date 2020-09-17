@@ -50,7 +50,7 @@ def set_defaults():
 
 def run_potassco_agenda(base_directory: str):
     reschedule_parameters_range = ReScheduleParametersRange(
-        earliest_malfunction=[1, 1, 1],
+        earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
         malfunction_agent_id=[0, 200, 200],
 
