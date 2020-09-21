@@ -109,7 +109,7 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
         pdf_file="009_nb_resource_conflict__time.pdf",
         title="009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps:\n"
               "Correlation of resource conflicts and runtime",
-        traces=[(f'nb_resource_conflicts_{item}', f'time_{item}') for item in
+        traces=[(f'nb_resource_conflicts_{item}', f'solver_statistics_times_total_{item}') for item in
                 ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']],
         x_axis_title='nb_resource_conflict',
     )
@@ -125,7 +125,7 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
     )
 
 
-HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'time_{scope}' for scope in all_scopes]
+HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'solver_statistics_times_total_{scope}' for scope in all_scopes]
 
 
 # TODO SIM-672 should we remove analysis stuff from pipeline, only have it in notebooks and tests (from dummydata maybe?)
@@ -135,7 +135,7 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data_baseline_suffix: Optional[str] = '_baseline',
         experiment_data_suffix: Optional[str] = '',
         output_folder: str = None):
-    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used', 'time_full_after_malfunction']:
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used', 'solver_statistics_times_total_full_after_malfunction']:
         plot_computational_times(
             experiment_data=experiment_data,
             experiment_data_baseline=experiment_data_baseline,
@@ -165,7 +165,7 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data_baseline_suffix=experiment_data_baseline_suffix,
         experiment_data_suffix=experiment_data_suffix,
         axis_of_interest='experiment_id',
-        columns_of_interest=[f'total_delay_{scope}' for scope in after_malfunction_scopes],
+        columns_of_interest=[f'total_lateness_{scope}' for scope in after_malfunction_scopes],
         output_folder=output_folder,
         title='Total delay',
         color_offset=1
@@ -177,18 +177,19 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
     for scope in speed_up_scopes:
         experiment_data[f'speed_up_{scope}_solve_time'] = \
-            experiment_data['solve_time_full_after_malfunction'] / \
-            experiment_data[f'solve_time_{scope}']
-        experiment_data[f'speed_up_{scope}_non_solve_time'] = \
-            (experiment_data['time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
-            (experiment_data[f'time_{scope}'] - experiment_data[f'solve_time_{scope}'])
+            experiment_data['solver_statistics_times_solve_full_after_malfunction'] / \
+            experiment_data[f'solver_statistics_times_solve_{scope}']
+        experiment_data[f'speed_up_{scope}_non_solve_time'] = (
+                (experiment_data['solver_statistics_times_total_full_after_malfunction'] -
+                 experiment_data['solver_statistics_times_solve_full_after_malfunction']) /
+                (experiment_data[f'solver_statistics_times_total_{scope}'] - experiment_data[f'solver_statistics_times_solve_{scope}']))
 
     for axis_of_interest, axis_of_interest_suffix in {
         'experiment_id': '',
         'n_agents': '',
         'size': '',
         'size_used': '',
-        'solve_time_full_after_malfunction': '[s]',
+        'solver_statistics_times_total_full_after_malfunction': '[s]',
         'changed_agents_percentage_delta_perfect_after_malfunction': '[-]'
     }.items():
         for speed_up_col_pattern, y_axis_title in [
@@ -196,6 +197,7 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
             ('speed_up_{}_solve_time', 'Speed-up solver time solving only [-]'),
             ('speed_up_{}_non_solve_time', 'Speed-up solver time non-processing (grounding etc.) [-]'),
             ('changed_agents_percentage_{}', 'Percentage of changed agents [-]'),
+            ('effective_costs_ratio_{}', 'Costs ratio [-]'),
         ]:
             plot_speed_up(
                 experiment_data=experiment_data,
@@ -285,7 +287,7 @@ def hypothesis_one_data_analysis(experiment_output_directory: str,
                         asp_export_experiment_ids=asp_export_experiment_ids)
 
 
-def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
+def lateness_to_effective_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
     """Map lateness per agent to costs for lateness.
 
     Parameters
@@ -311,35 +313,36 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
     for experiment_results_analysis in tqdm.tqdm(l):
         experiment_id = experiment_results_analysis.experiment_id
         plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
-        costs_full_after_malfunction: int = experiment_results_analysis.costs_full_after_malfunction
+        effective_costs_full_after_malfunction: int = experiment_results_analysis.effective_costs_full_after_malfunction
         lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_full_after_malfunction
-        sum_route_section_penalties_full_after_malfunction: Dict[
-            int, int] = experiment_results_analysis.sum_route_section_penalties_full_after_malfunction
-        costs_delta_perfect_after_malfunction: int = experiment_results_analysis.costs_delta_perfect_after_malfunction
+        effective_costs_from_route_section_penalties_full_after_malfunction: Dict[
+            int, int] = experiment_results_analysis.effective_costs_from_route_section_penalties_full_after_malfunction
+        effective_costs_delta_perfect_after_malfunction: int = experiment_results_analysis.effective_costs_delta_perfect_after_malfunction
         lateness_delta_perfect_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_delta_perfect_after_malfunction
-        sum_route_section_penalties_delta_perfect_after_malfunction: Dict[
-            int, int] = experiment_results_analysis.sum_route_section_penalties_delta_perfect_after_malfunction
-        costs_lateness_full_after_malfunction: int = lateness_to_cost(
+        effective_costs_from_route_section_penalties_delta_perfect_after_malfunction: Dict[
+            int, int] = experiment_results_analysis.effective_costs_from_route_section_penalties_delta_perfect_after_malfunction
+        effective_costs_lateness_full_after_malfunction: int = lateness_to_effective_cost(
             weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
             lateness_dict=lateness_full_after_malfunction)
         sum_all_route_section_penalties_full_after_malfunction: int = sum(
-            sum_route_section_penalties_full_after_malfunction.values())
-        costs_lateness_delta_perfect_after_malfunction: int = lateness_to_cost(
+            effective_costs_from_route_section_penalties_full_after_malfunction.values())
+        effective_costs_lateness_delta_perfect_after_malfunction: int = lateness_to_effective_cost(
             weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
             lateness_dict=lateness_delta_perfect_after_malfunction)
         sum_all_route_section_penalties_delta_perfect_after_malfunction: int = sum(
-            sum_route_section_penalties_delta_perfect_after_malfunction.values())
+            effective_costs_from_route_section_penalties_delta_perfect_after_malfunction.values())
 
-        assert costs_full_after_malfunction == costs_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction, \
+        assert effective_costs_full_after_malfunction == (
+                effective_costs_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction), \
             f"experiment {experiment_id}: " \
-            f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
-            f"costs_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
+            f"effective_costs_full_after_malfunction={effective_costs_full_after_malfunction}, " \
+            f"costs_lateness_full_after_malfunction={effective_costs_lateness_full_after_malfunction}, " \
             f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
-        assert (costs_delta_perfect_after_malfunction ==
-                costs_lateness_delta_perfect_after_malfunction + sum_all_route_section_penalties_delta_perfect_after_malfunction), \
+        assert (effective_costs_delta_perfect_after_malfunction ==
+                effective_costs_lateness_delta_perfect_after_malfunction + sum_all_route_section_penalties_delta_perfect_after_malfunction), \
             f"experiment {experiment_id}: " \
-            f"costs_delta_perfect_after_malfunction={costs_delta_perfect_after_malfunction}, " \
-            f"costs_lateness_delta_perfect_after_malfunction={costs_lateness_delta_perfect_after_malfunction}, " \
+            f"effective_costs_delta_perfect_after_malfunction={effective_costs_delta_perfect_after_malfunction}, " \
+            f"costs_lateness_delta_perfect_after_malfunction={effective_costs_lateness_delta_perfect_after_malfunction}, " \
             f"sum_all_route_section_penalties_delta_perfect_after_malfunction={sum_all_route_section_penalties_delta_perfect_after_malfunction}, "
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()

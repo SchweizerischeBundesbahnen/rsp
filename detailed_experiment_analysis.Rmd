@@ -35,6 +35,8 @@ from rsp.analysis.compute_time_analysis import plot_time_resource_trajectories
 from rsp.analysis.compute_time_analysis import plot_time_density
 from rsp.analysis.compute_time_analysis import plot_resource_occupation_heat_map
 from rsp.analysis.compute_time_analysis import plot_train_paths
+from rsp.analysis.compute_time_analysis import plot_changed_agents
+from rsp.analysis.compute_time_analysis import print_situation_overview
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
@@ -42,9 +44,13 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 # TODO SIM-672 / SIM-656 make configuration easier, use dummydata in integration tests and use full data in notebooks
 experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31'
+experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13'
 
-experiment_of_interest = 1
-agent_of_interest = 0
+experiment_of_interest = 106
+```
+
+```{python}
+
 ```
 
 ```{python}
@@ -55,10 +61,15 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agend_id
 plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
-### Initial schedule
+```{python}
+print(f"agent_of_interest={agent_of_interest}")
+```
+
+### Visualize solutions
 
 
 The figure below shows the initial schedule we use as input to our re-scheduling pipeline. It is taken as given as used as target for optimization (minimal delay to initial schedule)
@@ -79,12 +90,22 @@ for item, problem in items.items():
 ```
 
 ```{python}
-trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent,
-    plotting_information=plotting_data.plotting_information)
-plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Initial Schedule",
-                                schedule_plotting=plotting_data)
+from rsp.utils.data_types import all_scopes
+from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
+
+for scope in all_scopes:
+    resource_occupations_schedule=extract_resource_occupations(exp_results_of_experiment_of_interest._asdict()[f'results_{scope}'].trainruns_dict,RELEASE_TIME).sorted_resource_occupations_per_agent
+    trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=resource_occupations_schedule,
+        plotting_information=plotting_data.plotting_information)
+    plot_time_resource_trajectories(trajectories=trajectories,
+                                    title=f"{scope}",
+                                    schedule_plotting=plotting_data)
+```
+
+```{python}
+plot_changed_agents(exp_results_of_experiment_of_interest)
 ```
 
 ### Visualize Problem instances as time-resource graphs
@@ -114,6 +135,30 @@ choices_delta_perfect_reschedule = exp_results_of_experiment_of_interest.results
 print("Number of choices the solver has to make was {}".format(choices_delta_perfect_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta Perfect Reschedule Problem",
+                                schedule_plotting=plotting_data)
+```
+
+```{python}
+resource_occupations_delta_naive_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_naive_after_malfunction)
+trajectories = trajectories_from_resource_occupations_per_agent(
+    resource_occupations_schedule=resource_occupations_delta_naive_reschedule,
+    plotting_information=plotting_data.plotting_information)
+choices_delta_naive_reschedule = exp_results_of_experiment_of_interest.results_delta_naive_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_delta_naive_reschedule))
+plot_time_resource_trajectories(trajectories=trajectories,
+                                title="Delta Naive Reschedule Problem",
+                                schedule_plotting=plotting_data)
+```
+
+```{python}
+resource_occupations_delta_online_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_online_after_malfunction)
+trajectories = trajectories_from_resource_occupations_per_agent(
+    resource_occupations_schedule=resource_occupations_delta_online_reschedule,
+    plotting_information=plotting_data.plotting_information)
+choices_delta_online_reschedule = exp_results_of_experiment_of_interest.results_delta_online_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_delta_online_reschedule))
+plot_time_resource_trajectories(trajectories=trajectories,
+                                title="Delta online Reschedule Problem",
                                 schedule_plotting=plotting_data)
 ```
 

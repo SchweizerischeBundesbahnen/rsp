@@ -642,13 +642,13 @@ def run_experiment_from_to_file(
                                                     statistics=experiment_results.results_delta_perfect_after_malfunction.solver_statistics),
         )
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-        solver_time_full_after_malfunction = \
+        solver_statistics_times_total_full_after_malfunction = \
             experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
         solver_time_delta_perfect_after_malfunction = \
             experiment_results.results_delta_perfect_after_malfunction.solver_statistics["summary"]["times"]["total"]
         elapsed_overhead_time = (
                 elapsed_time - solver_time_full -
-                solver_time_full_after_malfunction -
+                solver_statistics_times_total_full_after_malfunction -
                 solver_time_delta_perfect_after_malfunction)
         s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
             elapsed_overhead_time,
@@ -891,7 +891,7 @@ def create_infrastructure_and_schedule_from_ranges(
         schedule_parameters_range: ScheduleParametersRange,
         base_directory: str,
         speed_data: SpeedData,
-        grid_mode: bool = True
+        grid_mode: bool = False
 ) -> List[ScheduleParameters]:
     list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range=infrastructure_parameters_range,
@@ -1287,13 +1287,9 @@ def load_and_expand_experiment_results_from_data_folder(
             continue
         with open(file_name, 'rb') as handle:
             file_data: ExperimentResults = pickle.load(handle)
-        try:
-            experiment_results_list.append(expand_experiment_results_for_analysis(
-                file_data,
-                nonify_problem_and_results=nonify_problem_and_results))
-        except Exception as e:
-            # print and ignore
-            print(f"skipped {file_name}: {e}")
+        experiment_results_list.append(expand_experiment_results_for_analysis(
+            file_data,
+            nonify_problem_and_results=nonify_problem_and_results))
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()

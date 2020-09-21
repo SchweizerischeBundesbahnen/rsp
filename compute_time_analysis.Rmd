@@ -34,17 +34,23 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 
 from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:80% !important; }</style>"))
+from_cache = False
 ```
 
 ```{python}
 experiments_of_interest = None
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_16T15_49_54'
-experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
-    experiment_ids=experiments_of_interest,
-    nonify_problem_and_results=True
-)
-experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+if from_cache:
+    experiment_data = pd.read_csv('../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13_bis.csv')
+else:
+    experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13'
+    experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
+        experiment_ids=experiments_of_interest,
+        nonify_problem_and_results=True
+    )
+    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+    experiment_data.to_csv('../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13_bis.csv')
+
 
 display(experiment_data)
 ```
@@ -57,12 +63,25 @@ columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_per
 ### Filter data depending on full rescheduling time (>10s and within 97% percentile)
 
 ```{python}
-experiment_data_filtered = experiment_data[(experiment_data['time_full_after_malfunction'] > 10) & (experiment_data['time_full_after_malfunction'] <=experiment_data['time_full_after_malfunction'].quantile(.97))]
+experiment_data_filtered = experiment_data[(experiment_data['solver_statistics_times_total_full_after_malfunction'] > 10) & (experiment_data['solver_statistics_times_total_full_after_malfunction'] <=experiment_data['solver_statistics_times_total_full_after_malfunction'].quantile(.97))]
 
 ```
 
 ```{python}
 print(f"removed {len(experiment_data)-len(experiment_data_filtered)}/{len(experiment_data)} rows")
+```
+
+### Inspect experiment parameters
+
+```{python}
+plot_computational_times(
+    experiment_data=experiment_data_filtered,
+    axis_of_interest='experiment_id',
+    columns_of_interest=['n_agents', 'infra_id', 'schedule_id', 'size', 'earliest_malfunction', 'malfunction_duration', 'malfunction_agend_id'],
+    title='Number of agents',
+    y_axis_title= "[-]",
+    color_offset=1
+)
 ```
 
 ### Visualize Compuational time comparison
@@ -102,7 +121,8 @@ plot_computational_times(experiment_data=experiment_data_filtered,
                          axis_of_interest=axis_of_interest,
                          columns_of_interest=columns_of_interest,
                          title='Online Prediction Quality Percentage',
-                         color_offset=1
+                         color_offset=1,
+                         y_axis_title='Fraction [-]'
                         )
 columns_of_interest = ['n_agents', 'changed_agents_full_after_malfunction', 'online_predicted_changed_agents','online_predicted_changed_agents_false_positives', 'online_predicted_changed_agents_false_negatives']
 
@@ -110,5 +130,20 @@ plot_computational_times(experiment_data=experiment_data_filtered,
                          axis_of_interest=axis_of_interest,
                          columns_of_interest=columns_of_interest,
                          title='Online Prediction Quality Absolute Numbers',
+                             y_axis_title='Number [-]'
                         )
+```
+
+```{python}
+from rsp.utils.data_types import after_malfunction_scopes
+# Choices represent the size of the solution space (how many routing alternatives, how many potential resource conflicts?
+# Conflicts represent the number of decisions
+for prefix in ['solver_statistics_conflicts', 'solver_statistics_choices', 'nb_resource_conflicts']:
+    columns_of_interest =[ f'{prefix}_{scope}' for scope in after_malfunction_scopes ]
+    plot_computational_times(experiment_data=experiment_data_filtered,
+                             axis_of_interest=axis_of_interest,
+                             columns_of_interest=columns_of_interest,
+                             title=f'{prefix} per',
+                             y_axis_title=f'{prefix} [-]'
+                            )
 ```

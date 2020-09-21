@@ -133,8 +133,8 @@ def visualize_route_dag_constraints(
         constraints_to_visualize: RouteDAGConstraints,
         trainrun_to_visualize: Trainrun,
         route_section_penalties: RouteSectionPenalties,
-        edge_eff_route_penalties: RouteSectionPenalties,
-        vertex_eff_lateness: WaypointPenalties,
+        effective_costs_from_route_section_penalties_per_edge: RouteSectionPenalties,
+        vertex_lateness: WaypointPenalties,
         train_run_full: Trainrun,
         train_run_full_after_malfunction: Trainrun,
         train_run_delta_perfect_after_malfunction: Trainrun,
@@ -158,9 +158,9 @@ def visualize_route_dag_constraints(
         scale in or out
     route_section_penalties
         route penalty is displayed in edge label
-    edge_eff_route_penalties
+    effective_costs_from_route_section_penalties_per_edge
         route penalty is displayed in edge label
-    vertex_eff_lateness
+    vertex_lateness
         lateness is displayed in node labels
     train_run_full
         used in labels for S0
@@ -208,12 +208,12 @@ def visualize_route_dag_constraints(
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
             f"{_get_label_for_constraint_for_waypoint(wp, constraints_to_visualize)}\n"
             f"{_get_label_for_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}" +
-            (f"\neff late: {vertex_eff_lateness.get(wp, '')}" if vertex_eff_lateness.get(wp, 0) > 0 else "")
+            (f"\neff late: {vertex_lateness.get(wp, '')}" if vertex_lateness.get(wp, 0) > 0 else "")
         for wp in
         all_waypoints}
 
     edge_labels = {
-        edge: _get_edge_label(edge, route_section_penalties, edge_eff_route_penalties)
+        edge: _get_edge_label(edge, route_section_penalties, effective_costs_from_route_section_penalties_per_edge)
         for edge in topo.edges
     }
 

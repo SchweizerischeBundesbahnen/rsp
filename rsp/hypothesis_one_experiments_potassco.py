@@ -158,7 +158,8 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None)
         speed_data={1.: 0.25,  # Fast passenger train
                     1. / 2.: 0.25,  # Fast freight train
                     1. / 3.: 0.25,  # Slow commuter train
-                    1. / 4.: 0.25}  # Slow freight train
+                    1. / 4.: 0.25},  # Slow freight train
+        grid_mode=False
     )
     return base_directory
 

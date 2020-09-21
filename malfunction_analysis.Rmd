@@ -30,6 +30,8 @@ from rsp.analysis.compute_time_analysis import get_difference_in_time_space_traj
 from rsp.analysis.compute_time_analysis import plot_delay_propagation_2d
 from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
 from rsp.analysis.compute_time_analysis import plot_agent_specific_delay
+from rsp.analysis.compute_time_analysis import plot_total_lateness
+from rsp.analysis.compute_time_analysis import plot_changed_agents
 from rsp.analysis.compute_time_analysis import print_situation_overview
 
 
@@ -42,8 +44,9 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ### Load Experiment Data
 
 ```{python}
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31'
-experiment_of_interest = 1
+experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13'
+
+experiment_of_interest = 106
 agent_of_interest = 0
 ```
 
@@ -57,6 +60,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_problem_and_results=False
 )[0]
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agend_id
 plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
@@ -93,6 +97,7 @@ false_positives_trajectories = trajectories_from_resource_occupations_per_agent(
 Visualize the propagation of the malfunction in the schedule. Only forward propagation is considered and no re-scheduling is assumed. This illustrates the extent of the malfunction if no actions are taken.
 
 ```{python}
+print(f"agent_of_interest={agent_of_interest}")
 print_situation_overview(plotting_data,changed_agents_dict)
 ```
 
@@ -131,6 +136,10 @@ plot_delay_propagation_2d(plotting_data=plotting_data,
 ```
 
 Figure below shows the histogram of the delay times, giving us a great overview of how strongly trains where affected by the malfunciton
+
+```{python}
+plot_total_lateness(experiment_results=exp_results_of_experiment_of_interest)
+```
 
 ```{python}
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)

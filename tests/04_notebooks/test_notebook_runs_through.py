@@ -43,6 +43,9 @@ def test_notebooks_run_through():
             dest_text = re.sub('^experiment_base_directory =.*',
                                """experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31'""", dest_text,
                                flags=re.MULTILINE)
+            dest_text = re.sub('^experiment_of_interest =.*',
+                               """experiment_of_interest = 0""", dest_text,
+                               flags=re.MULTILINE)
 
             print(dest_text)
             multiline_eval(dest_text)

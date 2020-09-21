@@ -23,6 +23,7 @@ from pandas import DataFrame
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
+from rsp.utils.data_types import after_malfunction_scopes
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import Resource
@@ -95,7 +96,7 @@ def plot_computational_times(
         experiment_data_suffix: Optional[str] = '',
         output_folder: Optional[str] = None,
         y_axis_title: str = "Time[s]",
-        title: str = "Computational Times",
+        title: str = "Computational Times per",
         file_name_prefix: str = "",
         color_offset: int = 0
 ):
@@ -136,6 +137,7 @@ def plot_computational_times(
                                        color_offset=color_offset)
 
 
+# TODO SIM-672 duplicate?
 def plot_computional_times_from_traces(
         experiment_data: DataFrame,
         traces: List[Tuple[str, str]],
@@ -185,7 +187,7 @@ def plot_computional_times_from_traces(
                                            '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                            '<b>Experiment id:</b>%{hovertext}',
                              marker=dict(size=3),
-                             marker_color=Plotly[index + color_offset]
+                             marker_color=Plotly[(index + color_offset) % len(Plotly)]
                              ))
         if experiment_data_baseline is not None:
             fig.add_trace(go.Box(x=experiment_data_baseline[axis_of_interest],
@@ -203,7 +205,7 @@ def plot_computional_times_from_traces(
                                                '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
                                                '<b>Experiment id:</b>%{hovertext}',
                                  marker=dict(size=3),
-                                 marker_color=Plotly[index + color_offset]))
+                                 marker_color=Plotly[(index + color_offset) % len(Plotly)]))
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"{title}")
     fig.update_xaxes(title=x_axis_title)
@@ -274,10 +276,10 @@ def plot_speed_up(
                 # TODO SIM-672 mean?
                 customdata=np.dstack((experiment_data['n_agents'],
                                       experiment_data['size'],
-                                      experiment_data['time_full'],
-                                      experiment_data['time_full_after_malfunction'],
-                                      experiment_data['time_delta_perfect_after_malfunction'],
-                                      experiment_data['time_delta_naive_after_malfunction'],
+                                      experiment_data['solver_statistics_times_total_full'],
+                                      experiment_data['solver_statistics_times_total_full_after_malfunction'],
+                                      experiment_data['solver_statistics_times_total_delta_perfect_after_malfunction'],
+                                      experiment_data['solver_statistics_times_total_delta_naive_after_malfunction'],
                                       ))[0],
                 hovertext=experiment_data['experiment_id'],
                 hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
@@ -289,11 +291,12 @@ def plot_speed_up(
                               '<b>Delta naive:</b> %{customdata[5]:.2f}s<br>' +
                               '<b>Experiment id:</b>%{hovertext}',
                 # dirty workaround: use same color as if we had trace for schedule as well
-                marker_color=Plotly[col_index + 2]
+                marker_color=Plotly[(col_index + 2) % len(Plotly)],
             )
         )
 
     fig.update_layout(title_text=f"{y_axis_title} per {axis_of_interest}")
+    fig.update_layout(boxmode='group')
     fig.update_xaxes(title=f"{axis_of_interest} {axis_of_interest_suffix}")
     fig.update_yaxes(title=y_axis_title)
     if output_folder is None:
@@ -586,7 +589,7 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
         schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
 
     nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
-    total_delay = sum(
+    total_lateness = sum(
         max(sorted_resource_occupations_reschedule_delta_perfect[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
         for agent_id, sorted_resource_occupations_reschedule_delta_perfect in resource_occupations_reschedule_delta_perfect.items()
     )
@@ -596,7 +599,7 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
             malfunction.time_step,
             malfunction.malfunction_duration,
             nb_changed_agents,
-            total_delay))
+            total_lateness))
 
 
 def plot_time_resource_trajectories(
@@ -733,20 +736,41 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
 
     """
 
-    lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
-    lateness_delta_perfect_after_malfunction = experiment_results.lateness_delta_perfect_after_malfunction
-    lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
-    lateness_delta_perfect_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
-
     fig = go.Figure()
-    fig.add_trace(go.Histogram(x=lateness_full_values, name='Full Reschedule'
-                               ))
-    fig.add_trace(go.Histogram(x=lateness_delta_perfect_values, name='Delta Perfect Reschedule'
-                               ))
+    for scope in after_malfunction_scopes:
+        fig.add_trace(go.Histogram(x=[v for v in experiment_results._asdict()[f'lateness_{scope}'].values()], name=f'results_{scope}'))
     fig.update_layout(barmode='overlay')
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Delay distributions")
     fig.update_xaxes(title="Delay [s]")
+
+    fig.show()
+
+
+def plot_total_lateness(experiment_results: ExperimentResultsAnalysis):
+    """
+    Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
+    Parameters
+    ----------
+    experiment_data_frame
+    experiment_id
+
+    Returns
+    -------
+
+    """
+    fig = go.Figure()
+    for scope in after_malfunction_scopes:
+        fig.add_trace(go.Bar(x=[f'effective_costs_{scope}'], y=[experiment_results._asdict()[f'effective_costs_{scope}']], name=f'effective_costs_{scope}'))
+        fig.add_trace(go.Bar(x=[f'total_lateness_{scope}'], y=[experiment_results._asdict()[f'total_lateness_{scope}']], name=f'total_lateness_{scope}'))
+        fig.add_trace(go.Bar(x=[f'effective_total_costs_from_route_section_penalties_{scope}'],
+                             y=[experiment_results._asdict()[f'effective_total_costs_from_route_section_penalties_{scope}']],
+                             name=f'effective_total_costs_from_route_section_penalties_{scope}'))
+    fig.update_layout(barmode='overlay')
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Total delay and Solver objective")
+    fig.update_yaxes(title="discrete time steps [-] / weighted sum [-]")
+
     fig.show()
 
 
@@ -762,22 +786,67 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
     -------
 
     """
-
-    lateness_full_after_malfunction = experiment_results.lateness_full_after_malfunction
-    lateness_delta_perfect_after_malfunction = experiment_results.lateness_delta_perfect_after_malfunction
-    lateness_full_values = [v for v in lateness_full_after_malfunction.values()]
-    lateness_delta_perfect_values = [v for v in lateness_delta_perfect_after_malfunction.values()]
-
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=np.arange(len(lateness_full_values)), y=lateness_full_values, name='Full Reschedule'
-                         ))
-    fig.add_trace(go.Bar(x=np.arange(len(lateness_delta_perfect_values)), y=lateness_delta_perfect_values, name='Delta Perfect Reschedule'
-                         ))
-    fig.update_layout(barmode='overlay')
+    for scope in after_malfunction_scopes:
+        # TODO SIM-672 distinguish lateness and weighted lateness?
+        d = {}
+        for dim in ['lateness', 'effective_costs_from_route_section_penalties']:
+            values = list(experiment_results._asdict()[f'{dim}_{scope}'].values())
+            d[dim] = sum(values)
+            fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'{dim}_{scope}'))
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Delay per Train")
     fig.update_xaxes(title="Train ID")
-    fig.update_yaxes(title="Delaz in Seconds")
+    fig.update_yaxes(title="Delay in Seconds")
+
+    fig.show()
+
+
+def plot_changed_agents(experiment_results: ExperimentResultsAnalysis):
+    """
+    Plot a histogram of the delay of agents in the full and reschedule delta perfect compared to the schedule
+    Parameters
+    ----------
+    experiment_data_frame
+    experiment_id
+
+    Returns
+    -------
+
+    """
+    fig = go.Figure()
+    schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
+    for scope in after_malfunction_scopes:
+        reschedule_trainruns_dict = experiment_results._asdict()[f'results_{scope}'].trainruns_dict
+        values = [
+            1.0 if set(schedule_trainruns_dict[agent_id]) != set(trainrun_reschedule) else 0.0
+            for agent_id, trainrun_reschedule in reschedule_trainruns_dict.items()
+
+        ]
+        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'results_{scope}'))
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Changed per Train")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Changed 1.0=yes, 0.0=no [-]")
+
+    fig.show()
+
+    fig = go.Figure()
+    schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
+    for scope in after_malfunction_scopes:
+        reschedule_trainruns_dict = experiment_results._asdict()[f'results_{scope}'].trainruns_dict
+        values = [
+            1.0
+            if ({trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainruns_dict[agent_id]} !=
+                {trainrun_waypoint.waypoint for trainrun_waypoint in trainrun_reschedule})
+            else 0.0
+            for agent_id, trainrun_reschedule in reschedule_trainruns_dict.items()
+        ]
+        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'results_{scope}'))
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Changed routes per Train")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Changed 1.0=yes, 0.0=no [-]")
 
     fig.show()
 
@@ -823,8 +892,8 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
         train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
         constraints_to_visualize=problem_to_visualize.route_dag_constraints_dict[agent_id],
         trainrun_to_visualize=trainrun_to_visualize,
-        vertex_eff_lateness={},
-        edge_eff_route_penalties={},
+        vertex_lateness={},
+        effective_costs_from_route_section_penalties_per_edge={},
         route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],
         title=title,
         file_name=(
