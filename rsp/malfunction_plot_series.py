@@ -24,7 +24,7 @@ if __name__ == '__main__':
         exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_data_folder(
             experiment_data_folder_name=experiment_data_directory,
             experiment_ids=[experiment_of_interest],
-            nonify_problem_and_results=False
+            nonify_all_structured_fields=False
         )[0]
         plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest, sorting_agent_id=agent_of_interest)
 

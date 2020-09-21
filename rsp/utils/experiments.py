@@ -1253,7 +1253,7 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
 def load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name: str,
         experiment_ids: List[int] = None,
-        nonify_problem_and_results: bool = False,
+        nonify_all_structured_fields: bool = False,
 ) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
     Parameters
@@ -1262,7 +1262,7 @@ def load_and_expand_experiment_results_from_data_folder(
         Folder name of experiment where all experiment files are stored
     experiment_ids
         List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
-    nonify_problem_and_results
+    nonify_all_structured_fields
         in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     Returns
@@ -1289,7 +1289,7 @@ def load_and_expand_experiment_results_from_data_folder(
             file_data: ExperimentResults = pickle.load(handle)
         experiment_results_list.append(expand_experiment_results_for_analysis(
             file_data,
-            nonify_problem_and_results=nonify_problem_and_results))
+            nonify_all_structured_fields=nonify_all_structured_fields))
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()

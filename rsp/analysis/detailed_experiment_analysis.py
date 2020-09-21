@@ -20,8 +20,8 @@ import pandas as pd
 import tqdm
 from pandas import DataFrame
 
-from rsp.analysis.compute_time_analysis import plot_computational_times
-from rsp.analysis.compute_time_analysis import plot_computional_times_from_traces
+from rsp.analysis.compute_time_analysis import plot_box_plot
+from rsp.analysis.compute_time_analysis import plot_box_plot_from_traces
 from rsp.analysis.compute_time_analysis import plot_speed_up
 from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
 from rsp.asp_plausibility.potassco_export import potassco_export
@@ -92,8 +92,9 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
         f'nb_resource_conflicts_{item}'
         for item in ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']
     ]
-    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used', 'changed_agents_percentage_delta_perfect_after_malfunction']:
-        plot_computational_times(
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used_full_after_malfunction',
+                             'changed_agents_percentage_delta_perfect_after_malfunction']:
+        plot_box_plot(
             experiment_data=data_frame,
             axis_of_interest=axis_of_interest,
             columns_of_interest=columns_of_interest,
@@ -103,7 +104,7 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
             file_name_prefix="009"
         )
 
-    plot_computional_times_from_traces(
+    plot_box_plot_from_traces(
         experiment_data=data_frame,
         output_folder=output_folder,
         pdf_file="009_nb_resource_conflict__time.pdf",
@@ -114,7 +115,7 @@ def visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number
         x_axis_title='nb_resource_conflict',
     )
 
-    plot_computional_times_from_traces(
+    plot_box_plot_from_traces(
         experiment_data=data_frame,
         output_folder=output_folder,
         pdf_file="009_nb_resource_conflict__time.pdf",
@@ -131,39 +132,21 @@ HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'solver_statistics_times_total_{scope}' f
 # TODO SIM-672 should we remove analysis stuff from pipeline, only have it in notebooks and tests (from dummydata maybe?)
 def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data: DataFrame,
-        experiment_data_baseline: Optional[DataFrame] = None,
-        experiment_data_baseline_suffix: Optional[str] = '_baseline',
-        experiment_data_suffix: Optional[str] = '',
         output_folder: str = None):
-    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used', 'solver_statistics_times_total_full_after_malfunction']:
-        plot_computational_times(
+    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used_full_after_malfunction', 'solver_statistics_times_total_full_after_malfunction']:
+        plot_box_plot(
             experiment_data=experiment_data,
-            experiment_data_baseline=experiment_data_baseline,
-            experiment_data_baseline_suffix=experiment_data_baseline_suffix,
-            experiment_data_suffix=experiment_data_suffix,
             axis_of_interest=axis_of_interest,
             columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
             output_folder=output_folder
         )
-        if experiment_data_baseline is not None:
-            experiment_data_ratio = experiment_data.copy()
-            for col in HYPOTHESIS_ONE_COLUMNS_OF_INTEREST:
-                experiment_data_ratio[col] = experiment_data_baseline[col] / experiment_data[col]
-            plot_computational_times(
-                experiment_data=experiment_data_ratio,
-                experiment_data_suffix=experiment_data_suffix,
-                axis_of_interest=axis_of_interest,
-                columns_of_interest=HYPOTHESIS_ONE_COLUMNS_OF_INTEREST,
-                output_folder=output_folder,
-                title='Computational Times ratio (baseline / new data)'
-            )
-    # TODO SIM-672 split function?
-    # TODO SIM-672 use offset in colorset
-    plot_computational_times(
+
+
+def hypothesis_one_analysis_visualize_lateness(
+        experiment_data: DataFrame,
+        output_folder: str = None):
+    plot_box_plot(
         experiment_data=experiment_data,
-        experiment_data_baseline=experiment_data_baseline,
-        experiment_data_baseline_suffix=experiment_data_baseline_suffix,
-        experiment_data_suffix=experiment_data_suffix,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'total_lateness_{scope}' for scope in after_malfunction_scopes],
         output_folder=output_folder,
@@ -172,7 +155,6 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
     )
 
 
-# TODO SIM-672 use color offset?
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
                                                output_folder: str = None):
     for scope in speed_up_scopes:
@@ -188,7 +170,7 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
         'experiment_id': '',
         'n_agents': '',
         'size': '',
-        'size_used': '',
+        'size_used_full_after_malfunction': '',
         'solver_statistics_times_total_full_after_malfunction': '[s]',
         'changed_agents_percentage_delta_perfect_after_malfunction': '[-]'
     }.items():

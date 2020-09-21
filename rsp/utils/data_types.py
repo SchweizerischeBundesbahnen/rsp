@@ -212,26 +212,25 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('delta_online_after_malfunction_predicted_agents', Set[int]),
 ])
 
-# TODO SIM-672 naming???
 speed_up_scopes = ['delta_perfect_after_malfunction', 'delta_naive_after_malfunction', 'delta_online_after_malfunction']
 
 after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
 
 
-def solver_statistics_costs_from_experiment_results(results: SchedulingExperimentResult) -> float:
+def solver_statistics_costs_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return results.solver_statistics["summary"]["costs"][0]
 
 
-def solver_statistics_times_total_from_experiment_results(results: SchedulingExperimentResult) -> float:
+def solver_statistics_times_total_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return results.solver_statistics["summary"]["times"]["total"]
 
 
-def solver_statistics_times_solve_from_experiment_results(results: SchedulingExperimentResult) -> float:
+def solver_statistics_times_solve_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return results.solver_statistics["summary"]["times"]["solve"]
 
 
-def trainrun_dict_from_results(results: SchedulingExperimentResult) -> TrainrunDict:
+def trainrun_dict_from_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> TrainrunDict:
     return results.trainruns_dict
 
 
@@ -247,18 +246,18 @@ def effective_costs_from_results(results_schedule: SchedulingExperimentResult,
     ])
 
 
-def nb_resource_conflicts_from_results(results: SchedulingExperimentResult) -> float:
+def nb_resource_conflicts_from_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return results.nb_conflicts
 
 
-def solve_total_ratio_from_results(r: SchedulingExperimentResult) -> float:
+def solve_total_ratio_from_results(r: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return catch_zero_division_error_as_minus_one(
         lambda:
         r.solver_statistics["summary"]["times"]["solve"] /
         r.solver_statistics["summary"]["times"]["total"])
 
 
-def choice_conflict_ratio_from_results(r: SchedulingExperimentResult) -> float:
+def choice_conflict_ratio_from_results(r: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return catch_zero_division_error_as_minus_one(
         lambda:
         r.solver_statistics["solving"]["solvers"]["choices"] /
@@ -266,20 +265,29 @@ def choice_conflict_ratio_from_results(r: SchedulingExperimentResult) -> float:
     )
 
 
-def solver_statistics_choices_from_results(r: SchedulingExperimentResult) -> float:
+def size_used_from_results(r: SchedulingExperimentResult, p: ScheduleProblemDescription) -> int:
+    used_cells: Set[Waypoint] = {
+        waypoint for agent_id, topo in
+        p.topo_dict.items()
+        for waypoint in topo.nodes
+    }
+    return len(used_cells)
+
+
+def solver_statistics_choices_from_results(r: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return r.solver_statistics["solving"]["solvers"]["choices"]
 
 
-def solver_statistics_conflicts_from_results(r: SchedulingExperimentResult) -> float:
+def solver_statistics_conflicts_from_results(r: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return r.solver_statistics["solving"]["solvers"]["conflicts"]
 
 
-def summed_user_accu_propagations_from_results(r: SchedulingExperimentResult) -> float:
+def summed_user_accu_propagations_from_results(r: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return sum(map(lambda d: d["Propagation(s)"],
                    r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])) / len(r.solver_statistics["user_accu"]["DifferenceLogic"]["Thread"])
 
 
-def summed_user_step_propagations_from_results(r: SchedulingExperimentResult) -> float:
+def summed_user_step_propagations_from_results(r: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return sum(map(lambda d: d["Propagation(s)"],
                    r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])) / len(r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])
 
@@ -406,7 +414,6 @@ def effective_costs_ratio_from_results(results_full_reschedule: SchedulingExperi
         return inf
 
 
-# TODO SIM-562 prefix with solver_statistics; add costs
 experiment_results_analysis_all_scopes_fields = {
     'solver_statistics_costs': (float, solver_statistics_costs_from_experiment_results),
     'solver_statistics_times_total': (float, solver_statistics_times_total_from_experiment_results),
@@ -419,6 +426,7 @@ experiment_results_analysis_all_scopes_fields = {
     'nb_resource_conflicts': (float, nb_resource_conflicts_from_results),
     'solve_total_ratio': (float, solve_total_ratio_from_results),
     'choice_conflict_ratio': (float, choice_conflict_ratio_from_results),
+    'size_used': (int, size_used_from_results),
 }
 
 experiment_results_analysis_after_malfunction_scopes_fields = {
@@ -478,9 +486,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('online_predicted_changed_agents', int),
     ('online_predicted_changed_agents_false_positives', int),
     ('online_predicted_changed_agents_false_negatives', int),
-
-    # TODO SIM-672 should it be separated?
-    ('size_used', int),
 
     # ========================================
     # lower_bound / upper_bound
@@ -552,8 +557,7 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
 
 def expand_experiment_results_for_analysis(
         experiment_results: ExperimentResults,
-        # TODO SIM-672 rename: nonify_all_structured_fields?
-        nonify_problem_and_results: bool = False
+        nonify_all_structured_fields: bool = False
 ) -> ExperimentResultsAnalysis:
     """
 
@@ -563,7 +567,7 @@ def expand_experiment_results_for_analysis(
         experiment_results to expand into to experiment_results_analysis
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     debug: bool
-    nonify_problem_and_results: bool
+    nonify_all_structured_fields: bool
         in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
 
@@ -588,11 +592,7 @@ def expand_experiment_results_for_analysis(
             nb_resource_conflicts_full_after_malfunction
     except ZeroDivisionError:
         warnings.warn(f"no resource conflicts for experiment {experiment_id} -> set ratio to -1")
-    used_cells: Set[Waypoint] = {
-        waypoint for agent_id, topo in
-        experiment_results.problem_full.topo_dict.items()
-        for waypoint in topo.nodes
-    }
+
     nb_agents = experiment_parameters.infra_parameters.number_of_agents
     online_predicted_changed_agents = experiment_results.delta_online_after_malfunction_predicted_agents
     ground_truth_positive_changed_agents = {
@@ -609,7 +609,8 @@ def expand_experiment_results_for_analysis(
     d = dict(
         **experiment_results._asdict(),
         **{
-            f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}']) for prefix, (_, results_extractor) in
+            f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}'], experiment_results._asdict()[f'problem_{scope}']) for
+            prefix, (_, results_extractor) in
             experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes
         },
         **{
@@ -631,7 +632,7 @@ def expand_experiment_results_for_analysis(
         }
     )
     # nonify all non-float fields
-    if nonify_problem_and_results:
+    if nonify_all_structured_fields:
         d.update({f"problem_{scope}": None for scope in all_scopes})
         d.update({f"results_{scope}": None for scope in all_scopes})
         d.update({f"solution_{scope}": None for scope in all_scopes})
@@ -664,7 +665,6 @@ def expand_experiment_results_for_analysis(
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
 
         factor_resource_conflicts=factor_resource_conflicts,
-        size_used=len(used_cells),
 
         online_predicted_changed_agents=len(online_predicted_changed_agents),
         online_predicted_changed_agents_false_positives=len(online_predicted_changed_agents_false_positives),

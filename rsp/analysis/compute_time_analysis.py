@@ -87,13 +87,10 @@ PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
 GREY_BACKGROUND_COLOR = 'rgba(46,49,49,1)'
 
 
-def plot_computational_times(
+def plot_box_plot(
         experiment_data: DataFrame,
         axis_of_interest: str,
         columns_of_interest: List[str],
-        experiment_data_baseline: Optional[DataFrame] = None,
-        experiment_data_baseline_suffix: Optional[str] = '_baseline',
-        experiment_data_suffix: Optional[str] = '',
         output_folder: Optional[str] = None,
         y_axis_title: str = "Time[s]",
         title: str = "Computational Times per",
@@ -104,6 +101,7 @@ def plot_computational_times(
 
     Parameters
     ----------
+
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
     axis_of_interest: str
@@ -117,6 +115,8 @@ def plot_computational_times(
     file_name_prefix
         prefix for file name
     y_axis_title
+    color_offset
+        start with offset into defalt colors for columns
 
     Returns
     -------
@@ -124,37 +124,32 @@ def plot_computational_times(
     traces = [(axis_of_interest, column) for column in columns_of_interest]
     # prevent too long file names
     pdf_file = f'{file_name_prefix}_{axis_of_interest}__' + ('_'.join(columns_of_interest))[0:15] + '.pdf'
-    plot_computional_times_from_traces(experiment_data=experiment_data,
-                                       experiment_data_baseline=experiment_data_baseline,
-                                       experiment_data_baseline_suffix=experiment_data_baseline_suffix,
-                                       experiment_data_suffix=experiment_data_suffix,
-                                       traces=traces,
-                                       output_folder=output_folder,
-                                       x_axis_title=axis_of_interest,
-                                       y_axis_title=y_axis_title,
-                                       pdf_file=pdf_file,
-                                       title=f"{title} {axis_of_interest}",
-                                       color_offset=color_offset)
+    plot_box_plot_from_traces(experiment_data=experiment_data,
+                              traces=traces,
+                              output_folder=output_folder,
+                              x_axis_title=axis_of_interest,
+                              y_axis_title=y_axis_title,
+                              pdf_file=pdf_file,
+                              title=f"{title} {axis_of_interest}",
+                              color_offset=color_offset)
 
 
-# TODO SIM-672 duplicate?
-def plot_computional_times_from_traces(
+def plot_box_plot_from_traces(
         experiment_data: DataFrame,
         traces: List[Tuple[str, str]],
         x_axis_title: str,
         y_axis_title: str = "Time[s]",
-        experiment_data_baseline: Optional[DataFrame] = None,
-        experiment_data_baseline_suffix: Optional[str] = '_baseline',
-        experiment_data_suffix: Optional[str] = '',
         output_folder: Optional[str] = None,
         pdf_file: Optional[str] = None,
         title: str = "Computational Times",
         color_offset: int = 0
 ):
-    """Plot the computational times of experiments.
+    """Plot the computational times of experiments based on traces, i.e.
+    (x_axis, y_axis) pairs.
 
     Parameters
     ----------
+
     experiment_data: DataFrame
         DataFrame containing all the results from hypothesis one experiments
         Defines which columns of a dataset will be plotted as traces
@@ -167,6 +162,10 @@ def plot_computional_times_from_traces(
         title of the diagram
     x_axis_title
         title for x axis (in the case of traces, cannot derived directly from column name)
+    color_offset
+        start with offset into defalt colors for columns
+    y_axis_title
+
     Returns
     -------
     """
@@ -174,7 +173,7 @@ def plot_computional_times_from_traces(
     for index, (axis_of_interest, column) in enumerate(traces):
         fig.add_trace(go.Box(x=experiment_data[axis_of_interest],
                              y=experiment_data[column],
-                             name=str(column) + experiment_data_suffix,
+                             name=str(column),
                              pointpos=-1,
                              boxpoints='all',
                              customdata=np.dstack((experiment_data['n_agents'],
@@ -189,23 +188,6 @@ def plot_computional_times_from_traces(
                              marker=dict(size=3),
                              marker_color=Plotly[(index + color_offset) % len(Plotly)]
                              ))
-        if experiment_data_baseline is not None:
-            fig.add_trace(go.Box(x=experiment_data_baseline[axis_of_interest],
-                                 y=experiment_data_baseline[column],
-                                 name=column + experiment_data_baseline_suffix,
-                                 pointpos=-1,
-                                 boxpoints='all',
-                                 customdata=np.dstack((experiment_data['n_agents'],
-                                                       experiment_data['size'],
-                                                       experiment_data['speed_up_delta_perfect_after_malfunction']))[0],
-                                 hovertext=experiment_data['experiment_id'],
-                                 hovertemplate='<b>Time</b>: %{y:.2f}s<br>' +
-                                               '<b>Nr. Agents</b>: %{customdata[0]}<br>' +
-                                               '<b>Grid Size:</b> %{customdata[1]}<br>' +
-                                               '<b>Speed Up:</b> %{customdata[2]:.2f}<br>' +
-                                               '<b>Experiment id:</b>%{hovertext}',
-                                 marker=dict(size=3),
-                                 marker_color=Plotly[(index + color_offset) % len(Plotly)]))
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"{title}")
     fig.update_xaxes(title=x_axis_title)
@@ -273,7 +255,6 @@ def plot_speed_up(
                 pointpos=-1,
                 boxpoints='all',
                 name=col,
-                # TODO SIM-672 mean?
                 customdata=np.dstack((experiment_data['n_agents'],
                                       experiment_data['size'],
                                       experiment_data['solver_statistics_times_total_full'],
@@ -788,7 +769,6 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
     """
     fig = go.Figure()
     for scope in after_malfunction_scopes:
-        # TODO SIM-672 distinguish lateness and weighted lateness?
         d = {}
         for dim in ['lateness', 'effective_costs_from_route_section_penalties']:
             values = list(experiment_results._asdict()[f'{dim}_{scope}'].values())

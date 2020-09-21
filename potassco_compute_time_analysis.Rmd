@@ -25,7 +25,7 @@ from IPython.display import Video
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.analysis.compute_time_analysis import plot_computational_times
+from rsp.analysis.compute_time_analysis import plot_box_plot
 from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
 from rsp.analysis.compute_time_analysis import plot_speed_up
 from rsp.analysis.compute_time_analysis import render_flatland_env
@@ -48,7 +48,7 @@ experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXP
 
 experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
 experiment_results_list = experiment_results_list_baseline
@@ -58,7 +58,7 @@ experiment_results_list = experiment_results_list_baseline
 import pandas as pd
 experiment_data = pd.DataFrame(
     [exp._asdict() for exp in experiment_results_list],
-    columns=['experiment_id','malfunction','size', 'size_used',
+    columns=['experiment_id','malfunction','size', 'size_used_full_after_malfunction',
             'n_agents', 'max_num_cities', 'max_rail_between_cities',
             'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
             'time_delta_perfect_after_malfunction',
@@ -110,7 +110,7 @@ hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=
 
 
 # for exploration, use:
-# plot_computational_times(experiment_data=experiment_data,
+# plot_box_plot(experiment_data=experiment_data,
 #                                   axis_of_interest=axis_of_interest,
 #                                   columns_of_interest=columns_of_interest)
 ```
@@ -149,7 +149,7 @@ experiment_data_directory_comparison_seq = f'{experiment_base_directory_comparis
 
 experiment_results_list_comparison_seq = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_seq,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_seq: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_seq)
 
@@ -181,7 +181,7 @@ experiment_data_directory_comparison_delay_2 = f'{experiment_base_directory_comp
 
 experiment_results_list_comparison_delay_2 = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_delay_2,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_delay_2: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_2)
 
@@ -210,7 +210,7 @@ experiment_data_directory_comparison_delay_5 = f'{experiment_base_directory_comp
 
 experiment_results_list_comparison_delay_5 = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_delay_5,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_delay_5: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_5)
 
@@ -239,7 +239,7 @@ experiment_data_directory_comparison_delay_10 = f'{experiment_base_directory_com
 
 experiment_results_list_comparison_delay_10 = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_delay_10,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_delay_10: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_10)
 
@@ -266,7 +266,7 @@ experiment_data_directory_comparison_without_propagate = f'{experiment_base_dire
 
 experiment_results_list_comparison_without_propagate = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_without_propagate,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_without_propagate: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_without_propagate)
 ```

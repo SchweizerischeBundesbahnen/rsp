@@ -2,8 +2,8 @@ from typing import Optional
 
 import pandas as pd
 
-from rsp.analysis.compute_time_analysis import plot_computational_times
-from rsp.analysis.compute_time_analysis import plot_computional_times_from_traces
+from rsp.analysis.compute_time_analysis import plot_box_plot
+from rsp.analysis.compute_time_analysis import plot_box_plot_from_traces
 
 
 def visualize_hypotheses_asp(
@@ -17,7 +17,7 @@ def visualize_hypotheses_asp(
             experiment_data[f'{column_prefix}_full_after_malfunction'] / \
             experiment_data[f'{column_prefix}_delta_perfect_after_malfunction']
 
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'nb_resource_conflicts_' + item for item in suffixes],
@@ -26,7 +26,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="shared",
         output_folder=output_folder
     )
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'nb_resource_conflicts_ratio'],
@@ -35,7 +35,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="shared_ratio",
         output_folder=output_folder
     )
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solver_statistics_conflicts_' + item for item in suffixes],
@@ -44,7 +44,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="nb_resource_conflicts_ratio",
         output_folder=output_folder
     )
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solver_statistics_conflicts_ratio'],
@@ -53,7 +53,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="conflicts",
         output_folder=output_folder
     )
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solver_statistics_choices_' + item for item in suffixes],
@@ -62,7 +62,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="choices",
         output_folder=output_folder
     )
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solver_statistics_choices_ratio'],
@@ -73,7 +73,7 @@ def visualize_hypotheses_asp(
     )
 
     # 003_ratio_asp_grounding_solving: solver should spend most of the time solving: compare solve and total times
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solve_total_ratio_' + item for item in suffixes],
@@ -84,7 +84,7 @@ def visualize_hypotheses_asp(
         output_folder=output_folder
     )
     # 002_asp_absolute_total_solver_times
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solver_statistics_times_solve_' + item for item in suffixes] + [f'solver_statistics_times_total_' + item for item in suffixes],
@@ -94,7 +94,7 @@ def visualize_hypotheses_asp(
         file_name_prefix="002"
     )
     # 004_ratio_asp_solve_propagation: propagation times should be low in comparison to solve times
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=([f'summed_user_accu_propagations_' + item for item in suffixes] +
@@ -106,7 +106,7 @@ def visualize_hypotheses_asp(
         output_folder=output_folder,
         file_name_prefix="004"
     )
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=([f'summed_user_step_propagations_' + item for item in suffixes] +
@@ -121,7 +121,7 @@ def visualize_hypotheses_asp(
 
     # 005_ratio_asp_conflict_choice: choice conflict ratio should be close to 1;
     # if the ratio is high, the problem might be large, but not difficult
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'choice_conflict_ratio_' + item for item in suffixes],
@@ -134,7 +134,7 @@ def visualize_hypotheses_asp(
     )
 
     # Choices as predictor?
-    plot_computional_times_from_traces(
+    plot_box_plot_from_traces(
         experiment_data=experiment_data,
         traces=[('solver_statistics_times_total_' + item, 'solver_statistics_choices_' + item) for item in suffixes],
         title=f'XXX_choices_are_good_predictor_of_solution_time: '
@@ -146,7 +146,7 @@ def visualize_hypotheses_asp(
         pdf_file="XXX_choices_as_predictor.pdf"
     )
     # Conflicts as predictor?
-    plot_computional_times_from_traces(
+    plot_box_plot_from_traces(
         experiment_data=experiment_data,
         traces=[('solver_statistics_times_total_' + item, 'solver_statistics_conflicts_' + item) for item in suffixes],
         title=f'XXX_conflicts_are_good_predictor_of_longer_solution_time_than_expected: '
@@ -157,7 +157,7 @@ def visualize_hypotheses_asp(
         x_axis_title="conflicts"
     )
     # Shared as predictor?
-    plot_computional_times_from_traces(
+    plot_box_plot_from_traces(
         experiment_data=experiment_data,
         traces=[('solver_statistics_times_total_' + item, 'nb_resource_conflicts_' + item) for item in suffixes],
         title=f'XXX_shared_are_good_predictor_of_longer_solution_time_than_expected: '
@@ -170,7 +170,7 @@ def visualize_hypotheses_asp(
 
     # Optimization progress
     # TODO SIM-376 for the time being only plot final costs
-    plot_computational_times(
+    plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest='experiment_id',
         columns_of_interest=[f'solver_statistics_costs_' + item for item in suffixes],
@@ -180,7 +180,7 @@ def visualize_hypotheses_asp(
         output_folder=output_folder,
         file_name_prefix="XXX_low_cost_optimal_solutions_may_be_harder_to_find"
     )
-    plot_computional_times_from_traces(
+    plot_box_plot_from_traces(
         experiment_data=experiment_data,
         traces=[('solver_statistics_times_total_' + item, 'solver_statistics_costs_' + item) for item in suffixes],
         title=f'XXX_low_cost_optimal_solutions_may_be_harder_to_find\n'
