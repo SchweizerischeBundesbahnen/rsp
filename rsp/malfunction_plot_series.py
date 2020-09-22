@@ -36,7 +36,7 @@ if __name__ == '__main__':
         reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
                                                                                    plotting_data.plotting_information)
 
-        changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(
+        _, changed_agents_dict = get_difference_in_time_space_trajectories(
             base_trajectories=schedule_trajectories,
             target_trajectories=reschedule_trajectories)
 

@@ -41,7 +41,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
         no_optimize=no_optimize
     )
 
-    schedule_result, schedule_solution = solve_problem(
+    schedule_result, _ = solve_problem(
         problem=schedule_problem,
         debug=debug)
 

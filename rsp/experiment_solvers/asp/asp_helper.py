@@ -138,7 +138,7 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
     # find optimal model; if not optimizing, find all models!
     ctl.configuration.solve.models = 0
     # find only first optimal model
-    ctl.configuration.solve.opt_mode = 'opt'
+    ctl.configuration.solve.opt_mode = 'opt'  # noqa
     dl.register_propagator(ctl)
 
     if verbose:

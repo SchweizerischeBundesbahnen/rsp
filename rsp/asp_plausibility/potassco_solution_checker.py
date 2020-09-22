@@ -59,7 +59,7 @@ def main(experiment_data_folder_name: str,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
         rsp_logger.info(f"Solving {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
-        reschedule_result, asp_solution = solve_problem(
+        solve_problem(
             problem=reschedule_problem,
             verbose=verbose,
             debug=debug

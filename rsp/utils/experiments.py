@@ -15,8 +15,6 @@ span_n_grid
 create_env_pair_for_experiment
     Create a pair of environments for the desired research. One environment has no malfunciton, the other one has
     exactly one malfunciton
-load_experiment_agenda_from_file
-    Load a ExperimentAgenda
 save_experiment_results_to_file
     Save the results of an experiment or a full experiment agenda
 load_experiment_results_to_file

@@ -40,7 +40,7 @@ from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.plotting_data_types import PlottingInformation
 from rsp.utils.plotting_data_types import SchedulePlotting
 
-Trajectory = List[Tuple[Optional[int], Optional[int]]]  # Time and sorted ressource, optional
+Trajectory = List[Tuple[Optional[int], Optional[int]]]  # Time and sorted resource, optional
 Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle
 SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
                                                            ('additional_information', Dict)])
@@ -424,7 +424,6 @@ def plot_time_window_resource_trajectories(
         plot_time_resource_trajectories(trajectories=trajectories, title=title, schedule_plotting=schedule_plotting)
 
 
-# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis):
     """Plot a heat map of how many shareds are on the resources.
 
@@ -449,7 +448,7 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
             sh = sh.replace('shared', '')
             sh = re.sub('t[0-9]+', '"XXX"', sh)
             #  the position of each entry waypoint is the cell that will be in conflict
-            (t0, (wp00, _), t1, (wp10, _)) = eval(sh)
+            (_, (wp00, _), _, (wp10, _)) = eval(sh)
             if wp00[0] not in shared_per_resource:
                 shared_per_resource[wp00[0]] = 1
             else:
@@ -491,7 +490,6 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     fig.show()
 
 
-# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
@@ -703,7 +701,6 @@ def plot_time_resource_trajectories(
         fig.show()
 
 
-# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis):
     """
     Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
@@ -783,16 +780,11 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
 
 
 def plot_changed_agents(experiment_results: ExperimentResultsAnalysis):
-    """
-    Plot a histogram of the delay of agents in the full and reschedule delta perfect compared to the schedule
-    Parameters
-    ----------
-    experiment_data_frame
-    experiment_id
+    """Plot a histogram of the delay of agents in the full and reschedule delta
+    perfect compared to the schedule.
 
     Returns
     -------
-
     """
     fig = go.Figure()
     schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
@@ -882,8 +874,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     )
 
 
-# TODO SIM-674 should be covered by testing, called from notebooks only
-def render_flatland_env(data_folder: str,
+def render_flatland_env(data_folder: str,  # noqa
                         experiment_data: ExperimentResultsAnalysis,
                         experiment_id: int,
                         render_schedule: bool = True,

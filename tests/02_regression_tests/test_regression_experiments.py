@@ -227,7 +227,8 @@ def test_hypothesis_one_pipeline_all_in_one():
                                                  weight_lateness_seconds=[1, 1, 1]),
                 # Define the desired speed profiles
                 speed_data={1.: 1}
-            )
+            ),
+            run_analysis=True
         )
 
     # load results

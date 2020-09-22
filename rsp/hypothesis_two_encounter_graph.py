@@ -58,12 +58,16 @@ def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) \
     return transmission_chains, distance_matrix, minimal_depth
 
 
-def resource_occpuation_from_transmission_chains(transmission_chains: List[TransmissionChain], changed_agents: Dict) -> List[ResourceOccupation]:
+# TODO SIM-672 remove noqa
+def resource_occpuation_from_transmission_chains(  # noqa
+        transmission_chains: List[TransmissionChain],
+        changed_agents: Dict) -> List[ResourceOccupation]:
     """Method to construct Ressource Occupation from transmition chains. Used
     to plot the transmission in the resource-time-diagram.
 
     Parameters
     ----------
+    changed_agents
     transmission_chains
 
     Returns

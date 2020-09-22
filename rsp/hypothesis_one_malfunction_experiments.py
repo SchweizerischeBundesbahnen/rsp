@@ -8,24 +8,9 @@ from rsp.experiment_solvers.data_types import Schedule
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import InfrastructureParameters
-from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.experiments import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.utils.experiments import run_experiment_agenda
-
-
-def get_malfunction_variation_re_schedule_parameters_range() -> ReScheduleParametersRange:
-    return ReScheduleParametersRange(
-        earliest_malfunction=[1, 300, 50],
-        malfunction_duration=[50, 50, 1],
-        malfunction_agent_id=[34, 34, 1],
-        number_of_shortest_paths_per_agent=[10, 10, 1],
-        max_window_size_from_earliest=[100, 100, 1],
-        asp_seed_value=[1, 1, 1],
-        # route change is penalized the same as 1 second delay
-        weight_route_change=[20, 20, 1],
-        weight_lateness_seconds=[1, 1, 1]
-    )
 
 
 def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(

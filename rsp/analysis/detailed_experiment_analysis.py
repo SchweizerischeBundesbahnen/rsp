@@ -20,15 +20,28 @@ import pandas as pd
 import tqdm
 from pandas import DataFrame
 
+from rsp.analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.analysis.compute_time_analysis import plot_agent_specific_delay
 from rsp.analysis.compute_time_analysis import plot_box_plot
 from rsp.analysis.compute_time_analysis import plot_box_plot_from_traces
+from rsp.analysis.compute_time_analysis import plot_changed_agents
+from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.analysis.compute_time_analysis import plot_resource_occupation_heat_map
+from rsp.analysis.compute_time_analysis import plot_resource_time_diagrams
+from rsp.analysis.compute_time_analysis import plot_route_dag
+from rsp.analysis.compute_time_analysis import plot_shared_heatmap
 from rsp.analysis.compute_time_analysis import plot_speed_up
+from rsp.analysis.compute_time_analysis import plot_time_density
+from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_total_lateness
+from rsp.analysis.compute_time_analysis import plot_train_paths
 from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
 from rsp.asp_plausibility.potassco_export import potassco_export
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 from rsp.utils.data_types import after_malfunction_scopes
 from rsp.utils.data_types import all_scopes
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
@@ -241,14 +254,40 @@ def hypothesis_one_data_analysis(experiment_output_directory: str,
             experiment_data=experiment_data,
             output_folder=f'{experiment_analysis_directory}/main_results'
         )
-        visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
-            experiment_results_list=experiment_results_list,
-            output_folder=f'{experiment_analysis_directory}/plausi'
+
+        # TODO SIM-674 SIM-672 group by notebook?
+        experiment_result_of_interest = experiment_results_list[0]
+        agent_of_interest = 0
+        schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result_of_interest)
+        plot_time_window_resource_trajectories(experiment_result=experiment_result_of_interest, schedule_plotting=schedule_plotting)
+        plot_shared_heatmap(schedule_plotting=schedule_plotting, experiment_result=experiment_result_of_interest)
+        plot_resource_time_diagrams(schedule_plotting=schedule_plotting, with_diff=True)
+        plot_histogram_from_delay_data(experiment_results=experiment_result_of_interest)
+        plot_total_lateness(experiment_results=experiment_result_of_interest)
+        plot_agent_specific_delay(experiment_results=experiment_result_of_interest)
+        plot_changed_agents(experiment_results=experiment_result_of_interest)
+        plot_route_dag(experiment_results_analysis=experiment_result_of_interest,
+                       agent_id=agent_of_interest,
+                       suffix_of_constraints_to_visualize=ScheduleProblemEnum.PROBLEM_SCHEDULE)
+        plot_resource_occupation_heat_map(
+            schedule_plotting=schedule_plotting,
+            plotting_information=schedule_plotting.plotting_information,
+            title_suffix='Schedule'
         )
-        visualize_hypotheses_asp(
-            experiment_data=experiment_data,
-            output_folder=f'{experiment_analysis_directory}/plausi'
-        )
+        plot_train_paths(
+            plotting_data=schedule_plotting,
+            agent_ids=[agent_of_interest])
+        plot_time_density(schedule_plotting.schedule_as_resource_occupations)
+
+    hypothesis_one_analysis_visualize_lateness(experiment_data=experiment_data, output_folder=f'{experiment_analysis_directory}/main_results')
+    visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
+        experiment_results_list=experiment_results_list,
+        output_folder=f'{experiment_analysis_directory}/plausi'
+    )
+    visualize_hypotheses_asp(
+        experiment_data=experiment_data,
+        output_folder=f'{experiment_analysis_directory}/plausi'
+    )
 
     # TODO should we remove qualitative_analysis_experiment_ids in favor of notebooks which are tested in ci?
     if qualitative_analysis_experiment_ids:
