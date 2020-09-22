@@ -1,8 +1,5 @@
 import pprint
 from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
@@ -12,32 +9,27 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_trainrun_satisfies_route_dag_constraints
-from rsp.schedule_problem_description.route_dag_constraints.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
+from rsp.schedule_problem_description.route_dag_constraints.scoper_online import scoper_changed_or_unchanged
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
-from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
-from rsp.transmission_chains.transmission_chains import TransmissionChain
-from rsp.transmission_chains.transmission_chains import validate_transmission_chains
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraintsDict
-from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-from rsp.utils.global_constants import RELEASE_TIME
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def scoper_online_for_all_agents(
+def scoper_random_for_all_agents(
         full_reschedule_trainrun_dict: TrainrunDict,
         full_reschedule_problem: ScheduleProblemDescription,
         malfunction: ExperimentMalfunction,
         minimum_travel_time_dict: Dict[int, int],
         max_episode_steps: int,
         # pytorch convention for in-place operations: postfixed with underscore.
-        delta_online_topo_dict_to_: TopoDict,
+        delta_random_topo_dict_to_: TopoDict,
         schedule_trainrun_dict: TrainrunDict,
         weight_route_change: int,
         weight_lateness_seconds: int,
-        max_window_size_from_earliest: int = np.inf) -> Tuple[ScheduleProblemDescription, Set[int]]:
-    """The scoper online only opens up the differences between the schedule and
+        max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
+    """The scoper random only opens up the differences between the schedule and
     the imaginary re-schedule. It gives no additional routing flexibility!
 
     Parameters
@@ -52,7 +44,7 @@ def scoper_online_for_all_agents(
         the minimumum travel times for the agents
     max_episode_steps:
         latest arrival
-    delta_online_topo_dict_to_:
+    delta_random_topo_dict_to_:
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
@@ -66,27 +58,27 @@ def scoper_online_for_all_agents(
     -------
     ScheduleProblemDesccription
     """
-    # 1. compute the forward-only wave of the malfunction
-    transmission_chains: List[TransmissionChain] = extract_transmission_chains_from_schedule(
-        malfunction=malfunction,
-        occupations=extract_resource_occupations(schedule=schedule_trainrun_dict, release_time=RELEASE_TIME))
-    validate_transmission_chains(transmission_chains=transmission_chains)
-
-    # 2. compute reached agents
-    reached_agents = {
-        transmission_chain[-1].hop_off.agent_id
-        for transmission_chain in transmission_chains
-    }
-
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
+
+    unchanged = [
+        agent_id
+        for agent_id, full_reschedule_trainrun in full_reschedule_trainrun_dict.items()
+
+        if set(full_reschedule_trainrun) == set(schedule_trainrun_dict[agent_id])
+
+    ]
+    nb_agents = len(full_reschedule_trainrun_dict)
+    p_unchanged = len(unchanged) / nb_agents
+    randomized_unchanged = np.random.choice(a=[True, False], size=nb_agents, p=[p_unchanged, 1 - p_unchanged])
+
     for agent_id in schedule_trainrun_dict.keys():
         earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
             agent_id=agent_id,
-            topo_=delta_online_topo_dict_to_[agent_id],
+            topo_=delta_random_topo_dict_to_[agent_id],
             full_reschedule_trainrun=full_reschedule_trainrun_dict[agent_id],
             full_reschedule_problem=full_reschedule_problem,
-            unchanged=(agent_id not in reached_agents)
+            unchanged=(agent_id != malfunction.agent_id or randomized_unchanged[agent_id])
         )
         freeze_dict[agent_id] = RouteDAGConstraints(
             earliest=earliest_dict,
@@ -121,4 +113,4 @@ def scoper_online_for_all_agents(
             weight_route_change=weight_route_change
         ),
         weight_lateness_seconds=weight_lateness_seconds
-    ), reached_agents
+    )

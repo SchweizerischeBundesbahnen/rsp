@@ -1,9 +1,7 @@
 import pprint
 from typing import Dict
 
-import networkx as nx
 import numpy as np
-from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
@@ -11,36 +9,12 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_trainrun_satisfies_route_dag_constraints
+from rsp.schedule_problem_description.route_dag_constraints.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraintsDict
 
 _pp = pprint.PrettyPrinter(indent=4)
-
-
-def scoper_naive(
-        agent_id: int,
-        # pytorch convention for in-place operations: postfixed with underscore.
-        topo_: nx.DiGraph,
-        schedule_trainrun: Trainrun,
-        full_reschedule_trainrun: Trainrun,
-        full_reschedule_problem: ScheduleProblemDescription
-):
-    """"scoper naive":
-
-    - if no change for train between schedule and re-schedule, keep the exact train run
-    - if any change for train between schedule and re-schedule, open up everything as in full re-scheduling
-    """
-    unchanged = set(full_reschedule_trainrun) == set(schedule_trainrun)
-    if unchanged:
-        route_dag_constraints = full_reschedule_problem.route_dag_constraints_dict[agent_id]
-        return route_dag_constraints.earliest.copy(), route_dag_constraints.latest.copy(), full_reschedule_problem.topo_dict[agent_id].copy()
-    else:
-        schedule = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in set(full_reschedule_trainrun)}
-        nodes_to_keep = {trainrun_waypoint.waypoint for trainrun_waypoint in full_reschedule_trainrun}
-        nodes_to_remove = {node for node in topo_.nodes if node not in nodes_to_keep}
-        topo_.remove_nodes_from(nodes_to_remove)
-        return schedule, schedule, topo_
 
 
 def scoper_naive_for_all_agents(
@@ -87,12 +61,12 @@ def scoper_naive_for_all_agents(
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = scoper_naive(
+        earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
             agent_id=agent_id,
             topo_=delta_naive_topo_dict_to_[agent_id],
-            schedule_trainrun=schedule_trainrun_dict[agent_id],
             full_reschedule_trainrun=full_reschedule_trainrun_dict[agent_id],
-            full_reschedule_problem=full_reschedule_problem
+            full_reschedule_problem=full_reschedule_problem,
+            unchanged=set(full_reschedule_trainrun_dict[agent_id]) == set(schedule_trainrun_dict[agent_id])
         )
         freeze_dict[agent_id] = RouteDAGConstraints(
             earliest=earliest_dict,

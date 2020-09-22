@@ -64,6 +64,7 @@ from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraint
 from rsp.schedule_problem_description.route_dag_constraints.scoper_naive import scoper_naive_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.scoper_online import scoper_online_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.scoper_perfect import scoper_perfect_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_random import scoper_random_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
@@ -385,6 +386,33 @@ def run_experiment_in_memory(
     )
 
     # --------------------------------------------------------------------------------------
+    # B.2.d Sanity check: random predictor
+    # if that also reduces solution time, our problem is not hard enough, showing the problem is not trivial
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("5. reschedule delta random naive: upper bound")
+    # clone topos since propagation will modify them
+    delta_random_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    delta_random_reschedule_problem = scoper_random_for_all_agents(
+        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+        full_reschedule_problem=full_reschedule_problem,
+        malfunction=experiment_malfunction,
+        max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
+        # pytorch convention for in-place operations: postfixed with underscore.
+        delta_random_topo_dict_to_=delta_random_reschedule_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+
+    delta_random_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_random_reschedule_problem,
+        debug=debug,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
+    )
+
+    # --------------------------------------------------------------------------------------
     # B.3. Result
     # --------------------------------------------------------------------------------------
     rsp_logger.info("5. gathering results")
@@ -396,11 +424,13 @@ def run_experiment_in_memory(
         problem_delta_perfect_after_malfunction=delta_perfect_reschedule_problem,
         problem_delta_naive_after_malfunction=delta_naive_reschedule_problem,
         problem_delta_online_after_malfunction=delta_online_reschedule_problem,
+        problem_delta_random_after_malfunction=delta_online_reschedule_problem,
         results_full=schedule_result,
         results_full_after_malfunction=full_reschedule_result,
         results_delta_perfect_after_malfunction=delta_perfect_reschedule_result,
         results_delta_naive_after_malfunction=delta_naive_reschedule_result,
         results_delta_online_after_malfunction=delta_online_reschedule_result,
+        results_delta_random_after_malfunction=delta_random_reschedule_result,
         delta_online_after_malfunction_predicted_agents=delta_online_after_malfunction_predicted_agents
     )
     rsp_logger.info(f"done re-schedule full and delta naive/perfect for experiment {experiment_parameters.experiment_id}")

@@ -204,15 +204,17 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_naive_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_random_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
     ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
     ('results_delta_online_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_random_after_malfunction', SchedulingExperimentResult),
     ('delta_online_after_malfunction_predicted_agents', Set[int]),
 ])
 
-speed_up_scopes = ['delta_perfect_after_malfunction', 'delta_naive_after_malfunction', 'delta_online_after_malfunction']
+speed_up_scopes = [f"delta_{infix}_after_malfunction" for infix in ['perfect', 'naive', 'online', 'random']]
 
 after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
@@ -458,11 +460,13 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_naive_after_malfunction', ScheduleProblemDescription),
     ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
+    ('problem_delta_random_after_malfunction', ScheduleProblemDescription),
     ('results_full', SchedulingExperimentResult),
     ('results_full_after_malfunction', SchedulingExperimentResult),
     ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
     ('results_delta_naive_after_malfunction', SchedulingExperimentResult),
     ('results_delta_online_after_malfunction', SchedulingExperimentResult),
+    ('results_delta_random_after_malfunction', SchedulingExperimentResult),
     ('delta_online_after_malfunction_predicted_agents', Set[int]),
     ('experiment_id', int),
     ('grid_id', int),
