@@ -204,12 +204,13 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
             )
 
 
-def hypothesis_one_data_analysis(experiment_output_directory: str,
-                                 analysis_2d: bool = False,
-                                 asp_export_experiment_ids: List[int] = None,
-                                 qualitative_analysis_experiment_ids: List[int] = None,
-                                 save_as_tsv: bool = False
-                                 ):
+def hypothesis_one_data_analysis(
+        experiment_output_directory: str,
+        analysis_2d: bool = False,
+        asp_export_experiment_ids: List[int] = None,
+        qualitative_analysis_experiment_ids: List[int] = None,
+        save_as_tsv: bool = False
+):
     """
 
     Parameters
@@ -243,63 +244,95 @@ def hypothesis_one_data_analysis(experiment_output_directory: str,
         experiment_data.to_csv(f"{experiment_data_directory}/data.tsv", sep="\t")
 
     # quantitative analysis
-    # TODO SIM-672 should we remove analysis_2d in favor of notebooks which are tested in ci?
+    results_folder = f'{experiment_analysis_directory}/main_results'
     if analysis_2d:
         # main results
         hypothesis_one_analysis_visualize_computational_time_comparison(
             experiment_data=experiment_data,
-            output_folder=f'{experiment_analysis_directory}/main_results'
+            output_folder=results_folder
         )
         hypothesis_one_analysis_visualize_speed_up(
             experiment_data=experiment_data,
-            output_folder=f'{experiment_analysis_directory}/main_results'
+            output_folder=results_folder
+        )
+        hypothesis_one_analysis_visualize_lateness(
+            experiment_data=experiment_data,
+            output_folder=results_folder
+        )
+        visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
+            experiment_results_list=experiment_results_list,
+            output_folder=results_folder
+        )
+        visualize_hypotheses_asp(
+            experiment_data=experiment_data,
+            output_folder=results_folder
         )
 
-        # TODO SIM-674 SIM-672 group by notebook?
-        experiment_result_of_interest = experiment_results_list[0]
-        agent_of_interest = 0
-        schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result_of_interest)
-        plot_time_window_resource_trajectories(experiment_result=experiment_result_of_interest, schedule_plotting=schedule_plotting)
-        plot_shared_heatmap(schedule_plotting=schedule_plotting, experiment_result=experiment_result_of_interest)
-        plot_resource_time_diagrams(schedule_plotting=schedule_plotting, with_diff=True)
-        plot_histogram_from_delay_data(experiment_results=experiment_result_of_interest)
-        plot_total_lateness(experiment_results=experiment_result_of_interest)
-        plot_agent_specific_delay(experiment_results=experiment_result_of_interest)
-        plot_changed_agents(experiment_results=experiment_result_of_interest)
-        plot_route_dag(experiment_results_analysis=experiment_result_of_interest,
-                       agent_id=agent_of_interest,
-                       suffix_of_constraints_to_visualize=ScheduleProblemEnum.PROBLEM_SCHEDULE)
-        plot_resource_occupation_heat_map(
-            schedule_plotting=schedule_plotting,
-            plotting_information=schedule_plotting.plotting_information,
-            title_suffix='Schedule'
-        )
-        plot_train_paths(
-            plotting_data=schedule_plotting,
-            agent_ids=[agent_of_interest])
-        plot_time_density(schedule_plotting.schedule_as_resource_occupations)
-
-    hypothesis_one_analysis_visualize_lateness(experiment_data=experiment_data, output_folder=f'{experiment_analysis_directory}/main_results')
-    visualize_hypothesis_009_rescheduling_times_grow_exponentially_in_the_number_of_time_window_overlaps(
-        experiment_results_list=experiment_results_list,
-        output_folder=f'{experiment_analysis_directory}/plausi'
-    )
-    visualize_hypotheses_asp(
-        experiment_data=experiment_data,
-        output_folder=f'{experiment_analysis_directory}/plausi'
-    )
-
-    # TODO should we remove qualitative_analysis_experiment_ids in favor of notebooks which are tested in ci?
     if qualitative_analysis_experiment_ids:
         for experiment_result in experiment_results_list:
             if experiment_result.experiment_id not in qualitative_analysis_experiment_ids:
                 continue
+
             visualize_experiment(
                 experiment_parameters=experiment_result.experiment_parameters,
                 experiment_results_analysis=experiment_result,
                 experiment_analysis_directory=experiment_analysis_directory,
-                # TODO SIM-443
                 flatland_rendering=False
+            )
+            agent_of_interest = experiment_result.malfunction.agent_id
+            output_folder_of_interest = f'{results_folder}/experiment_{experiment_result.experiment_id:04d}_agent_{agent_of_interest:04d}/'
+            schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result)
+            plot_time_window_resource_trajectories(
+                experiment_result=experiment_result,
+                schedule_plotting=schedule_plotting,
+                output_folder=output_folder_of_interest
+            )
+            plot_shared_heatmap(
+                schedule_plotting=schedule_plotting,
+                experiment_result=experiment_result,
+                output_folder=output_folder_of_interest
+            )
+            plot_resource_time_diagrams(
+                schedule_plotting=schedule_plotting,
+                with_diff=True,
+                output_folder=output_folder_of_interest
+            )
+            plot_histogram_from_delay_data(
+                experiment_results=experiment_result,
+                output_folder=output_folder_of_interest
+            )
+            plot_total_lateness(
+                experiment_results=experiment_result,
+                output_folder=output_folder_of_interest
+            )
+            plot_agent_specific_delay(
+                experiment_results=experiment_result,
+                output_folder=output_folder_of_interest
+            )
+            plot_changed_agents(
+                experiment_results=experiment_result,
+                output_folder=output_folder_of_interest
+            )
+            plot_route_dag(
+                experiment_results_analysis=experiment_result,
+                agent_id=agent_of_interest,
+                suffix_of_constraints_to_visualize=ScheduleProblemEnum.PROBLEM_SCHEDULE,
+                output_folder=output_folder_of_interest
+            )
+            plot_resource_occupation_heat_map(
+                schedule_plotting=schedule_plotting,
+                plotting_information=schedule_plotting.plotting_information,
+                title_suffix='Schedule',
+                output_folder=output_folder_of_interest
+            )
+            plot_train_paths(
+                plotting_data=schedule_plotting,
+                agent_ids=[agent_of_interest],
+                file_name=f'{output_folder_of_interest}/train_paths.pdf' if output_folder_of_interest is not None else None
+            )
+            plot_time_density(
+                schedule_as_resource_occupations=schedule_plotting.schedule_as_resource_occupations,
+                output_folder=output_folder_of_interest
             )
 
     if asp_export_experiment_ids:

@@ -403,14 +403,13 @@ def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescr
 def plot_time_window_resource_trajectories(
         experiment_result: ExperimentResultsAnalysis,
         schedule_plotting: SchedulePlotting,
-        show: bool = True):
+        output_folder: Optional[str] = None):
     """Plot time-window -- resource diagram for all three problems.
 
     Parameters
     ----------
     experiment_result
     schedule_plotting
-    show
     """
     for title, problem in {
         'Schedule': experiment_result.problem_full,
@@ -421,16 +420,22 @@ def plot_time_window_resource_trajectories(
         trajectories = trajectories_from_resource_occupations_per_agent(
             resource_occupations_schedule=resource_occupations_schedule,
             plotting_information=schedule_plotting.plotting_information)
-        plot_time_resource_trajectories(trajectories=trajectories, title=title, schedule_plotting=schedule_plotting)
+        plot_time_resource_trajectories(
+            trajectories=trajectories, title=title,
+            schedule_plotting=schedule_plotting,
+            output_folder=output_folder)
 
 
-def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis):
+def plot_shared_heatmap(
+        schedule_plotting: SchedulePlotting,
+        experiment_result: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
     ----------
     experiment_result
-    show
     """
     layout = go.Layout(
         plot_bgcolor=GREY_BACKGROUND_COLOR
@@ -487,10 +492,20 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
                       height=1000)
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'shared_heatmap.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
+def plot_resource_time_diagrams(
+        schedule_plotting: SchedulePlotting,
+        with_diff: bool = True,
+        output_folder: Optional[str] = None
+) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -523,7 +538,9 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     plot_time_resource_trajectories(
         title='Schedule',
         schedule_plotting=schedule_plotting,
-        trajectories=trajectories_schedule)
+        trajectories=trajectories_schedule,
+        output_folder=output_folder
+    )
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
     trajectories_influenced_agents, changed_agents_dict = get_difference_in_time_space_trajectories(
@@ -540,13 +557,15 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         plot_time_resource_trajectories(
             trajectories=trajectories_reschedule_full,
             title='Full Reschedule',
-            schedule_plotting=schedule_plotting
+            schedule_plotting=schedule_plotting,
+            output_folder=output_folder
         )
 
     # Plot Reschedule Delta Perfect with additional data
     plot_time_resource_trajectories(
         title='Delta Perfect Reschedule', schedule_plotting=schedule_plotting,
         trajectories=trajectories_reschedule_delta_perfect,
+        output_folder=output_folder
     )
 
     # Plot difference if asked for
@@ -554,7 +573,8 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         plot_time_resource_trajectories(
             trajectories=trajectories_influenced_agents,
             title='Changed Agents',
-            schedule_plotting=schedule_plotting
+            schedule_plotting=schedule_plotting,
+            output_folder=output_folder
         )
 
     return changed_agents_dict
@@ -587,7 +607,7 @@ def plot_time_resource_trajectories(
         schedule_plotting: SchedulePlotting,
         additional_data: Dict = None,
         malfunction_wave: Trajectories = None,
-        show: bool = True
+        output_folder: Optional[str] = None,
 ):
     """
     Plot the time-resource-diagram with additional data for each train
@@ -602,8 +622,6 @@ def plot_time_resource_trajectories(
         Data to be shown, contains tuples for all occupied resources during train run
     additional_data
         Dict containing additional data. Each additional data must have the same dimensins as time_resource_data
-
-    show: bool
 
     Returns
     -------
@@ -697,11 +715,19 @@ def plot_time_resource_trajectories(
     fig.update_xaxes(title="Resource Coordinates", range=[0, ranges[0]])
 
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
-    if show:
+    if output_folder is None:
         fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'time_resource_trajectories_{title.replace(" ", "_")}.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis):
+def plot_histogram_from_delay_data(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
     """
     Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
     Parameters
@@ -722,10 +748,19 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
     fig.update_layout(title_text="Delay distributions")
     fig.update_xaxes(title="Delay [s]")
 
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'delay_histogram.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_total_lateness(experiment_results: ExperimentResultsAnalysis):
+def plot_total_lateness(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
     """
     Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
     Parameters
@@ -749,10 +784,19 @@ def plot_total_lateness(experiment_results: ExperimentResultsAnalysis):
     fig.update_layout(title_text="Total delay and Solver objective")
     fig.update_yaxes(title="discrete time steps [-] / weighted sum [-]")
 
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'total_lateness.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
+def plot_agent_specific_delay(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
     """
     Plot a histogram of the delay of agents in the full and reschedule delta perfect compared to the schedule
     Parameters
@@ -776,10 +820,19 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis):
     fig.update_xaxes(title="Train ID")
     fig.update_yaxes(title="Delay in Seconds")
 
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'agen_specific_delay.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_changed_agents(experiment_results: ExperimentResultsAnalysis):
+def plot_changed_agents(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
     """Plot a histogram of the delay of agents in the full and reschedule delta
     perfect compared to the schedule.
 
@@ -801,7 +854,13 @@ def plot_changed_agents(experiment_results: ExperimentResultsAnalysis):
     fig.update_xaxes(title="Train ID")
     fig.update_yaxes(title="Changed 1.0=yes, 0.0=no [-]")
 
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'changed_per_train.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
     fig = go.Figure()
     schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
@@ -820,14 +879,22 @@ def plot_changed_agents(experiment_results: ExperimentResultsAnalysis):
     fig.update_xaxes(title="Train ID")
     fig.update_yaxes(title="Changed 1.0=yes, 0.0=no [-]")
 
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'changed_routes_per_train.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
-def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
-                   agent_id: int,
-                   suffix_of_constraints_to_visualize: ScheduleProblemEnum,
-                   save: bool = False
-                   ):
+def plot_route_dag(
+        experiment_results_analysis: ExperimentResultsAnalysis,
+        agent_id: int,
+        suffix_of_constraints_to_visualize: ScheduleProblemEnum,
+        save: bool = False,
+        output_folder: Optional[str] = None
+):
     train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
     train_runs_delta_perfect_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_perfect_after_malfunction
@@ -840,6 +907,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     # TODO hacky, we should take the topo_dict from infrastructure maybe?
     topo = experiment_results_analysis.problem_full_after_malfunction.topo_dict[agent_id]
 
+    # TODO SIM-672 / SIM-692 extend
     config = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: [
             problem_schedule,
@@ -869,7 +937,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
         route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],
         title=title,
         file_name=(
-            f"experiment_{experiment_results_analysis.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf"
+            f"{output_folder}/experiment_{experiment_results_analysis.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf"
             if save else None)
     )
 
@@ -1009,7 +1077,9 @@ def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, t
 def plot_resource_occupation_heat_map(
         schedule_plotting: SchedulePlotting,
         plotting_information: PlottingInformation,
-        title_suffix: str = ''):
+        title_suffix: str = '',
+        output_folder: Optional[str] = None
+):
     """Plot agent density over resource.
 
     Parameters
@@ -1140,7 +1210,13 @@ def plot_resource_occupation_heat_map(
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
     fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
 
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'resource_occupation_heat_map.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
 def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
@@ -1349,7 +1425,10 @@ def plot_train_paths(
         fig.write_image(file_name)
 
 
-def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations):
+def plot_time_density(
+        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
+        output_folder: Optional[str] = None
+):
     """Plot agent density over time.
 
     Parameters
@@ -1377,7 +1456,13 @@ def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupa
     fig.update_layout(title_text="Train Density over Time", xaxis_showgrid=True, yaxis_showgrid=False)
     fig.update_xaxes(title="Time [steps]")
     fig.update_yaxes(title="Active Agents")
-    fig.show()
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'time_density.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
 
 
 def trajectories_from_resource_occupations_per_agent(

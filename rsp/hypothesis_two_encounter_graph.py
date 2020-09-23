@@ -88,7 +88,9 @@ def resource_occpuation_from_transmission_chains(  # noqa
 
 def plot_transmission_chains_time_window(
         experiment_result: ExperimentResultsAnalysis,
-        transmission_chains_time_window: List[TransmissionChain]):
+        transmission_chains_time_window: List[TransmissionChain],
+        output_folder: Optional[str] = None
+):
     """
 
     Parameters
@@ -109,7 +111,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=prediction,
         title='Time Window Prediction',
-        schedule_plotting=schedule_plotting
+        schedule_plotting=schedule_plotting,
+        output_folder=output_folder
     )
 
     # TODO sanity check:
@@ -122,7 +125,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=sanity_false_positives,
         title='Sanity false positives (in prediction, but not in re-schedule full time windows): should be empty',
-        schedule_plotting=schedule_plotting
+        schedule_plotting=schedule_plotting,
+        output_folder=output_folder
     )
     sanity_false_negatives, _ = get_difference_in_time_space_trajectories(
         target_trajectories=prediction,
@@ -130,7 +134,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=sanity_false_negatives,
         title='Sanity false negatives (not in prediction but in re-schedule full time windows): reduction by prediction - any?',
-        schedule_plotting=schedule_plotting
+        schedule_plotting=schedule_plotting,
+        output_folder=output_folder
     )
     # Get trajectories for reschedule full
     trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
@@ -145,7 +150,8 @@ def plot_transmission_chains_time_window(
         trajectories=false_negatives,
         # TODO SIM-549 is there something wrong because release times are not contained in time windows?
         title='False negatives (in re-schedule full but not in prediction)',
-        schedule_plotting=schedule_plotting
+        schedule_plotting=schedule_plotting,
+        output_folder=output_folder
     )
     false_positives, _ = get_difference_in_time_space_trajectories(
         base_trajectories=prediction,
@@ -153,7 +159,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=false_positives,
         title='False positives (in prediction but not in re-schedule full)',
-        schedule_plotting=schedule_plotting
+        schedule_plotting=schedule_plotting,
+        output_folder=output_folder
     )
     # TODO SIM-549 damping: probabilistic delay propagation?
 

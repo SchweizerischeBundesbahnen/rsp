@@ -42,17 +42,18 @@ from_cache = False
 
 ```{python}
 experiments_of_interest = None
+experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_23T08_11_55'
 if from_cache:
-    experiment_data = pd.read_csv('../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13.csv')
+    experiment_data = pd.read_csv(f'{experiment_base_directory}.csv')
 else:
-    experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13'
+
     experiment_results_list = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
         experiment_ids=experiments_of_interest,
         nonify_all_structured_fields=True
     )
     experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-    experiment_data.to_csv('../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13.csv')
+    experiment_data.to_csv(f'{experiment_base_directory}.csv')
 
 
 display(experiment_data)
@@ -60,7 +61,7 @@ display(experiment_data)
 
 ```{python}
 axis_of_interest = 'n_agents'
-columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_perfect_after_malfunction']
+columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']]
 ```
 
 ### Filter data depending on full rescheduling time (>10s and within 97% percentile)
