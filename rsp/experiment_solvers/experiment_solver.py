@@ -1,9 +1,12 @@
 import pprint
 from typing import Optional
 
+from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
+from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import experiment_freeze_dict_pretty_print
 from rsp.utils.rsp_logger import rsp_logger
@@ -50,6 +53,7 @@ def asp_schedule_wrapper(schedule_problem_description: ScheduleProblemDescriptio
 
 def asp_reschedule_wrapper(
         reschedule_problem_description: ScheduleProblemDescription,
+        schedule: TrainrunDict,
         asp_seed_value: Optional[int] = None,
         debug: bool = False,
 ) -> SchedulingExperimentResult:
@@ -61,11 +65,17 @@ def asp_reschedule_wrapper(
     SchedulingExperimentResult
     """
     rsp_logger.info("reschedule_wrapper")
-    # --------------------------------------------------------------------------------------
-    # Full Re-Scheduling
-    # --------------------------------------------------------------------------------------
-    full_reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
+
+    additional_costs_at_targets = {
+        agent_id: {
+            sink: reschedule_problem_description.route_dag_constraints_dict[agent_id].earliest[sink] - schedule[agent_id][-1].scheduled_at
+            for sink in get_sinks_for_topo(topo)
+        }
+        for agent_id, topo in reschedule_problem_description.topo_dict.items()
+    }
+    reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
         schedule_problem_description=reschedule_problem_description,
+        additional_costs_at_targets=additional_costs_at_targets,
         asp_seed_value=asp_seed_value
     )
 
@@ -73,8 +83,8 @@ def asp_reschedule_wrapper(
         print("###reschedule")
         experiment_freeze_dict_pretty_print(reschedule_problem_description.route_dag_constraints_dict)
 
-    full_reschedule_result, asp_solution = solve_problem(
-        problem=full_reschedule_problem,
+    reschedule_result, asp_solution = solve_problem(
+        problem=reschedule_problem,
         debug=debug
     )
     if debug:
@@ -83,6 +93,6 @@ def asp_reschedule_wrapper(
         print("###route penalties")
         print(asp_solution.extract_list_of_active_penalty())
         print("###reschedule")
-        print(_pp.pformat(full_reschedule_result.trainruns_dict))
+        print(_pp.pformat(reschedule_result.trainruns_dict))
 
-    return full_reschedule_result
+    return reschedule_result

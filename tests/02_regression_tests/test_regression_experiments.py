@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from rsp.analysis.detailed_experiment_analysis import hypothesis_one_data_analysis
+from rsp.analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
@@ -184,11 +184,9 @@ def test_regression_experiment_agenda(regen: bool = False):
     result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
     expected_result_dict = {
-        'solver_statistics_costs_delta_perfect_after_malfunction': {0: 0.0},
+        'solver_statistics_costs_delta_perfect_after_malfunction': {0: 20.0},
         'solver_statistics_costs_full': {0: 0.0},
-        'solver_statistics_costs_full_after_malfunction': {0: 0.0},
-        'effective_costs_delta_perfect_after_malfunction': {0: 20.0},
-        'effective_costs_full_after_malfunction': {0: 20.0},
+        'solver_statistics_costs_full_after_malfunction': {0: 20.0},
         'experiment_id': {0: 0}, 'max_num_cities': {0: 20}, 'max_rail_between_cities': {0: 2},
         'max_rail_in_city': {0: 6}, 'n_agents': {0: 2}, 'size': {0: 30}}
     print("solution_full_after_malfunction")
@@ -354,10 +352,10 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     )
 
     # although re-scheduling is not deterministic, it should produce solutions with the same costs
-    effective_costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
-    assert effective_costs_full_after_malfunction > 0
-    effective_costs_full_after_malfunction_scaled = experiment_result_scaled.results_full_after_malfunction.optimization_costs
-    assert (effective_costs_full_after_malfunction * scale ==
-            effective_costs_full_after_malfunction_scaled)
+    costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
+    assert costs_full_after_malfunction > 0
+    costs_full_after_malfunction_scaled = experiment_result_scaled.results_full_after_malfunction.optimization_costs
+    assert (costs_full_after_malfunction * scale ==
+            costs_full_after_malfunction_scaled)
     assert (experiment_result.results_full_after_malfunction.trainruns_dict ==
             experiment_result_scaled.results_full_after_malfunction.trainruns_dict)

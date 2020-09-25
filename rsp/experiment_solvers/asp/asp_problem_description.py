@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -43,6 +44,7 @@ class ASPProblemDescription:
     @staticmethod
     def factory_rescheduling(
             schedule_problem_description: ScheduleProblemDescription,
+            additional_costs_at_targets: Dict[int, Dict[Waypoint, int]] = None,
             asp_seed_value: Optional[int] = None
     ) -> 'ASPProblemDescription':
         asp_problem = ASPProblemDescription(
@@ -54,7 +56,8 @@ class ASPProblemDescription:
         )
         asp_problem._build_asp_program(
             schedule_problem_description=schedule_problem_description,
-            add_minimumrunnigtime_per_agent=False
+            add_minimumrunnigtime_per_agent=False,
+            additional_costs_at_targets=additional_costs_at_targets
         )
         return asp_problem
 
@@ -193,6 +196,7 @@ class ASPProblemDescription:
     def _build_asp_program(self,
                            schedule_problem_description: ScheduleProblemDescription,
                            add_minimumrunnigtime_per_agent: bool = False,
+                           additional_costs_at_targets: Dict[int, Dict[Waypoint, int]] = None
                            ):
         # preparation
         _new_asp_program = []
@@ -243,6 +247,11 @@ class ASPProblemDescription:
                 earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
+        if additional_costs_at_targets is not None:
+            for agent_id, target_penalties in additional_costs_at_targets.items():
+                for waypoint, penalty in target_penalties.items():
+                    vertex = self._sanitize_waypoint(waypoint)
+                    self.asp_program.append("targetpenalty(t{},{},{}).".format(agent_id, vertex, penalty))
 
         # inject weight lateness
         if self.asp_objective == ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED:

@@ -220,15 +220,16 @@ def test_rescheduling_no_bottleneck():
             weight_lateness_seconds=1,
             weight_route_change=1
         ),
+        schedule=fake_schedule,
         asp_seed_value=94
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
 
-    # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 0 (equals malfunction delay)
+    # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 20 (equals malfunction delay)
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
     actual_costs = full_reschedule_result.optimization_costs
 
-    assert actual_costs == 0, f"actual costs {actual_costs}"
+    assert actual_costs == fake_malfunction.malfunction_duration, f"actual costs {actual_costs}"
 
     assert full_reschedule_trainruns[0][-1].scheduled_at == 66
     assert full_reschedule_trainruns[1][-1].scheduled_at == 29
@@ -463,6 +464,7 @@ def test_rescheduling_bottleneck():
 
     full_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=reschedule_problem,
+        schedule=fake_schedule,
         asp_seed_value=94
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
@@ -470,6 +472,7 @@ def test_rescheduling_bottleneck():
     assert full_reschedule_trainruns[0][-1].scheduled_at == 48, f"found {full_reschedule_trainruns[0][-1].scheduled_at}"
     assert full_reschedule_trainruns[1][-1].scheduled_at == 49, f"found {full_reschedule_trainruns[1][-1].scheduled_at}"
 
+    # TODO SIM-562 check no negative delay?
     # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
     actual_costs = full_reschedule_result.optimization_costs
@@ -482,9 +485,8 @@ def test_rescheduling_bottleneck():
     assert actual_delay_wr_schedule == expected_delay_wr_schedule, \
         f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
 
-    # the solver returns the delay with respect to the defined earliest time (which is 20 after the scheduled arrival)
     expected_rerouting_penalty = 1
-    expected_costs = expected_delay_wr_schedule - 20 + expected_rerouting_penalty
+    expected_costs = expected_delay_wr_schedule + expected_rerouting_penalty
     assert actual_costs == expected_costs, f"actual costs {actual_costs} from solver, expected {expected_costs}"
 
 
@@ -787,6 +789,7 @@ def _verify_rescheduling_delta_perfect(fake_malfunction: ExperimentMalfunction,
     )
     delta_perfect_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_perfect_reschedule_problem,
+        schedule=fake_schedule,
         asp_seed_value=94
     )
     delta_perfect_reschedule_trainruns = delta_perfect_reschedule_result.trainruns_dict
@@ -801,8 +804,7 @@ def _verify_rescheduling_delta_perfect(fake_malfunction: ExperimentMalfunction,
     assert delay_in_full_reschedule == expected_delay, f"found {delay_in_full_reschedule}, expected {expected_delay}"
     asp_costs = delta_perfect_reschedule_result.optimization_costs
 
-    # the delta perfect model does not count the malfunction as costs
-    expected_asp_costs = expected_delay - fake_malfunction.malfunction_duration
+    expected_asp_costs = expected_delay
     assert asp_costs == expected_asp_costs, f"found asp_costs={asp_costs}, expected={expected_asp_costs}"
 
 

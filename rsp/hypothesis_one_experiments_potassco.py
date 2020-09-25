@@ -9,9 +9,10 @@ from rsp.utils.data_types import ScheduleParametersRange
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.file_utils import check_create_folder
-
-
+from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 # TODO pass arguments instead of hacky file editing
+
+
 def enable_seq(enable=True):
     off = "RESCHEDULE_HEURISTICS = []"
     on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
@@ -166,8 +167,8 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None)
 
 if __name__ == '__main__':
     generate_potassco_infras_and_schedules(
-        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )
     run_potassco_agenda(
-        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )

@@ -728,22 +728,19 @@ def plot_histogram_from_delay_data(
         experiment_results: ExperimentResultsAnalysis,
         output_folder: Optional[str] = None
 ):
-    """
-    Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
-    Parameters
-    ----------
-    experiment_data_frame
-    experiment_id
-
-    Returns
-    -------
-
-    """
+    """Plot a histogram of the delay of agents in the full and delta perfect
+    reschedule compared to the schedule."""
 
     fig = go.Figure()
     for scope in after_malfunction_scopes:
-        fig.add_trace(go.Histogram(x=[v for v in experiment_results._asdict()[f'lateness_{scope}'].values()], name=f'results_{scope}'))
-    fig.update_layout(barmode='overlay')
+        fig.add_trace(go.Histogram(x=[v for v in experiment_results._asdict()[f'lateness_per_agent_{scope}'].values()], name=f'results_{scope}'))
+    fig.update_layout(barmode='group', legend=dict(
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ))
+
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Delay distributions")
     fig.update_xaxes(title="Delay [s]")
@@ -757,7 +754,7 @@ def plot_histogram_from_delay_data(
         fig.write_image(pdf_file)
 
 
-def plot_total_lateness(
+def plot_lateness(
         experiment_results: ExperimentResultsAnalysis,
         output_folder: Optional[str] = None
 ):
@@ -774,12 +771,17 @@ def plot_total_lateness(
     """
     fig = go.Figure()
     for scope in after_malfunction_scopes:
-        fig.add_trace(go.Bar(x=[f'effective_costs_{scope}'], y=[experiment_results._asdict()[f'effective_costs_{scope}']], name=f'effective_costs_{scope}'))
-        fig.add_trace(go.Bar(x=[f'total_lateness_{scope}'], y=[experiment_results._asdict()[f'total_lateness_{scope}']], name=f'total_lateness_{scope}'))
-        fig.add_trace(go.Bar(x=[f'effective_total_costs_from_route_section_penalties_{scope}'],
-                             y=[experiment_results._asdict()[f'effective_total_costs_from_route_section_penalties_{scope}']],
-                             name=f'effective_total_costs_from_route_section_penalties_{scope}'))
-    fig.update_layout(barmode='overlay')
+        fig.add_trace(go.Bar(x=[f'costs_{scope}'], y=[experiment_results._asdict()[f'costs_{scope}']], name=f'costs_{scope}'))
+        fig.add_trace(go.Bar(x=[f'lateness_{scope}'], y=[experiment_results._asdict()[f'lateness_{scope}']], name=f'lateness_{scope}'))
+        fig.add_trace(go.Bar(x=[f'costs_from_route_section_penalties_{scope}'],
+                             y=[experiment_results._asdict()[f'costs_from_route_section_penalties_{scope}']],
+                             name=f'costs_from_route_section_penalties_{scope}'))
+    fig.update_layout(barmode='overlay', legend=dict(
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ))
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Total delay and Solver objective")
     fig.update_yaxes(title="discrete time steps [-] / weighted sum [-]")
@@ -788,7 +790,7 @@ def plot_total_lateness(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'total_lateness.pdf')
+        pdf_file = os.path.join(output_folder, f'lateness.pdf')
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
@@ -797,7 +799,7 @@ def plot_agent_specific_delay(
         experiment_results: ExperimentResultsAnalysis,
         output_folder: Optional[str] = None
 ):
-    """
+    """plot_histogram_from_delay_data
     Plot a histogram of the delay of agents in the full and reschedule delta perfect compared to the schedule
     Parameters
     ----------
@@ -811,7 +813,7 @@ def plot_agent_specific_delay(
     fig = go.Figure()
     for scope in after_malfunction_scopes:
         d = {}
-        for dim in ['lateness', 'effective_costs_from_route_section_penalties']:
+        for dim in ['lateness_per_agent', 'costs_from_route_section_penalties_per_agent']:
             values = list(experiment_results._asdict()[f'{dim}_{scope}'].values())
             d[dim] = sum(values)
             fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'{dim}_{scope}'))
@@ -933,7 +935,7 @@ def plot_route_dag(
         constraints_to_visualize=problem_to_visualize.route_dag_constraints_dict[agent_id],
         trainrun_to_visualize=trainrun_to_visualize,
         vertex_lateness={},
-        effective_costs_from_route_section_penalties_per_edge={},
+        costs_from_route_section_penalties_per_agent_and_edge={},
         route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],
         title=title,
         file_name=(

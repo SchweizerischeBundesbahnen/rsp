@@ -133,7 +133,7 @@ def visualize_route_dag_constraints(
         constraints_to_visualize: RouteDAGConstraints,
         trainrun_to_visualize: Trainrun,
         route_section_penalties: RouteSectionPenalties,
-        effective_costs_from_route_section_penalties_per_edge: RouteSectionPenalties,
+        costs_from_route_section_penalties_per_agent_and_edge: RouteSectionPenalties,
         vertex_lateness: WaypointPenalties,
         train_run_full: Trainrun,
         train_run_full_after_malfunction: Trainrun,
@@ -158,7 +158,7 @@ def visualize_route_dag_constraints(
         scale in or out
     route_section_penalties
         route penalty is displayed in edge label
-    effective_costs_from_route_section_penalties_per_edge
+    costs_from_route_section_penalties_per_agent_and_edge
         route penalty is displayed in edge label
     vertex_lateness
         lateness is displayed in node labels
@@ -213,7 +213,7 @@ def visualize_route_dag_constraints(
         all_waypoints}
 
     edge_labels = {
-        edge: _get_edge_label(edge, route_section_penalties, effective_costs_from_route_section_penalties_per_edge)
+        edge: _get_edge_label(edge, route_section_penalties, costs_from_route_section_penalties_per_agent_and_edge)
         for edge in topo.edges
     }
 

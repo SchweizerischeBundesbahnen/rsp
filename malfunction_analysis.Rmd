@@ -29,10 +29,9 @@ from rsp.analysis.compute_time_analysis import plot_resource_time_diagrams
 from rsp.analysis.compute_time_analysis import get_difference_in_time_space_trajectories
 from rsp.analysis.compute_time_analysis import plot_delay_propagation_2d
 from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.analysis.compute_time_analysis import plot_agent_specific_delay
-from rsp.analysis.compute_time_analysis import plot_total_lateness
 from rsp.analysis.compute_time_analysis import plot_changed_agents
 from rsp.analysis.compute_time_analysis import print_situation_overview
+from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 
 
 from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
@@ -44,7 +43,7 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ### Load Experiment Data
 
 ```{python}
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13'
+experiment_base_directory = BASELINE_DATA_FOLDER
 
 experiment_of_interest = 106
 agent_of_interest = 0
@@ -138,15 +137,7 @@ plot_delay_propagation_2d(plotting_data=plotting_data,
 Figure below shows the histogram of the delay times, giving us a great overview of how strongly trains where affected by the malfunciton
 
 ```{python}
-plot_total_lateness(experiment_results=exp_results_of_experiment_of_interest)
-```
-
-```{python}
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
-```
-
-```{python}
-plot_agent_specific_delay(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
 The below figure shows the propagation of the malfunction within the schedule, when there are no actions taken. The progation is projected to show the influence from an agent to the next agent.

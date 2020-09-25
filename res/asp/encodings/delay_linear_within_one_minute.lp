@@ -9,5 +9,6 @@
 % #const resolution = .... injected from data.
 % #const weight_lateness_seconds = .... injected from data.
 linear_range(1..upper_bound_linear_penalty/resolution ).
-potlate(T,V,E+S*resolution ,weight_lateness_seconds*resolution ) :- e(T,V,E), linear_range(S), end(T,V).
+potlate(T,V,E,weight_lateness_seconds*P) :- e(T,V,E), end(T,V), targetpenalty(T,V,P).
+potlate(T,V,E+S*resolution ,weight_lateness_seconds*resolution) :- e(T,V,E), linear_range(S), end(T,V).
 potlate(T,V,E+upper_bound_linear_penalty+1,penalty_after_linear) :- e(T,V,E), end(T,V).

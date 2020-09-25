@@ -18,6 +18,7 @@ jupyter:
 # %autoreload 2
 import sys
 from IPython.display import Video
+import pandas as pd
 
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 
@@ -37,20 +38,16 @@ from rsp.analysis.compute_time_analysis import plot_resource_occupation_heat_map
 from rsp.analysis.compute_time_analysis import plot_train_paths
 from rsp.analysis.compute_time_analysis import plot_changed_agents
 from rsp.analysis.compute_time_analysis import print_situation_overview
+from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
+
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
 ```{python}
-# TODO SIM-672 / SIM-656 make configuration easier, use dummydata in integration tests and use full data in notebooks
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31'
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42/h1_2020_08_24T21_04_42_baseline_2020_09_17T17_08_13'
+experiment_base_directory = BASELINE_DATA_FOLDER
 
 experiment_of_interest = 106
-```
-
-```{python}
-
 ```
 
 ```{python}
@@ -218,4 +215,18 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 ```{python}
 # %matplotlib inline
 plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_REDUCED_SCOPE)
+```
+
+### solver statistics
+
+```{python}
+from rsp.experiment_solvers.asp.asp_helper import _print_stats
+print("=================================================================================")
+print(f"= {experiment_base_directory} results_full_after_malfunction ")
+print("=================================================================================")
+_print_stats(exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics)
+print("=================================================================================")
+print(f"= {experiment_base_directory} results_delta_perfect_after_malfunction ")
+print("=================================================================================")
+_print_stats(exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics)
 ```

@@ -53,7 +53,6 @@ from rsp.experiment_solvers.data_types import Infrastructure
 from rsp.experiment_solvers.data_types import Schedule
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
-from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
@@ -74,6 +73,7 @@ from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.data_types import plausibility_check_experiment_results
 from rsp.utils.data_types import ReScheduleParameters
 from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParameters
@@ -286,6 +286,7 @@ def run_experiment_in_memory(
 
     full_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=full_reschedule_problem,
+        schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
@@ -326,6 +327,7 @@ def run_experiment_in_memory(
 
     delta_perfect_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_perfect_reschedule_problem,
+        schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
@@ -356,6 +358,7 @@ def run_experiment_in_memory(
 
     delta_naive_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_naive_reschedule_problem,
+        schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
@@ -381,6 +384,7 @@ def run_experiment_in_memory(
 
     delta_online_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_online_reschedule_problem,
+        schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
@@ -408,6 +412,7 @@ def run_experiment_in_memory(
 
     delta_random_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=delta_random_reschedule_problem,
+        schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
@@ -1313,8 +1318,11 @@ def load_and_expand_experiment_results_from_data_folder(
         exp_id = get_experiment_id_from_filename(file_name)
         if experiment_ids is not None and exp_id not in experiment_ids:
             continue
-        with open(file_name, 'rb') as handle:
-            file_data: ExperimentResults = pickle.load(handle)
+        try:
+            with open(file_name, 'rb') as handle:
+                file_data: ExperimentResults = pickle.load(handle)
+        except Exception as e:
+            rsp_logger.warn(f"skipping {file} because of {e}")
         experiment_results_list.append(expand_experiment_results_for_analysis(
             file_data,
             nonify_all_structured_fields=nonify_all_structured_fields))
@@ -1322,6 +1330,7 @@ def load_and_expand_experiment_results_from_data_folder(
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
+
     return experiment_results_list
 
 

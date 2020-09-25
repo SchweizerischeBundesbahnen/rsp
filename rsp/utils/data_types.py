@@ -11,6 +11,7 @@ from typing import Tuple
 
 import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from numpy import inf
 from pandas import DataFrame
@@ -21,6 +22,8 @@ from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstr
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
+from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
+from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
 
 SpeedData = Mapping[float, float]
 
@@ -236,16 +239,10 @@ def trainrun_dict_from_results(results: SchedulingExperimentResult, p: ScheduleP
     return results.trainruns_dict
 
 
-def effective_costs_from_results(results_schedule: SchedulingExperimentResult,
-                                 results_reschedule: SchedulingExperimentResult,
-                                 problem_reschedule: ScheduleProblemDescription) -> float:
-    # todo SIM-562 use in ratio as well!
-    # todo SIM-562 use better naming convention to distinguish between what's coming in the solver and what we derive.
-    return results_reschedule.solver_statistics["summary"]["costs"][0] + sum([
-        problem_reschedule.route_dag_constraints_dict[agent_id].earliest[reschedule_trainrun[-1].waypoint] - results_schedule.trainruns_dict[agent_id][
-            -1].scheduled_at
-        for agent_id, reschedule_trainrun in results_reschedule.trainruns_dict.items()
-    ])
+def costs_from_results(results_schedule: SchedulingExperimentResult,
+                       results_reschedule: SchedulingExperimentResult,
+                       problem_reschedule: ScheduleProblemDescription) -> float:
+    return results_reschedule.solver_statistics["summary"]["costs"][0]
 
 
 def nb_resource_conflicts_from_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
@@ -294,7 +291,7 @@ def summed_user_step_propagations_from_results(r: SchedulingExperimentResult, p:
                    r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])) / len(r.solver_statistics["user_step"]["DifferenceLogic"]["Thread"])
 
 
-def lateness_from_results(
+def lateness_per_agent_from_results(
         results_schedule: SchedulingExperimentResult,
         results_reschedule: SchedulingExperimentResult,
         problem_reschedule: ScheduleProblemDescription):
@@ -304,13 +301,28 @@ def lateness_from_results(
     }
 
 
-def total_lateness_from_results(
+def costs_from_lateness_from_results(
+        results_schedule: SchedulingExperimentResult,
+        results_reschedule: SchedulingExperimentResult,
+        problem_reschedule: ScheduleProblemDescription):
+    # TODO SIM-672 runs twice, optimize
+    lateness_dict = lateness_per_agent_from_results(
+        results_schedule=results_schedule,
+        results_reschedule=results_reschedule,
+        problem_reschedule=problem_reschedule
+    )
+    return lateness_to_effective_cost(
+        weight_lateness_seconds=problem_reschedule.weight_lateness_seconds,
+        lateness_dict=lateness_dict)
+
+
+def lateness_from_results(
         results_schedule: SchedulingExperimentResult,
         results_reschedule: SchedulingExperimentResult,
         problem_reschedule: ScheduleProblemDescription
 ) -> float:
     # TODO SIM-672 runs twice, optimize
-    return sum(lateness_from_results(results_schedule, results_reschedule, problem_reschedule).values())
+    return sum(lateness_per_agent_from_results(results_schedule, results_reschedule, problem_reschedule).values())
 
 
 def changed_from_results(
@@ -354,7 +366,7 @@ def vertex_lateness_from_results(
     }
 
 
-def effective_costs_from_route_section_penalties_per_edge_from_results(
+def costs_from_route_section_penalties_per_agent_and_edge_from_results(
         results_schedule: SchedulingExperimentResult,
         results_reschedule: SchedulingExperimentResult,
         problem_reschedule: ScheduleProblemDescription) -> Dict[int, Dict[Tuple[Waypoint, Waypoint], int]]:
@@ -376,24 +388,24 @@ def effective_costs_from_route_section_penalties_per_edge_from_results(
     }
 
 
-def effective_costs_from_route_section_penalties_from_results(
+def costs_from_route_section_penalties_per_agent_from_results(
         results_schedule: SchedulingExperimentResult,
         results_reschedule: SchedulingExperimentResult,
         problem_reschedule: ScheduleProblemDescription) -> Dict[int, float]:
     # TODO we should avoid redundant computations?
-    edge_penalties = effective_costs_from_route_section_penalties_per_edge_from_results(
+    edge_penalties = costs_from_route_section_penalties_per_agent_and_edge_from_results(
         results_schedule=results_schedule,
         results_reschedule=results_reschedule,
         problem_reschedule=problem_reschedule)
     return {agent_id: sum(edge_penalties.values()) for agent_id, edge_penalties in edge_penalties.items()}
 
 
-def effective_total_costs_from_route_section_penalties(
+def costs_from_route_section_penalties(
         results_schedule: SchedulingExperimentResult,
         results_reschedule: SchedulingExperimentResult,
         problem_reschedule: ScheduleProblemDescription) -> float:
     # TODO we should avoid redundant computations?
-    edge_penalties = effective_costs_from_route_section_penalties_per_edge_from_results(
+    edge_penalties = costs_from_route_section_penalties_per_agent_and_edge_from_results(
         results_schedule=results_schedule,
         results_reschedule=results_reschedule,
         problem_reschedule=problem_reschedule)
@@ -406,14 +418,21 @@ def speed_up_from_results(results_full_reschedule: SchedulingExperimentResult,
     return results_full_reschedule.solver_statistics["summary"]["times"]["total"] / results_other_reschedule.solver_statistics["summary"]["times"]["total"]
 
 
-def effective_costs_ratio_from_results(results_full_reschedule: SchedulingExperimentResult,
-                                       results_other_reschedule: SchedulingExperimentResult,
-                                       experiment_results: ExperimentResults) -> float:
-    # todo take effective costs
-    try:
-        return results_full_reschedule.solver_statistics["summary"]["costs"][0] / results_other_reschedule.solver_statistics["summary"]["costs"][0]
-    except ZeroDivisionError:
-        return inf
+def costs_ratio_from_results(results_full_reschedule: SchedulingExperimentResult,
+                             results_other_reschedule: SchedulingExperimentResult,
+                             experiment_results: ExperimentResults) -> float:
+    costs_full_reschedule = costs_from_results(
+        results_schedule=experiment_results.results_full,
+        results_reschedule=results_full_reschedule,
+        problem_reschedule=experiment_results.problem_full_after_malfunction
+    )
+    costs_other_reschedule = costs_from_results(
+        results_schedule=experiment_results.results_full,
+        results_reschedule=results_other_reschedule,
+        problem_reschedule=experiment_results.problem_full_after_malfunction
+    )
+
+    return costs_full_reschedule / costs_other_reschedule
 
 
 experiment_results_analysis_all_scopes_fields = {
@@ -432,16 +451,16 @@ experiment_results_analysis_all_scopes_fields = {
 }
 
 experiment_results_analysis_after_malfunction_scopes_fields = {
-    'effective_costs': (float, effective_costs_from_results),
-    'effective_total_costs_from_route_section_penalties': (float, effective_total_costs_from_route_section_penalties),
-    'effective_costs_from_route_section_penalties': (Dict[int, float], effective_costs_from_route_section_penalties_from_results),
-    'effective_costs_from_route_section_penalties_per_edge':
-        (Dict[int, Dict[Tuple[Waypoint, Waypoint], float]], effective_costs_from_route_section_penalties_per_edge_from_results),
+    'costs': (float, costs_from_results),
+    'costs_from_route_section_penalties': (float, costs_from_route_section_penalties),
+    'costs_from_route_section_penalties_per_agent': (Dict[int, float], costs_from_route_section_penalties_per_agent_from_results),
+    'costs_from_route_section_penalties_per_agent_and_edge':
+        (Dict[int, Dict[Tuple[Waypoint, Waypoint], float]], costs_from_route_section_penalties_per_agent_and_edge_from_results),
+    'costs_from_lateness': (float, costs_from_lateness_from_results),
 
     # lateness unweighted
-    'total_lateness': (float, total_lateness_from_results),
-    # todo SIM-562 effective_costs_lateness und effective_total_costs_lateness
-    'lateness': (Dict[int, int], lateness_from_results),
+    'lateness': (float, lateness_from_results),
+    'lateness_per_agent': (Dict[int, int], lateness_per_agent_from_results),
     'vertex_lateness': (Dict[int, Dict[Waypoint, float]], vertex_lateness_from_results),
     'changed_agents': (float, changed_from_results),
     'changed_agents_percentage': (float, changed_percentage_from_results),
@@ -449,7 +468,7 @@ experiment_results_analysis_after_malfunction_scopes_fields = {
 
 speedup_scopes_fields = {
     'speed_up': (float, speed_up_from_results),
-    'effective_costs_ratio': (float, effective_costs_ratio_from_results),
+    'costs_ratio': (float, costs_ratio_from_results),
 }
 
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
@@ -559,6 +578,14 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
     return pd.DataFrame(columns=COLUMNS_ANALYSIS, data=[r._asdict() for r in l])
 
 
+def filter_experiment_results_analysis_data_frame(experiment_data: pd.DataFrame) -> pd.DataFrame:
+    time_full_after_malfunction = experiment_data['solver_statistics_times_total_full_after_malfunction']
+    return experiment_data[
+        (time_full_after_malfunction > 10) &
+        (time_full_after_malfunction <= time_full_after_malfunction.quantile(.97))
+        ]
+
+
 def expand_experiment_results_for_analysis(
         experiment_results: ExperimentResults,
         nonify_all_structured_fields: bool = False
@@ -635,51 +662,161 @@ def expand_experiment_results_for_analysis(
             for scope in speed_up_scopes
         }
     )
+
+    def _to_experiment_results_analysis():
+        return ExperimentResultsAnalysis(
+            experiment_id=experiment_parameters.experiment_id,
+            grid_id=experiment_parameters.grid_id,
+            size=experiment_parameters.infra_parameters.width,
+            n_agents=experiment_parameters.infra_parameters.number_of_agents,
+            max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
+            max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
+            max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
+
+            infra_id=experiment_parameters.infra_parameters.infra_id,
+            schedule_id=experiment_parameters.schedule_parameters.schedule_id,
+            earliest_malfunction=experiment_parameters.earliest_malfunction,
+            malfunction_duration=experiment_parameters.malfunction_duration,
+            malfunction_agend_id=experiment_parameters.malfunction_agend_id,
+            weight_route_change=experiment_parameters.weight_route_change,
+            weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+            max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+
+            factor_resource_conflicts=factor_resource_conflicts,
+
+            online_predicted_changed_agents=len(online_predicted_changed_agents),
+            online_predicted_changed_agents_false_positives=len(online_predicted_changed_agents_false_positives),
+            online_predicted_changed_agents_false_negatives=len(online_predicted_changed_agents_false_negatives),
+            online_predicted_changed_agents_percentage=(len(online_predicted_changed_agents) / nb_agents),
+            online_predicted_changed_agents_false_positives_percentage=(len(online_predicted_changed_agents_false_positives) /
+                                                                        len(ground_truth_negative_changed_agents)),
+            online_predicted_changed_agents_false_negatives_percentage=(len(online_predicted_changed_agents_false_negatives) /
+                                                                        len(ground_truth_positive_changed_agents)),
+            **d
+        )
+
+    plausibility_check_experiment_results_analysis(experiment_results_analysis=_to_experiment_results_analysis())
+
     # nonify all non-float fields
     if nonify_all_structured_fields:
         d.update({f"problem_{scope}": None for scope in all_scopes})
         d.update({f"results_{scope}": None for scope in all_scopes})
         d.update({f"solution_{scope}": None for scope in all_scopes})
         d.update({f"lateness_{scope}": None for scope in after_malfunction_scopes})
-        d.update({f"effective_costs_from_route_section_penalties_{scope}": None for scope in after_malfunction_scopes})
+        d.update({f"costs_from_route_section_penalties_per_agent_{scope}": None for scope in after_malfunction_scopes})
         d.update({f"vertex_lateness_{scope}": None for scope in after_malfunction_scopes})
-        d.update({f"effective_costs_from_route_section_penalties_per_edge_{scope}": None for scope in after_malfunction_scopes})
+        d.update({f"costs_from_route_section_penalties_per_agent_and_edge_{scope}": None for scope in after_malfunction_scopes})
         d.update({
             'experiment_parameters': None,
             'malfunction': None,
             'delta_online_after_malfunction_predicted_agents': None
         })
 
-    return ExperimentResultsAnalysis(
-        experiment_id=experiment_parameters.experiment_id,
-        grid_id=experiment_parameters.grid_id,
-        size=experiment_parameters.infra_parameters.width,
-        n_agents=experiment_parameters.infra_parameters.number_of_agents,
-        max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
-        max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
-        max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
+    return _to_experiment_results_analysis()
 
-        infra_id=experiment_parameters.infra_parameters.infra_id,
-        schedule_id=experiment_parameters.schedule_parameters.schedule_id,
-        earliest_malfunction=experiment_parameters.earliest_malfunction,
-        malfunction_duration=experiment_parameters.malfunction_duration,
-        malfunction_agend_id=experiment_parameters.malfunction_agend_id,
-        weight_route_change=experiment_parameters.weight_route_change,
-        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
 
-        factor_resource_conflicts=factor_resource_conflicts,
+# TODO SIM-562 all scopes
+def plausibility_check_experiment_results(experiment_results: ExperimentResults):
+    """Verify the following experiment expectations:
 
-        online_predicted_changed_agents=len(online_predicted_changed_agents),
-        online_predicted_changed_agents_false_positives=len(online_predicted_changed_agents_false_positives),
-        online_predicted_changed_agents_false_negatives=len(online_predicted_changed_agents_false_negatives),
-        online_predicted_changed_agents_percentage=(len(online_predicted_changed_agents) / nb_agents),
-        online_predicted_changed_agents_false_positives_percentage=(len(online_predicted_changed_agents_false_positives) /
-                                                                    len(ground_truth_negative_changed_agents)),
-        online_predicted_changed_agents_false_negatives_percentage=(len(online_predicted_changed_agents_false_negatives) /
-                                                                    len(ground_truth_positive_changed_agents)),
-        **d
-    )
+    1. a) same waypoint in schedule and re-schedule -> waypoint also in scope perfect re-schedule
+       b) same waypoint and time in schedule and re-schedule -> same waypoint and ant time also in re-schedule delta perfect
+    """
+    route_dag_constraints_delta_perfect_after_malfunction = experiment_results.results_delta_perfect_after_malfunction.route_dag_constraints
+
+    # 1. plausibility check
+    # a) same waypoint in schedule and re-schedule -> waypoint also in scope perfect re-schedule
+    # b) same waypoint and time in schedule and re-schedule -> same waypoint and ant time also in re-schedule delta perfect
+    for agent_id in route_dag_constraints_delta_perfect_after_malfunction:
+        # b) S0[x] == S[x]) ==> S'[x]: path and time
+        schedule: Set[TrainrunWaypoint] = frozenset(experiment_results.results_full.trainruns_dict[agent_id])
+        reschedule_full: Set[TrainrunWaypoint] = frozenset(
+            experiment_results.results_full_after_malfunction.trainruns_dict[agent_id])
+        reschedule_delta_perfect: Set[TrainrunWaypoint] = frozenset(
+            experiment_results.results_delta_perfect_after_malfunction.trainruns_dict[agent_id])
+        assert schedule.intersection(reschedule_full).issubset(reschedule_delta_perfect)
+
+        # a) S0[x] == S[x]) ==> S'[x]: path
+        waypoints_schedule: Set[Waypoint] = {
+            trainrun_waypoint.waypoint
+            for trainrun_waypoint in experiment_results.results_full.trainruns_dict[agent_id]
+        }
+        waypoints_reschedule_full: Set[Waypoint] = {
+            trainrun_waypoint.waypoint
+            for trainrun_waypoint in experiment_results.results_full_after_malfunction.trainruns_dict[agent_id]
+        }
+        waypoints_reschedule_delta_perfect: Set[Waypoint] = {
+            trainrun_waypoint.waypoint
+            for trainrun_waypoint in experiment_results.results_delta_perfect_after_malfunction.trainruns_dict[agent_id]
+        }
+        assert waypoints_schedule.intersection(waypoints_reschedule_full).issubset(waypoints_reschedule_delta_perfect)
+
+    # 2. plausibility test: number of alternatives should be decreasing from full to delta
+    for agent_id in route_dag_constraints_delta_perfect_after_malfunction:
+        node_set_full_after_malfunction = set(experiment_results.problem_full_after_malfunction.topo_dict[agent_id].nodes)
+        node_set_delta_perfect_after_malfunction = set(experiment_results.problem_delta_perfect_after_malfunction.topo_dict[agent_id].nodes)
+        if not node_set_full_after_malfunction.issuperset(node_set_delta_perfect_after_malfunction):
+            assert node_set_full_after_malfunction.issuperset(node_set_delta_perfect_after_malfunction), \
+                f"{agent_id}: not all nodes from delta perfect are also in full: only delta perfect " \
+                f"{node_set_delta_perfect_after_malfunction.difference(node_set_full_after_malfunction)}, " \
+                f"malfunction={experiment_results.malfunction}"
+
+
+# TODO SIM-562 all scopes
+def plausibility_check_experiment_results_analysis(experiment_results_analysis: ExperimentResultsAnalysis):
+    experiment_id = experiment_results_analysis.experiment_id
+    plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
+    costs_full_after_malfunction: int = experiment_results_analysis.costs_full_after_malfunction
+    lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_per_agent_full_after_malfunction
+    costs_from_route_section_penalties_per_agent_full_after_malfunction: Dict[
+        int, int] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_full_after_malfunction
+    costs_delta_perfect_after_malfunction: int = experiment_results_analysis.costs_delta_perfect_after_malfunction
+    lateness_delta_perfect_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_per_agent_delta_perfect_after_malfunction
+    costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction: Dict[
+        int, int] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction
+    # TODO SIM-562 might not be correct since lateness is defined with respect to schedule
+    costs_lateness_full_after_malfunction: int = lateness_to_effective_cost(
+        weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
+        lateness_dict=lateness_full_after_malfunction)
+    sum_all_route_section_penalties_full_after_malfunction: int = sum(
+        costs_from_route_section_penalties_per_agent_full_after_malfunction.values())
+    costs_lateness_delta_perfect_after_malfunction: int = lateness_to_effective_cost(
+        weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
+        lateness_dict=lateness_delta_perfect_after_malfunction)
+    sum_all_route_section_penalties_delta_perfect_after_malfunction: int = sum(
+        costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction.values())
+
+    assert costs_full_after_malfunction == (
+            costs_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction), \
+        f"experiment {experiment_id}: " \
+        f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
+        f"costs_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
+        f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
+    assert (costs_delta_perfect_after_malfunction ==
+            costs_lateness_delta_perfect_after_malfunction + sum_all_route_section_penalties_delta_perfect_after_malfunction), \
+        f"experiment {experiment_id}: " \
+        f"costs_delta_perfect_after_malfunction={costs_delta_perfect_after_malfunction}, " \
+        f"costs_lateness_delta_perfect_after_malfunction={costs_lateness_delta_perfect_after_malfunction}, " \
+        f"sum_all_route_section_penalties_delta_perfect_after_malfunction={sum_all_route_section_penalties_delta_perfect_after_malfunction}, "
+
+
+def lateness_to_effective_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
+    """Map lateness per agent to costs for lateness.
+
+    Parameters
+    ----------
+    weight_lateness_seconds
+    lateness_dict
+
+    Returns
+    -------
+    """
+    penalty_leap_at = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
+    penalty_leap = 5000000 + penalty_leap_at * weight_lateness_seconds
+    return sum([(penalty_leap
+                 if lateness > penalty_leap_at
+                 else (lateness // DELAY_MODEL_RESOLUTION) * DELAY_MODEL_RESOLUTION * weight_lateness_seconds)
+                for agent_id, lateness in lateness_dict.items()])
 
 
 _pp = pprint.PrettyPrinter(indent=4)

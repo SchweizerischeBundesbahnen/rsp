@@ -11,6 +11,7 @@ from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.experiments import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.utils.experiments import run_experiment_agenda
+from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
 def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
@@ -158,5 +159,5 @@ if __name__ == '__main__':
         infra_id=0,
         schedule_id=0,
         experiments_per_grid_element=1,
-        experiment_base_directory="../rsp-data/h1_2020_08_24T21_04_42"
+        experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )

@@ -58,7 +58,6 @@ spec:
           git status
           $GIT_SSH_COMMAND git@github.com git-lfs-authenticate SchweizerischeBundesbahnen/rsp download
           git lfs pull --include h1_2020_08_24T21_04_42
-          git lfs pull --include h1_2020_08_24T21_04_42_dummydata_2020_09_11T10_28_31
           date
           find . -maxdepth 1 -print0 | xargs -0 -n 1 du -sh
           df -h
