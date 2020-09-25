@@ -47,7 +47,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 106
+experiment_of_interest = 0
 ```
 
 ```{python}
@@ -58,7 +58,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_all_structured_fields=False
 )[0]
-agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agend_id
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agent_id
 plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
@@ -209,12 +209,12 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL_AFTER_MALFUNCTION)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_REDUCED_SCOPE)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION)
 ```
 
 ### solver statistics

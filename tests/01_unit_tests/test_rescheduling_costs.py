@@ -39,7 +39,12 @@ def test_costs_forced_rerouting_one_agent():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            schedule_problem_description=schedule_problem_description
+            schedule_problem_description=schedule_problem_description,
+            additional_costs_at_targets={
+                0: {
+                    target_waypoint: 0
+                }
+            }
         )
         solution, _ = solve_problem(problem=reschedule_problem)
         print(solution.trainruns_dict[0])
@@ -80,7 +85,12 @@ def test_costs_forced_delay_one_agent():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            schedule_problem_description=schedule_problem_description
+            schedule_problem_description=schedule_problem_description,
+            additional_costs_at_targets={
+                0: {
+                    target_waypoint: 0
+                }
+            }
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
@@ -123,7 +133,7 @@ def test_costs_forced_delay_two_agents():
             for agent_id, topo in topo_dict.items()
         }
         edge_penalty = 5
-        schedule_problem_description = ScheduleProblemDescription(
+        reschedule_problem_description = ScheduleProblemDescription(
             route_dag_constraints_dict,
             minimum_travel_time_dict=minimum_travel_time_dict,
             topo_dict=topo_dict,
@@ -133,7 +143,11 @@ def test_costs_forced_delay_two_agents():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            schedule_problem_description=schedule_problem_description
+            schedule_problem_description=reschedule_problem_description,
+            additional_costs_at_targets={
+                0: {target_waypoint: 0},
+                1: {target_waypoint: 0}
+            }
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 
@@ -160,8 +174,8 @@ def test_costs_forced_delay_two_agents():
 
 def test_costs_forced_rerouting_two_agents():
     """Two trains were schedule to run one after the other on the same path."""
-    topo1, edge_on_first_path1, _, source_waypoint1, _ = _make_topo2(dummy_offset=55)
-    topo2, edge_on_first_path2, _, source_waypoint2, _ = _make_topo2(dummy_offset=56)
+    topo1, edge_on_first_path1, _, source_waypoint1, target_waypoint1 = _make_topo2(dummy_offset=55)
+    topo2, edge_on_first_path2, _, source_waypoint2, target_waypoint2 = _make_topo2(dummy_offset=56)
 
     topo_dict = {0: topo1, 1: topo2}
     minimum_travel_time = 3
@@ -188,7 +202,11 @@ def test_costs_forced_rerouting_two_agents():
         )
 
         reschedule_problem: ASPProblemDescription = ASPProblemDescription.factory_rescheduling(
-            schedule_problem_description=schedule_problem_description
+            schedule_problem_description=schedule_problem_description,
+            additional_costs_at_targets={
+                0: {target_waypoint1: 0},
+                1: {target_waypoint2: 0}
+            }
         )
         solution, asp_solution = solve_problem(problem=reschedule_problem)
 

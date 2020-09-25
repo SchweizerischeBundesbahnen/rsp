@@ -17,10 +17,10 @@ def test_malfunction_variation():
             experiments_per_grid_element=1,
             experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER,
             experiment_output_base_directory=experiment_output_base_directory,
-            # run only small fraction
-            fraction_of_malfunction_agents=0.1,
+            # run only small fraction resulting in choosing one agent
+            fraction_of_malfunction_agents=0.013,
         )
         files = glob.glob(f'{output_dir}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/experiment*.pkl')
-        assert len(files) == 5
+        assert len(files) == 1
     finally:
         delete_experiment_folder(experiment_output_base_directory)

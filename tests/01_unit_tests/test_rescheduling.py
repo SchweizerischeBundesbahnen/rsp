@@ -54,7 +54,7 @@ test_parameters = ExperimentParameters(
 
     earliest_malfunction=20,
     malfunction_duration=20,
-    malfunction_agend_id=0,
+    malfunction_agent_id=0,
     weight_route_change=1,
     weight_lateness_seconds=1,
     max_window_size_from_earliest=np.inf
@@ -472,8 +472,7 @@ def test_rescheduling_bottleneck():
     assert full_reschedule_trainruns[0][-1].scheduled_at == 48, f"found {full_reschedule_trainruns[0][-1].scheduled_at}"
     assert full_reschedule_trainruns[1][-1].scheduled_at == 49, f"found {full_reschedule_trainruns[1][-1].scheduled_at}"
 
-    # TODO SIM-562 check no negative delay?
-    # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
+    # agent 0: scheduled arrival was 46, new arrival is 48 -> penalty = 2
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
     actual_costs = full_reschedule_result.optimization_costs
 

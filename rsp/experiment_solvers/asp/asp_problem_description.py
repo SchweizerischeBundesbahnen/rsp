@@ -247,11 +247,14 @@ class ASPProblemDescription:
                 earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
+
+        # inject delay at earliest
         if additional_costs_at_targets is not None:
             for agent_id, target_penalties in additional_costs_at_targets.items():
                 for waypoint, penalty in target_penalties.items():
                     vertex = self._sanitize_waypoint(waypoint)
-                    self.asp_program.append("targetpenalty(t{},{},{}).".format(agent_id, vertex, penalty))
+                    assert penalty >= 0, f"{agent_id} has penalty {penalty}"
+                    self.asp_program.append("delayatearliest(t{},{},{}).".format(agent_id, vertex, penalty))
 
         # inject weight lateness
         if self.asp_objective == ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED:

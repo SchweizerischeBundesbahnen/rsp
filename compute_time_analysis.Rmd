@@ -78,7 +78,7 @@ columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in [
 plot_box_plot(
     experiment_data=experiment_data_filtered,
     axis_of_interest='experiment_id',
-    columns_of_interest=['n_agents', 'infra_id', 'schedule_id', 'size', 'earliest_malfunction', 'malfunction_duration', 'malfunction_agend_id'],
+    columns_of_interest=['n_agents', 'infra_id', 'schedule_id', 'size', 'earliest_malfunction', 'malfunction_duration', 'malfunction_agent_id'],
     title='Number of agents',
     y_axis_title= "[-]",
     color_offset=1
@@ -111,7 +111,7 @@ hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_filte
 #                        axis_of_interest=axis_of_interest)
 ```
 
-### Visualize Lateness
+### Visualize Costs
 
 ```{python}
 hypothesis_one_analysis_visualize_lateness(experiment_data=experiment_data_filtered)

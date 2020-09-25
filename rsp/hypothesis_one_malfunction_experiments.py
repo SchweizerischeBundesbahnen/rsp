@@ -74,8 +74,7 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                 train_run_end = schedule.schedule_experiment_result.trainruns_dict[malfunction_agent_id][-1].scheduled_at
                 for i in range(int(latest_malfunction_as_fraction_of_max_episode_steps / malfunction_interval_as_fraction_of_max_episode_steps)):
                     earliest_malfunction = i * malfunction_interval_absolute
-                    # TODO SIM-673 can we do this more elegantly?
-                    if earliest_malfunction < train_run_start or earliest_malfunction > train_run_end:
+                    if earliest_malfunction >= train_run_end-train_run_start:
                         continue
                     for _ in range(experiments_per_grid_element):
                         experiments.append(
@@ -88,7 +87,7 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                                 grid_id=grid_id,
                                 earliest_malfunction=earliest_malfunction,
                                 malfunction_duration=malfunction_duration,
-                                malfunction_agend_id=malfunction_agent_id,
+                                malfunction_agent_id=malfunction_agent_id,
                                 weight_route_change=weight_route_change,
                                 weight_lateness_seconds=weight_lateness_seconds,
                                 max_window_size_from_earliest=max_window_size_from_earliest,
@@ -119,9 +118,9 @@ def malfunction_variation_for_one_schedule(
         malfunction_interval_as_fraction_of_max_episode_steps: float = 0.1,
         fraction_of_malfunction_agents: float = 1.0,
         malfunction_duration: int = 50,
-        weight_route_change: int = 1,
+        weight_route_change: int = 30,
         weight_lateness_seconds: int = 1,
-        max_window_size_from_earliest: int = 30
+        max_window_size_from_earliest: int = 60
 ):
     experiment_name = f"malfunction_variation_{infra_id}_{schedule_id}"
 

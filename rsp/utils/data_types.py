@@ -24,6 +24,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
 from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
 from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
+from rsp.utils.rsp_logger import rsp_logger
 
 SpeedData = Mapping[float, float]
 
@@ -132,7 +133,7 @@ ReScheduleParameters = NamedTuple('ReScheduleParameters', [
     # 6: malfunction_duration
     ('malfunction_duration', int),
 
-    ('malfunction_agend_id', int),
+    ('malfunction_agent_id', int),
 
     # rescheduling
     # 7: number_of_shortest_paths_per_agent
@@ -157,7 +158,7 @@ ExperimentParameters = NamedTuple('ExperimentParameters', [
 
     ('earliest_malfunction', int),
     ('malfunction_duration', int),
-    ('malfunction_agend_id', int),
+    ('malfunction_agent_id', int),
     ('weight_route_change', int),
     ('weight_lateness_seconds', int),
     ('max_window_size_from_earliest', int)
@@ -239,6 +240,7 @@ def trainrun_dict_from_results(results: SchedulingExperimentResult, p: ScheduleP
     return results.trainruns_dict
 
 
+# TODO SIM-562 duplicate with solver_statistics
 def costs_from_results(results_schedule: SchedulingExperimentResult,
                        results_reschedule: SchedulingExperimentResult,
                        problem_reschedule: ScheduleProblemDescription) -> float:
@@ -313,7 +315,8 @@ def costs_from_lateness_from_results(
     )
     return lateness_to_effective_cost(
         weight_lateness_seconds=problem_reschedule.weight_lateness_seconds,
-        lateness_dict=lateness_dict)
+        lateness_dict=lateness_dict
+    )
 
 
 def lateness_from_results(
@@ -426,13 +429,22 @@ def costs_ratio_from_results(results_full_reschedule: SchedulingExperimentResult
         results_reschedule=results_full_reschedule,
         problem_reschedule=experiment_results.problem_full_after_malfunction
     )
+    # TODO SIM-324 pull out verification
+    assert costs_full_reschedule >= experiment_results.malfunction.malfunction_duration, \
+        f"costs_full_reschedule {costs_full_reschedule} should be greater than malfunction duration, "\
+        f"{experiment_results.malfunction} {experiment_results.experiment_parameters}"
     costs_other_reschedule = costs_from_results(
         results_schedule=experiment_results.results_full,
         results_reschedule=results_other_reschedule,
         problem_reschedule=experiment_results.problem_full_after_malfunction
     )
-
-    return costs_full_reschedule / costs_other_reschedule
+    # TODO SIM-324 pull out verification
+    assert costs_other_reschedule >= experiment_results.malfunction.malfunction_duration
+    try:
+        return costs_full_reschedule / costs_other_reschedule,
+    except ZeroDivisionError as e:
+        rsp_logger.error(f"{costs_full_reschedule} / {costs_other_reschedule}")
+        raise e
 
 
 experiment_results_analysis_all_scopes_fields = {
@@ -498,7 +510,7 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('max_rail_in_city', int),
     ('earliest_malfunction', int),
     ('malfunction_duration', int),
-    ('malfunction_agend_id', int),
+    ('malfunction_agent_id', int),
     ('weight_route_change', int),
     ('weight_lateness_seconds', int),
     ('max_window_size_from_earliest', int),
@@ -677,7 +689,7 @@ def expand_experiment_results_for_analysis(
             schedule_id=experiment_parameters.schedule_parameters.schedule_id,
             earliest_malfunction=experiment_parameters.earliest_malfunction,
             malfunction_duration=experiment_parameters.malfunction_duration,
-            malfunction_agend_id=experiment_parameters.malfunction_agend_id,
+            malfunction_agent_id=experiment_parameters.malfunction_agent_id,
             weight_route_change=experiment_parameters.weight_route_change,
             weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
             max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
@@ -715,18 +727,16 @@ def expand_experiment_results_for_analysis(
     return _to_experiment_results_analysis()
 
 
-# TODO SIM-562 all scopes
 def plausibility_check_experiment_results(experiment_results: ExperimentResults):
     """Verify the following experiment expectations:
 
     1. a) same waypoint in schedule and re-schedule -> waypoint also in scope perfect re-schedule
        b) same waypoint and time in schedule and re-schedule -> same waypoint and ant time also in re-schedule delta perfect
+    2. number of routing alternatives should be decreasing from full to delta
     """
     route_dag_constraints_delta_perfect_after_malfunction = experiment_results.results_delta_perfect_after_malfunction.route_dag_constraints
 
-    # 1. plausibility check
-    # a) same waypoint in schedule and re-schedule -> waypoint also in scope perfect re-schedule
-    # b) same waypoint and time in schedule and re-schedule -> same waypoint and ant time also in re-schedule delta perfect
+    # 1.
     for agent_id in route_dag_constraints_delta_perfect_after_malfunction:
         # b) S0[x] == S[x]) ==> S'[x]: path and time
         schedule: Set[TrainrunWaypoint] = frozenset(experiment_results.results_full.trainruns_dict[agent_id])
@@ -762,45 +772,32 @@ def plausibility_check_experiment_results(experiment_results: ExperimentResults)
                 f"malfunction={experiment_results.malfunction}"
 
 
-# TODO SIM-562 all scopes
 def plausibility_check_experiment_results_analysis(experiment_results_analysis: ExperimentResultsAnalysis):
     experiment_id = experiment_results_analysis.experiment_id
     plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
-    costs_full_after_malfunction: int = experiment_results_analysis.costs_full_after_malfunction
-    lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_per_agent_full_after_malfunction
-    costs_from_route_section_penalties_per_agent_full_after_malfunction: Dict[
-        int, int] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_full_after_malfunction
-    costs_delta_perfect_after_malfunction: int = experiment_results_analysis.costs_delta_perfect_after_malfunction
-    lateness_delta_perfect_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_per_agent_delta_perfect_after_malfunction
-    costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction: Dict[
-        int, int] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction
-    # TODO SIM-562 might not be correct since lateness is defined with respect to schedule
-    costs_lateness_full_after_malfunction: int = lateness_to_effective_cost(
-        weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
-        lateness_dict=lateness_full_after_malfunction)
-    sum_all_route_section_penalties_full_after_malfunction: int = sum(
-        costs_from_route_section_penalties_per_agent_full_after_malfunction.values())
-    costs_lateness_delta_perfect_after_malfunction: int = lateness_to_effective_cost(
-        weight_lateness_seconds=experiment_results_analysis.experiment_parameters.weight_lateness_seconds,
-        lateness_dict=lateness_delta_perfect_after_malfunction)
-    sum_all_route_section_penalties_delta_perfect_after_malfunction: int = sum(
-        costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction.values())
 
-    assert costs_full_after_malfunction == (
-            costs_lateness_full_after_malfunction + sum_all_route_section_penalties_full_after_malfunction), \
-        f"experiment {experiment_id}: " \
-        f"costs_full_after_malfunction={costs_full_after_malfunction}, " \
-        f"costs_lateness_full_after_malfunction={costs_lateness_full_after_malfunction}, " \
-        f"sum_all_route_section_penalties_full_after_malfunction={sum_all_route_section_penalties_full_after_malfunction}, "
-    assert (costs_delta_perfect_after_malfunction ==
-            costs_lateness_delta_perfect_after_malfunction + sum_all_route_section_penalties_delta_perfect_after_malfunction), \
-        f"experiment {experiment_id}: " \
-        f"costs_delta_perfect_after_malfunction={costs_delta_perfect_after_malfunction}, " \
-        f"costs_lateness_delta_perfect_after_malfunction={costs_lateness_delta_perfect_after_malfunction}, " \
-        f"sum_all_route_section_penalties_delta_perfect_after_malfunction={sum_all_route_section_penalties_delta_perfect_after_malfunction}, "
+    # sanity check costs
+    for scope in after_malfunction_scopes:
+        costs = experiment_results_analysis._asdict()[f'costs_{scope}']
+        costs_from_route_section_penalties = experiment_results_analysis._asdict()[f'costs_from_route_section_penalties_{scope}']
+        costs_from_lateness = experiment_results_analysis._asdict()[f'costs_from_lateness_{scope}']
+        assert costs == (
+                costs_from_lateness + costs_from_route_section_penalties), \
+            f"experiment {experiment_id}: " \
+            f"costs_{scope}={costs}, " \
+            f"costs_from_lateness_{scope}={costs_from_lateness}, " \
+            f"costs_from_route_section_penalties_{scope}={costs_from_route_section_penalties} "
+    for scope in ['perfect', 'naive']:
+        costs = experiment_results_analysis._asdict()[f'costs_delta_{scope}_after_malfunction']
+        assert costs == experiment_results_analysis.costs_full_after_malfunction
+    for scope in ['random', 'online']:
+        costs = experiment_results_analysis._asdict()[f'costs_delta_{scope}_after_malfunction']
+        assert costs >= experiment_results_analysis.costs_full_after_malfunction
 
 
-def lateness_to_effective_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
+def lateness_to_effective_cost(
+        weight_lateness_seconds: int,
+        lateness_dict: Dict[int, int]) -> Dict[int, int]:
     """Map lateness per agent to costs for lateness.
 
     Parameters

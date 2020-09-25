@@ -106,7 +106,7 @@ def test_created_env_tuple():
 
         earliest_malfunction=10,
         malfunction_duration=20,
-        malfunction_agend_id=0,
+        malfunction_agent_id=0,
         weight_route_change=1,
         weight_lateness_seconds=1,
         max_window_size_from_earliest=np.inf
@@ -155,7 +155,7 @@ def test_regression_experiment_agenda(regen: bool = False):
 
             earliest_malfunction=20,
             malfunction_duration=20,
-            malfunction_agend_id=0,
+            malfunction_agent_id=0,
             weight_route_change=1,
             weight_lateness_seconds=1,
             max_window_size_from_earliest=np.inf
@@ -285,7 +285,7 @@ def test_run_alpha_beta(regen_schedule: bool = False):
 
         earliest_malfunction=20,
         malfunction_duration=20,
-        malfunction_agend_id=0,
+        malfunction_agent_id=0,
         weight_route_change=20,
         weight_lateness_seconds=1,
         max_window_size_from_earliest=np.inf

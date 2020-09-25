@@ -207,7 +207,8 @@ def plot_speed_up(
         cols: List[str],
         output_folder: Optional[str] = None,
         y_axis_title: str = "Speed Up Factor",
-        axis_of_interest_suffix: str = ""
+        axis_of_interest_suffix: str = "",
+        nb_bins: Optional[int] = 10
 ):
     """
 
@@ -231,18 +232,14 @@ def plot_speed_up(
 
     """
     fig = go.Figure()
-    nb_x_values = len(experiment_data[axis_of_interest].value_counts())
 
     min_value = experiment_data[axis_of_interest].min()
     max_value = experiment_data[axis_of_interest].max()
-    # TODO SIM-672 configurable?
-    nb_bins = 10
     inc = (max_value - min_value) / nb_bins
     axis_of_interest_binned = axis_of_interest + "_binned"
     experiment_data.sort_values(by=axis_of_interest, inplace=True)
 
-    # TODO SIM-672 configurable?
-    binned = nb_x_values >= 10 and axis_of_interest != 'experiment_id'
+    binned = axis_of_interest != 'experiment_id'
     if binned:
         experiment_data[axis_of_interest_binned] = experiment_data[axis_of_interest].astype(float).map(
             lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(((fl - min_value) // inc) + 1) * inc + min_value :.2f}]")
@@ -909,19 +906,26 @@ def plot_route_dag(
     # TODO hacky, we should take the topo_dict from infrastructure maybe?
     topo = experiment_results_analysis.problem_full_after_malfunction.topo_dict[agent_id]
 
-    # TODO SIM-672 / SIM-692 extend
     config = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: [
             problem_schedule,
             f'Schedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
             train_run_full],
-        ScheduleProblemEnum.PROBLEM_RSP_FULL: [
+        ScheduleProblemEnum.PROBLEM_RSP_FULL_AFTER_MALFUNCTION: [
             problem_rsp_full,
             f'Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
             train_run_full_after_malfunction],
-        ScheduleProblemEnum.PROBLEM_RSP_REDUCED_SCOPE: [
+        ScheduleProblemEnum.PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
             f'Delta Perfect Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
+            train_run_delta_perfect_after_malfunction],
+        ScheduleProblemEnum.PROBLEM_RSP_DELTA_ONLINE_AFTER_MALFUNCTION: [
+            problem_rsp_reduced_scope_perfect,
+            f'Online Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
+            train_run_delta_perfect_after_malfunction],
+        ScheduleProblemEnum.PROBLEM_RSP_DELTA_RANDOM_AFTER_MALFUNCTION: [
+            problem_rsp_reduced_scope_perfect,
+            f'Delta Random Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
             train_run_delta_perfect_after_malfunction],
     }
 

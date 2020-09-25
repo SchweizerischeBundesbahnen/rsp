@@ -73,7 +73,7 @@ from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.data_types import plausibility_check_experiment_results
+from rsp.utils.data_types import plausibility_check_experiment_results_analysis
 from rsp.utils.data_types import ReScheduleParameters
 from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParameters
@@ -236,7 +236,7 @@ def run_experiment_in_memory(
     -------
     ExperimentResults
     """
-    rsp_logger.info(f"start re-schedule full and delta perfect/naive for experiment {experiment_parameters.experiment_id}")
+    rsp_logger.info(f"1. gen malfunction for  {experiment_parameters.experiment_id}")
     schedule_problem, schedule_result = schedule
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
@@ -246,9 +246,12 @@ def run_experiment_in_memory(
     experiment_malfunction = gen_malfunction(
         earliest_malfunction=experiment_parameters.earliest_malfunction,
         malfunction_duration=experiment_parameters.malfunction_duration,
-        malfunction_agent_id=experiment_parameters.malfunction_agend_id,
+        malfunction_agent_id=experiment_parameters.malfunction_agent_id,
         schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
     )
+    malfunction_agent_trainrun = schedule_trainruns[experiment_malfunction.agent_id]
+    rsp_logger.info(
+        f"{experiment_malfunction} for scheduled start {malfunction_agent_trainrun[0]} and arrival {malfunction_agent_trainrun[-1]}")
 
     if debug:
         _visualize_route_dag_constraints_for_schedule_and_malfunction(
@@ -553,8 +556,9 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # The malfunction is chosen to start relative to the start time of the malfunction_agent_id
     # This relative malfunction time makes it easier to run malfunciton-time variation experiments
+    # The malfunction must happen during the scheduled run of the agent, therefore it must happen before the scheduled end!
     malfunction_start = min(schedule_trainruns[malfunction_agent_id][0].scheduled_at + earliest_malfunction,
-                            schedule_trainruns[malfunction_agent_id][-1].scheduled_at)
+                            schedule_trainruns[malfunction_agent_id][-1].scheduled_at - 1)
     malfunction = ExperimentMalfunction(
         time_step=malfunction_start,
         malfunction_duration=malfunction_duration,
@@ -692,8 +696,9 @@ def run_experiment_from_to_file(
         rsp_logger.info(virtual_memory_human_readable())
         rsp_logger.info(current_process_stats_human_readable())
 
-        # TODO SIM-324 pull out validation steps
-        plausibility_check_experiment_results(experiment_results=experiment_results)
+        plausibility_check_experiment_results_analysis(
+            experiment_results_analysis=expand_experiment_results_for_analysis(experiment_results=experiment_results)
+        )
 
         save_experiment_results_to_file(experiment_results, filename)
         return os.getpid()
@@ -907,7 +912,7 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
 
                 earliest_malfunction=parameter_set[5],
                 malfunction_duration=parameter_set[6],
-                malfunction_agend_id=0,
+                malfunction_agent_id=0,
                 weight_route_change=parameter_set[10],
                 weight_lateness_seconds=parameter_set[11],
                 max_window_size_from_earliest=parameter_set[8],
@@ -1000,7 +1005,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
         for schedule_parameters, _ in list_of_schedule_parameters:
             for re_schedule_parameters in list_of_re_schedule_parameters:
                 # allow for malfunction agent range to be greater than number of agents of this infrastructure
-                if re_schedule_parameters.malfunction_agend_id >= infra_parameters.number_of_agents:
+                if re_schedule_parameters.malfunction_agent_id >= infra_parameters.number_of_agents:
                     continue
                 for _ in range(experiments_per_grid_element):
                     experiments.append(
@@ -1013,7 +1018,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                             grid_id=grid_id,
                             earliest_malfunction=re_schedule_parameters.earliest_malfunction,
                             malfunction_duration=re_schedule_parameters.malfunction_duration,
-                            malfunction_agend_id=re_schedule_parameters.malfunction_agend_id,
+                            malfunction_agent_id=re_schedule_parameters.malfunction_agent_id,
                             weight_route_change=re_schedule_parameters.weight_route_change,
                             weight_lateness_seconds=re_schedule_parameters.weight_lateness_seconds,
                             max_window_size_from_earliest=re_schedule_parameters.max_window_size_from_earliest,

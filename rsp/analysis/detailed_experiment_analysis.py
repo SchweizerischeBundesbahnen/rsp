@@ -22,7 +22,6 @@ from rsp.utils.data_types import speed_up_scopes
 HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'solver_statistics_times_total_{scope}' for scope in all_scopes]
 
 
-# TODO SIM-672 should we remove analysis stuff from pipeline, only have it in notebooks and tests (from dummydata maybe?)
 def hypothesis_one_analysis_visualize_computational_time_comparison(
         experiment_data: DataFrame,
         output_folder: str = None):

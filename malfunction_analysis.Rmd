@@ -59,7 +59,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_all_structured_fields=False
 )[0]
-agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agend_id
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agent_id
 plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
