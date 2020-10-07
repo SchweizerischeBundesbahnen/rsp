@@ -3,9 +3,8 @@ from typing import List
 
 import numpy as np
 
-from rsp.hypothesis_one_data_analysis import hypothesis_one_data_analysis
+from rsp.analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
-from rsp.logger import rsp_logger
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -27,6 +26,7 @@ from rsp.utils.experiments import load_schedule
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.experiments import run_experiment_in_memory
 from rsp.utils.experiments import save_schedule
+from rsp.utils.rsp_logger import rsp_logger
 
 
 def test_created_env_tuple():
@@ -106,7 +106,7 @@ def test_created_env_tuple():
 
         earliest_malfunction=10,
         malfunction_duration=20,
-        malfunction_agend_id=0,
+        malfunction_agent_id=0,
         weight_route_change=1,
         weight_lateness_seconds=1,
         max_window_size_from_earliest=np.inf
@@ -155,7 +155,7 @@ def test_regression_experiment_agenda(regen: bool = False):
 
             earliest_malfunction=20,
             malfunction_duration=20,
-            malfunction_agend_id=0,
+            malfunction_agent_id=0,
             weight_route_change=1,
             weight_lateness_seconds=1,
             max_window_size_from_earliest=np.inf
@@ -184,15 +184,15 @@ def test_regression_experiment_agenda(regen: bool = False):
     result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
     expected_result_dict = {
-        # costs in full and delta are delay with respect to constraints induced by malfunction,
-        # i.e. malfunction has to be added to get delay with respect to initial schedule!
-        'costs_delta_after_malfunction': {0: 0.0}, 'costs_full': {0: 0.0}, 'costs_full_after_malfunction': {0: 0.0},
+        'solver_statistics_costs_delta_perfect_after_malfunction': {0: 20.0},
+        'solver_statistics_costs_full': {0: 0.0},
+        'solver_statistics_costs_full_after_malfunction': {0: 20.0},
         'experiment_id': {0: 0}, 'max_num_cities': {0: 20}, 'max_rail_between_cities': {0: 2},
         'max_rail_in_city': {0: 6}, 'n_agents': {0: 2}, 'size': {0: 30}}
     print("solution_full_after_malfunction")
     print(experiment_results_for_analysis[0].solution_full_after_malfunction)
-    print("solution_delta_after_malfunction")
-    print(experiment_results_for_analysis[0].solution_delta_after_malfunction)
+    print("solution_delta_perfect_after_malfunction")
+    print(experiment_results_for_analysis[0].solution_delta_perfect_after_malfunction)
 
     for key in expected_result_dict:
         if expected_result_dict[key] != result_dict[key]:
@@ -225,7 +225,8 @@ def test_hypothesis_one_pipeline_all_in_one():
                                                  weight_lateness_seconds=[1, 1, 1]),
                 # Define the desired speed profiles
                 speed_data={1.: 1}
-            )
+            ),
+            run_analysis=True
         )
 
     # load results
@@ -249,8 +250,8 @@ def test_hypothesis_one_pipeline_all_in_one():
     assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, \
         f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " \
         f"expected={experiment_parameters.asp_seed_value}"
-    assert experiment_results.results_delta_after_malfunction.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, \
-        f"actual={experiment_results.results_delta_after_malfunction.solver_seed}, " \
+    assert experiment_results.results_delta_perfect_after_malfunction.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, \
+        f"actual={experiment_results.results_delta_perfect_after_malfunction.solver_seed}, " \
         f"expected={experiment_parameters.asp_seed_value}"
 
 
@@ -284,7 +285,7 @@ def test_run_alpha_beta(regen_schedule: bool = False):
 
         earliest_malfunction=20,
         malfunction_duration=20,
-        malfunction_agend_id=0,
+        malfunction_agent_id=0,
         weight_route_change=20,
         weight_lateness_seconds=1,
         max_window_size_from_earliest=np.inf

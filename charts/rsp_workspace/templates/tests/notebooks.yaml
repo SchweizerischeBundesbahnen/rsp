@@ -43,6 +43,7 @@ spec:
           date
           if [ ! -d /home/jovyan/data/rsp-data ]; then
             cd /home/jovyan/data
+            ls -al
             git clone git@github.com:SchweizerischeBundesbahnen/rsp-data.git
           fi
 
@@ -53,10 +54,10 @@ spec:
           git reset --hard
           git status
           git pull
+          git clean -xdf
+          git status
           $GIT_SSH_COMMAND git@github.com git-lfs-authenticate SchweizerischeBundesbahnen/rsp download
           git lfs pull --include h1_2020_08_24T21_04_42
-          git lfs pull --include h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06
-          find h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06
           date
           find . -maxdepth 1 -print0 | xargs -0 -n 1 du -sh
           df -h
@@ -64,6 +65,11 @@ spec:
           ln -s /home/jovyan/data/rsp-data/ $WORKDIR/rsp-data
           ls -al $WORKDIR/rsp-data/
 
+          # check article compiles
+          cd $WORKDIR/rsp/doc/overleaf
+          pdflatex main.tex
+
+          cd $WORKDIR
           # activate conda activate
           # https://docs.anaconda.com/anaconda/install/silent-mode/
           eval "$(conda shell.bash hook)"
@@ -79,8 +85,6 @@ spec:
           date
           conda env update --prefix /home/jovyan/data/rsp-conda --file $WORKDIR/rsp/rsp_environment.yml
           conda activate /home/jovyan/data/rsp-conda
-
-          # run unit and integration tests
           date
           export PYTHONPATH=$WORKDIR/rsp:$PYTHONPATH
           cd $WORKDIR/rsp
@@ -88,11 +92,11 @@ spec:
           # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
           pre-commit install
           SKIP=docformatter pre-commit run --all --verbose
-
           # TODO SIM-623 why does it not work?
           #python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
           #python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
 
+          # run unit and integration tests
           export QT_DEBUG_PLUGINS=1
           xvfb-run python -m pytest tests
           date
@@ -103,7 +107,6 @@ spec:
           name: ssh-volume
         - name: rsp-volume
           mountPath: /home/jovyan/data
-
   volumes:
     - name: ssh-volume
       secret:

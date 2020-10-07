@@ -26,7 +26,7 @@
 
 
 \title{Real Time Large Railway Network Re-Scheduling}
-\author{Erik Nygren\footnote{\url{erik.nygren@sbb.ch}}, Christian Eichenberger\footnote{\url{christian.markus.eichenberger@sbb.ch}}, Emma Frejinger\footnote{\url{emma.frejinger@cirrelt.ca}}}
+\author{Erik Nygren\footnote{\url{erik.nygren@sbb.ch}}, Christian Eichenberger\footnote{\url{christian.markus.eichenberger@sbb.ch}}, Emma Frejinger\footnote{\url{emma.frejinger@unmontreal.ca}}}
 
 \date{\today}
 
@@ -47,23 +47,27 @@
 \maketitle
 
 \tableofcontents
+\newpage
 \begin{abstract}
-In this paper, we describe our first steps to tackle the Re-Scheduling Problem for Real-Time Large Railway Networks by a combination of techniques from operations research and of different heuristics from ML or of domain-specific heuristics.
+In this paper, we describe our novel approach to tackle the Real-Time Re-Scheduling Problem for Large Railway Networks by a combination of techniques from operations research and machine learning.
 
-The Industry State of the Art manages to resolve re-scheduling conflicts fully automatically only at narrowly defined hubs. In our approach, we aim at combining the best of two worlds: the rigor of the OR formulation with condensed experience in the form of a hypothesized Oracle. The Oracle's prediction could either narrow down the solution space (hard constraints) or speed up the solution process by strong priorities (soft constraints and solver heuristics).
+The Industry State of the Art is limited to resolve re-scheduling conflicts fully automatically only at narrowly defined geographical regions due to the exponential growth of computational time for combinatorial problems. Our aim is to improve the scalability of the optimization to larger regions by fundamentally reformulating the core problem description. In our approach, we aim to use the generalization capabilities of machine learning algorithms to reformulate any new problem instance to a smaller equivalent instance, which can be solved in a much shorter time span.
 
-We believe that the very nature of railway systems allows for very strong heuristics which could allow for the problem to become tractable for large networks in real-time scenarios.
+This allows us to keep the rigor of the OR formulation while relying on compressed knowledge in a machine learning algorithms to vastly increasing the size of solvable problem instances.
+Early investigations support this assumption by showing, that large problem instances can be reduced to much smaller core problems even with the use of domain specific heuristics.
+
+We believe that our approach is even applicable to other transportation and logistic systems outside of railway networks.
 
 The goal of this paper is four-fold:
 \begin{description}
-\item[G1] report the decompositional problem formulation in a formal way;
-\item[G2] show the validity of the approach for one OR solver;
-\item[G3] report our first steps in tackling the Oracle;
-\item[G4] provide an extensible playground open-source implementation \url{https://github.com/SchweizerischeBundesbahnen/RSP} for further research.
+\item[G1] report the problem scope reduction formulation in a formal way;
+\item[G0] motivate the approach empirically;
+\item[G2] show the validity of the approach for one specific OR solver;
+\item[G3] report our first steps in tackling automated problem scope reduction;
+\item[G4] provide an extensible playground open-source implementation \url{https://github.com/SchweizerischeBundesbahnen/RSP} for further research into automated problem scope reduction.
 \end{description}
  We hope that this will draw the attention of both academic and industrial researchers to find other and better approaches and collaboration across Railway companies and from different research traditions.
 \end{abstract}
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,42 +80,52 @@ The goal of this paper is four-fold:
 \subsection{Real-world Context}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % real-world operations: how is it solved today in the real world, by humans and algorithmic
-Switzerland has a dense railway network with both freight and passenger trains running on the same infrastructure. More than 1.2 million people use trains on a daily basis \cite{rcsbrochure}.
-In Railway Operations, the operational schedule has to be continually re-computed because of many smaller and larger delays that arise during operations. Not all of those can be absorbed by extra times in the schedule, and if the delay has an impact on other trains, decisions on re-ordering or re-routing trains have to be taken to derive a new feasible operational plan. The industry state of the art is that delay propagation is efficiently re-computed by online IT systems. Conflicts, however, have to be most often resolved by humans by explicitly deciding on re-ordering or re-routing based on their experience. Because of the massive combinatorial complexity of these microscopic models, Operations Research models are currently only applied in very restricted, highly condensed geographic areas for re-ordering decisions but do not consider routing alternatives.
+Switzerland has one of the worlds most dense railway network with both freight and passenger trains running on the same infrastructure. More than 1.2 million people use trains on a daily basis \cite{rcsbrochure}.
+Besides the publicly available railway schedule, there is also the more detailed operational schedule, which maps specific trains to planned train runs and specifies what railway infrastructure will be utilised by what train at any time.
 
+The operational schedule has to be continually re-computed due to many smaller and larger delays and disturbances that arise during operations. While many of the minor incidents ( up to 1 million per day) can be fully resolved by the rail control system, some larger disturbances require human or more advanced algorithmic interception. To limit the spread of disturbances and minimize the delay within the dynamic railway system, decisions on re-ordering or re-routing trains have to be taken to derive a new feasible operational plan. The industry state of the art systems efficiently re-compute a traffic forecast for the next two hours without resolving the conflicts. The predicted conflicts, mostly have to be resolved by humans by explicitly deciding on re-ordering or re-routing based on their experience.The massive combinatorial complexity of these microscopic re-scheduling problems, currenlty limits the application of Operations Research models to very restricted geographic areas with a limited number of trains in the given forecast horizon.
 
+There is a common view of the current situation within system boundaries; the whole system is decomposed into disjoint geographic cells of responsibility as depicted in Figure \ref{fig:geographical_decomposition}. Most of them are handled by humans: human dispatchers have a view of the full system and can communicate through structured (e.g. IT system of incident messages) or informal ways (e.g. phone call with station managers or locomotive drivers).
+
+%
+\begin{figure}[hbtp]
+	\centering
+  \includegraphics[width=\textwidth]{Figures/disposition_areas.pdf}
+	\caption{\textit{Due to the vast complexity of a railway network the re-scheduling task is decomposed into smaller geographical areas (A-E), withiwin which human dispatchers optimize traffic flow. Inter-regeion coordination is mostly done by informal means of communication such as telephone.} }
+	\label{fig:geographical_decomposition}
+\end{figure}
+%
 
 This situation is depicted in a schematic way in Figure~\ref{fig:introduction_compensation}:
 %
 \begin{figure}[hbtp]
 	\centering
-  \includegraphics[width=0.9\textwidth]{introduction_compensation.png}
-	\caption{Real-time rescheduling has so far been applied to restricted geographic areas only.}
+  \includegraphics[width=\textwidth]{Figures/rsp_rescheduling_heute.pdf}
+	\caption{\textit{Real-time rescheduling has so far been applied to restricted geographic areas only. This means that human intervention or buffer times are necessary outside of the optimization scope to guarantee conflict free traffic in the whole network. The limited geographical scope leads to a cost-function that can only locally be minimized and might have negative effects on the whole network scale.} }
 	\label{fig:introduction_compensation}
 \end{figure}
 %
-There is a common view of the current situation within system boundaries; the whole system is decomposed into disjoint geographic cells of responsibility. Most of them are handled by humans: human dispatchers have a view of the full system and can communicate through structured (e.g. IT system of incident messages) or informal ways (e.g. phone call with station managers or locomotive drivers). There are only a few condensation areas \cite{caimi2009} (in bottleneck areas such as merging/approach areas in front of large stations or tunnels) that are operated through automatic systems. Between these areas, trains need to be able to compensate: if trains are reordered, these decisions must be taken into account in the neighboring areas.
 
-Currently, optimization algorithms are only applied to restricted condensation zones \cite{caimi2009}. The decisions made within these condensation zones are taken locally within these geographical areas; in case of conflicts with decisions made outside these areas, human dispatchers will need to compensate:
+
 %
 \begin{quote}
     [...], a network separation approach is applied to divide the railway network into zones of manageable size by taking account of the network properties, distinguishing condensation and compensation zones. Condensation zones are usually situated near main stations, where the track topology is complex and many different routes exist. As such an area is expected to have a high traffic density, it is also a capacity bottleneck and trains are required to travel through with maximum allowed speed and thus without time reserves. Collisions are avoided by exploiting the various routing possibilities in the station area. Conversely, a compensation zone connects two or more condensation zones and consists of a simpler topology and less traffic density. Here, time reserves should be introduced to improve timetable stability. The choice of an appropriate speed profile is the most important degree of freedom to exploit in these compensation zones. \cite{caimi2009}
 \end{quote}
+
+ There are only a few so called condensation areas \cite{caimi2009} (in bottleneck areas such as merging/approach areas in front of large stations or tunnels) that are operated through automatic systems. Between these dense areas, trains need to be able to compensate for temporal delays: if trains are reordered or rerouted, these decisions must be feasible in the neighboring areas.
 
 The following Figure~\ref{fig:introduction_operations} shows the re-scheduling control loop adapted from \cite{rcsbrochure,rcswhitepaper}, as well as our simplified control loop for RSP.
 %
 \begin{figure}[hbtp]
 	\centering
 %  \includegraphics[width=0.9\textheight,angle=90]{introduction_operations.PNG}
-  \includegraphics[width=1.0\textwidth]{introduction_operations.PNG}
-	\caption{Re-scheduling loops in reality and our simplification. Boxes represent systems, arrows represent information flow. Dashed boxes and arrows hint at possible extensions to the RSP loop not implemented in this paper.}
+  \includegraphics[width=0.8\textwidth]{Figures/rescheduling_schema_heute.pdf}
+	\caption{\textit{Simplified schema of the rescheduling process during operations. There are three main areas involved: \emph{planning}, \emph{dispatching} and \emph{operation} (interlocking and driving assistance). Dispatchers have access to the current situation and an automated forecast and make decisions on the level of the operational plan, which are then translated either automatically or by dedicated dispatching team members to the interlocking system; some areas are under the control of an automatic optimization system. As time goes on, new elements from the planned schedule will be introduced to the operational schedule and the planned schedule gives also constraints to re-scheduling: passenger trains must not depart earlier than communicated to customers and the service intention may define further hard or soft constraints such as pecuniar penalties for delay or train dropping. The current situation will be reflected in the operational schedule and the forecast}}
 	\label{fig:introduction_operations}
 \end{figure}
 %
-Three main areas are involved: \emph{planning}, \emph{dispatching} and \emph{operation} (interlocking and driving assistance). Dispatchers have access to the current situation and a forecast and make decisions on the level of the operational plan, which are then translated either automatically or by dedicated dispatching team members to the interlocking system; some areas are under the control of an automatic optimization system. As time goes on, new elements from the planned schedule will be introduced to the operational schedule and the planned schedule gives also constraints to re-scheduling: passenger trains must not depart earlier than communicated to customers and the service intention may define further hard or soft constraints such as pecuniar penalties for delay or train dropping. The current situation will be reflected in the operational schedule and the forecast.
 
-
-Our playground implementation is a simplification (see Section~\ref{subsec:playground} below), shown on the right-hand side of Figure~\ref{fig:introduction_operations}: we only consider an operational plan and a single delay and try to re-schedule such that we have a conflict-free plan, again that stays close to the previous operational plan. We hint at a fully automatic re-scheduling loop as follows: information from the current situation needs to be included into the operational plan by passing it to the optimizer via the Oracle; as time moves on, new trains from the planned schedule need to be included into the operational schedule.
+Our playground implementation is a simplification (see Section~\ref{subsec:playground} below), shown in Figure~\ref{fig:introduction_operations}: we only consider an operational plan and a single delay and try to re-schedule such that we have a conflict-free plan, again that stays close to the previous operational plan. We hint at a fully automatic re-scheduling loop as follows: information from the current situation needs to be included into the operational plan by passing it to the optimizer via the Oracle; as time moves on, new trains from the planned schedule need to be included into the operational schedule.
 
 In reality, a distinction is made between
 \begin{itemize}
@@ -124,6 +138,12 @@ The forecast outside the optimization areas needs only be conflict-free for the 
 As these condensation areas are supposed to grow, we think that the locality of decision-making might become a problem and some sort of coordination might be needed.
 %
 Therefore, in our RSP approach, we consider how not to take space-local decisions; also we think of operational schedule and forecast as the same, being conflict-free.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Research Approach: Core idea}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Add information about what we mean by automated problem scope reduction: Heuristic, historical, structures, .....
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Research Approach: Decomposition in Space and Time}
@@ -146,7 +166,7 @@ This approach is shown in Figure~\ref{fig:introduction_time_space}:
 %
 \begin{figure}[hbtp]
 	\centering
-  \includegraphics[width=0.9\textwidth]{introduction_time_space.png}
+  \includegraphics[width=\textwidth]{Figures/rsp_rescheduling_rsp.pdf}
 	\caption{The Oracle gives degrees of freedom in time and space.}
 	\label{fig:introduction_time_space}
 \end{figure}
@@ -713,8 +733,8 @@ and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{
 
 \begin{mdframed}
 {\bf TODO Christian}
-Formalize Delta_0/Delta_perfect of the whole problem for all agents.
-Proposition: "Delta_perfect <= Delta_0", i.e. every solution to Delta_perfect is a solution to Delta_0
+Formalize Delta\_0/Delta\_perfect of the whole problem for all agents.
+Proposition: "Delta\_perfect <= Delta\_0", i.e. every solution to Delta\_perfect is a solution to Delta\_0
 \end{mdframed}
 
 
@@ -757,17 +777,54 @@ and the second term of (\ref{eq:objectiveresched}) penalizes re-routing with res
 \end{mdframed}
 
 
+\begin{algorithm}
+	\caption{$transmissionchains$} \label{algo:naive}
+	\begin{algorithmic}[1]
+		\Require $\mathcal{A}$, $(P_S,A_S)$, $\mathcal{A}^*\subseteq\mathcal{A}$
+	    \Ensure $\mathcal{A}$
+	    % not-changed agents
+	    \For {$(S,L,e,l,w) \in \mathcal{A}-\mathcal{A}^*$}
+	        \State $S \leftarrow \Set*{v: v\in P_{S}}$
+	        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S_1}$
+	        \State $e \leftarrow \Set*{(v,P_S(v): v\in S}$
+	        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
+	        \State $w \leftarrow w \vert_{L}$
+	    \EndFor
+	\end{algorithmic}
+\end{algorithm}
+
+
+Reduce the strictness of the oracle by freeing up all the variables of changed trains. I.e. if a train has some change somewhere, all the parameters of the train are available or change such as alternative routes and different times. This is detailled in Algorithm~\ref{algo:DeltaNotperfect}, where $\mathcal{A}^*$ denotes the set of changed trains and $\mathcal{A}$ are the trains as of the full re-scheduling problem.
+
+
+\begin{algorithm}
+	\caption{$Delta_{notsoperfect}$} \label{algo:DeltaNotperfect}
+	\begin{algorithmic}[1]
+		\Require $\mathcal{A}$, $(P_S,A_S)$, $\mathcal{A}^*\subseteq\mathcal{A}$
+	    \Ensure $\mathcal{A}$
+	    % not-changed agents
+	    \For {$(S,L,e,l,w) \in \mathcal{A}-\mathcal{A}^*$}
+	        \State $S \leftarrow \Set*{v: v\in P_{S}}$
+	        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S_1}$
+	        \State $e \leftarrow \Set*{(v,P_S(v): v\in S}$
+	        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
+	        \State $w \leftarrow w \vert_{L}$
+	    \EndFor
+	\end{algorithmic}
+\end{algorithm}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Discussion: show links to}
+\section{Discussion/Related Work/Literature: show links to various Research Approaches}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         ML
-        delay propagation / recourse
+        delay propagation / recourse / stability of iterative and batch processing
         simulation
         OR / heuristics
         decomposition approaches
         real-time rescheduling
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -793,9 +850,9 @@ Similarly, a \emph{postdictor} takes the result of rescheduling (including the o
 \begin{mdframed}
 {\bf TODO Christian} Figures:
 \begin{itemize}
-    \item nb of agents x (time_full_after_malfunction, time_delta_after_malfunction) --> variance
-    \item nb of cells x (time_full_after_malfunction, time_delta_after_malfunction) --> variance
-    \item nb of affected trains x (time_full_after_malfunction, time_delta_after_malfunction) --> variance
+    \item nb of agents x (time\_full\_after\_malfunction, time\_delta\_after\_malfunction) --> variance
+    \item nb of cells x (time\_full\_after\_malfunction, time\_delta\_after\_malfunction) --> variance
+    \item nb of affected trains x (time\_full\_after\_malfunction, time\_delta\_after\_malfunction) --> variance
 \end{itemize}
 \end{mdframed}
 
@@ -833,7 +890,7 @@ where at each level we generate multiple instances for a fixed instance of the p
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{mdframed}
-{\bf TODO Christian} Show relative speed-up (experiment_id x speed_up) and absolute runtimes of Delta perfect (experiment_id x time_delta_after_malfunction and time_full_after_malfunction x time_delta_after_malfunction. Three plots.
+{\bf TODO Christian} Show relative speed-up (experiment\_id x speed\_up) and absolute runtimes of Delta perfect (experiment\_id x time\_delta\_after\_malfunction and time\_full\_after\_malfunction x time\_delta\_after\_malfunction. Three plots.
 \end{mdframed}
 
 

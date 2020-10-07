@@ -22,7 +22,7 @@ def potassco_export(experiment_potassco_directory: str,
                     asp_export_experiment_ids: List[int],
                     export_schedule_full: bool = False,
                     export_reschedule_full_after_malfunction: bool = True,
-                    export_reschedule_delta_after_malfunction: bool = False,
+                    export_reschedule_delta_perfect_after_malfunction: bool = False,
                     ):
     """Create subfolder potassco in the basefolder and export programs and data
     for the given experiment ids and shell script to start them.
@@ -34,7 +34,7 @@ def potassco_export(experiment_potassco_directory: str,
     asp_export_experiment_ids
     export_schedule_full
     export_reschedule_full_after_malfunction
-    export_reschedule_delta_after_malfunction
+    export_reschedule_delta_perfect_after_malfunction
     """
     print(f"potassco export to {experiment_potassco_directory}")
     check_create_folder(experiment_potassco_directory)
@@ -70,14 +70,14 @@ def potassco_export(experiment_potassco_directory: str,
                 results=experiment.results_full_after_malfunction,
                 factory_method=ASPProblemDescription.factory_rescheduling
             )
-        if export_reschedule_delta_after_malfunction:
+        if export_reschedule_delta_perfect_after_malfunction:
             _potassco_write_lp_and_sh_for_experiment(
                 experiment_id=experiment_id,
                 experiment_potassco_directory=experiment_potassco_directory,
-                name="reschedule_delta_after_malfunction",
-                problem=experiment.problem_delta_after_malfunction,
+                name="reschedule_delta_perfect_after_malfunction",
+                problem=experiment.problem_delta_perfect_after_malfunction,
                 programs=[f"encoding/{s}" for s in reschedule_programs],
-                results=experiment.results_delta_after_malfunction,
+                results=experiment.results_delta_perfect_after_malfunction,
                 factory_method=ASPProblemDescription.factory_rescheduling
             )
 
@@ -163,13 +163,13 @@ def main(experiment_base_directory: str,
          problem: str):
     export_schedule_full: bool = False
     export_reschedule_full_after_malfunction: bool = False
-    export_reschedule_delta_after_malfunction: bool = False
+    export_reschedule_delta_perfect_after_malfunction: bool = False
     if problem == "full":
         export_schedule_full = True
     elif problem == 'full_after_malfunction':
         export_reschedule_full_after_malfunction = True
-    elif problem == 'delta_after_malfunction':
-        export_reschedule_delta_after_malfunction = True
+    elif problem == 'delta_perfect_after_malfunction':
+        export_reschedule_delta_perfect_after_malfunction = True
     else:
         raise ValueError(f"unkonwn problem={problem}")
     experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
@@ -180,7 +180,7 @@ def main(experiment_base_directory: str,
         experiment_results_list=experiment_results_list, asp_export_experiment_ids=experiment_ids,
         export_schedule_full=export_schedule_full,
         export_reschedule_full_after_malfunction=export_reschedule_full_after_malfunction,
-        export_reschedule_delta_after_malfunction=export_reschedule_delta_after_malfunction
+        export_reschedule_delta_perfect_after_malfunction=export_reschedule_delta_perfect_after_malfunction
     )
 
 
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('--experiment_base_directory', type=str, nargs=1, help='../rsp-data/agent_0_malfunction_2020_05_27T19_45_49')
     parser.add_argument('--experiment_id', type=int, nargs=1, help='0,1,2,3...')
     parser.add_argument('--problem', type=str,
-                        choices=['full_after_malfunction', 'full', 'delta_after_malfunction'],
+                        choices=['full_after_malfunction', 'full', 'delta_perfect_after_malfunction'],
                         help='which problem to check',
                         nargs=1)
     args = parser.parse_args()

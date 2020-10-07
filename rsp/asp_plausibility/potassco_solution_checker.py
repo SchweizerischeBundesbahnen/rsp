@@ -3,13 +3,13 @@ import argparse
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import _get_asp_solver_details_from_statistics
 from rsp.utils.experiments import create_experiment_filename
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import save_experiment_results_to_file
+from rsp.utils.rsp_logger import rsp_logger
 
 
 def main(experiment_data_folder_name: str,
@@ -49,7 +49,7 @@ def main(experiment_data_folder_name: str,
             verbose=verbose,
             debug=debug
         )
-    elif problem_suffix in ["full_after_malfunction", "delta_after_malfunction"]:
+    elif problem_suffix in ["full_after_malfunction", "delta_perfect_after_malfunction"]:
         statistics = results.solver_statistics
         rsp_logger.info(f"Problem {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name} baseline was: "
                         f'{_get_asp_solver_details_from_statistics(elapsed_time=statistics["summary"]["times"]["total"], statistics=statistics)}')
@@ -59,7 +59,7 @@ def main(experiment_data_folder_name: str,
             asp_seed_value=experiment_results.experiment_parameters.asp_seed_value
         )
         rsp_logger.info(f"Solving {problem_suffix} for experiment {experiment_results.experiment_id} from {experiment_data_folder_name}")
-        reschedule_result, asp_solution = solve_problem(
+        solve_problem(
             problem=reschedule_problem,
             verbose=verbose,
             debug=debug
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     parser.add_argument('--experiment_data_folder_name', type=str, nargs=1, help='../rsp-data/agent_0_malfunction_2020_05_27T19_45_49/data')
     parser.add_argument('--experiment_id', type=int, nargs=1, help='0,1,2,3...')
     parser.add_argument('--problem', type=str,
-                        choices=['full_after_malfunction', 'full', 'delta_after_malfunction'],
+                        choices=['full_after_malfunction', 'full', 'delta_perfect_after_malfunction'],
                         help='which problem to check',
                         nargs=1)
     parser.add_argument('--debug', action="store_true")

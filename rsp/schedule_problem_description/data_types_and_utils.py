@@ -4,14 +4,13 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NamedTuple
-from typing import Optional
 from typing import Tuple
 
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.logger import rsp_logger
+from rsp.utils.rsp_logger import rsp_logger
 
 TopoDict = Dict[int, nx.DiGraph]
 AgentPaths = List[List[Waypoint]]
@@ -39,8 +38,10 @@ ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
 
 class ScheduleProblemEnum(Enum):
     PROBLEM_SCHEDULE = "PROBLEM_SCHEDULE"
-    PROBLEM_RSP_FULL = "PROBLEM_RSP_FULL"
-    PROBLEM_RSP_DELTA = "PROBLEM_RSP_DELTA"
+    PROBLEM_RSP_FULL_AFTER_MALFUNCTION = "PROBLEM_RSP_FULL_AFTER_MALFUNCTION"
+    PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION = "PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION"
+    PROBLEM_RSP_DELTA_RANDOM_AFTER_MALFUNCTION = "PROBLEM_RSP_DELTA_RANDOM_AFTER_MALFUNCTION"
+    PROBLEM_RSP_DELTA_ONLINE_AFTER_MALFUNCTION = "PROBLEM_RSP_DELTA_ONLINE_AFTER_MALFUNCTION"
 
 
 def schedule_problem_description_equals(s1: ScheduleProblemDescription, s2: ScheduleProblemDescription):
@@ -154,22 +155,6 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     assert len(cycles) == 0, f"cycle in re-combination of shortest paths, {cycles}"
     assert len(get_paths_in_route_dag(topo)) > 0, "no path after removing loopy paths"
     return topo
-
-
-def get_paths_for_route_dag_constraints(
-        topo: nx.DiGraph,
-        route_dag_constraints: Optional[RouteDAGConstraints] = None) -> List[List[Waypoint]]:
-    """Determine the routes through the route graph given the constraints.
-
-    Parameters
-    ----------
-    route_dag_constraints
-
-    Returns
-    -------
-    """
-    paths = get_paths_in_route_dag(topo)
-    return paths
 
 
 def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> TopoDict:

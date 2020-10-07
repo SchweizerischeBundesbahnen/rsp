@@ -19,7 +19,7 @@ def multiline_eval(expr):
 
 def test_notebooks_run_through():
     base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir)
-    # TODO SIM-571 activate potassco notebooks when data is added to rsp-data
+    # TODO SIM-571 SIM-672 activate potassco notebooks when data is added to rsp-data
     notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd") and 'potassco' not in f]
     for notebook in notebooks:
         print("*****************************************************************")
@@ -37,6 +37,11 @@ def test_notebooks_run_through():
             dest_text = re.sub('^(plot_route_dag.*)\\)', r'\g<1>, save=True)', dest_text, flags=re.MULTILINE)
             # tweak 3: do not show Video
             dest_text = re.sub('^Video', r'#Video', dest_text, flags=re.MULTILINE)
+
+            # tweak 4: run only a subset of all data in compute_time_analysis.Rmd in integration tests
+            dest_text = re.sub('^experiments_of_interest =.*',
+                               """experiments_of_interest = range(10)""", dest_text,
+                               flags=re.MULTILINE)
 
             print(dest_text)
             multiline_eval(dest_text)

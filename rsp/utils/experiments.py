@@ -15,8 +15,6 @@ span_n_grid
 create_env_pair_for_experiment
     Create a pair of environments for the desired research. One environment has no malfunciton, the other one has
     exactly one malfunciton
-load_experiment_agenda_from_file
-    Load a ExperimentAgenda
 save_experiment_results_to_file
     Save the results of an experiment or a full experiment agenda
 load_experiment_results_to_file
@@ -55,19 +53,19 @@ from rsp.experiment_solvers.data_types import Infrastructure
 from rsp.experiment_solvers.data_types import Schedule
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
-from rsp.logger import add_file_handler_to_rsp_logger
-from rsp.logger import remove_file_handler_from_rsp_logger
-from rsp.logger import rsp_logger
-from rsp.schedule_problem_description.analysis.rescheduling_verification_utils import plausibility_check_experiment_results
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import get_sources_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
-from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
-from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
+from rsp.schedule_problem_description.route_dag_constraints.scoper_no_rerouting import scoper_no_rerouting_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_online import scoper_online_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_perfect import scoper_perfect_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_random import scoper_random_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_trivially_perfect import scoper_trivially_perfect_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
 from rsp.utils.data_types import expand_experiment_results_for_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
@@ -76,6 +74,7 @@ from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.data_types import ParameterRangesAndSpeedData
+from rsp.utils.data_types import plausibility_check_experiment_results_analysis
 from rsp.utils.data_types import ReScheduleParameters
 from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParameters
@@ -87,6 +86,9 @@ from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.psutil_helpers import current_process_stats_human_readable
 from rsp.utils.psutil_helpers import virtual_memory_human_readable
+from rsp.utils.rsp_logger import add_file_handler_to_rsp_logger
+from rsp.utils.rsp_logger import remove_file_handler_from_rsp_logger
+from rsp.utils.rsp_logger import rsp_logger
 
 #  B008 Do not perform function calls in argument defaults.
 #  The call is performed only once at function definition time.
@@ -209,12 +211,11 @@ def run_experiment_in_memory(
         schedule: Schedule,
         experiment_parameters: ExperimentParameters,
         infrastructure_topo_dict: TopoDict,
-        verbose: bool = False,
+        # TODO we should use logging debug levels instead
         debug: bool = False,
-        visualize_route_dag_constraints: bool = False
 ) -> ExperimentResults:
     """A.2 + B Runs the main part of the experiment: re-scheduling full and
-    delta.
+    delta perfect/naive.
 
     Parameters
     ----------
@@ -224,18 +225,14 @@ def run_experiment_in_memory(
         hierarchical experiment parameters
     infrastructure_topo_dict
         the "full" topology for each agent
-    verbose
-        verbose logging
     debug
         debug logging
-    visualize_route_dag_constraints
-        save route dag constraints visualization for debugging
 
     Returns
     -------
     ExperimentResults
     """
-    rsp_logger.info(f"start re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
+    rsp_logger.info(f"1. gen malfunction for  {experiment_parameters.experiment_id}")
     schedule_problem, schedule_result = schedule
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
 
@@ -245,15 +242,12 @@ def run_experiment_in_memory(
     experiment_malfunction = gen_malfunction(
         earliest_malfunction=experiment_parameters.earliest_malfunction,
         malfunction_duration=experiment_parameters.malfunction_duration,
-        malfunction_agent_id=experiment_parameters.malfunction_agend_id,
+        malfunction_agent_id=experiment_parameters.malfunction_agent_id,
         schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict
     )
-
-    if debug:
-        _visualize_route_dag_constraints_for_schedule_and_malfunction(
-            schedule=schedule,
-            experiment_malfunction=experiment_malfunction
-        )
+    malfunction_agent_trainrun = schedule_trainruns[experiment_malfunction.agent_id]
+    rsp_logger.info(
+        f"{experiment_malfunction} for scheduled start {malfunction_agent_trainrun[0]} and arrival {malfunction_agent_trainrun[-1]}")
 
     # --------------------------------------------------------------------------------------
     # B.1. Re-schedule Full
@@ -267,44 +261,34 @@ def run_experiment_in_memory(
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        topo_dict=full_reschedule_topo_dict,
+        topo_dict_=full_reschedule_topo_dict,
         weight_route_change=experiment_parameters.weight_route_change,
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
     )
 
-    # activate visualize_route_dag_constraints for debugging
-    if visualize_route_dag_constraints:
-        for agent_id in schedule_trainruns:
-            visualize_route_dag_constraints_simple_wrapper(
-                schedule_problem_description=full_reschedule_problem,
-                trainrun_dict=None,
-                experiment_malfunction=experiment_malfunction,
-                agent_id=agent_id,
-                file_name=f"rescheduling_neu_agent_{agent_id}.pdf",
-            )
-
     full_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=full_reschedule_problem,
+        schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
 
     full_reschedule_trainruns = full_reschedule_result.trainruns_dict
 
-    if verbose:
-        print(f"  **** full re-schedule_solution=\n{full_reschedule_trainruns}")
+    costs_ = full_reschedule_result.solver_statistics["summary"]["costs"][0]
+    rsp_logger.info(f" full re-schedule has costs {costs_}")
 
     # --------------------------------------------------------------------------------------
-    # B.2 Re-Schedule Delta
+    # B.2.a Lower bound: Re-Schedule Delta Perfect
     # --------------------------------------------------------------------------------------
-    rsp_logger.info("3. reschedule delta")
+    rsp_logger.info("3a. reschedule delta perfect (lower bound)")
     # clone topos since propagation will modify them
-    delta_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_reschedule_problem = perfect_oracle_for_all_agents(
+    delta_perfect_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    delta_perfect_reschedule_problem = scoper_perfect_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
-        schedule_topo_dict=delta_reschedule_topo_dict,
+        delta_perfect_reschedule_topo_dict_=delta_perfect_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
@@ -312,55 +296,146 @@ def run_experiment_in_memory(
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
     )
 
-    # activate visualize_route_dag_constraints for debugging
-    if visualize_route_dag_constraints:
-        for agent_id in schedule_trainruns:
-            visualize_route_dag_constraints_simple_wrapper(
-                schedule_problem_description=delta_reschedule_problem,
-                trainrun_dict=None,
-                experiment_malfunction=experiment_malfunction,
-                agent_id=agent_id,
-                file_name=f"delta_rescheduling_neu_agent_{agent_id}.pdf",
-            )
-
-    delta_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_reschedule_problem,
+    delta_perfect_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_perfect_reschedule_problem,
+        schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
     )
 
-    if verbose:
-        print(f"  **** delta re-schedule solution")
-        print(delta_reschedule_result.trainruns_dict)
+    # --------------------------------------------------------------------------------------
+    # B.2.b Lower bound: Re-Schedule Delta trivially_perfect
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("3b. reschedule delta trivially_perfect (lower bound)")
+    # clone topos since propagation will modify them
+    delta_trivially_perfect_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    delta_trivially_perfect_reschedule_problem = scoper_trivially_perfect_for_all_agents(
+        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+        malfunction=experiment_malfunction,
+        max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
+        delta_trivially_perfect_topo_dict_=delta_trivially_perfect_reschedule_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+
+    delta_trivially_perfect_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_trivially_perfect_reschedule_problem,
+        schedule=schedule_trainruns,
+        debug=debug,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
+    )
+
+    # --------------------------------------------------------------------------------------
+    # B.2.c Some restriction
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("4. reschedule no rerouting")
+    # clone topos since propagation will modify them
+    delta_no_rerouting_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    delta_no_rerouting_reschedule_problem = scoper_no_rerouting_for_all_agents(
+        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+        full_reschedule_problem=full_reschedule_problem,
+        malfunction=experiment_malfunction,
+        max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
+        # pytorch convention for in-place operations: postfixed with underscore.
+        topo_dict_=delta_no_rerouting_reschedule_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+
+    delta_no_rerouting_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_no_rerouting_reschedule_problem,
+        schedule=schedule_trainruns,
+        debug=debug,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
+    )
+    # --------------------------------------------------------------------------------------
+    # B.2.d Upper bound: online predictor
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("5. reschedule delta online transmission chains: upper bound")
+    # clone topos since propagation will modify them
+    delta_online_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    delta_online_reschedule_problem, delta_online_after_malfunction_predicted_agents = scoper_online_for_all_agents(
+        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+        full_reschedule_problem=full_reschedule_problem,
+        malfunction=experiment_malfunction,
+        latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
+        # pytorch convention for in-place operations: postfixed with underscore.
+        delta_online_topo_dict_to_=delta_online_reschedule_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+
+    delta_online_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_online_reschedule_problem,
+        schedule=schedule_trainruns,
+        debug=debug,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
+    )
+
+    # --------------------------------------------------------------------------------------
+    # B.2.e Sanity check: random predictor
+    # if that also reduces solution time, our problem is not hard enough, showing the problem is not trivial
+    # --------------------------------------------------------------------------------------
+    rsp_logger.info("6. reschedule delta random naive: upper bound")
+    # clone topos since propagation will modify them
+    delta_random_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    delta_random_reschedule_problem, delta_random_after_malfunction_predicted_agents = scoper_random_for_all_agents(
+        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+        full_reschedule_problem=full_reschedule_problem,
+        malfunction=experiment_malfunction,
+        # TODO document? will it be visible in ground times?
+        latest_arrival=(schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration),
+        # pytorch convention for in-place operations: postfixed with underscore.
+        delta_random_topo_dict_to_=delta_random_reschedule_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        # TODO document? will it be visible in ground times?
+        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds
+    )
+    delta_random_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_random_reschedule_problem,
+        schedule=schedule_trainruns,
+        debug=debug,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value
+    )
 
     # --------------------------------------------------------------------------------------
     # B.3. Result
     # --------------------------------------------------------------------------------------
+    rsp_logger.info("5. gathering results")
     current_results = ExperimentResults(
         experiment_parameters=experiment_parameters,
         malfunction=experiment_malfunction,
         problem_full=schedule_problem,
         problem_full_after_malfunction=full_reschedule_problem,
-        problem_delta_after_malfunction=delta_reschedule_problem,
+        problem_delta_perfect_after_malfunction=delta_perfect_reschedule_problem,
+        problem_delta_trivially_perfect_after_malfunction=delta_trivially_perfect_reschedule_problem,
+        problem_delta_no_rerouting_after_malfunction=delta_no_rerouting_reschedule_problem,
+        problem_delta_online_after_malfunction=delta_online_reschedule_problem,
+        problem_delta_random_after_malfunction=delta_online_reschedule_problem,
         results_full=schedule_result,
         results_full_after_malfunction=full_reschedule_result,
-        results_delta_after_malfunction=delta_reschedule_result
+        results_delta_perfect_after_malfunction=delta_perfect_reschedule_result,
+        results_delta_trivially_perfect_after_malfunction=delta_trivially_perfect_reschedule_result,
+        results_delta_no_rerouting_after_malfunction=delta_no_rerouting_reschedule_result,
+        results_delta_online_after_malfunction=delta_online_reschedule_result,
+        results_delta_random_after_malfunction=delta_random_reschedule_result,
+        delta_online_after_malfunction_predicted_agents=delta_online_after_malfunction_predicted_agents,
+        delta_random_after_malfunction_predicted_agents=delta_random_after_malfunction_predicted_agents
     )
-    rsp_logger.info(f"done re-schedule full and delta for experiment {experiment_parameters.experiment_id}")
+    rsp_logger.info(f"done re-schedule full and delta naive/perfect for experiment {experiment_parameters.experiment_id}")
     return current_results
-
-
-def _visualize_route_dag_constraints_for_schedule_and_malfunction(
-        schedule: Schedule,
-        experiment_malfunction: ExperimentMalfunction):
-    for agent_id in schedule.schedule_experiment_result.trainruns_dict:
-        visualize_route_dag_constraints_simple_wrapper(
-            schedule_problem_description=schedule.schedule_problem_description,
-            trainrun_dict=None,
-            experiment_malfunction=experiment_malfunction,
-            agent_id=agent_id,
-            file_name=f"schedule_alt_agent_{agent_id}.pdf"
-        )
 
 
 def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: int):
@@ -461,8 +536,9 @@ def gen_malfunction(
     # --------------------------------------------------------------------------------------
     # The malfunction is chosen to start relative to the start time of the malfunction_agent_id
     # This relative malfunction time makes it easier to run malfunciton-time variation experiments
+    # The malfunction must happen during the scheduled run of the agent, therefore it must happen before the scheduled end!
     malfunction_start = min(schedule_trainruns[malfunction_agent_id][0].scheduled_at + earliest_malfunction,
-                            schedule_trainruns[malfunction_agent_id][-1].scheduled_at)
+                            schedule_trainruns[malfunction_agent_id][-1].scheduled_at - 1)
     malfunction = ExperimentMalfunction(
         time_step=malfunction_start,
         malfunction_duration=malfunction_duration,
@@ -555,14 +631,14 @@ def run_experiment_from_to_file(
                 experiment_id=experiment_parameters.experiment_id
             )
 
-        # B2: full and delta re-scheduling
+        # B2: full and delta perfect re-scheduling
         experiment_results: ExperimentResults = run_experiment_in_memory(
             schedule=schedule,
             experiment_parameters=experiment_parameters,
             infrastructure_topo_dict=infrastructure.topo_dict,
-            verbose=verbose,
             debug=debug
         )
+
         if experiment_results is None:
             print(f"No malfunction for experiment {experiment_parameters.experiment_id}")
             return []
@@ -570,7 +646,7 @@ def run_experiment_from_to_file(
         elapsed_time = (time.time() - start_time)
         end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
         s = (
-            "Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta:  {} / ").format(
+            "Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta perfect:  {} / ").format(
             experiment_parameters.experiment_id,
             elapsed_time,
             start_datetime_str,
@@ -580,17 +656,17 @@ def run_experiment_from_to_file(
             _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
                                                     statistics=experiment_results.results_full_after_malfunction.solver_statistics),
             _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time,
-                                                    statistics=experiment_results.results_delta_after_malfunction.solver_statistics),
+                                                    statistics=experiment_results.results_delta_perfect_after_malfunction.solver_statistics),
         )
         solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-        solver_time_full_after_malfunction = \
+        solver_statistics_times_total_full_after_malfunction = \
             experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        solver_time_delta_after_malfunction = \
-            experiment_results.results_delta_after_malfunction.solver_statistics["summary"]["times"]["total"]
+        solver_time_delta_perfect_after_malfunction = \
+            experiment_results.results_delta_perfect_after_malfunction.solver_statistics["summary"]["times"]["total"]
         elapsed_overhead_time = (
                 elapsed_time - solver_time_full -
-                solver_time_full_after_malfunction -
-                solver_time_delta_after_malfunction)
+                solver_statistics_times_total_full_after_malfunction -
+                solver_time_delta_perfect_after_malfunction)
         s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
             elapsed_overhead_time,
             elapsed_overhead_time / elapsed_time * 100,
@@ -600,8 +676,10 @@ def run_experiment_from_to_file(
         rsp_logger.info(virtual_memory_human_readable())
         rsp_logger.info(current_process_stats_human_readable())
 
-        # TODO SIM-324 pull out validation steps
-        plausibility_check_experiment_results(experiment_results=experiment_results)
+        # fail fast!
+        plausibility_check_experiment_results_analysis(
+            experiment_results_analysis=expand_experiment_results_for_analysis(experiment_results=experiment_results)
+        )
 
         save_experiment_results_to_file(experiment_results, filename)
         return os.getpid()
@@ -669,7 +747,7 @@ def run_experiment_agenda(
             )
 
         rsp_logger.info(f"============================================================================================================")
-        rsp_logger.info(f"RUNNING agenda {experiment_base_directory} -> {experiment_data_directory}")
+        rsp_logger.info(f"RUNNING agenda {experiment_base_directory} -> {experiment_data_directory} ({len(experiment_agenda.experiments)} experiments)")
         rsp_logger.info(f"============================================================================================================")
         for file_name in ["rsp/utils/global_constants.py"]:
             with open(file_name, "r") as content:
@@ -815,7 +893,7 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
 
                 earliest_malfunction=parameter_set[5],
                 malfunction_duration=parameter_set[6],
-                malfunction_agend_id=0,
+                malfunction_agent_id=0,
                 weight_route_change=parameter_set[10],
                 weight_lateness_seconds=parameter_set[11],
                 max_window_size_from_earliest=parameter_set[8],
@@ -832,7 +910,7 @@ def create_infrastructure_and_schedule_from_ranges(
         schedule_parameters_range: ScheduleParametersRange,
         base_directory: str,
         speed_data: SpeedData,
-        grid_mode: bool = True
+        grid_mode: bool = False
 ) -> List[ScheduleParameters]:
     list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range=infrastructure_parameters_range,
@@ -908,7 +986,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
         for schedule_parameters, _ in list_of_schedule_parameters:
             for re_schedule_parameters in list_of_re_schedule_parameters:
                 # allow for malfunction agent range to be greater than number of agents of this infrastructure
-                if re_schedule_parameters.malfunction_agend_id >= infra_parameters.number_of_agents:
+                if re_schedule_parameters.malfunction_agent_id >= infra_parameters.number_of_agents:
                     continue
                 for _ in range(experiments_per_grid_element):
                     experiments.append(
@@ -921,7 +999,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                             grid_id=grid_id,
                             earliest_malfunction=re_schedule_parameters.earliest_malfunction,
                             malfunction_duration=re_schedule_parameters.malfunction_duration,
-                            malfunction_agend_id=re_schedule_parameters.malfunction_agend_id,
+                            malfunction_agent_id=re_schedule_parameters.malfunction_agent_id,
                             weight_route_change=re_schedule_parameters.weight_route_change,
                             weight_lateness_seconds=re_schedule_parameters.weight_lateness_seconds,
                             max_window_size_from_earliest=re_schedule_parameters.max_window_size_from_earliest,
@@ -1016,7 +1094,7 @@ def expand_schedule_parameter_range_and_generate_schedule(
     )
     for schedule_parameters in list_of_schedule_parameters:
         if exists_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_parameters.schedule_id):
-            rsp_logger.info(f"skipping gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
+            rsp_logger.info(f"skipping gen schedule for [infra {infra_id}/schedule{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
                             f"-> schedule already exists")
             continue
         rsp_logger.info(f"gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters}")
@@ -1162,19 +1240,6 @@ def save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name: str, 
     _write_sha_txt(experiment_agenda_folder_name)
 
 
-def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
-    """Save experiment agenda to the folder with the experiments.
-    Parameters
-    ----------
-    experiment_folder_name: str
-        Folder name of experiment where all experiment files and agenda are stored
-    """
-    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
-    with open(file_name, 'rb') as handle:
-        file_data: ExperimentAgenda = pickle.load(handle)
-        return file_data
-
-
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
     return "{}_{}".format(experiment_name, datetime_string)
@@ -1207,7 +1272,7 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
 def load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name: str,
         experiment_ids: List[int] = None,
-        nonify_problem_and_results: bool = False,
+        nonify_all_structured_fields: bool = False,
 ) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
     Parameters
@@ -1216,7 +1281,7 @@ def load_and_expand_experiment_results_from_data_folder(
         Folder name of experiment where all experiment files are stored
     experiment_ids
         List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
-    nonify_problem_and_results
+    nonify_all_structured_fields
         in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     Returns
@@ -1239,14 +1304,19 @@ def load_and_expand_experiment_results_from_data_folder(
         exp_id = get_experiment_id_from_filename(file_name)
         if experiment_ids is not None and exp_id not in experiment_ids:
             continue
-        with open(file_name, 'rb') as handle:
-            file_data: ExperimentResults = pickle.load(handle)
+        try:
+            with open(file_name, 'rb') as handle:
+                file_data: ExperimentResults = pickle.load(handle)
+        except Exception as e:
+            rsp_logger.warn(f"skipping {file} because of {e}")
         experiment_results_list.append(expand_experiment_results_for_analysis(
             file_data,
-            nonify_problem_and_results=nonify_problem_and_results))
+            nonify_all_structured_fields=nonify_all_structured_fields))
+
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
+
     return experiment_results_list
 
 

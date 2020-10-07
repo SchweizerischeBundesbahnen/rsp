@@ -31,18 +31,6 @@ SchedulingExperimentResult = NamedTuple('SchedulingExperimentResult',
                                          ('solver_program', Optional[List[str]])
                                          ])
 
-SchedulingExperimentResult.__doc__ = """
-    Parameters
-    ----------
-    total_reward: int
-    solve_time: float
-    optimization_costs: float
-    build_problem_time: float
-    trainruns_dict: TrainrunDict
-    nb_conflicts: int
-    route_dag_constraints: Optional[RouteDAGConstraintsDict]
-"""
-
 Schedule = NamedTuple('Schedule', [
     ('schedule_problem_description', ScheduleProblemDescription),
     ('schedule_experiment_result', SchedulingExperimentResult),

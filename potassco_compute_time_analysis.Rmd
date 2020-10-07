@@ -25,11 +25,11 @@ from IPython.display import Video
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
-from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
-from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
-from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.analysis.compute_time_analysis import plot_box_plot
+from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.analysis.compute_time_analysis import plot_speed_up
+from rsp.analysis.compute_time_analysis import render_flatland_env
+from rsp.analysis.compute_time_analysis import plot_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
@@ -48,7 +48,7 @@ experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXP
 
 experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
 experiment_results_list = experiment_results_list_baseline
@@ -58,17 +58,17 @@ experiment_results_list = experiment_results_list_baseline
 import pandas as pd
 experiment_data = pd.DataFrame(
     [exp._asdict() for exp in experiment_results_list],
-    columns=['experiment_id','malfunction','size', 'size_used',
+    columns=['experiment_id','malfunction','size', 'size_used_full_after_malfunction',
             'n_agents', 'max_num_cities', 'max_rail_between_cities',
             'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
-            'time_delta_after_malfunction','speed_up',
+            'time_delta_perfect_after_malfunction',
+            'speed_up_lower_bound',
             'nb_resource_conflicts_full',
             'nb_resource_conflicts_full_after_malfunction',
-            'nb_resource_conflicts_delta_after_malfunction',
+            'nb_resource_conflicts_delta_perfect_after_malfunction',
             'costs_full',
             'solve_total_ratio_full',
             'solve_time_full',
-            'total_time_full',
             'choice_conflict_ratio_full',
             'choices_full',
             'conflicts_full',
@@ -77,34 +77,32 @@ experiment_data = pd.DataFrame(
             'costs_full_after_malfunction',
             'solve_total_ratio_full_after_malfunction',
             'solve_time_full_after_malfunction',
-            'total_time_full_after_malfunction',
             'choice_conflict_ratio_full_after_malfunction',
             'choices_full_after_malfunction',
             'conflicts_full_after_malfunction',
             'user_accu_propagations_full_after_malfunction',
             'user_step_propagations_full_after_malfunction',
-            'costs_delta_after_malfunction',
-            'solve_total_ratio_delta_after_malfunction',
-            'solve_time_delta_after_malfunction',
-            'total_time_delta_after_malfunction',
-            'choice_conflict_ratio_delta_after_malfunction',
-            'choices_delta_after_malfunction',
-            'conflicts_delta_after_malfunction',
-            'user_accu_propagations_delta_after_malfunction',
-            'user_step_propagations_delta_after_malfunction'])
+            'costs_delta_perfect_after_malfunction',
+            'solve_total_ratio_delta_perfect_after_malfunction',
+            'solve_time_delta_perfect_after_malfunction',
+            'choice_conflict_ratio_delta_perfect_after_malfunction',
+            'choices_delta_perfect_after_malfunction',
+            'conflicts_delta_perfect_after_malfunction',
+            'user_accu_propagations_delta_perfect_after_malfunction',
+            'user_step_propagations_delta_perfect_after_malfunction'])
 
 display(experiment_data)
 ```
 
 ```{python}
 axis_of_interest = 'n_agents'
-columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
+columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_perfect_after_malfunction']
 ```
 
 # Visualize Compuational time comparison
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 # display(experiment_data.dtypes)
 
 hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
@@ -112,7 +110,7 @@ hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=
 
 
 # for exploration, use:
-# plot_computational_times(experiment_data=experiment_data,
+# plot_box_plot(experiment_data=experiment_data,
 #                                   axis_of_interest=axis_of_interest,
 #                                   columns_of_interest=columns_of_interest)
 ```
@@ -125,7 +123,7 @@ Why is speed-up in run time so low over the whole range of experiments when comp
 Is it plausible to compare total times only? Should we compare solving and non-solving times as well? Should we compare times until first model as well? ...
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_speed_up
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_speed_up
 hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
 
 # for exploration, use:
@@ -144,14 +142,14 @@ visualize_hypotheses_asp(experiment_data=experiment_data)
 # Visualize effect of SEQ heuristics (SIM-167)
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 agenda_name_comparison_seq = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_SEQ_2020_07_16T01_13_12'
 experiment_base_directory_comparison_seq = f'../rsp-data/{agenda_name_comparison_seq}'
 experiment_data_directory_comparison_seq = f'{experiment_base_directory_comparison_seq}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
 experiment_results_list_comparison_seq = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_seq,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_seq: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_seq)
 
@@ -176,14 +174,14 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 ## delay resolution 1 -> 2
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 agenda_name_comparison_delay_2 = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_delay_model_resolution_2_2020_07_16T06_37_21'
 experiment_base_directory_comparison_delay_2 = f'../rsp-data/{agenda_name_comparison_delay_2}'
 experiment_data_directory_comparison_delay_2 = f'{experiment_base_directory_comparison_delay_2}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
 experiment_results_list_comparison_delay_2 = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_delay_2,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_delay_2: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_2)
 
@@ -205,14 +203,14 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 ## delay resolution 1 -> 5
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 agenda_name_comparison_delay_5 = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_delay_model_resolution_5_2020_07_16T07_52_55'
 experiment_base_directory_comparison_delay_5 = f'../rsp-data/{agenda_name_comparison_delay_5}'
 experiment_data_directory_comparison_delay_5 = f'{experiment_base_directory_comparison_delay_5}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
 experiment_results_list_comparison_delay_5 = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_delay_5,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_delay_5: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_5)
 
@@ -234,14 +232,14 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 ## delay resolution 1 -> 10
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 agenda_name_comparison_delay_10 = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_delay_model_resolution_10_2020_07_16T08_33_50'
 experiment_base_directory_comparison_delay_10 = f'../rsp-data/{agenda_name_comparison_delay_10}'
 experiment_data_directory_comparison_delay_10 = f'{experiment_base_directory_comparison_delay_10}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
 experiment_results_list_comparison_delay_10 = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_delay_10,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_delay_10: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_10)
 
@@ -261,14 +259,14 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 # Visualize effect of --propagate (SIM-543)
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 agenda_name_comparison_without_propagate = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_without_propagate_partial_2020_07_16T09_10_03'
 experiment_base_directory_comparison_without_propagate = f'../rsp-data/{agenda_name_comparison_without_propagate}'
 experiment_data_directory_comparison_without_propagate = f'{experiment_base_directory_comparison_without_propagate}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
 experiment_results_list_comparison_without_propagate = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory_comparison_without_propagate,
-    nonify_problem_and_results=True
+    nonify_all_structured_fields=True
 )
 experiment_data_comparison_without_propagate: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_without_propagate)
 ```

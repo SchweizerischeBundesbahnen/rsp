@@ -61,15 +61,6 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
         }
-        stage('init git submodules') {
-            steps {
-                script {
-                    sh """
-git submodule update --init --recursive
-"""
-                }
-            }
-        }
         // if we're on master, tag the docker image with the new semantic version
         stage("Build and Tag Docker Image if on master") {
             when {

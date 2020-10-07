@@ -18,32 +18,36 @@ jupyter:
 # %autoreload 2
 import sys
 from IPython.display import Video
+import pandas as pd
 
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 
-from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
-from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_shared_heatmap
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import time_windows_as_resource_occupations_per_agent
-from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_density
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_occupation_heat_map
-from rsp.compute_time_analysis.compute_time_analysis import plot_train_paths
+from rsp.analysis.compute_time_analysis import render_flatland_env
+from rsp.analysis.compute_time_analysis import plot_route_dag
+from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_shared_heatmap
+from rsp.analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.analysis.compute_time_analysis import time_windows_as_resource_occupations_per_agent
+from rsp.analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_time_density
+from rsp.analysis.compute_time_analysis import plot_resource_occupation_heat_map
+from rsp.analysis.compute_time_analysis import plot_train_paths
+from rsp.analysis.compute_time_analysis import plot_changed_agents
+from rsp.analysis.compute_time_analysis import print_situation_overview
+from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
+
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
 ```{python}
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06'
+experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 1
-agent_of_interest = 0
+experiment_of_interest = 40
 ```
 
 ```{python}
@@ -52,12 +56,17 @@ experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDI
 exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
-    nonify_problem_and_results=False
+    nonify_all_structured_fields=False
 )[0]
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agent_id
 plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
-### Initial schedule
+```{python}
+print(f"agent_of_interest={agent_of_interest}")
+```
+
+### Visualize solutions
 
 
 The figure below shows the initial schedule we use as input to our re-scheduling pipeline. It is taken as given as used as target for optimization (minimal delay to initial schedule)
@@ -69,7 +78,7 @@ from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_r
 items = {
     'problem_full': exp_results_of_experiment_of_interest.problem_full,
     'problem_full_after_malfunction': exp_results_of_experiment_of_interest.problem_full_after_malfunction,
-    'problem_delta_after_malfunction': exp_results_of_experiment_of_interest.problem_delta_after_malfunction
+    'problem_delta_perfect_after_malfunction': exp_results_of_experiment_of_interest.problem_delta_perfect_after_malfunction
 }
 for item, problem in items.items():
     for agent_id, topo in problem.topo_dict.items():
@@ -78,12 +87,23 @@ for item, problem in items.items():
 ```
 
 ```{python}
-trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent,
-    plotting_information=plotting_data.plotting_information)
-plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Initial Schedule",
-                                schedule_plotting=plotting_data)
+from rsp.utils.data_types import all_scopes
+from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
+
+for scope in all_scopes:
+    resource_occupations_schedule=extract_resource_occupations(exp_results_of_experiment_of_interest._asdict()[f'results_{scope}'].trainruns_dict,RELEASE_TIME).sorted_resource_occupations_per_agent
+    trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=resource_occupations_schedule,
+        plotting_information=plotting_data.plotting_information)
+    plot_time_resource_trajectories(trajectories=trajectories,
+                                    title=f"{scope}",
+                                    plotting_information=plotting_data.plotting_information,
+                                    malfunction=plotting_data.malfunction)
+```
+
+```{python}
+plot_changed_agents(exp_results_of_experiment_of_interest)
 ```
 
 ### Visualize Problem instances as time-resource graphs
@@ -98,22 +118,50 @@ choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_aft
 print("Number of choices the solver has to make was {}".format(choices_full_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Full Reschedule Problem",
-                                schedule_plotting=plotting_data)
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction)
 
 ```
 
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
 
 ```{python}
-resource_occupations_delta_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_after_malfunction)
+resource_occupations_delta_perfect_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_perfect_after_malfunction)
 trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=resource_occupations_delta_reschedule,
+    resource_occupations_schedule=resource_occupations_delta_perfect_reschedule,
     plotting_information=plotting_data.plotting_information)
-choices_delta_reschedule = exp_results_of_experiment_of_interest.results_delta_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_delta_reschedule))
+choices_delta_perfect_reschedule = exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_delta_perfect_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Delta Reschedule Problem",
-                                schedule_plotting=plotting_data)
+                                title="Delta Perfect Reschedule Problem",
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction)
+```
+
+```{python}
+resource_occupations_delta_naive_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_no_rerouting_after_malfunction)
+trajectories = trajectories_from_resource_occupations_per_agent(
+    resource_occupations_schedule=resource_occupations_delta_naive_reschedule,
+    plotting_information=plotting_data.plotting_information)
+choices_delta_naive_reschedule = exp_results_of_experiment_of_interest.results_delta_no_rerouting_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_delta_naive_reschedule))
+plot_time_resource_trajectories(trajectories=trajectories,
+                                title="Delta Naive Reschedule Problem",
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction)
+```
+
+```{python}
+resource_occupations_delta_online_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_online_after_malfunction)
+trajectories = trajectories_from_resource_occupations_per_agent(
+    resource_occupations_schedule=resource_occupations_delta_online_reschedule,
+    plotting_information=plotting_data.plotting_information)
+choices_delta_online_reschedule = exp_results_of_experiment_of_interest.results_delta_online_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_delta_online_reschedule))
+plot_time_resource_trajectories(trajectories=trajectories,
+                                title="Delta online Reschedule Problem",
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction)
 ```
 
 ```{python}
@@ -166,10 +214,24 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_FULL_AFTER_MALFUNCTION)
 ```
 
 ```{python}
 # %matplotlib inline
-plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA)
+plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION)
+```
+
+### solver statistics
+
+```{python}
+from rsp.experiment_solvers.asp.asp_helper import _print_stats
+print("=================================================================================")
+print(f"= {experiment_base_directory} results_full_after_malfunction ")
+print("=================================================================================")
+_print_stats(exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics)
+print("=================================================================================")
+print(f"= {experiment_base_directory} results_delta_perfect_after_malfunction ")
+print("=================================================================================")
+_print_stats(exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics)
 ```

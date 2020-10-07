@@ -1,30 +1,17 @@
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from rsp.experiment_solvers.data_types import Schedule
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import InfrastructureParameters
-from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.experiments import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.utils.experiments import run_experiment_agenda
-
-
-def get_malfunction_variation_re_schedule_parameters_range() -> ReScheduleParametersRange:
-    return ReScheduleParametersRange(
-        earliest_malfunction=[1, 300, 50],
-        malfunction_duration=[50, 50, 1],
-        malfunction_agent_id=[34, 34, 1],
-        number_of_shortest_paths_per_agent=[10, 10, 1],
-        max_window_size_from_earliest=[100, 100, 1],
-        asp_seed_value=[1, 1, 1],
-        # route change is penalized the same as 1 second delay
-        weight_route_change=[20, 20, 1],
-        weight_lateness_seconds=[1, 1, 1]
-    )
+from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
 def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
@@ -87,8 +74,7 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                 train_run_end = schedule.schedule_experiment_result.trainruns_dict[malfunction_agent_id][-1].scheduled_at
                 for i in range(int(latest_malfunction_as_fraction_of_max_episode_steps / malfunction_interval_as_fraction_of_max_episode_steps)):
                     earliest_malfunction = i * malfunction_interval_absolute
-                    # TODO SIM-673 can we do this more elegantly?
-                    if earliest_malfunction < train_run_start or earliest_malfunction > train_run_end:
+                    if earliest_malfunction >= train_run_end - train_run_start:
                         continue
                     for _ in range(experiments_per_grid_element):
                         experiments.append(
@@ -101,7 +87,7 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                                 grid_id=grid_id,
                                 earliest_malfunction=earliest_malfunction,
                                 malfunction_duration=malfunction_duration,
-                                malfunction_agend_id=malfunction_agent_id,
+                                malfunction_agent_id=malfunction_agent_id,
                                 weight_route_change=weight_route_change,
                                 weight_lateness_seconds=weight_lateness_seconds,
                                 max_window_size_from_earliest=max_window_size_from_earliest,
@@ -127,13 +113,14 @@ def malfunction_variation_for_one_schedule(
         schedule_id: int,
         experiments_per_grid_element: int,
         experiment_base_directory: str,
+        experiment_output_base_directory: Optional[str] = None,
         latest_malfunction_as_fraction_of_max_episode_steps: float = 0.5,
         malfunction_interval_as_fraction_of_max_episode_steps: float = 0.1,
         fraction_of_malfunction_agents: float = 1.0,
         malfunction_duration: int = 50,
-        weight_route_change: int = 1,
+        weight_route_change: int = 30,
         weight_lateness_seconds: int = 1,
-        max_window_size_from_earliest: int = 30
+        max_window_size_from_earliest: int = 60
 ):
     experiment_name = f"malfunction_variation_{infra_id}_{schedule_id}"
 
@@ -159,8 +146,10 @@ def malfunction_variation_for_one_schedule(
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         verbose=False,
-        experiment_base_directory=experiment_base_directory
+        experiment_base_directory=experiment_base_directory,
+        experiment_output_base_directory=experiment_output_base_directory
     )
+
     return experiment_output_directory
 
 
@@ -170,5 +159,5 @@ if __name__ == '__main__':
         infra_id=0,
         schedule_id=0,
         experiments_per_grid_element=1,
-        experiment_base_directory="../rsp-data/h1_2020_08_24T21_04_42"
+        experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )

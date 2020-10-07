@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Optional
 
@@ -8,9 +9,10 @@ from rsp.utils.data_types import ScheduleParametersRange
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.file_utils import check_create_folder
-
-
+from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 # TODO pass arguments instead of hacky file editing
+
+
 def enable_seq(enable=True):
     off = "RESCHEDULE_HEURISTICS = []"
     on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
@@ -47,11 +49,12 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
-def run_potassco_agenda(base_directory: str):
+def run_potassco_agenda(base_directory: str, experiment_ids=None):
     reschedule_parameters_range = ReScheduleParametersRange(
-        earliest_malfunction=[1, 1, 1],
+        earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
-        malfunction_agent_id=[0, 200, 200],
+        # TODO SIM-699 take only first 10 of each schedule
+        malfunction_agent_id=[0, 10, 10],
 
         number_of_shortest_paths_per_agent=[10, 10, 1],
 
@@ -65,8 +68,8 @@ def run_potassco_agenda(base_directory: str):
 
     try:
         experiments_per_grid_element = 1
-        experiment_name_prefix = base_directory + "_"
-        parallel_compute = 2
+        experiment_name_prefix = os.path.basename(base_directory) + "_"
+        parallel_compute = 5
         # baseline with defaults
         set_defaults()
         list_from_base_directory_and_run_experiment_agenda(
@@ -74,7 +77,8 @@ def run_potassco_agenda(base_directory: str):
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%sbaseline' % experiment_name_prefix),
             parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element
+            experiments_per_grid_element=experiments_per_grid_element,
+            experiment_ids=experiment_ids
         )
         # effect of SEQ heuristic (SIM-167)
         set_defaults()
@@ -157,15 +161,16 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None)
         speed_data={1.: 0.25,  # Fast passenger train
                     1. / 2.: 0.25,  # Fast freight train
                     1. / 3.: 0.25,  # Slow commuter train
-                    1. / 4.: 0.25}  # Slow freight train
+                    1. / 4.: 0.25},  # Slow freight train
+        grid_mode=False
     )
     return base_directory
 
 
 if __name__ == '__main__':
     generate_potassco_infras_and_schedules(
-        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )
     run_potassco_agenda(
-        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
     )

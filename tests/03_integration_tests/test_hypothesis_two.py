@@ -8,6 +8,7 @@ from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
 from rsp.utils.experiments import delete_experiment_folder
+from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.experiments import run_experiment_agenda
@@ -31,6 +32,10 @@ def test_hypothesis_two():
         experiment_ids=[0])
     experiment_result = experiment_results_list[0]
     transmission_chains_time_window = extract_time_windows_and_transmission_chains(experiment_result=experiment_result)
-    plot_transmission_chains_time_window(experiment_result, transmission_chains_time_window)
+    plot_transmission_chains_time_window(
+        experiment_result=experiment_result,
+        transmission_chains_time_window=transmission_chains_time_window,
+        output_folder=os.path.join(experiment_output_directory, EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME)
+    )
 
     delete_experiment_folder(experiment_output_directory)

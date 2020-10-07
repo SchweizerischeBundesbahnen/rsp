@@ -12,13 +12,13 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.logger import rsp_logger
-from rsp.logger import VERBOSE
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import RouteDagEdge
 from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenalties
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import WaypointPenalties
+from rsp.utils.rsp_logger import rsp_logger
+from rsp.utils.rsp_logger import VERBOSE
 
 OFFSET = 0.25
 FLATLAND_OFFSET_PATTERN = {
@@ -133,11 +133,11 @@ def visualize_route_dag_constraints(
         constraints_to_visualize: RouteDAGConstraints,
         trainrun_to_visualize: Trainrun,
         route_section_penalties: RouteSectionPenalties,
-        edge_eff_route_penalties: RouteSectionPenalties,
-        vertex_eff_lateness: WaypointPenalties,
+        costs_from_route_section_penalties_per_agent_and_edge: RouteSectionPenalties,
+        vertex_lateness: WaypointPenalties,
         train_run_full: Trainrun,
         train_run_full_after_malfunction: Trainrun,
-        train_run_delta_after_malfunction: Trainrun,
+        train_run_delta_perfect_after_malfunction: Trainrun,
         file_name: Optional[str] = None,
         title: Optional[str] = None,
         scale: int = 4,
@@ -158,15 +158,15 @@ def visualize_route_dag_constraints(
         scale in or out
     route_section_penalties
         route penalty is displayed in edge label
-    edge_eff_route_penalties
+    costs_from_route_section_penalties_per_agent_and_edge
         route penalty is displayed in edge label
-    vertex_eff_lateness
+    vertex_lateness
         lateness is displayed in node labels
     train_run_full
         used in labels for S0
     train_run_full_after_malfunction
         used in labels for S
-    train_run_delta_after_malfunction
+    train_run_delta_perfect_after_malfunction
         used in labels for S'
     """
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
@@ -199,7 +199,7 @@ def visualize_route_dag_constraints(
     }
     tr_dam_d: Dict[Waypoint, int] = {
         trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-        for trainrun_waypoint in train_run_delta_after_malfunction
+        for trainrun_waypoint in train_run_delta_perfect_after_malfunction
     }
 
     plt_color_map = [_get_color_for_node(node, constraints_to_visualize) for node in topo.nodes()]
@@ -208,12 +208,12 @@ def visualize_route_dag_constraints(
         wp: f"{wp.position[0]},{wp.position[1]},{wp.direction}\n"
             f"{_get_label_for_constraint_for_waypoint(wp, constraints_to_visualize)}\n"
             f"{_get_label_for_schedule_for_waypoint(wp, tr_input_d, tr_fam_d, tr_dam_d)}" +
-            (f"\neff late: {vertex_eff_lateness.get(wp, '')}" if vertex_eff_lateness.get(wp, 0) > 0 else "")
+            (f"\neff late: {vertex_lateness.get(wp, '')}" if vertex_lateness.get(wp, 0) > 0 else "")
         for wp in
         all_waypoints}
 
     edge_labels = {
-        edge: _get_edge_label(edge, route_section_penalties, edge_eff_route_penalties)
+        edge: _get_edge_label(edge, route_section_penalties, costs_from_route_section_penalties_per_agent_and_edge)
         for edge in topo.edges
     }
 
@@ -314,13 +314,13 @@ def _get_label_for_schedule_for_waypoint(
         waypoint: Waypoint,
         train_run_input_dict: Dict[Waypoint, int],
         train_run_full_after_malfunction_dict: Dict[Waypoint, int],
-        train_run_delta_after_malfunction_dict: Dict[Waypoint, int]
+        train_run_delta_perfect_after_malfunction_dict: Dict[Waypoint, int]
 ) -> str:
     s = []
     if waypoint in train_run_input_dict:
         s.append(f"S0: {train_run_input_dict[waypoint]}")
     if waypoint in train_run_full_after_malfunction_dict:
         s.append(f"S: {train_run_full_after_malfunction_dict[waypoint]}")
-    if waypoint in train_run_delta_after_malfunction_dict:
-        s.append(f"S': {train_run_delta_after_malfunction_dict[waypoint]}")
+    if waypoint in train_run_delta_perfect_after_malfunction_dict:
+        s.append(f"S': {train_run_delta_perfect_after_malfunction_dict[waypoint]}")
     return "\n".join(s)

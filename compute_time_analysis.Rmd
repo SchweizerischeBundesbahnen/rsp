@@ -23,46 +23,81 @@ import pandas as pd
 from IPython.display import Video
 
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.utils.data_types import filter_experiment_results_analysis_data_frame
+
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.compute_time_analysis.compute_time_analysis import plot_computational_times
-from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_speed_up
-from rsp.compute_time_analysis.compute_time_analysis import render_flatland_env
-from rsp.compute_time_analysis.compute_time_analysis import plot_route_dag
+from rsp.analysis.compute_time_analysis import plot_box_plot
+from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.analysis.compute_time_analysis import plot_speed_up
+from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
+from rsp.analysis.compute_time_analysis import render_flatland_env
+from rsp.analysis.compute_time_analysis import plot_route_dag
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_lateness
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_changed_agents
+from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
+
+
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
+
+from IPython.core.display import display, HTML
+display(HTML("<style>.container { width:80% !important; }</style>"))
+from_cache = False
 ```
 
 ```{python}
 experiments_of_interest = None
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06'
-experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
-    experiment_ids=experiments_of_interest,
-    nonify_problem_and_results=True
-)
-experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+experiment_base_directory = BASELINE_DATA_FOLDER
+if from_cache:
+    experiment_data_filtered = pd.read_csv(f'{experiment_base_directory}.csv')
+else:
 
-display(experiment_data)
+    experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
+        experiment_ids=experiments_of_interest,
+        nonify_all_structured_fields=True
+    )
+    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+    # Filter data depending on full rescheduling time (>10s and within 97% percentile)
+    experiment_data_filtered = filter_experiment_results_analysis_data_frame(experiment_data)
+    print(f"removed {len(experiment_data)-len(experiment_data_filtered)}/{len(experiment_data)} rows")
+    experiment_data_filtered.to_csv(f'{experiment_base_directory}.csv')
+
+
+display(experiment_data_filtered)
 ```
 
 ```{python}
 axis_of_interest = 'n_agents'
-columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_after_malfunction']
+columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']]
+display(experiment_data_filtered['lateness_full_after_malfunction'])
+```
+
+### Inspect experiment parameters
+
+```{python}
+plot_box_plot(
+    experiment_data=experiment_data_filtered,
+    axis_of_interest='experiment_id',
+    columns_of_interest=['n_agents', 'infra_id', 'schedule_id', 'size', 'earliest_malfunction', 'malfunction_duration', 'malfunction_agent_id'],
+    title='Number of agents',
+    y_axis_title= "[-]",
+    color_offset=1
+)
 ```
 
 ### Visualize Compuational time comparison
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 # display(experiment_data.dtypes)
 
-hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
+hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data_filtered)
 
 
 
 # for exploration, use:
-# plot_computational_times(experiment_data=experiment_data,
+# plot_box_plot(experiment_data=experiment_data,
 #                                   axis_of_interest=axis_of_interest,
 #                                   columns_of_interest=columns_of_interest)
 ```
@@ -70,14 +105,67 @@ hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=
 ### Visualize Speed Up factors for experiments
 
 ```{python}
-from rsp.hypothesis_one_data_analysis import hypothesis_one_analysis_visualize_speed_up
-hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_speed_up
+hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_filtered)
 
 # for exploration, use:
 # plot_speed_up(experiment_data=experiment_data,
 #                        axis_of_interest=axis_of_interest)
 ```
 
-```{python}
+### Visualize changed agents
 
+```{python}
+hypothesis_one_analysis_visualize_changed_agents(experiment_data=experiment_data_filtered)
+```
+
+### Visualize Costs
+
+```{python}
+hypothesis_one_analysis_visualize_lateness(experiment_data=experiment_data_filtered)
+```
+
+```{python}
+display((experiment_data_filtered['costs_delta_online_after_malfunction']>experiment_data_filtered['costs_full_after_malfunction']).sum())
+```
+
+### Visualize Online Prediction Quality
+
+```{python}
+axis_of_interest = 'experiment_id'
+columns_of_interest = ['changed_agents_percentage_full_after_malfunction', 'online_predicted_changed_agents_percentage','online_predicted_changed_agents_false_positives_percentage', 'online_predicted_changed_agents_false_negatives_percentage']
+
+plot_box_plot(experiment_data=experiment_data_filtered,
+                         axis_of_interest=axis_of_interest,
+                         columns_of_interest=columns_of_interest,
+                         title='Online Prediction Quality Percentage',
+                         color_offset=1,
+                         y_axis_title='Fraction [-]'
+                        )
+columns_of_interest = ['n_agents', 'changed_agents_full_after_malfunction', 'online_predicted_changed_agents','online_predicted_changed_agents_false_positives', 'online_predicted_changed_agents_false_negatives']
+
+plot_box_plot(experiment_data=experiment_data_filtered,
+                         axis_of_interest=axis_of_interest,
+                         columns_of_interest=columns_of_interest,
+                         title='Online Prediction Quality Absolute Numbers',
+                             y_axis_title='Number [-]'
+                        )
+```
+
+```{python}
+from rsp.utils.data_types import after_malfunction_scopes
+# Choices represent the size of the solution space (how many routing alternatives, how many potential resource conflicts?
+# Conflicts represent the number of decisions
+for prefix in ['solver_statistics_conflicts', 'solver_statistics_choices', 'nb_resource_conflicts']:
+    columns_of_interest =[ f'{prefix}_{scope}' for scope in after_malfunction_scopes ]
+    plot_box_plot(experiment_data=experiment_data_filtered,
+                             axis_of_interest=axis_of_interest,
+                             columns_of_interest=columns_of_interest,
+                             title=f'{prefix} per',
+                             y_axis_title=f'{prefix} [-]'
+                            )
+```
+
+```{python}
+visualize_hypotheses_asp(experiment_data=experiment_data_filtered)
 ```

@@ -35,7 +35,7 @@ test_parameters = ExperimentParameters(
 
     earliest_malfunction=20,
     malfunction_duration=20,
-    malfunction_agend_id=0,
+    malfunction_agent_id=0,
     weight_route_change=1,
     weight_lateness_seconds=1,
     max_window_size_from_earliest=np.inf

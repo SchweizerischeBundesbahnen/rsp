@@ -14,9 +14,9 @@ from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.route_dag_constraints.delta_zero import delta_zero_for_all_agents
-from rsp.schedule_problem_description.route_dag_constraints.perfect_oracle import perfect_oracle_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
+from rsp.schedule_problem_description.route_dag_constraints.scoper_perfect import scoper_perfect_for_all_agents
+from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import InfrastructureParameters
@@ -54,7 +54,7 @@ test_parameters = ExperimentParameters(
 
     earliest_malfunction=20,
     malfunction_duration=20,
-    malfunction_agend_id=0,
+    malfunction_agent_id=0,
     weight_route_change=1,
     weight_lateness_seconds=1,
     max_window_size_from_earliest=np.inf
@@ -191,7 +191,7 @@ def test_rescheduling_no_bottleneck():
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        topo_dict=schedule_problem.topo_dict,
+        topo_dict_=schedule_problem.topo_dict,
         latest_arrival=static_env._max_episode_steps,
         weight_lateness_seconds=1,
         weight_route_change=1
@@ -216,19 +216,20 @@ def test_rescheduling_no_bottleneck():
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
             latest_arrival=static_env._max_episode_steps,
-            topo_dict=schedule_problem.topo_dict,
+            topo_dict_=schedule_problem.topo_dict,
             weight_lateness_seconds=1,
             weight_route_change=1
         ),
+        schedule=fake_schedule,
         asp_seed_value=94
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
 
-    # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 0 (equals malfunction delay)
+    # agent 0: scheduled arrival was 46, new arrival is 66 -> penalty = 20 (equals malfunction delay)
     # agent 1: scheduled arrival was 29, new arrival is 29 -> penalty = 0
     actual_costs = full_reschedule_result.optimization_costs
 
-    assert actual_costs == 0, f"actual costs {actual_costs}"
+    assert actual_costs == fake_malfunction.malfunction_duration, f"actual costs {actual_costs}"
 
     assert full_reschedule_trainruns[0][-1].scheduled_at == 66
     assert full_reschedule_trainruns[1][-1].scheduled_at == 29
@@ -426,7 +427,7 @@ def test_rescheduling_bottleneck():
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                   for agent in static_env.agents},
-        topo_dict=infrastructure.topo_dict,
+        topo_dict_=infrastructure.topo_dict,
         latest_arrival=static_env._max_episode_steps,
         weight_lateness_seconds=1,
         weight_route_change=1
@@ -463,6 +464,7 @@ def test_rescheduling_bottleneck():
 
     full_reschedule_result = asp_reschedule_wrapper(
         reschedule_problem_description=reschedule_problem,
+        schedule=fake_schedule,
         asp_seed_value=94
     )
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
@@ -470,7 +472,7 @@ def test_rescheduling_bottleneck():
     assert full_reschedule_trainruns[0][-1].scheduled_at == 48, f"found {full_reschedule_trainruns[0][-1].scheduled_at}"
     assert full_reschedule_trainruns[1][-1].scheduled_at == 49, f"found {full_reschedule_trainruns[1][-1].scheduled_at}"
 
-    # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
+    # agent 0: scheduled arrival was 46, new arrival is 48 -> penalty = 2
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
     actual_costs = full_reschedule_result.optimization_costs
 
@@ -482,17 +484,16 @@ def test_rescheduling_bottleneck():
     assert actual_delay_wr_schedule == expected_delay_wr_schedule, \
         f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
 
-    # the solver returns the delay with respect to the defined earliest time (which is 20 after the scheduled arrival)
     expected_rerouting_penalty = 1
-    expected_costs = expected_delay_wr_schedule - 20 + expected_rerouting_penalty
+    expected_costs = expected_delay_wr_schedule + expected_rerouting_penalty
     assert actual_costs == expected_costs, f"actual costs {actual_costs} from solver, expected {expected_costs}"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Tests delta re-scheduling
+# Tests re-scheduling
 # ---------------------------------------------------------------------------------------------------------------------
 
-def test_rescheduling_delta_no_bottleneck():
+def test_rescheduling_delta_perfect_no_bottleneck():
     """Train 1 has already passed the bottlneck when train 0 gets stuck in
     malfunction."""
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
@@ -625,12 +626,12 @@ def test_rescheduling_delta_no_bottleneck():
     # train 1 arrives at 29 (schedule and re-eschedule)
     # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
-    _verify_rescheduling_delta(fake_malfunction=fake_malfunction, fake_schedule=fake_schedule,
-                               fake_full_reschedule_trainruns=full_reschedule_trainruns,
-                               expected_arrivals={0: 46 + 20, 1: 29}, expected_delay=20)
+    _verify_rescheduling_delta_perfect(fake_malfunction=fake_malfunction, fake_schedule=fake_schedule,
+                                       fake_full_reschedule_trainruns=full_reschedule_trainruns,
+                                       expected_arrivals={0: 46 + 20, 1: 29}, expected_delay=20)
 
 
-def test_rescheduling_delta_bottleneck():
+def test_rescheduling_delta_perfect_bottleneck():
     """Train 0 get's stuck in a bottlneck.
 
     Train 1 runs in opposite direction -> has to wait.
@@ -760,49 +761,49 @@ def test_rescheduling_delta_bottleneck():
             TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(7, 24), direction=3)),
             TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3))]}
 
-    # train 0 arrives at 29 (schedule) + 20 delay in re-schedule (full and delta) -> 20
-    # train 1 arrives at 46 (schedule) 66 (in re-eschedule full and delta) -> 20
+    # train 0 arrives at 29 (schedule) + 20 delay in re-schedule (full and delta perfect) -> 20
+    # train 1 arrives at 46 (schedule) 66 (in re-eschedule full and delta perfect) -> 20
     # (it has to wait for the other train to leave a bottleneck in opposite direction
-    _verify_rescheduling_delta(fake_malfunction=fake_malfunction,
-                               fake_schedule=fake_schedule,
-                               fake_full_reschedule_trainruns=fake_full_reschedule_trainruns,
-                               expected_arrivals={0: 29 + 20, 1: 46 + 20}, expected_delay=40)
+    _verify_rescheduling_delta_perfect(fake_malfunction=fake_malfunction,
+                                       fake_schedule=fake_schedule,
+                                       fake_full_reschedule_trainruns=fake_full_reschedule_trainruns,
+                                       expected_arrivals={0: 29 + 20, 1: 46 + 20}, expected_delay=40)
 
 
-def _verify_rescheduling_delta(fake_malfunction: ExperimentMalfunction,
-                               fake_schedule: TrainrunDict,
-                               fake_full_reschedule_trainruns: TrainrunDict,
-                               expected_arrivals, expected_delay):
+def _verify_rescheduling_delta_perfect(fake_malfunction: ExperimentMalfunction,
+                                       fake_schedule: TrainrunDict,
+                                       fake_full_reschedule_trainruns: TrainrunDict,
+                                       expected_arrivals, expected_delay):
     fake_malfunction, schedule_problem = _dummy_test_case(fake_malfunction)
-    delta_reschedule_problem: ScheduleProblemDescription = perfect_oracle_for_all_agents(
+    delta_perfect_reschedule_problem: ScheduleProblemDescription = scoper_perfect_for_all_agents(
         full_reschedule_trainrun_dict=fake_full_reschedule_trainruns,
         malfunction=fake_malfunction,
         max_episode_steps=schedule_problem.schedule_problem_description.max_episode_steps,
-        schedule_topo_dict=schedule_problem.schedule_problem_description.topo_dict,
+        delta_perfect_reschedule_topo_dict_=schedule_problem.schedule_problem_description.topo_dict,
         schedule_trainrun_dict=fake_schedule,
         minimum_travel_time_dict=schedule_problem.schedule_problem_description.minimum_travel_time_dict,
         weight_lateness_seconds=1,
         weight_route_change=1
 
     )
-    delta_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_reschedule_problem,
+    delta_perfect_reschedule_result = asp_reschedule_wrapper(
+        reschedule_problem_description=delta_perfect_reschedule_problem,
+        schedule=fake_schedule,
         asp_seed_value=94
     )
-    delta_reschedule_trainruns = delta_reschedule_result.trainruns_dict
+    delta_perfect_reschedule_trainruns = delta_perfect_reschedule_result.trainruns_dict
     for train, expected_arrival in expected_arrivals.items():
-        delta_reschedule_train_arrival = delta_reschedule_trainruns[train][-1]
-        assert delta_reschedule_train_arrival.scheduled_at == expected_arrival, \
-            f"train {train} found {delta_reschedule_train_arrival.scheduled_at} arrival but expected {expected_arrival}"
+        delta_perfect_reschedule_train_arrival = delta_perfect_reschedule_trainruns[train][-1]
+        assert delta_perfect_reschedule_train_arrival.scheduled_at == expected_arrival, \
+            f"train {train} found {delta_perfect_reschedule_train_arrival.scheduled_at} arrival but expected {expected_arrival}"
 
-    delay_in_delta_reschedule = get_delay_trainruns_dict(fake_schedule, delta_reschedule_trainruns)
-    assert delay_in_delta_reschedule == expected_delay, f"found {delay_in_delta_reschedule}, expected={expected_delay}"
+    delay_in_delta_perfect_reschedule = get_delay_trainruns_dict(fake_schedule, delta_perfect_reschedule_trainruns)
+    assert delay_in_delta_perfect_reschedule == expected_delay, f"found {delay_in_delta_perfect_reschedule}, expected={expected_delay}"
     delay_in_full_reschedule = get_delay_trainruns_dict(fake_schedule, fake_full_reschedule_trainruns)
     assert delay_in_full_reschedule == expected_delay, f"found {delay_in_full_reschedule}, expected {expected_delay}"
-    asp_costs = delta_reschedule_result.optimization_costs
+    asp_costs = delta_perfect_reschedule_result.optimization_costs
 
-    # the delta model does not count the malfunction as costs
-    expected_asp_costs = expected_delay - fake_malfunction.malfunction_duration
+    expected_asp_costs = expected_delay
     assert asp_costs == expected_asp_costs, f"found asp_costs={asp_costs}, expected={expected_asp_costs}"
 
 

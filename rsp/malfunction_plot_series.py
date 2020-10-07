@@ -1,7 +1,7 @@
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
-from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.analysis.compute_time_analysis import plot_delay_propagation_2d
+from rsp.analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
 from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
 from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -24,7 +24,7 @@ if __name__ == '__main__':
         exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_data_folder(
             experiment_data_folder_name=experiment_data_directory,
             experiment_ids=[experiment_of_interest],
-            nonify_problem_and_results=False
+            nonify_all_structured_fields=False
         )[0]
         plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest, sorting_agent_id=agent_of_interest)
 
@@ -32,11 +32,11 @@ if __name__ == '__main__':
         schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
         schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations, plotting_data.plotting_information)
 
-        reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+        reschedule_resource_occupations = plotting_data.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
         reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
                                                                                    plotting_data.plotting_information)
 
-        changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(
+        _, changed_agents_dict = get_difference_in_time_space_trajectories(
             base_trajectories=schedule_trajectories,
             target_trajectories=reschedule_trajectories)
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         # Compute actual changes and plot the effects of this
 
         plot_delay_propagation_2d(plotting_data=plotting_data,
-                                  delay_information=exp_results_of_experiment_of_interest.lateness_delta_after_malfunction,
+                                  delay_information=exp_results_of_experiment_of_interest.lateness_delta_perfect_after_malfunction,
                                   depth_dict=minimal_depth,
                                   changed_agents=changed_agents_dict,
                                   file_name=file_name_2d)

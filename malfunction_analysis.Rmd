@@ -22,15 +22,16 @@ import sys
 
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.compute_time_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
-from rsp.compute_time_analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_resource_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_resource_time_diagrams
-from rsp.compute_time_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
-from rsp.compute_time_analysis.compute_time_analysis import plot_delay_propagation_2d
-from rsp.compute_time_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.compute_time_analysis.compute_time_analysis import plot_agent_specific_delay
-from rsp.compute_time_analysis.compute_time_analysis import print_situation_overview
+from rsp.analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_resource_time_diagrams
+from rsp.analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.analysis.compute_time_analysis import plot_delay_propagation_2d
+from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.analysis.compute_time_analysis import plot_changed_agents
+from rsp.analysis.compute_time_analysis import print_situation_overview
+from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 
 
 from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
@@ -42,8 +43,9 @@ from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
 ### Load Experiment Data
 
 ```{python}
-experiment_base_directory = '../rsp-data/h1_2020_08_24T21_04_42_dummydata_2020_08_26T16_34_06'
-experiment_of_interest = 1
+experiment_base_directory = BASELINE_DATA_FOLDER
+
+experiment_of_interest = 106
 agent_of_interest = 0
 ```
 
@@ -55,8 +57,9 @@ experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDI
 exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
-    nonify_problem_and_results=False
+    nonify_all_structured_fields=False
 )[0]
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agent_id
 plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
 ```
 
@@ -72,7 +75,7 @@ schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedul
                                                                          ,plotting_data.plotting_information)
 # Get resource occupation and time-space trajectories for full reschedule
 
-reschedule_resource_occupations = plotting_data.reschedule_delta_as_resource_occupations.sorted_resource_occupations_per_agent
+reschedule_resource_occupations = plotting_data.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
 reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations,
                                                                            plotting_data.plotting_information)
 changed_trajectories, changed_agents_dict = get_difference_in_time_space_trajectories(
@@ -93,13 +96,15 @@ false_positives_trajectories = trajectories_from_resource_occupations_per_agent(
 Visualize the propagation of the malfunction in the schedule. Only forward propagation is considered and no re-scheduling is assumed. This illustrates the extent of the malfunction if no actions are taken.
 
 ```{python}
+print(f"agent_of_interest={agent_of_interest}")
 print_situation_overview(plotting_data,changed_agents_dict)
 ```
 
 ```{python}
 plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",
                                 trajectories=schedule_trajectories,
-                                schedule_plotting=plotting_data,
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction,
                                 malfunction_wave=(true_positives_trajectories,false_positives_trajectories))
 ```
 
@@ -107,7 +112,7 @@ Spatially the influence of the malfunction would have spread according to the fo
 
 ```{python}
 plot_delay_propagation_2d(plotting_data=plotting_data,
-                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_after_malfunction,
+                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_perfect_after_malfunction,
                           depth_dict=minimal_depth)
 ```
 
@@ -118,14 +123,15 @@ Given the actions of the re-scheduling algorithm, the spread can be limited both
 ```{python}
 plot_time_resource_trajectories(title="Influenced Trains after re-scheduling",
                                 trajectories=changed_trajectories,
-                                schedule_plotting=plotting_data)
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction)
 ```
 
 The spatial spread of the malfunction can be seen below. The arrows indicate direction of travel, the thickness of the arrow indicates the total delay of an agent. The colors show the depth of influence from the initial agent, meaning if it was directly or indirectly influenced.
 
 ```{python}
 plot_delay_propagation_2d(plotting_data=plotting_data,
-                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_after_malfunction,
+                          delay_information=exp_results_of_experiment_of_interest.lateness_delta_perfect_after_malfunction,
                           depth_dict=minimal_depth,
                           changed_agents=changed_agents_dict)
 ```
@@ -134,10 +140,6 @@ Figure below shows the histogram of the delay times, giving us a great overview 
 
 ```{python}
 plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
-```
-
-```{python}
-plot_agent_specific_delay(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
 The below figure shows the propagation of the malfunction within the schedule, when there are no actions taken. The progation is projected to show the influence from an agent to the next agent.
@@ -157,7 +159,7 @@ plot_delay_propagation_graph(minimal_depth = minimal_depth,
 
 ```{python}
 from rsp.hypothesis_two_encounter_graph import extract_time_windows_and_transmission_chains,plot_transmission_chains_time_window
-from rsp.compute_time_analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
 ```
 
 ```{python}

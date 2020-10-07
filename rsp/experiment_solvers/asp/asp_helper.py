@@ -14,9 +14,9 @@ from importlib_resources import path
 from rsp.experiment_solvers.asp import theory
 from rsp.experiment_solvers.asp.data_types import ASPHeuristics
 from rsp.experiment_solvers.asp.data_types import ASPObjective
-from rsp.logger import rsp_logger
-from rsp.logger import VERBOSE
 from rsp.utils.global_constants import DL_PROPAGATE_PARTIAL
+from rsp.utils.rsp_logger import rsp_logger
+from rsp.utils.rsp_logger import VERBOSE
 
 FluxHelperResult = NamedTuple('FluxHelperResult', [
     # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
@@ -138,7 +138,7 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
     # find optimal model; if not optimizing, find all models!
     ctl.configuration.solve.models = 0
     # find only first optimal model
-    ctl.configuration.solve.opt_mode = 'opt'
+    ctl.configuration.solve.opt_mode = 'opt'  # noqa
     dl.register_propagator(ctl)
 
     if verbose:

@@ -6,10 +6,10 @@ from typing import Tuple
 import numpy as np
 
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.logger import rsp_logger
 from rsp.utils.data_types import ResourceOccupation
+from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SchedulingProblemInTimeWindows
-from rsp.utils.plotting_data_types import SchedulePlotting
+from rsp.utils.rsp_logger import rsp_logger
 
 TransmissionLeg = NamedTuple('TransmissionLeg', [
     ('hop_on', ResourceOccupation),
@@ -23,6 +23,8 @@ WAVE_PER_DEPTH = Dict[int, List[ResourceOccupation]]
 # waves reaching per agent (int key = agent_id)
 WAVE_PER_AGENT_AND_DEPTH = Dict[int, WAVE_PER_DEPTH]
 
+
+# TODO remove, not needed currently?
 
 def extract_transmission_chains_from_time_windows(  # noqa: C901
         malfunction: ExperimentMalfunction,
@@ -86,28 +88,26 @@ def extract_transmission_chains_from_time_windows(  # noqa: C901
     return transmission_chains
 
 
-# TODO we probably too much work here!
-def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlotting) -> List[TransmissionChain]:
+def extract_transmission_chains_from_schedule(malfunction: ExperimentMalfunction, occupations: ScheduleAsResourceOccupations) -> List[TransmissionChain]:
     """Propagation of delay.
-
+    TODO optimize (for instance, we do not check whether that only the largest delay per resource and agent is in the open list.
     Parameters
     ----------
-    schedule_plotting
 
     Returns
     -------
     List of transmission chains
     """
 
-    malfunction = schedule_plotting.malfunction
     malfunction_agent_id = malfunction.agent_id
     delay_time = malfunction.malfunction_duration
-    resource_occupations_per_agent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_per_resource = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_resource
+
+    resource_occupations_per_agent = occupations.sorted_resource_occupations_per_agent
+    resource_occupations_per_resource = occupations.sorted_resource_occupations_per_resource
 
     open_wave_front: List[Tuple[ResourceOccupation, TransmissionChain]] = []
     transmission_chains: List[TransmissionChain] = []
-    closed_wave_front: List[ResourceOccupation] = []
+    closed_wave_front: Dict[ResourceOccupation, int] = {}
     malfunction_occupation = next(ro for ro in resource_occupations_per_agent[malfunction_agent_id] if malfunction.time_step < ro.interval.to_excl)
     for ro in resource_occupations_per_agent[malfunction_agent_id]:
         # N.B. intervals include release times, therefore we can be strict at upper bound!
@@ -122,25 +122,33 @@ def extract_transmission_chains_from_schedule(schedule_plotting: SchedulePlottin
         wave_front = history[-1].hop_off
         delay_time = history[-1].delay_time
         wave_front_resource = wave_front.resource
-        if wave_front in closed_wave_front:
-            continue
-        closed_wave_front.append(wave_front)
 
-        # the next scheduled train may be impacted!
-        for ro in resource_occupations_per_resource[wave_front_resource]:
+        if delay_time <= closed_wave_front.get(wave_front, 0):
+            continue
+        closed_wave_front[wave_front] = delay_time
+
+        # the next scheduled train at the same resource may be impacted!
+        ro = next(iter([ro for ro in resource_occupations_per_resource[wave_front_resource] if ro.interval.from_incl >= wave_front.interval.to_excl]), None)
+        if ro is not None:
             time_between_agents = ro.interval.from_incl - wave_front.interval.to_excl
-            if ro.interval.from_incl >= wave_front.interval.to_excl and time_between_agents < delay_time:
-                delay_time = delay_time - time_between_agents
-                for subsequent_ro in resource_occupations_per_agent[ro.agent_id]:
-                    # hop_on and hop_off may be at the same resource
-                    if subsequent_ro.interval.from_incl >= ro.interval.from_incl:
-                        chain = history + [TransmissionLeg(ro, subsequent_ro, delay_time)]
-                        assert subsequent_ro not in history
-                        if ro in closed_wave_front:
-                            continue
-                        open_wave_front.append(chain)
-                        transmission_chains.append(chain)
-                break
+
+            if time_between_agents < delay_time:
+                remaining_delay_time = delay_time - time_between_agents
+                assert remaining_delay_time >= 0
+                impact_distance_from_wave_front = delay_time - remaining_delay_time
+                assert impact_distance_from_wave_front >= 0
+                # the propagation may flow backwards!
+                for subsequent_ro in [subsequent_ro
+                                      for subsequent_ro in resource_occupations_per_agent[ro.agent_id]
+                                      if subsequent_ro.interval.from_incl >= ro.interval.from_incl - remaining_delay_time
+                                      ]:
+                    chain = history + [TransmissionLeg(ro, subsequent_ro, remaining_delay_time)]
+                    assert subsequent_ro not in history
+                    if ro in closed_wave_front and closed_wave_front[ro] > remaining_delay_time:
+                        # already processed with larger delay
+                        continue
+                    open_wave_front.append(chain)
+                    transmission_chains.append(chain)
     return transmission_chains
 
 
@@ -161,19 +169,12 @@ def validate_transmission_chains(transmission_chains: List[TransmissionChain]):
             # leg must be at the same agent
             assert transmission.hop_on.agent_id == transmission.hop_off.agent_id, transmission
 
-            # hop off interval must not be earlier than hop on interval, but may overlap
-            # (in particular, hop_on and hop_off may be at the same resource occupation)
-            assert transmission.hop_off.interval.from_incl >= transmission.hop_on.interval.from_incl, transmission
-            assert transmission.hop_off.interval.to_excl >= transmission.hop_on.interval.to_excl, transmission
+            # N.B. because of backwards propagation, the hop_on interval can to the left
         for tr1, tr2 in zip(transmission_chain, transmission_chain[1:]):
             # transmission between different agents
             assert tr1.hop_off.agent_id != tr2.hop_off.agent_id, (tr1, tr2)
 
-            # transmission via same resource
-            assert tr2.hop_on.resource == tr1.hop_off.resource, (tr1, tr2)
-
-            # transmission via occupation afterwards
-            assert tr2.hop_on.interval.from_incl >= tr1.hop_off.interval.to_excl, (tr1, tr2)
+            # N.B. because of backwards propagation, next hop_on needs not be at same resource and next hop_on needs not be later
 
 
 def validate_transmission_chain_time_window(transmission_chain: TransmissionChain):
@@ -236,7 +237,6 @@ def distance_matrix_from_tranmission_chains(
         minimal_depth[to_ro.agent_id] = min(minimal_depth[to_ro.agent_id], hop_on_depth)
 
         distance = to_ro.interval.from_incl - from_ro.interval.to_excl
-        assert distance >= 0
         from_agent_id = from_ro.agent_id
         to_agent_id = to_ro.agent_id
 

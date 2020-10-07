@@ -59,7 +59,6 @@ repos:
         args: [
           "--exclude", "rsp/experiment_solvers/asp/theory.py"
         ]
-# TODO SIM-SIM-674 vulture 60% anschauen
   - repo: local
     hooks:
       # Vulture
@@ -69,8 +68,8 @@ repos:
         description: Find dead Python code
         entry: vulture
         args: [
-          "--min-confidence", "80",
-          "--exclude", "rsp/experiment_solvers/asp/theory.py",
+          "--min-confidence", "40",
+          "--exclude", "rsp/experiment_solvers/asp/theory.py,rsp/read_in.py",
           "rsp", "tests"
         ]
         language: system
