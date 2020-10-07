@@ -168,6 +168,8 @@ def propagate(  # noqa C901
 
     Parameters
     ----------
+    must_be_visited
+    force_earliest
     force_latest
     earliest_dict
     latest_dict

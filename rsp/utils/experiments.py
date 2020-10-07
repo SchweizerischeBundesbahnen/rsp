@@ -853,15 +853,13 @@ def create_infrastructure_and_schedule_from_ranges(
 
 def list_infrastructure_and_schedule_params_from_base_directory(
         base_directory: str,
-        infra_ids: List[int] = None,
+        filter_experiment_agenda: Callable[[int, int], bool] = None,
         debug: bool = False
-) -> Tuple[List[InfrastructureParameters], Dict[int, List[ScheduleParameters]]]:
+) -> Tuple[List[InfrastructureParameters], Dict[int, List[Tuple[ScheduleParameters, Schedule]]]]:
     infra_schedule_dict = {}
     infra_parameters_list = []
     nb_infras = len(os.listdir(f'{base_directory}/infra/'))
     for infra_id in range(nb_infras):
-        if infra_ids is not None and infra_id not in infra_ids:
-            continue
         infra, infra_parameters = load_infrastructure(
             base_directory=base_directory,
             infra_id=infra_id
@@ -875,16 +873,19 @@ def list_infrastructure_and_schedule_params_from_base_directory(
             continue
         nb_schedules = len(os.listdir(schedule_dir))
         for schedule_id in range(nb_schedules):
+            if filter_experiment_agenda is not None and not filter_experiment_agenda(infra_id, schedule_id):
+                continue
             schedule, schedule_parameters = load_schedule(
                 base_directory=base_directory,
                 infra_id=infra_id,
                 schedule_id=schedule_id
             )
+
             if debug:
                 for agent_id, topo in schedule.schedule_problem_description.topo_dict.topo_dict.items():
                     print(
                         f"    {agent_id} has {len(get_paths_in_route_dag(topo))} paths in infra {infra_id} / schedule {schedule_id}")
-            infra_schedule_dict.setdefault(infra_parameters.infra_id, []).append(schedule_parameters)
+            infra_schedule_dict.setdefault(infra_parameters.infra_id, []).append((schedule_parameters, schedule))
     return infra_parameters_list, infra_schedule_dict
 
 
@@ -892,26 +893,30 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
         experiment_name: str,
         reschedule_parameters_range: ReScheduleParametersRange,
         infra_parameters_list: List[InfrastructureParameters],
-        infra_schedule_dict: Dict[InfrastructureParameters, List[ScheduleParameters]],
+        infra_schedule_dict: Dict[InfrastructureParameters, List[Tuple[ScheduleParameters, Schedule]]],
         experiments_per_grid_element: int = 1,
 ):
     list_of_re_schedule_parameters = [ReScheduleParameters(*expanded) for expanded in expand_range_to_parameter_set(reschedule_parameters_range)]
     infra_parameters_dict = {infra_parameters.infra_id: infra_parameters for infra_parameters in infra_parameters_list}
     experiments = []
 
-    # we want arity not to be the same at the same level, therefore, we increment counters
+    # we want to be able to have different number of schedules for two infrastructures, therefore, we increment counters
     experiment_id = 0
     grid_id = 0
     for infra_id, list_of_schedule_parameters in infra_schedule_dict.items():
-        for schedule_parameters in list_of_schedule_parameters:
+        infra_parameters: InfrastructureParameters = infra_parameters_dict[infra_id]
+        for schedule_parameters, _ in list_of_schedule_parameters:
             for re_schedule_parameters in list_of_re_schedule_parameters:
+                # allow for malfunction agent range to be greater than number of agents of this infrastructure
+                if re_schedule_parameters.malfunction_agend_id >= infra_parameters.number_of_agents:
+                    continue
                 for _ in range(experiments_per_grid_element):
                     experiments.append(
                         ExperimentParameters(
                             experiment_id=experiment_id,
 
                             schedule_parameters=schedule_parameters,
-                            infra_parameters=infra_parameters_dict[infra_id],
+                            infra_parameters=infra_parameters,
 
                             grid_id=grid_id,
                             earliest_malfunction=re_schedule_parameters.earliest_malfunction,

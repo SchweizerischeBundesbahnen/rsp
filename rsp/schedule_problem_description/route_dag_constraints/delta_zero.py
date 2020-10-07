@@ -155,8 +155,9 @@ def delta_zero(
     -------
     RouteDAGConstraints
     """
+    # TODO SIM-650 adapt pseudo-code to determine whether the malfunction happens before we enter the last edge instead of before the last node!
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
-            malfunction.time_step < schedule_trainrun[-1].scheduled_at):
+            malfunction.time_step < schedule_trainrun[-2].scheduled_at):
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
         return delta_zero_running(
             agent_id=agent_id,
@@ -196,7 +197,7 @@ def delta_zero(
                 del freeze.latest[waypoint]
                 del freeze.earliest[waypoint]
         return freeze
-    elif malfunction.time_step >= schedule_trainrun[-1].scheduled_at:
+    elif malfunction.time_step >= schedule_trainrun[-2].scheduled_at:
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         topo.remove_nodes_from(set(topo.nodes).difference(visited))
