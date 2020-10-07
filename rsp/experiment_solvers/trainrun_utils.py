@@ -138,29 +138,21 @@ def _verify_trainruns_rule_6_freeze(expected_route_dag_constraints, trainruns_di
             for trainrun_waypoint in trainruns_dict[agent_id]
         }
 
-        # is freeze_visit respected?
-        for waypoint in route_dag_constraints.freeze_visit:
-            assert waypoint in waypoint_dict
-
-        # is freeze_earliest respected?
-        for waypoint, scheduled_at in route_dag_constraints.freeze_earliest.items():
+        # is earliest respected?
+        for waypoint, scheduled_at in route_dag_constraints.earliest.items():
             if waypoint in waypoint_dict:
                 actual_scheduled_at = waypoint_dict[waypoint]
                 assert actual_scheduled_at >= scheduled_at, \
                     f"expected {actual_scheduled_at} <= {scheduled_at} " + \
                     f"for {waypoint} of agent {agent_id}"
 
-        # is freeze_latest respected?
-        for waypoint, scheduled_at in route_dag_constraints.freeze_latest.items():
+        # is latest respected?
+        for waypoint, scheduled_at in route_dag_constraints.latest.items():
             if waypoint in waypoint_dict:
                 actual_scheduled_at = waypoint_dict[waypoint]
                 assert actual_scheduled_at <= scheduled_at, \
                     f"expected {actual_scheduled_at} <= {scheduled_at} " + \
                     f"for {waypoint} of agent {agent_id}"
-
-        # is freeze_banned respected?
-        for waypoint in route_dag_constraints.freeze_banned:
-            assert waypoint not in waypoint_dict
 
 
 def _verify_trainruns_rule_4_consistency_with_topology(topo_dict: TopoDict, trainrun_dict):

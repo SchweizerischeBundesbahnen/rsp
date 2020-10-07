@@ -42,7 +42,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
         Converts the rendering to mpeg
     """
 
-    rail_env = create_env_from_experiment_parameters(experiment_parameters)
+    rail_env = create_env_from_experiment_parameters(experiment_parameters.infra_parameters)
     train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
     train_runs_delta_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_after_malfunction
@@ -74,9 +74,8 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
 
     if route_dag:
         for agent_id in problem_rsp_delta.route_dag_constraints_dict.keys():
-            # IMPORTANT: we visualize with respect to the full schedule DAG,
-            #            but the banned elements are not passed to solver any more!
-            # TODO SIM-190 documentation about this
+            # TODO SIM-650 since the scheduling topo might now only contain one path per agent,
+            #  we should visualize with respect to the full route DAG as in infrastructure and visualize removed edges
             topo = problem_schedule.topo_dict[agent_id]
             train_run_full_after_malfunction = train_runs_full_after_malfunction[agent_id]
             train_run_delta_after_malfunction = train_runs_delta_after_malfunction[agent_id]
@@ -91,7 +90,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 route_section_penalties=problem_schedule.route_section_penalties[agent_id],
                 title=_make_title(agent_id, experiment_parameters, malfunction, n_agents, topo,
                                   problem_schedule.route_dag_constraints_dict[agent_id],
-                                  k=experiment_parameters.number_of_shortest_paths_per_agent),
+                                  k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent),
                 file_name=(os.path.join(route_dag_folder,
                                         f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf")
                            if experiment_analysis_directory is not None else None),
@@ -112,7 +111,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 title=_make_title(
                     agent_id, experiment_parameters, malfunction, n_agents, topo,
                     problem_rsp_delta.route_dag_constraints_dict[agent_id],
-                    k=experiment_parameters.number_of_shortest_paths_per_agent,
+                    k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent,
                     costs=costs_delta_after_malfunction,
                     eff_lateness_agent=lateness_delta_after_malfunction[agent_id],
                     eff_sum_route_section_penalties_agent=sum_route_section_penalties_delta_after_malfunction[
@@ -138,7 +137,7 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 title=_make_title(
                     agent_id, experiment_parameters, malfunction, n_agents, topo,
                     problem_rsp_full.route_dag_constraints_dict[agent_id],
-                    k=experiment_parameters.number_of_shortest_paths_per_agent,
+                    k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent,
                     costs=costs_full_after_malfunction,
                     eff_lateness_agent=lateness_full_after_malfunction[agent_id],
                     eff_sum_route_section_penalties_agent=sum_route_section_penalties_full_after_malfunction[agent_id]),

@@ -15,11 +15,6 @@ def newline_and_flush_stdout_and_stderr():
     time.sleep(0.1)
 
 
-def newline_and_flush_stdout():
-    sys.stdout.write("\n")
-    sys.stdout.flush()
-
-
 def check_create_folder(folder_name):
     """Checks that the folder exists. Tries to create the folder if it does not
     exist.

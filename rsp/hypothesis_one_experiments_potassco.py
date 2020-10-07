@@ -1,9 +1,13 @@
 import re
 from typing import Optional
 
-from rsp.hypothesis_one_experiments import get_agenda_pipeline_params_003_a_bit_more_advanced
-from rsp.hypothesis_one_experiments import hypothesis_one_pipeline
-from rsp.hypothesis_one_experiments import hypothesis_one_rerun_without_regen_schedule
+from rsp.hypothesis_one_pipeline_all_in_one import list_from_base_directory_and_run_experiment_agenda
+from rsp.utils.data_types import InfrastructureParametersRange
+from rsp.utils.data_types import ReScheduleParametersRange
+from rsp.utils.data_types import ScheduleParametersRange
+from rsp.utils.experiments import create_experiment_folder_name
+from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
+from rsp.utils.file_utils import check_create_folder
 
 
 # TODO pass arguments instead of hacky file editing
@@ -43,108 +47,125 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
-def main(gen_schedule: bool = True, run_experiments: bool = True, copy_agenda_from_base_directory: Optional[str] = None):
-    """
+def run_potassco_agenda(base_directory: str):
+    reschedule_parameters_range = ReScheduleParametersRange(
+        earliest_malfunction=[1, 1, 1],
+        malfunction_duration=[50, 50, 1],
+        malfunction_agent_id=[0, 200, 200],
 
-    Parameters
-    ----------
-    gen_schedule
-        generate schedule? If `False`, `copy_agenda_from_base_directory` must be provided.
-    run_experiments
-        run experiments after schedule generation
-    copy_agenda_from_base_directory
-    """
-    if gen_schedule:
-        copy_agenda_from_base_directory = hypothesis_one_pipeline(
-            experiment_name='003_a_bit_more_advanced_schedules_only',
-            parameter_ranges_and_speed_data=get_agenda_pipeline_params_003_a_bit_more_advanced(),
-            qualitative_analysis_experiment_ids=[],
-            asp_export_experiment_ids=[],
-            experiment_ids=None,
-            gen_only=True
+        number_of_shortest_paths_per_agent=[10, 10, 1],
+
+        max_window_size_from_earliest=[60, 60, 1],
+        asp_seed_value=[99, 99, 1],
+
+        # route change is penalized the same as 30 seconds delay
+        weight_route_change=[30, 30, 1],
+        weight_lateness_seconds=[1, 1, 1]
+    )
+
+    try:
+        experiments_per_grid_element = 1
+        experiment_name_prefix = base_directory + "_"
+        parallel_compute = 2
+        # baseline with defaults
+        set_defaults()
+        list_from_base_directory_and_run_experiment_agenda(
+            experiment_base_directory=base_directory,
+            reschedule_parameters_range=reschedule_parameters_range,
+            experiment_name=('%sbaseline' % experiment_name_prefix),
+            parallel_compute=parallel_compute,
+            experiments_per_grid_element=experiments_per_grid_element
         )
-    if run_experiments and copy_agenda_from_base_directory is not None:
-        try:
-            nb_runs = 3
-            experiment_name_prefix = copy_agenda_from_base_directory + "_"
-            parallel_compute = 2
-            experiment_ids = None
-            # baseline with defaults
-            set_defaults()
-            hypothesis_one_rerun_without_regen_schedule(
-                copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-                experiment_name=('%sbaseline' % experiment_name_prefix),
-                nb_runs=nb_runs,
-                parallel_compute=parallel_compute,
-                experiment_ids=experiment_ids,
-                run_analysis=False,
-                with_file_handler_to_rsp_logger=True
-            )
-            # effect of SEQ heuristic (SIM-167)
-            set_defaults()
-            enable_seq(True)
-            hypothesis_one_rerun_without_regen_schedule(
-                copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-                experiment_name=('%swith_SEQ' % experiment_name_prefix),
-                nb_runs=nb_runs,
-                parallel_compute=parallel_compute,
-                experiment_ids=experiment_ids,
-                run_analysis=False,
-                with_file_handler_to_rsp_logger=True
-            )
-            # effect of delay model resolution (SIM-542)
-            set_defaults()
-            set_delay_model_resolution(2)
-            hypothesis_one_rerun_without_regen_schedule(
-                copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-                experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
-                nb_runs=nb_runs,
-                parallel_compute=parallel_compute,
-                experiment_ids=experiment_ids,
-                run_analysis=False,
-                with_file_handler_to_rsp_logger=True
-            )
-            set_defaults()
-            set_delay_model_resolution(5)
-            hypothesis_one_rerun_without_regen_schedule(
-                copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-                experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
-                nb_runs=nb_runs,
-                parallel_compute=parallel_compute,
-                experiment_ids=experiment_ids,
-                run_analysis=False,
-                with_file_handler_to_rsp_logger=True
-            )
-            set_defaults()
-            set_delay_model_resolution(10)
-            hypothesis_one_rerun_without_regen_schedule(
-                copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-                experiment_name=('%swith_delay_model_resolution_10' % experiment_name_prefix),
-                nb_runs=nb_runs,
-                parallel_compute=parallel_compute,
-                experiment_ids=experiment_ids,
-                run_analysis=False,
-                with_file_handler_to_rsp_logger=True
-            )
-            # # effect of --propagate (SIM-543)
-            set_defaults()
-            enable_propagate_partial(enable=False)
-            hypothesis_one_rerun_without_regen_schedule(
-                copy_agenda_from_base_directory=copy_agenda_from_base_directory,
-                experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
-                nb_runs=nb_runs,
-                parallel_compute=parallel_compute,
-                experiment_ids=experiment_ids,
-                run_analysis=False,
-                with_file_handler_to_rsp_logger=True
-            )
-        finally:
-            set_defaults()
+        # effect of SEQ heuristic (SIM-167)
+        set_defaults()
+        enable_seq(True)
+
+        list_from_base_directory_and_run_experiment_agenda(
+            experiment_base_directory=base_directory,
+            reschedule_parameters_range=reschedule_parameters_range,
+            experiment_name=('%swith_SEQ' % experiment_name_prefix),
+            parallel_compute=parallel_compute,
+            experiments_per_grid_element=experiments_per_grid_element
+
+        )
+        # effect of delay model resolution (SIM-542)
+        set_defaults()
+        set_delay_model_resolution(2)
+        list_from_base_directory_and_run_experiment_agenda(
+            experiment_base_directory=base_directory,
+            reschedule_parameters_range=reschedule_parameters_range,
+            experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
+            parallel_compute=parallel_compute,
+            experiments_per_grid_element=experiments_per_grid_element
+        )
+        set_defaults()
+        set_delay_model_resolution(5)
+        list_from_base_directory_and_run_experiment_agenda(
+            experiment_base_directory=base_directory,
+            reschedule_parameters_range=reschedule_parameters_range,
+            experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
+            parallel_compute=parallel_compute,
+            experiments_per_grid_element=experiments_per_grid_element
+        )
+        set_defaults()
+        set_delay_model_resolution(10)
+        list_from_base_directory_and_run_experiment_agenda(
+            experiment_base_directory=base_directory,
+            reschedule_parameters_range=reschedule_parameters_range,
+            experiment_name=('%swith_delay_model_resolution_10' % experiment_name_prefix),
+            parallel_compute=parallel_compute,
+            experiments_per_grid_element=experiments_per_grid_element
+        )
+        # # effect of --propagate (SIM-543)
+        set_defaults()
+        enable_propagate_partial(enable=False)
+        list_from_base_directory_and_run_experiment_agenda(
+            experiment_base_directory=base_directory,
+            reschedule_parameters_range=reschedule_parameters_range,
+            experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
+            parallel_compute=parallel_compute,
+            experiments_per_grid_element=experiments_per_grid_element
+        )
+    finally:
+        set_defaults()
+
+
+def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None):
+    if base_directory is None:
+        base_directory = create_experiment_folder_name("h1")
+        check_create_folder(base_directory)
+
+    infra_parameters_range = InfrastructureParametersRange(
+        number_of_agents=[80, 150, 8],
+        width=[110, 110, 1],
+        height=[110, 110, 1],
+        flatland_seed_value=[12, 12, 1],
+        max_num_cities=[10, 10, 1],
+        max_rail_in_city=[3, 3, 1],
+        max_rail_between_cities=[2, 2, 1],
+        number_of_shortest_paths_per_agent=[10, 10, 1]
+    )
+    schedule_parameters_range = ScheduleParametersRange(
+        asp_seed_value=[94, 104, 10],
+        number_of_shortest_paths_per_agent_schedule=[1, 1, 1],
+    )
+
+    create_infrastructure_and_schedule_from_ranges(
+        base_directory=base_directory,
+        infrastructure_parameters_range=infra_parameters_range,
+        schedule_parameters_range=schedule_parameters_range,
+        speed_data={1.: 0.25,  # Fast passenger train
+                    1. / 2.: 0.25,  # Fast freight train
+                    1. / 3.: 0.25,  # Slow commuter train
+                    1. / 4.: 0.25}  # Slow freight train
+    )
+    return base_directory
 
 
 if __name__ == '__main__':
-    main(
-        gen_schedule=False,
-        run_experiments=True,
-        copy_agenda_from_base_directory='../rsp-data/003_a_bit_more_advanced_schedules_only_2020_06_12T21_01_45_merge_2020_06_19T16_23_16'
+    generate_potassco_infras_and_schedules(
+        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
+    )
+    run_potassco_agenda(
+        base_directory="../rsp-data/h1_2020_08_24T21_04_42"
     )

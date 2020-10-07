@@ -79,10 +79,6 @@ class ASPProblemDescription:
         )
         return asp_problem
 
-    def get_solver_name(self) -> str:
-        """Return the solver name for printing."""
-        return "ASP"
-
     @staticmethod
     def _sanitize_waypoint(waypoint: Waypoint):
         return tuple([tuple(waypoint.position), int(waypoint.direction)])
@@ -102,42 +98,6 @@ class ASPProblemDescription:
             self.asp_program.append("start(t{}, {}).".format(agent_id, self._sanitize_waypoint(start_waypoint)))
         for target_waypoint in target_vertices:
             self.asp_program.append("end(t{}, {}).".format(agent_id, self._sanitize_waypoint(target_waypoint)))
-
-    def _implement_agent_earliest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """Rule 102 Time windows for earliest-requirements. If a
-        section_requirement specifies an entry_earliest and/or exit_earliest
-        time, then the event times for the entry_event and/or exit_event on the
-        corresponding trainrun_section MUST be >= the specified time.
-
-        Parameters
-        ----------
-        agent_id
-        waypoint
-        time
-        """
-        # ASP fact e(T,V,E)
-        self.asp_program.append("e(t{},{},{}).".format(agent_id, self._sanitize_waypoint(waypoint), int(time)))
-
-    def _implement_agent_latest(self, agent_id: int, waypoint: Waypoint, time: int):
-        """Rule 101 Time windows for latest-requirements. If a
-        section_requirement specifies a entry_latest and/or exit_latest time
-        then the event times for the entry_event and/or exit_event on the
-        corresponding trainrun_section SHOULD be <= the specified time. If the
-        scheduled time is later than required, the solution will still be
-        accepted, but it will be penalized by the objective function, see
-        below. Important Remark: Among the 12 business rules, this is the only
-        'soft' constraint, i.e. a rule that may be violated and the solution
-        still accepted.
-
-        Parameters
-        ----------
-        agent_id
-        waypoint
-        time
-        """
-
-        # ASP fact l(T,V,E)
-        self.asp_program.append("l(t{},{},{}).".format(agent_id, self._sanitize_waypoint(waypoint), int(time)))
 
     def _implement_route_section(self, agent_id: int,
                                  entry_waypoint: Waypoint,
@@ -262,17 +222,15 @@ class ASPProblemDescription:
                                   )
 
             for (entry_waypoint, exit_waypoint) in topo.edges:
-                # do not add edge to the ASP model if one of the two vertices is banned!
-                if entry_waypoint not in freeze.freeze_banned and exit_waypoint not in freeze.freeze_banned:
-                    self._implement_route_section(
-                        agent_id=agent_id,
-                        entry_waypoint=entry_waypoint,
-                        exit_waypoint=exit_waypoint,
-                        resource_id=entry_waypoint.position,
-                        minimum_travel_time=schedule_problem_description.minimum_travel_time_dict[agent_id],
-                        route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
+                self._implement_route_section(
+                    agent_id=agent_id,
+                    entry_waypoint=entry_waypoint,
+                    exit_waypoint=exit_waypoint,
+                    resource_id=entry_waypoint.position,
+                    minimum_travel_time=schedule_problem_description.minimum_travel_time_dict[agent_id],
+                    route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
 
-            _new_asp_program += self._translate_route_dag_constraints_to_ASP(
+            _new_asp_program += self._translate_route_dag_constraints_to_asp(
                 agent_id=agent_id,
                 topo=schedule_problem_description.topo_dict[agent_id],
                 freeze=freeze)
@@ -281,8 +239,8 @@ class ASPProblemDescription:
             for agent_id in self.schedule_problem_description.minimum_travel_time_dict:
                 agent_sink = list(get_sinks_for_topo(self.schedule_problem_description.topo_dict[agent_id]))[0]
                 agent_source = list(get_sources_for_topo(self.schedule_problem_description.topo_dict[agent_id]))[0]
-                earliest_arrival = self.schedule_problem_description.route_dag_constraints_dict[agent_id].freeze_earliest[agent_sink]
-                earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].freeze_earliest[agent_source]
+                earliest_arrival = self.schedule_problem_description.route_dag_constraints_dict[agent_id].earliest[agent_sink]
+                earliest_departure = self.schedule_problem_description.route_dag_constraints_dict[agent_id].earliest[agent_source]
                 minimum_running_time = earliest_arrival - earliest_departure
                 self.asp_program.append("minimumrunningtime(t{},{}).".format(agent_id, minimum_running_time))
 
@@ -298,7 +256,7 @@ class ASPProblemDescription:
         # cleanup
         return _new_asp_program
 
-    def _translate_route_dag_constraints_to_ASP(self,  # noqa: C901
+    def _translate_route_dag_constraints_to_asp(self,  # noqa: C901
                                                 agent_id: int,
                                                 topo: nx.DiGraph,
                                                 freeze: RouteDAGConstraints):
@@ -326,7 +284,7 @@ class ASPProblemDescription:
         # 2019-12-03 discussion with Potsdam (SIM-146)
         # - no diff-constraints in addition to earliest/latest -> should be added immediately
         # - no route constraints in addition to visit -> should be added immediately
-        for waypoint, scheduled_at in freeze.freeze_latest.items():
+        for waypoint, scheduled_at in freeze.latest.items():
             vertex = self._sanitize_waypoint(waypoint)
             time = scheduled_at
 
@@ -334,7 +292,7 @@ class ASPProblemDescription:
             # l(t1,1,2).
             frozen.append(f"l({train},{vertex},{time}).")
 
-        for waypoint, scheduled_at in freeze.freeze_earliest.items():
+        for waypoint, scheduled_at in freeze.earliest.items():
             vertex = self._sanitize_waypoint(waypoint)
             time = scheduled_at
 

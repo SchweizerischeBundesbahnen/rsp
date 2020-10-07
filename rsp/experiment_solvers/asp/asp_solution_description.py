@@ -21,7 +21,6 @@ class ASPSolutionDescription():
                  ):
         self.asp_solution: FluxHelperResult = asp_solution
         self.answer_set: Set[str] = self.asp_solution.answer_sets[0]
-        self._action_plan = None
         self.schedule_problem_description: ScheduleProblemDescription = schedule_problem_description
 
     def verify_correctness(self):
@@ -80,24 +79,16 @@ class ASPSolutionDescription():
                 f"(1.6) [{agent_id}] cycle"
 
             # 2. verify solution satisfies constraints:
-            for waypoint in route_dag_constraints.freeze_visit:
-                assert waypoint in waypoints, \
-                    f"(2) [{agent_id}] freeze_visit violated: " \
-                    f"{waypoint} must be visited"
-            for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+            for waypoint, earliest in route_dag_constraints.earliest.items():
                 if waypoint in schedule:
                     assert schedule[waypoint] >= earliest, \
-                        f"(2) [{agent_id}] freeze_earliest violated: " \
+                        f"(2) [{agent_id}] earliest violated: " \
                         f"{waypoint} must be not be visited before {earliest}, found {schedule[waypoint]}"
-            for waypoint, latest in route_dag_constraints.freeze_latest.items():
+            for waypoint, latest in route_dag_constraints.latest.items():
                 if waypoint in schedule:
                     assert schedule[waypoint] <= latest, \
-                        f"(2) [{agent_id}] freeze_latest violated: " \
+                        f"(2) [{agent_id}] latest violated: " \
                         f"{waypoint} must be not be visited after {latest}, found {schedule[waypoint]}"
-            for waypoint in route_dag_constraints.freeze_banned:
-                assert waypoint not in waypoints, \
-                    f"(2) [{agent_id}] freeze_banned violated: " \
-                    f"{waypoint} must be not be visited"
 
         # 3. verify mututal exclusion and release time
         resource_occupations = {}
@@ -124,11 +115,6 @@ class ASPSolutionDescription():
         # take stats of last multi-shot call
         return self.asp_solution.stats['summary']['models']['enumerated'] > 0
 
-    def is_optimal_solution(self):
-        """Is an optimal solution found?"""
-        # take stats of last multi-shot call
-        return self.asp_solution.stats['summary']['models']['optimal'] > 0
-
     @staticmethod
     def _parse_dl_fact(value: str) -> TrainrunWaypoint:
         # dl((t0,((3,5),3)),5) # NOQA
@@ -140,20 +126,6 @@ class ASPSolutionDescription():
         entry = int(m.group(4))
 
         return TrainrunWaypoint(scheduled_at=entry, waypoint=Waypoint(position=(r, c), direction=d))
-
-    def get_entry_time(self, agent_id: int, v: Waypoint) -> int:
-        # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
-        # hack since Python's tuple representations has spaces, but ASP gives us them without.
-        position_part = str(tuple(v)).replace(" ", "")
-        var_prefix = "dl((t{},{}),".format(agent_id, position_part)
-        value: str = self._get_solver_variable_value(var_prefix)
-        return int(value.replace(var_prefix, "").replace(")", ""))
-
-    def _print_entry_times(self, answer_set):
-        print(self._get_entry_times_from_string_answer_set(answer_set))
-
-    def _get_entry_times_from_string_answer_set(self, answer_set):
-        return list(filter(lambda s: s.startswith(str("dl")), answer_set))
 
     def get_trainrun_for_agent(self, agent_id: int) -> Trainrun:
         """Get train run of the agent in the solution."""

@@ -4,23 +4,46 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_sum_running_times_trainruns_dict
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
+from rsp.utils.data_types import InfrastructureParameters
+from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.experiments import create_env_from_experiment_parameters
+from rsp.utils.experiments import create_infrastructure_from_rail_env
+from rsp.utils.experiments import create_schedule_problem_description_from_instructure
+
+test_parameters = ExperimentParameters(
+    experiment_id=0,
+    grid_id=0,
+    infra_parameters=InfrastructureParameters(
+        infra_id=0,
+        width=30,
+        height=30,
+        number_of_agents=2,
+        flatland_seed_value=12,
+        max_num_cities=20,
+        grid_mode=True,
+        max_rail_between_cities=2,
+        max_rail_in_city=6,
+        speed_data={1: 1.0},
+        number_of_shortest_paths_per_agent=10
+    ),
+    schedule_parameters=ScheduleParameters(
+        infra_id=0,
+        schedule_id=0,
+        asp_seed_value=94,
+        number_of_shortest_paths_per_agent_schedule=1
+    ),
+
+    earliest_malfunction=20,
+    malfunction_duration=20,
+    malfunction_agend_id=0,
+    weight_route_change=1,
+    weight_lateness_seconds=1,
+    max_window_size_from_earliest=np.inf
+)
 
 
 def test_scheduling():
-    test_parameters = ExperimentParameters(experiment_id=0, grid_id=0,
-                                           number_of_agents=2, width=30,
-                                           height=30, flatland_seed_value=12,
-                                           asp_seed_value=94, max_num_cities=20,
-                                           grid_mode=True,
-                                           max_rail_between_cities=2, max_rail_in_city=6, earliest_malfunction=20,
-                                           malfunction_duration=20, speed_data={1: 1.0},
-                                           number_of_shortest_paths_per_agent=10,
-                                           weight_route_change=1,
-                                           weight_lateness_seconds=1,
-                                           max_window_size_from_earliest=np.inf)
-    static_env = create_env_from_experiment_parameters(params=test_parameters)
+    static_env = create_env_from_experiment_parameters(params=test_parameters.infra_parameters)
 
     expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -72,7 +95,10 @@ def test_scheduling():
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
     assert static_env.rail.grid.tolist() == expected_grid
 
-    schedule_problem = _create_schedule_problem_description_from_rail_env(static_env, 10)
+    schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(
+        infrastructure=create_infrastructure_from_rail_env(static_env, 10),
+        number_of_shortest_paths_per_agent_schedule=10
+    )
     schedule_result = asp_schedule_wrapper(
         schedule_problem_description=schedule_problem,
         asp_seed_value=94,

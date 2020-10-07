@@ -8,7 +8,7 @@ from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescrip
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.route_dag_constraints.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.utils.data_types import experimentFreezeDictPrettyPrint
+from rsp.utils.data_types import experiment_freeze_dict_pretty_print
 from rsp.utils.global_constants import RELEASE_TIME
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -43,7 +43,7 @@ def test_costs_forced_rerouting_one_agent():
         )
         solution, _ = solve_problem(problem=reschedule_problem)
         print(solution.trainruns_dict[0])
-        experimentFreezeDictPrettyPrint(schedule_problem_description.route_dag_constraints_dict)
+        experiment_freeze_dict_pretty_print(schedule_problem_description.route_dag_constraints_dict)
         assert solution.optimization_costs == 0, f"found {solution.optimization_costs} for test {index}"
 
         assert penalized_edge[1] not in {
@@ -69,7 +69,7 @@ def test_costs_forced_delay_one_agent():
             minimum_travel_time=minimum_travel_time_dict[0],
             latest_arrival=latest_arrival)
         forced_delay = 5
-        route_dag_constraints.freeze_earliest[source_waypoint] = forced_delay
+        route_dag_constraints.earliest[source_waypoint] = forced_delay
         schedule_problem_description = ScheduleProblemDescription(
             route_dag_constraints_dict={0: route_dag_constraints},
             minimum_travel_time_dict=minimum_travel_time_dict,
@@ -160,8 +160,8 @@ def test_costs_forced_delay_two_agents():
 
 def test_costs_forced_rerouting_two_agents():
     """Two trains were schedule to run one after the other on the same path."""
-    topo1, edge_on_first_path1, _, source_waypoint1, target_waypoint1 = _make_topo2(dummy_offset=55)
-    topo2, edge_on_first_path2, _, source_waypoint2, target_waypoint2 = _make_topo2(dummy_offset=56)
+    topo1, edge_on_first_path1, _, source_waypoint1, _ = _make_topo2(dummy_offset=55)
+    topo2, edge_on_first_path2, _, source_waypoint2, _ = _make_topo2(dummy_offset=56)
 
     topo_dict = {0: topo1, 1: topo2}
     minimum_travel_time = 3

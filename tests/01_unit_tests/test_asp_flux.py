@@ -13,7 +13,8 @@ from rsp.experiment_solvers.asp.asp_helper import _asp_helper
 from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
-from rsp.utils.experiments import _create_schedule_problem_description_from_rail_env
+from rsp.utils.experiments import create_infrastructure_from_rail_env
+from rsp.utils.experiments import create_schedule_problem_description_from_instructure
 
 
 def test_asp_helper():
@@ -65,7 +66,10 @@ def test_simple_rail_asp_one_agent():
     start_solver = time.time()
 
     k = 1
-    tc = _create_schedule_problem_description_from_rail_env(env, k)
+    tc = create_schedule_problem_description_from_instructure(
+        infrastructure=create_infrastructure_from_rail_env(env, k=k),
+        number_of_shortest_paths_per_agent_schedule=k
+    )
     problem = ASPProblemDescription.factory_scheduling(schedule_problem_description=tc)
 
     print(problem.asp_program)

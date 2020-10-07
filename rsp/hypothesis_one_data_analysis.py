@@ -164,22 +164,29 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,
         (experiment_data['total_time_full_after_malfunction'] - experiment_data['solve_time_full_after_malfunction']) / \
         (experiment_data['total_time_delta_after_malfunction'] - experiment_data['solve_time_delta_after_malfunction'])
 
-    for axis_of_interest in ['experiment_id', 'n_agents', 'size', 'size_used']:
+    for axis_of_interest, axis_of_interest_suffix in {
+        'experiment_id': '',
+        'n_agents': '',
+        'size': '',
+        'size_used': '',
+        'solve_time_full_after_malfunction': '[s]'
+    }.items():
         for speed_up_col, y_axis_title in [
-            ('speed_up', 'total solver time'),
-            ('speed_up_solve_time', 'solver time solving only'),
-            ('speed_up_non_solve_time', 'solver time non-processing (grounding etc.)'),
+            ('speed_up', 'Speed-up full solver time [-]'),
+            ('speed_up_solve_time', 'Speed-up solver time solving only [-]'),
+            ('speed_up_non_solve_time', 'Speed-up solver time non-processing (grounding etc.) [-]'),
         ]:
             plot_speed_up(
                 experiment_data=experiment_data,
                 axis_of_interest=axis_of_interest,
+                axis_of_interest_suffix=axis_of_interest_suffix,
                 output_folder=output_folder,
                 col=speed_up_col,
                 y_axis_title=y_axis_title
             )
 
 
-def hypothesis_one_data_analysis(experiment_base_directory: str,
+def hypothesis_one_data_analysis(experiment_output_directory: str,
                                  analysis_2d: bool = False,
                                  asp_export_experiment_ids: List[int] = None,
                                  qualitative_analysis_experiment_ids: List[int] = None,
@@ -191,15 +198,15 @@ def hypothesis_one_data_analysis(experiment_base_directory: str,
     ----------
     analysis_2d
     asp_export_experiment_ids
-    experiment_base_directory
+    experiment_output_directory
     save_as_tsv
     qualitative_analysis_experiment_ids
     """
 
     # Import the desired experiment results
-    experiment_analysis_directory = f'{experiment_base_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
-    experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-    experiment_potassco_directory = f'{experiment_base_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}'
+    experiment_analysis_directory = f'{experiment_output_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
+    experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+    experiment_potassco_directory = f'{experiment_output_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}'
 
     # Create output directoreis
     check_create_folder(experiment_analysis_directory)
@@ -268,10 +275,10 @@ def lateness_to_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]
     Returns
     -------
     """
-    PENALTY_LEAP_AT = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
-    PENALTY_LEAP = 5000000 + PENALTY_LEAP_AT * weight_lateness_seconds
-    return sum([(PENALTY_LEAP
-                 if lateness > PENALTY_LEAP_AT
+    penalty_leap_at = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
+    penalty_leap = 5000000 + penalty_leap_at * weight_lateness_seconds
+    return sum([(penalty_leap
+                 if lateness > penalty_leap_at
                  else (lateness // DELAY_MODEL_RESOLUTION) * DELAY_MODEL_RESOLUTION * weight_lateness_seconds)
                 for agent_id, lateness in lateness_dict.items()])
 
@@ -319,7 +326,7 @@ def _run_plausibility_tests_on_experiment_data(l: List[ExperimentResultsAnalysis
 
 if __name__ == '__main__':
     hypothesis_one_data_analysis(
-        experiment_base_directory='./rsp/exp_hypothesis_one_2020_03_21T12_57_55',
+        experiment_output_directory='./rsp/exp_hypothesis_one_2020_03_21T12_57_55',
         analysis_2d=True,
         asp_export_experiment_ids=[270, 275, 280, 285, 290, 295]
     )

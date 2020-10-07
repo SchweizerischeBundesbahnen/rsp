@@ -1,5 +1,5 @@
-def catch_zero_division_error_as_minus_one(l):
+def catch_zero_division_error_as_minus_one(_lambda):
     try:
-        return l()
+        return _lambda()
     except ZeroDivisionError:
         return -1

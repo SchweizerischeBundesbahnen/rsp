@@ -6,7 +6,7 @@ from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.experiment_solvers.data_types import SchedulingExperimentResult
 from rsp.logger import rsp_logger
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.utils.data_types import experimentFreezeDictPrettyPrint
+from rsp.utils.data_types import experiment_freeze_dict_pretty_print
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -71,7 +71,7 @@ def asp_reschedule_wrapper(
 
     if debug:
         print("###reschedule")
-        experimentFreezeDictPrettyPrint(reschedule_problem_description.route_dag_constraints_dict)
+        experiment_freeze_dict_pretty_print(reschedule_problem_description.route_dag_constraints_dict)
 
     full_reschedule_result, asp_solution = solve_problem(
         problem=full_reschedule_problem,

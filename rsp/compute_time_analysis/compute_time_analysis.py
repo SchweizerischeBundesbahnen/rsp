@@ -214,7 +214,8 @@ def plot_speed_up(
         axis_of_interest: str,
         output_folder: Optional[str] = None,
         col: str = 'speed_up',
-        y_axis_title: str = "Speed Up Factor"
+        y_axis_title: str = "Speed Up Factor",
+        axis_of_interest_suffix: str = ""
 ):
     """
 
@@ -227,6 +228,12 @@ def plot_speed_up(
         Defines along what axis the data will be plotted
     output_folder
         if defined, do not show plot but write to file in this folder
+    col
+        column for y axis
+    y_axis_title
+        title for y axis instead of technical column name
+    axis_of_interest_suffix
+        label for x axis will be technical `axis_of_interest` column name plus this suffix
     Returns
     -------
 
@@ -254,7 +261,7 @@ def plot_speed_up(
 
     fig.update_layout(boxmode='group')
     fig.update_layout(title_text=f"Speed Up Factors {y_axis_title} per {axis_of_interest}")
-    fig.update_xaxes(title=axis_of_interest)
+    fig.update_xaxes(title=f"{axis_of_interest} {axis_of_interest_suffix}")
     fig.update_yaxes(title=y_axis_title)
     if output_folder is None:
         fig.show()
@@ -299,7 +306,7 @@ def extract_schedule_plotting(
                                             release_time=RELEASE_TIME)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
-        grid_depth=experiment_result.experiment_parameters.width,
+        grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
         sorting_agent_id=sorting_agent_id)
     return SchedulePlotting(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
@@ -363,10 +370,10 @@ def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescr
 
     for agent_id, route_dag_constraints in problem.route_dag_constraints_dict.items():
         time_windows_per_agent[agent_id] = []
-        for waypoint, earliest in route_dag_constraints.freeze_earliest.items():
+        for waypoint, earliest in route_dag_constraints.earliest.items():
             waypoint: Waypoint = waypoint
             resource = waypoint.position
-            latest = route_dag_constraints.freeze_latest[waypoint]
+            latest = route_dag_constraints.latest[waypoint]
             time_windows_per_agent[agent_id].append(ResourceOccupation(
                 interval=LeftClosedInterval(earliest, latest + RELEASE_TIME),
                 resource=resource,
@@ -400,6 +407,7 @@ def plot_time_window_resource_trajectories(
         plot_time_resource_trajectories(trajectories=trajectories, title=title, schedule_plotting=schedule_plotting)
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis):
     """Plot a heat map of how many shareds are on the resources.
 
@@ -466,6 +474,7 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     fig.show()
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
@@ -677,6 +686,7 @@ def plot_time_resource_trajectories(
         fig.show()
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis):
     """
     Plot a histogram of the delay of agents in the full and delta reschedule compared to the schedule
@@ -753,7 +763,8 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
     problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
     problem_rsp_delta: ScheduleProblemDescription = experiment_results_analysis.problem_delta_after_malfunction
-    topo = problem_schedule.topo_dict[agent_id]
+    # TODO hacky, we should take the topo_dict from infrastructure maybe?
+    topo = experiment_results_analysis.problem_full_after_malfunction.topo_dict[agent_id]
 
     config = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: [
@@ -789,6 +800,7 @@ def plot_route_dag(experiment_results_analysis: ExperimentResultsAnalysis,
     )
 
 
+# TODO SIM-674 should be covered by testing, called from notebooks only
 def render_flatland_env(data_folder: str,
                         experiment_data: ExperimentResultsAnalysis,
                         experiment_id: int,
@@ -814,7 +826,7 @@ render_flatland_env
     """
 
     # Generate environment for rendering
-    rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters)
+    rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters.infra_parameters)
 
     # Generate aggregated visualization
     output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
@@ -1108,8 +1120,8 @@ def plot_delay_propagation_2d(
 
     """
 
-    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
-    DEPTH_COLOR = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
+    marker_list = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    depth_color = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
     layout = go.Layout(
         plot_bgcolor=GREY_BACKGROUND_COLOR
     )
@@ -1147,7 +1159,7 @@ def plot_delay_propagation_2d(
             x.append(malfunction_resource[1])
             y.append(malfunction_resource[0])
             size.append(max(10, delay_information[agent_id]))
-            marker.append(MARKER_LIST[int(np.clip(resource_occupation.direction, 0, 3))])
+            marker.append(marker_list[int(np.clip(resource_occupation.direction, 0, 3))])
             times.append(time)
             delay.append(delay_information[agent_id])
             if agent_id in depth_dict:
@@ -1155,7 +1167,7 @@ def plot_delay_propagation_2d(
             else:
                 conflict_depth.append("None")
         if agent_id in depth_dict:
-            color = DEPTH_COLOR[int(np.clip(depth_dict[agent_id], 0, 5))]
+            color = depth_color[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
             color = "red"
         fig.add_trace(go.Scattergl(x=x,
@@ -1213,7 +1225,7 @@ def plot_train_paths(
 
     """
 
-    MARKER_LIST = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
+    marker_list = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
     layout = go.Layout(
         plot_bgcolor=GREY_BACKGROUND_COLOR
     )
@@ -1233,7 +1245,7 @@ def plot_train_paths(
             malfunction_resource = resource_occupation.resource
             x.append(malfunction_resource[1])
             y.append(malfunction_resource[0])
-            marker.append(MARKER_LIST[int(np.clip(resource_occupation.direction, 0, 3))])
+            marker.append(marker_list[int(np.clip(resource_occupation.direction, 0, 3))])
             times.append(time)
             color = PLOTLY_COLORLIST[agent_id]
 

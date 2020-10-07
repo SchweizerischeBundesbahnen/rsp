@@ -1,5 +1,3 @@
-import gc
-
 import psutil
 
 
@@ -45,21 +43,3 @@ def current_process_stats_human_readable():
             f"status={p.status()},"
             f"memory_info={p.memory_info()},"
         )
-
-
-def gc_collect(l: str):
-    """Trigger garbage collector, print info before and afterwards.
-
-    Parameters
-    ----------
-    l
-
-    Returns
-    -------
-    """
-
-    print(f"{l} before gc.collect: {len(gc.get_objects())}")
-    print(current_process_stats_human_readable())
-    c = gc.collect()
-    print(f"{l} after gc.collect ({c}): {len(gc.get_objects())}")
-    print(current_process_stats_human_readable())
