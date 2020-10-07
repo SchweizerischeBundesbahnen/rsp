@@ -11,14 +11,23 @@ Hypothesis 2:
     learning can predict the state of the system in the next time period
     after re-scheduling.
 """
+import os
+from typing import Optional
+
+import numpy as np
+import plotly.graph_objects as go
 from pandas import DataFrame
 
 from rsp.analysis.compute_time_analysis import plot_box_plot
 from rsp.analysis.compute_time_analysis import plot_speed_up
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.utils.data_types import after_malfunction_scopes
 from rsp.utils.data_types import all_scopes
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import prediction_scopes
 from rsp.utils.data_types import speed_up_scopes
+from rsp.utils.file_utils import check_create_folder
 
 HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'solver_statistics_times_total_{scope}' for scope in all_scopes]
 
@@ -96,6 +105,7 @@ def hypothesis_one_analysis_prediction_quality(
                  [prediction_col + '_' + scope
                   for scope in prediction_scopes
                   for prediction_col in [
+                      'changed_agents_percentage',
                       'predicted_changed_agents_percentage',
                       'predicted_changed_agents_false_positives_percentage',
                       'predicted_changed_agents_false_negatives_percentage'
@@ -163,3 +173,95 @@ def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame,
                 cols=[speed_up_col_pattern.format(speed_up_series) for speed_up_series in after_malfunction_scopes],
                 y_axis_title=y_axis_title
             )
+
+
+def plot_nb_route_alternatives(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
+    """Plot a histogram of the delay of agents in the full and reschedule delta
+    perfect compared to the schedule.
+
+    Returns
+    -------
+    """
+    fig = go.Figure()
+    for scope in all_scopes:
+        topo_dict = experiment_results._asdict()[f'problem_{scope}'].topo_dict
+        values = [
+            len(get_paths_in_route_dag(topo))
+            for _, topo in topo_dict.items()
+        ]
+        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'{scope}'))
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Routing alternatives")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Nb routing alternatives [-]")
+
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'nb_route_alternatives.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
+
+
+def plot_agent_speeds(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(x=list(experiment_results.problem_full.minimum_travel_time_dict.keys()),
+               y=list(experiment_results.problem_full.minimum_travel_time_dict.values()),
+               ))
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Speed")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Minimum running time [time steps per cell]")
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'speeds.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
+
+
+def plot_time_window_sizes(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
+    fig = go.Figure()
+    for scope in all_scopes:
+        route_dag_constraints_dict: RouteDAGConstraintsDict = experiment_results._asdict()[f'problem_{scope}'].route_dag_constraints_dict
+        vals = [(constraints.latest[v] - constraints.earliest[v], agent_id, v)
+                for agent_id, constraints in route_dag_constraints_dict.items()
+                for v in constraints.latest
+                ]
+        fig.add_trace(
+            go.Histogram(
+                x=[val[0] for val in vals],
+                name=f"{scope}",
+            ))
+    fig.update_layout(barmode='group',
+                      legend=dict(
+                          yanchor="bottom",
+                          y=1.02,
+                          xanchor="right",
+                          x=1
+                      ))
+    fig.update_traces(hovertemplate='<i>Time Window Size</i>:' + '%{x}' + '<extra></extra>',
+                      selector=dict(type="histogram"))
+
+    fig.update_layout(title_text="Time Window Size Distribution")
+    fig.update_xaxes(title="Time Window Size [time steps]")
+    fig.update_yaxes(title="Counts over all agents and vertices [time steps]")
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'time_window_sizes.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)

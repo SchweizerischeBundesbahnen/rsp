@@ -741,7 +741,9 @@ def plot_histogram_from_delay_data(
 
     fig = go.Figure()
     for scope in after_malfunction_scopes:
-        fig.add_trace(go.Histogram(x=[v for v in experiment_results._asdict()[f'lateness_per_agent_{scope}'].values()], name=f'results_{scope}'))
+        fig.add_trace(go.Histogram(
+            x=[v for v in experiment_results._asdict()[f'lateness_per_agent_{scope}'].values()],
+            name=f'results_{scope}'))
     fig.update_layout(barmode='group', legend=dict(
         yanchor="bottom",
         y=1.02,

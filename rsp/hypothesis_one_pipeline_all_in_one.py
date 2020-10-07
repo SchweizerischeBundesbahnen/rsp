@@ -19,6 +19,7 @@ from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.experiments import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.utils.experiments import run_experiment_agenda
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.rsp_logger import rsp_logger
 
 
 def get_agenda_pipeline_params_001_simple_setting() -> ParameterRangesAndSpeedData:
@@ -126,7 +127,7 @@ def list_from_base_directory_and_run_experiment_agenda(
         filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiments_per_grid_element: int = 1,
-        experiment_ids=None
+        experiment_filter=None
 ):
     infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
         base_directory=experiment_base_directory
@@ -139,11 +140,12 @@ def list_from_base_directory_and_run_experiment_agenda(
         infra_schedule_dict=infra_schedule_dict,
         experiments_per_grid_element=experiments_per_grid_element
     )
-    if experiment_ids is not None:
+    if experiment_filter is not None:
         experiment_agenda = ExperimentAgenda(
             experiment_name=experiment_name,
-            experiments=[experiment for experiment in experiment_agenda.experiments if experiment.experiment_id in experiment_ids]
+            experiments=[experiment for experiment in experiment_agenda.experiments if experiment_filter(experiment)]
         )
+    rsp_logger.info(f"after filtering, there are {len(experiment_agenda.experiments)} experiments: \n"+str(experiment_agenda))
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
