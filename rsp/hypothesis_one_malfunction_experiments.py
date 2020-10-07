@@ -74,7 +74,7 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                 train_run_end = schedule.schedule_experiment_result.trainruns_dict[malfunction_agent_id][-1].scheduled_at
                 for i in range(int(latest_malfunction_as_fraction_of_max_episode_steps / malfunction_interval_as_fraction_of_max_episode_steps)):
                     earliest_malfunction = i * malfunction_interval_absolute
-                    if earliest_malfunction >= train_run_end-train_run_start:
+                    if earliest_malfunction >= train_run_end - train_run_start:
                         continue
                     for _ in range(experiments_per_grid_element):
                         experiments.append(
@@ -149,6 +149,7 @@ def malfunction_variation_for_one_schedule(
         experiment_base_directory=experiment_base_directory,
         experiment_output_base_directory=experiment_output_base_directory
     )
+
     return experiment_output_directory
 
 

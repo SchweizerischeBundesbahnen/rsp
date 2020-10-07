@@ -121,7 +121,7 @@ def scoper_zero_running(
 def scoper_zero(
         schedule_trainrun: Trainrun,
         minimum_travel_time: int,
-        topo: nx.DiGraph,
+        topo_: nx.DiGraph,
         malfunction: ExperimentMalfunction,
         agent_id: int,
         latest_arrival: int,
@@ -139,7 +139,7 @@ def scoper_zero(
         the schedule before the malfunction happened
     minimum_travel_time
         the agent's speed (constant for every agent, different among agents)
-    topo
+    topo_
         the topos for the agents
     malfunction
         malfunction
@@ -155,7 +155,6 @@ def scoper_zero(
     -------
     RouteDAGConstraints
     """
-    # TODO SIM-650 adapt pseudo-code to determine whether the malfunction happens before we enter the last edge instead of before the last node!
     if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
             malfunction.time_step < schedule_trainrun[-2].scheduled_at):
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
@@ -164,7 +163,7 @@ def scoper_zero(
             schedule_trainrun=schedule_trainrun,
             malfunction=malfunction,
             minimum_travel_time=minimum_travel_time,
-            topo=topo,
+            topo=topo_,
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest
         )
@@ -172,7 +171,7 @@ def scoper_zero(
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
     elif malfunction.time_step < schedule_trainrun[0].scheduled_at:
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (2) for {agent_id}: malfunction before schedule start")
-        latest = {sink: latest_arrival for sink in get_sinks_for_topo(topo)}
+        latest = {sink: latest_arrival for sink in get_sinks_for_topo(topo_)}
         earliest = {schedule_trainrun[0].waypoint: schedule_trainrun[0].scheduled_at}
         propagate(
             earliest_dict=earliest,
@@ -181,9 +180,9 @@ def scoper_zero(
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time,
             force_earliest={schedule_trainrun[0].waypoint},
-            force_latest=set(get_sinks_for_topo(topo)),
+            force_latest=set(get_sinks_for_topo(topo_)),
             must_be_visited=set(),
-            topo=topo,
+            topo=topo_,
         )
         route_dag_constraints = RouteDAGConstraints(
             earliest=earliest,
@@ -200,7 +199,7 @@ def scoper_zero(
     elif malfunction.time_step >= schedule_trainrun[-2].scheduled_at:
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (3) for {agent_id}: malfunction after scheduled arrival")
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
-        topo.remove_nodes_from(set(topo.nodes).difference(visited))
+        topo_.remove_nodes_from(set(topo_.nodes).difference(visited))
         return RouteDAGConstraints(
             earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
                       for trainrun_waypoint in schedule_trainrun},
@@ -215,7 +214,7 @@ def delta_zero_for_all_agents(
         malfunction: ExperimentMalfunction,
         schedule_trainruns: TrainrunDict,
         minimum_travel_time_dict: Dict[int, int],
-        topo_dict: Dict[int, nx.DiGraph],
+        topo_dict_: Dict[int, nx.DiGraph],
         latest_arrival: int,
         weight_route_change: int,
         weight_lateness_seconds: int,
@@ -232,17 +231,17 @@ def delta_zero_for_all_agents(
             agent_id: scoper_zero(
                 schedule_trainrun=schedule_trainruns[agent_id],
                 minimum_travel_time=minimum_travel_time_dict[agent_id],
-                topo=topo_dict[agent_id],
+                topo_=topo_dict_[agent_id],
                 malfunction=malfunction,
                 agent_id=agent_id,
                 latest_arrival=latest_arrival,
                 max_window_size_from_earliest=max_window_size_from_earliest
             )
             for agent_id in schedule_trainruns},
-        topo_dict=topo_dict,
+        topo_dict=topo_dict_,
         minimum_travel_time_dict=minimum_travel_time_dict,
         max_episode_steps=latest_arrival,
-        route_section_penalties=_extract_route_section_penalties(schedule_trainruns, topo_dict, weight_route_change),
+        route_section_penalties=_extract_route_section_penalties(schedule_trainruns, topo_dict_, weight_route_change),
         weight_lateness_seconds=weight_lateness_seconds
 
     )

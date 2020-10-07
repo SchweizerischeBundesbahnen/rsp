@@ -35,6 +35,7 @@ from rsp.analysis.compute_time_analysis import render_flatland_env
 from rsp.analysis.compute_time_analysis import plot_route_dag
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_lateness
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_changed_agents
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 
 
@@ -70,6 +71,7 @@ display(experiment_data_filtered)
 ```{python}
 axis_of_interest = 'n_agents'
 columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']]
+display(experiment_data_filtered['lateness_full_after_malfunction'])
 ```
 
 ### Inspect experiment parameters
@@ -111,10 +113,20 @@ hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_filte
 #                        axis_of_interest=axis_of_interest)
 ```
 
+### Visualize changed agents
+
+```{python}
+hypothesis_one_analysis_visualize_changed_agents(experiment_data=experiment_data_filtered)
+```
+
 ### Visualize Costs
 
 ```{python}
 hypothesis_one_analysis_visualize_lateness(experiment_data=experiment_data_filtered)
+```
+
+```{python}
+display((experiment_data_filtered['costs_delta_online_after_malfunction']>experiment_data_filtered['costs_full_after_malfunction']).sum())
 ```
 
 ### Visualize Online Prediction Quality

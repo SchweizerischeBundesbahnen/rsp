@@ -20,6 +20,7 @@ from rsp.transmission_chains.transmission_chains import extract_transmission_cha
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_time_windows
 from rsp.transmission_chains.transmission_chains import TransmissionChain
 from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import SchedulingProblemInTimeWindows
 from rsp.utils.data_types_converters_and_validators import extract_time_windows
@@ -76,7 +77,8 @@ def resource_occpuation_from_transmission_chains(  # noqa
     """
     wave_plotting_id = -1
     time_resource_malfunction_wave = [
-        ResourceOccupation(interval=transmission_chain[-1].hop_off.interval,
+        ResourceOccupation(interval=LeftClosedInterval(transmission_chain[-1].hop_off.interval.from_incl,
+                                                       transmission_chain[-1].hop_off.interval.to_excl + transmission_chain[-1].delay_time),
                            resource=transmission_chain[-1].hop_off.resource,
                            direction=transmission_chain[-1].hop_off.direction,
                            agent_id=wave_plotting_id)
@@ -111,7 +113,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=prediction,
         title='Time Window Prediction',
-        schedule_plotting=schedule_plotting,
+        plotting_information=schedule_plotting.plotting_information,
+        malfunction=schedule_plotting.malfunction,
         output_folder=output_folder
     )
 
@@ -125,7 +128,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=sanity_false_positives,
         title='Sanity false positives (in prediction, but not in re-schedule full time windows): should be empty',
-        schedule_plotting=schedule_plotting,
+        plotting_information=schedule_plotting.plotting_information,
+        malfunction=schedule_plotting.malfunction,
         output_folder=output_folder
     )
     sanity_false_negatives, _ = get_difference_in_time_space_trajectories(
@@ -134,7 +138,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=sanity_false_negatives,
         title='Sanity false negatives (not in prediction but in re-schedule full time windows): reduction by prediction - any?',
-        schedule_plotting=schedule_plotting,
+        plotting_information=schedule_plotting.plotting_information,
+        malfunction=schedule_plotting.malfunction,
         output_folder=output_folder
     )
     # Get trajectories for reschedule full
@@ -150,7 +155,8 @@ def plot_transmission_chains_time_window(
         trajectories=false_negatives,
         # TODO SIM-549 is there something wrong because release times are not contained in time windows?
         title='False negatives (in re-schedule full but not in prediction)',
-        schedule_plotting=schedule_plotting,
+        plotting_information=schedule_plotting.plotting_information,
+        malfunction=schedule_plotting.malfunction,
         output_folder=output_folder
     )
     false_positives, _ = get_difference_in_time_space_trajectories(
@@ -159,7 +165,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=false_positives,
         title='False positives (in prediction but not in re-schedule full)',
-        schedule_plotting=schedule_plotting,
+        plotting_information=schedule_plotting.plotting_information,
+        malfunction=schedule_plotting.malfunction,
         output_folder=output_folder
     )
     # TODO SIM-549 damping: probabilistic delay propagation?

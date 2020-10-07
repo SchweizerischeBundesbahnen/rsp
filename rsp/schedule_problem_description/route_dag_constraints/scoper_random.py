@@ -8,7 +8,6 @@ from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstr
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
-from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_trainrun_satisfies_route_dag_constraints
 from rsp.schedule_problem_description.route_dag_constraints.scoper_online import scoper_changed_or_unchanged
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
 from rsp.utils.data_types import ExperimentMalfunction
@@ -22,15 +21,16 @@ def scoper_random_for_all_agents(
         full_reschedule_problem: ScheduleProblemDescription,
         malfunction: ExperimentMalfunction,
         minimum_travel_time_dict: Dict[int, int],
-        max_episode_steps: int,
+        latest_arrival: int,
         # pytorch convention for in-place operations: postfixed with underscore.
         delta_random_topo_dict_to_: TopoDict,
         schedule_trainrun_dict: TrainrunDict,
         weight_route_change: int,
         weight_lateness_seconds: int,
         max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
-    """The scoper random only opens up the differences between the schedule and
-    the imaginary re-schedule. It gives no additional routing flexibility!
+    """The scoper random only opens up the malfunction agent and the same
+    amount of agents as were changed in the full re-schedule, but chosen
+    randomly.
 
     Parameters
     ----------
@@ -42,7 +42,7 @@ def scoper_random_for_all_agents(
         the malfunction; used to determine the waypoint after the malfunction
     minimum_travel_time_dict: Dict[int,int]
         the minimumum travel times for the agents
-    max_episode_steps:
+    latest_arrival:
         latest arrival
     delta_random_topo_dict_to_:
         the topologies used for scheduling
@@ -61,24 +61,43 @@ def scoper_random_for_all_agents(
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
 
-    unchanged = [
+    agents_running_after_malfunction = {
         agent_id
-        for agent_id, full_reschedule_trainrun in full_reschedule_trainrun_dict.items()
+        for agent_id, schedule_trainrun in schedule_trainrun_dict.items()
+        if schedule_trainrun[-1].scheduled_at >= malfunction.time_step
+    }
+    assert malfunction.agent_id in agents_running_after_malfunction
+    ground_truth_changed_after_malfunction = {
+        agent_id
+        for agent_id in agents_running_after_malfunction
+        if set(full_reschedule_trainrun_dict[agent_id]) != set(schedule_trainrun_dict[agent_id])
+    }
+    assert malfunction.agent_id in ground_truth_changed_after_malfunction
 
-        if set(full_reschedule_trainrun) == set(schedule_trainrun_dict[agent_id])
+    nb_agents_running_after_malfunction = len(agents_running_after_malfunction)
+    nb_ground_truth_changed_after_malfunction = len(ground_truth_changed_after_malfunction)
+    p_changed = nb_ground_truth_changed_after_malfunction / nb_agents_running_after_malfunction
 
-    ]
-    nb_agents = len(full_reschedule_trainrun_dict)
-    p_unchanged = len(unchanged) / nb_agents
-    randomized_unchanged = np.random.choice(a=[True, False], size=nb_agents, p=[p_unchanged, 1 - p_unchanged])
+    changed_agents = {
+        agent_id
+        for agent_id in full_reschedule_trainrun_dict
+        if agent_id in ground_truth_changed_after_malfunction and (
+                agent_id == malfunction.agent_id or np.random.choice(a=[True, False], p=[p_changed, 1 - p_changed])
+        )
+    }
 
     for agent_id in schedule_trainrun_dict.keys():
         earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
             agent_id=agent_id,
             topo_=delta_random_topo_dict_to_[agent_id],
-            full_reschedule_trainrun=full_reschedule_trainrun_dict[agent_id],
+            schedule_trainrun=schedule_trainrun_dict[agent_id],
             full_reschedule_problem=full_reschedule_problem,
-            unchanged=(agent_id != malfunction.agent_id or randomized_unchanged[agent_id])
+            changed=(agent_id in changed_agents),
+            exact=False,
+            malfunction=malfunction,
+            latest_arrival=latest_arrival,
+            max_window_size_from_earliest=max_window_size_from_earliest,
+            minimum_travel_time=minimum_travel_time_dict[agent_id]
         )
         freeze_dict[agent_id] = RouteDAGConstraints(
             earliest=earliest_dict,
@@ -95,22 +114,17 @@ def scoper_random_for_all_agents(
             malfunction=malfunction,
             max_window_size_from_earliest=max_window_size_from_earliest,
         )
-        # re-schedule train run must be open in route dag constraints
-        verify_trainrun_satisfies_route_dag_constraints(
-            agent_id=agent_id,
-            route_dag_constraints=freeze_dict[agent_id],
-            scheduled_trainrun=full_reschedule_trainrun_dict[agent_id]
-        )
+        # N.B. re-schedule train run must not necessarily be open in route dag constraints!
 
     return ScheduleProblemDescription(
         route_dag_constraints_dict=freeze_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
         topo_dict=topo_dict,
-        max_episode_steps=max_episode_steps,
+        max_episode_steps=latest_arrival,
         route_section_penalties=_extract_route_section_penalties(
             schedule_trainruns=schedule_trainrun_dict,
             topo_dict=topo_dict,
             weight_route_change=weight_route_change
         ),
         weight_lateness_seconds=weight_lateness_seconds
-    )
+    ), changed_agents

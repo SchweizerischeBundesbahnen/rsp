@@ -125,7 +125,8 @@ def list_from_base_directory_and_run_experiment_agenda(
         experiment_output_base_directory: Optional[str] = None,
         filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
-        experiments_per_grid_element: int = 1
+        experiments_per_grid_element: int = 1,
+        experiment_ids=None
 ):
     infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
         base_directory=experiment_base_directory
@@ -138,6 +139,11 @@ def list_from_base_directory_and_run_experiment_agenda(
         infra_schedule_dict=infra_schedule_dict,
         experiments_per_grid_element=experiments_per_grid_element
     )
+    if experiment_ids is not None:
+        experiment_agenda = ExperimentAgenda(
+            experiment_name=experiment_name,
+            experiments=[experiment for experiment in experiment_agenda.experiments if experiment.experiment_id in experiment_ids]
+        )
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,

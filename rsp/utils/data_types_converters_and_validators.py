@@ -99,6 +99,7 @@ def extract_resource_occupations(
     # sort occupations by interval's lower bound
     for _, occupations in resource_occupations_per_resource.items():
         occupations.sort(key=lambda _ro: _ro.interval.from_incl)
+
     return ScheduleAsResourceOccupations(resource_occupations_per_resource, resource_occupations_per_agent, resource_occupations_per_agent_and_timestep)
 
 

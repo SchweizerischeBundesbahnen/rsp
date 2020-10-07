@@ -14,11 +14,13 @@ from rsp.analysis.compute_time_analysis import plot_shared_heatmap
 from rsp.analysis.compute_time_analysis import plot_time_density
 from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.analysis.compute_time_analysis import plot_train_paths
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_changed_agents
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_lateness
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_speed_up
 from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
 from rsp.asp_plausibility.potassco_export import potassco_export
+from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentResultsAnalysis
@@ -91,9 +93,13 @@ def hypothesis_one_data_analysis(
             experiment_data=experiment_data,
             output_folder=results_folder
         )
+        hypothesis_one_analysis_visualize_changed_agents(
+            experiment_data=experiment_data,
+            output_folder=results_folder
+        )
 
     if qualitative_analysis_experiment_ids:
-        experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+        experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
             experiment_data_folder_name=experiment_data_directory,
             experiment_ids=qualitative_analysis_experiment_ids
         )
@@ -104,6 +110,7 @@ def hypothesis_one_data_analysis(
                 experiment_analysis_directory=experiment_analysis_directory,
                 flatland_rendering=False
             )
+
             agent_of_interest = experiment_result.malfunction.agent_id
             output_folder_of_interest = f'{results_folder}/experiment_{experiment_result.experiment_id:04d}_agent_{agent_of_interest:04d}/'
             schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result)
@@ -158,6 +165,13 @@ def hypothesis_one_data_analysis(
             plot_time_density(
                 schedule_as_resource_occupations=schedule_plotting.schedule_as_resource_occupations,
                 output_folder=output_folder_of_interest
+            )
+            visualize_route_dag_constraints_simple_wrapper(
+                schedule_problem_description=experiment_result.problem_full,
+                trainrun_dict=None,
+                experiment_malfunction=experiment_result.malfunction,
+                agent_id=agent_of_interest,
+                file_name=f"{output_folder_of_interest}/schedule_route_dag.pdf"
             )
 
     if asp_export_experiment_ids:

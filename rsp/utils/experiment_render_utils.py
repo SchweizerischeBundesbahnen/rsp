@@ -7,9 +7,7 @@ from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
-from rsp.schedule_problem_description.data_types_and_utils import get_paths_for_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
@@ -89,7 +87,6 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 costs_from_route_section_penalties_per_agent_and_edge={},
                 route_section_penalties=problem_schedule.route_section_penalties[agent_id],
                 title=_make_title(agent_id, experiment_parameters, malfunction, n_agents, topo,
-                                  problem_schedule.route_dag_constraints_dict[agent_id],
                                   k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent),
                 file_name=(os.path.join(route_dag_folder,
                                         f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf")
@@ -110,7 +107,6 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 route_section_penalties=problem_rsp_reduced_scope_perfect.route_section_penalties[agent_id],
                 title=_make_title(
                     agent_id, experiment_parameters, malfunction, n_agents, topo,
-                    problem_rsp_reduced_scope_perfect.route_dag_constraints_dict[agent_id],
                     k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent,
                     costs=costs_delta_perfect_after_malfunction,
                     eff_lateness_agent=lateness_delta_perfect_after_malfunction[agent_id],
@@ -136,7 +132,6 @@ def visualize_experiment(experiment_parameters: ExperimentParameters,
                 route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
                 title=_make_title(
                     agent_id, experiment_parameters, malfunction, n_agents, topo,
-                    problem_rsp_full.route_dag_constraints_dict[agent_id],
                     k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent,
                     costs=costs_full_after_malfunction,
                     eff_lateness_agent=lateness_full_after_malfunction[agent_id],
@@ -166,7 +161,6 @@ def _make_title(agent_id: str,
                 malfunction: ExperimentMalfunction,
                 n_agents: int,
                 topo: nx.DiGraph,
-                current_constraints: RouteDAGConstraints,
                 k: int,
                 costs: Optional[int] = None,
                 eff_lateness_agent: Optional[int] = None,
@@ -177,7 +171,7 @@ def _make_title(agent_id: str,
             f"{malfunction}\n" \
             f"k={k}\n" \
             f"all paths in topo {len(get_paths_in_route_dag(topo))}\n" \
-            f"open paths in topo {len(get_paths_for_route_dag_constraints(topo, current_constraints))}\n"
+            f"open paths in topo {len(get_paths_in_route_dag(topo))}\n"
     if costs is not None:
         title += f"costs (all)={costs}\n"
     if eff_lateness_agent is not None:

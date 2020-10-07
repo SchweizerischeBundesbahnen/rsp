@@ -103,7 +103,8 @@ print_situation_overview(plotting_data,changed_agents_dict)
 ```{python}
 plot_time_resource_trajectories(title="Malfunction Propagation in Schedule",
                                 trajectories=schedule_trajectories,
-                                schedule_plotting=plotting_data,
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction,
                                 malfunction_wave=(true_positives_trajectories,false_positives_trajectories))
 ```
 
@@ -122,7 +123,8 @@ Given the actions of the re-scheduling algorithm, the spread can be limited both
 ```{python}
 plot_time_resource_trajectories(title="Influenced Trains after re-scheduling",
                                 trajectories=changed_trajectories,
-                                schedule_plotting=plotting_data)
+                                plotting_information=plotting_data.plotting_information,
+                                malfunction=plotting_data.malfunction)
 ```
 
 The spatial spread of the malfunction can be seen below. The arrows indicate direction of travel, the thickness of the arrow indicates the total delay of an agent. The colors show the depth of influence from the initial agent, meaning if it was directly or indirectly influenced.

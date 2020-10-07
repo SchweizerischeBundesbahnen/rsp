@@ -49,11 +49,12 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
-def run_potassco_agenda(base_directory: str):
+def run_potassco_agenda(base_directory: str, experiment_ids=None):
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
-        malfunction_agent_id=[0, 200, 200],
+        # TODO SIM-699 take only first 10 of each schedule
+        malfunction_agent_id=[0, 10, 10],
 
         number_of_shortest_paths_per_agent=[10, 10, 1],
 
@@ -76,7 +77,8 @@ def run_potassco_agenda(base_directory: str):
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%sbaseline' % experiment_name_prefix),
             parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element
+            experiments_per_grid_element=experiments_per_grid_element,
+            experiment_ids=experiment_ids
         )
         # effect of SEQ heuristic (SIM-167)
         set_defaults()
@@ -170,5 +172,5 @@ if __name__ == '__main__':
         base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )
     run_potassco_agenda(
-        base_directory=INFRAS_AND_SCHEDULES_FOLDER
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
     )

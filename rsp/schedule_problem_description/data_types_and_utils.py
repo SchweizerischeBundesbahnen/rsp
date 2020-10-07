@@ -4,7 +4,6 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import NamedTuple
-from typing import Optional
 from typing import Tuple
 
 import networkx as nx
@@ -156,22 +155,6 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
     assert len(cycles) == 0, f"cycle in re-combination of shortest paths, {cycles}"
     assert len(get_paths_in_route_dag(topo)) > 0, "no path after removing loopy paths"
     return topo
-
-
-def get_paths_for_route_dag_constraints(
-        topo: nx.DiGraph,
-        route_dag_constraints: Optional[RouteDAGConstraints] = None) -> List[List[Waypoint]]:
-    """Determine the routes through the route graph given the constraints.
-
-    Parameters
-    ----------
-    route_dag_constraints
-
-    Returns
-    -------
-    """
-    paths = get_paths_in_route_dag(topo)
-    return paths
 
 
 def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> TopoDict:

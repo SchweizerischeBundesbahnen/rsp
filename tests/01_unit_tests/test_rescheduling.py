@@ -191,7 +191,7 @@ def test_rescheduling_no_bottleneck():
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        topo_dict=schedule_problem.topo_dict,
+        topo_dict_=schedule_problem.topo_dict,
         latest_arrival=static_env._max_episode_steps,
         weight_lateness_seconds=1,
         weight_route_change=1
@@ -216,7 +216,7 @@ def test_rescheduling_no_bottleneck():
             schedule_trainruns=fake_schedule,
             minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
             latest_arrival=static_env._max_episode_steps,
-            topo_dict=schedule_problem.topo_dict,
+            topo_dict_=schedule_problem.topo_dict,
             weight_lateness_seconds=1,
             weight_route_change=1
         ),
@@ -427,7 +427,7 @@ def test_rescheduling_bottleneck():
         schedule_trainruns=fake_schedule,
         minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
                                   for agent in static_env.agents},
-        topo_dict=infrastructure.topo_dict,
+        topo_dict_=infrastructure.topo_dict,
         latest_arrival=static_env._max_episode_steps,
         weight_lateness_seconds=1,
         weight_route_change=1

@@ -519,7 +519,7 @@ def test_get_freeze_for_full_rescheduling():
     topo_dict = _get_topology_from_agents_path_dict({2: agent_paths})
     reschedule_full_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
         minimum_travel_time_dict={2: 1},
-        topo_dict=topo_dict,
+        topo_dict_=topo_dict,
         malfunction=malfunction,
         schedule_trainruns={2: train_run},
         latest_arrival=333,
@@ -1344,8 +1344,8 @@ def test_get_freeze_for_delta_perfect():
     reschedule_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
-        topo_dict={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
-                   for agent_id in agents_path_dict},
+        topo_dict_={agent_id: topo_from_agent_paths(agents_path_dict[agent_id])
+                    for agent_id in agents_path_dict},
         malfunction=malfunction,
         latest_arrival=333,
         weight_lateness_seconds=1,

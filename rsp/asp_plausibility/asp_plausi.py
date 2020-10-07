@@ -9,7 +9,14 @@ from rsp.analysis.compute_time_analysis import plot_box_plot_from_traces
 def visualize_hypotheses_asp(
         experiment_data: pd.DataFrame,
         output_folder: Optional[str] = None):
-    suffixes = ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']
+    suffixes = [
+        'full',
+        'full_after_malfunction',
+        'delta_trivially_perfect_after_malfunction',
+        'delta_perfect_after_malfunction',
+        'delta_online_after_malfunction',
+        'delta_random_after_malfunction'
+    ]
 
     # problem reduction in terms of shared, conflicts, choices
     for column_prefix in ['nb_resource_conflicts', 'solver_statistics_conflicts', 'solver_statistics_choices']:

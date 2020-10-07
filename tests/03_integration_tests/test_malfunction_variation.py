@@ -22,5 +22,6 @@ def test_malfunction_variation():
         )
         files = glob.glob(f'{output_dir}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/experiment*.pkl')
         assert len(files) == 1
+
     finally:
         delete_experiment_folder(experiment_output_base_directory)

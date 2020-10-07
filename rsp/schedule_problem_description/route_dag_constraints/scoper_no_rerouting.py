@@ -1,40 +1,33 @@
 import pprint
 from typing import Dict
-from typing import Set
-from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
-from rsp.schedule_problem_description.route_dag_constraints.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
-from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
-from rsp.transmission_chains.transmission_chains import validate_transmission_chains
+from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import scoper_zero
 from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraintsDict
-from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-from rsp.utils.global_constants import RELEASE_TIME
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def scoper_online_for_all_agents(
+def scoper_no_rerouting_for_all_agents(
         full_reschedule_trainrun_dict: TrainrunDict,
         full_reschedule_problem: ScheduleProblemDescription,
         malfunction: ExperimentMalfunction,
         minimum_travel_time_dict: Dict[int, int],
-        latest_arrival: int,
+        max_episode_steps: int,
         # pytorch convention for in-place operations: postfixed with underscore.
-        delta_online_topo_dict_to_: TopoDict,
+        topo_dict_: TopoDict,
         schedule_trainrun_dict: TrainrunDict,
         weight_route_change: int,
         weight_lateness_seconds: int,
-        max_window_size_from_earliest: int = np.inf) -> Tuple[ScheduleProblemDescription, Set[int]]:
-    """The scoper online only opens up the differences between the schedule and
+        max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
+    """The scoper naive only opens up the differences between the schedule and
     the imaginary re-schedule. It gives no additional routing flexibility!
 
     Parameters
@@ -47,9 +40,9 @@ def scoper_online_for_all_agents(
         the malfunction; used to determine the waypoint after the malfunction
     minimum_travel_time_dict: Dict[int,int]
         the minimumum travel times for the agents
-    latest_arrival:
+    max_episode_steps:
         latest arrival
-    delta_online_topo_dict_to_:
+    topo_dict_:
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
@@ -63,63 +56,42 @@ def scoper_online_for_all_agents(
     -------
     ScheduleProblemDesccription
     """
-    # 1. compute the forward-only wave of the malfunction
-    schedule_occupations = extract_resource_occupations(schedule=schedule_trainrun_dict, release_time=RELEASE_TIME)
-    transmission_chains = extract_transmission_chains_from_schedule(
-        malfunction=malfunction,
-        occupations=schedule_occupations)
-    validate_transmission_chains(transmission_chains=transmission_chains)
-
-    # 2. compute reached agents
-    online_reached_agents = {
-        transmission_chain[-1].hop_off.agent_id
-        for transmission_chain in transmission_chains
-    }
-
     freeze_dict: RouteDAGConstraintsDict = {}
-    topo_dict: TopoDict = {}
-    # TODO SIM-324 pull out verification
-    assert malfunction.agent_id in online_reached_agents
-    for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
+    for agent_id, schedule_trainrun in schedule_trainrun_dict.items():
+        topo_ = topo_dict_[agent_id]
+        schedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
+        to_remove = {node for node in topo_.nodes if node not in schedule_waypoints}
+        topo_.remove_nodes_from(to_remove)
+        freeze_dict[agent_id] = scoper_zero(
             agent_id=agent_id,
-            topo_=delta_online_topo_dict_to_[agent_id],
+            topo_=topo_,
             schedule_trainrun=schedule_trainrun_dict[agent_id],
-            full_reschedule_problem=full_reschedule_problem,
-            malfunction=malfunction,
-            latest_arrival=latest_arrival,
-            max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
-            changed=(agent_id in online_reached_agents),
-            # TODO SIM-692 finalize
-            exact=False
+            malfunction=malfunction,
+            latest_arrival=max_episode_steps,
+            max_window_size_from_earliest=max_window_size_from_earliest
         )
-        freeze_dict[agent_id] = RouteDAGConstraints(
-            earliest=earliest_dict,
-            latest=latest_dict
-        )
-        topo_dict[agent_id] = topo
 
     # TODO SIM-324 pull out verification
     for agent_id, _ in freeze_dict.items():
         verify_consistency_of_route_dag_constraints_for_agent(
             agent_id=agent_id,
             route_dag_constraints=freeze_dict[agent_id],
-            topo=topo_dict[agent_id],
+            topo=topo_dict_[agent_id],
             malfunction=malfunction,
             max_window_size_from_earliest=max_window_size_from_earliest,
         )
-    # N.B. re-schedule train run must not necessarily be open in route dag constraints!
+        # N.B. re-schedule train run must not necessarily be be open in route dag constraints
 
     return ScheduleProblemDescription(
         route_dag_constraints_dict=freeze_dict,
         minimum_travel_time_dict=minimum_travel_time_dict,
-        topo_dict=topo_dict,
-        max_episode_steps=latest_arrival,
+        topo_dict=topo_dict_,
+        max_episode_steps=max_episode_steps,
         route_section_penalties=_extract_route_section_penalties(
             schedule_trainruns=schedule_trainrun_dict,
-            topo_dict=topo_dict,
+            topo_dict=topo_dict_,
             weight_route_change=weight_route_change
         ),
         weight_lateness_seconds=weight_lateness_seconds
-    ), online_reached_agents
+    )

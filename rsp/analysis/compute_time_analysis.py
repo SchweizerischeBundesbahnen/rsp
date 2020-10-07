@@ -20,6 +20,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from pandas import DataFrame
 
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
@@ -208,7 +209,8 @@ def plot_speed_up(
         output_folder: Optional[str] = None,
         y_axis_title: str = "Speed Up Factor",
         axis_of_interest_suffix: str = "",
-        nb_bins: Optional[int] = 10
+        nb_bins: Optional[int] = 10,
+
 ):
     """
 
@@ -257,7 +259,7 @@ def plot_speed_up(
                                       experiment_data['solver_statistics_times_total_full'],
                                       experiment_data['solver_statistics_times_total_full_after_malfunction'],
                                       experiment_data['solver_statistics_times_total_delta_perfect_after_malfunction'],
-                                      experiment_data['solver_statistics_times_total_delta_naive_after_malfunction'],
+                                      experiment_data['solver_statistics_times_total_delta_no_rerouting_after_malfunction'],
                                       ))[0],
                 hovertext=experiment_data['experiment_id'],
                 hovertemplate='<b>Speed Up</b>: %{y:.2f}<br>' +
@@ -419,7 +421,8 @@ def plot_time_window_resource_trajectories(
             plotting_information=schedule_plotting.plotting_information)
         plot_time_resource_trajectories(
             trajectories=trajectories, title=title,
-            schedule_plotting=schedule_plotting,
+            plotting_information=schedule_plotting.plotting_information,
+            malfunction=schedule_plotting.malfunction,
             output_folder=output_folder)
 
 
@@ -534,7 +537,8 @@ def plot_resource_time_diagrams(
     # Plot Schedule
     plot_time_resource_trajectories(
         title='Schedule',
-        schedule_plotting=schedule_plotting,
+        plotting_information=schedule_plotting.plotting_information,
+        malfunction=schedule_plotting.malfunction,
         trajectories=trajectories_schedule,
         output_folder=output_folder
     )
@@ -554,13 +558,16 @@ def plot_resource_time_diagrams(
         plot_time_resource_trajectories(
             trajectories=trajectories_reschedule_full,
             title='Full Reschedule',
-            schedule_plotting=schedule_plotting,
+            plotting_information=schedule_plotting.plotting_information,
+            malfunction=schedule_plotting.malfunction,
             output_folder=output_folder
         )
 
     # Plot Reschedule Delta Perfect with additional data
     plot_time_resource_trajectories(
-        title='Delta Perfect Reschedule', schedule_plotting=schedule_plotting,
+        title='Delta Perfect Reschedule',
+        plotting_information=schedule_plotting.plotting_information,
+        malfunction=schedule_plotting.malfunction,
         trajectories=trajectories_reschedule_delta_perfect,
         output_folder=output_folder
     )
@@ -570,7 +577,8 @@ def plot_resource_time_diagrams(
         plot_time_resource_trajectories(
             trajectories=trajectories_influenced_agents,
             title='Changed Agents',
-            schedule_plotting=schedule_plotting,
+            plotting_information=schedule_plotting.plotting_information,
+            malfunction=schedule_plotting.malfunction,
             output_folder=output_folder
         )
 
@@ -601,24 +609,28 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
 def plot_time_resource_trajectories(
         title: str,
         trajectories: Trajectories,
-        schedule_plotting: SchedulePlotting,
+        plotting_information: PlottingInformation,
+        malfunction: ExperimentMalfunction,
         additional_data: Dict = None,
-        malfunction_wave: Trajectories = None,
+        malfunction_wave: List[Trajectories] = None,
         output_folder: Optional[str] = None,
 ):
     """
     Plot the time-resource-diagram with additional data for each train
     Parameters
     ----------
-
-    schedule_plotting
-    malfunction_wave
+    malfunction_wave:
+        two-element list containing true and false positives
+        TODO SIM-672 make dict or rename parameter
     title: str
         Title of the plot
     trajectories:
         Data to be shown, contains tuples for all occupied resources during train run
     additional_data
         Dict containing additional data. Each additional data must have the same dimensins as time_resource_data
+    output_folder
+    malfunction
+    plotting_information
 
     Returns
     -------
@@ -628,10 +640,9 @@ def plot_time_resource_trajectories(
         plot_bgcolor=GREY_BACKGROUND_COLOR
     )
     fig = go.Figure(layout=layout)
-    ranges = schedule_plotting.plotting_information.dimensions
-    malfunction = schedule_plotting.malfunction
-    ticks = [position_to_coordinate(schedule_plotting.plotting_information.grid_width, [key])[0]
-             for key in schedule_plotting.plotting_information.sorting.keys()]
+    ranges = plotting_information.dimensions
+    ticks = [position_to_coordinate(plotting_information.grid_width, [key])[0]
+             for key in plotting_information.sorting.keys()]
 
     # Get keys and information to add to hover data
     hovertemplate = '<b>Resource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
