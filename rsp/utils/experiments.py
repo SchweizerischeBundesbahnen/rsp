@@ -360,7 +360,7 @@ def run_experiment_in_memory(
     rsp_logger.info("5. reschedule delta online transmission chains: upper bound")
     # clone topos since propagation will modify them
     delta_online_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_online_reschedule_problem, delta_online_after_malfunction_predicted_agents = scoper_online_for_all_agents(
+    delta_online_reschedule_problem, predicted_changed_agents_online_after_malfunction_predicted = scoper_online_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         full_reschedule_problem=full_reschedule_problem,
         malfunction=experiment_malfunction,
@@ -388,7 +388,7 @@ def run_experiment_in_memory(
     rsp_logger.info("6. reschedule delta random naive: upper bound")
     # clone topos since propagation will modify them
     delta_random_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_random_reschedule_problem, delta_random_after_malfunction_predicted_agents = scoper_random_for_all_agents(
+    delta_random_reschedule_problem, predicted_changed_agents_random_after_malfunction_predicted = scoper_random_for_all_agents(
         full_reschedule_trainrun_dict=full_reschedule_trainruns,
         full_reschedule_problem=full_reschedule_problem,
         malfunction=experiment_malfunction,
@@ -431,8 +431,8 @@ def run_experiment_in_memory(
         results_delta_no_rerouting_after_malfunction=delta_no_rerouting_reschedule_result,
         results_delta_online_after_malfunction=delta_online_reschedule_result,
         results_delta_random_after_malfunction=delta_random_reschedule_result,
-        delta_online_after_malfunction_predicted_agents=delta_online_after_malfunction_predicted_agents,
-        delta_random_after_malfunction_predicted_agents=delta_random_after_malfunction_predicted_agents
+        predicted_changed_agents_online_after_malfunction=predicted_changed_agents_online_after_malfunction_predicted,
+        predicted_changed_agents_random_after_malfunction=predicted_changed_agents_random_after_malfunction_predicted
     )
     rsp_logger.info(f"done re-schedule full and delta naive/perfect for experiment {experiment_parameters.experiment_id}")
     return current_results

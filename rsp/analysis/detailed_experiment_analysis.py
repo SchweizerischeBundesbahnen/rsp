@@ -17,6 +17,7 @@ from rsp.analysis.compute_time_analysis import plot_box_plot
 from rsp.analysis.compute_time_analysis import plot_speed_up
 from rsp.utils.data_types import after_malfunction_scopes
 from rsp.utils.data_types import all_scopes
+from rsp.utils.data_types import prediction_scopes
 from rsp.utils.data_types import speed_up_scopes
 
 HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'solver_statistics_times_total_{scope}' for scope in all_scopes]
@@ -59,8 +60,49 @@ def hypothesis_one_analysis_visualize_lateness(
                 output_folder=output_folder,
                 cols=[speed_up_col_pattern.format(scope) for scope in after_malfunction_scopes],
                 y_axis_title=y_axis_title,
-
             )
+
+
+def hypothesis_one_analysis_prediction_quality(
+        experiment_data: DataFrame,
+        output_folder: str = None):
+    for axis_of_interest, axis_of_interest_suffix in {
+        'experiment_id': '',
+        'grid_id': '',
+    }.items():
+        plot_speed_up(
+            experiment_data=experiment_data,
+            axis_of_interest=axis_of_interest,
+            axis_of_interest_suffix=axis_of_interest_suffix,
+            output_folder=output_folder,
+            cols=['n_agents', 'changed_agents_full_after_malfunction'] +
+                 [prediction_col + '_' + scope
+                  for scope in prediction_scopes
+                  for prediction_col in [
+                      'changed_agents',
+                      'predicted_changed_agents_number',
+                      'predicted_changed_agents_false_positives',
+                      'predicted_changed_agents_false_negatives'
+                  ]
+                  ],
+            y_axis_title='Prediction Quality Counts'
+        )
+        plot_speed_up(
+            experiment_data=experiment_data,
+            axis_of_interest=axis_of_interest,
+            axis_of_interest_suffix=axis_of_interest_suffix,
+            output_folder=output_folder,
+            cols=['changed_agents_percentage_full_after_malfunction'] +
+                 [prediction_col + '_' + scope
+                  for scope in prediction_scopes
+                  for prediction_col in [
+                      'predicted_changed_agents_percentage',
+                      'predicted_changed_agents_false_positives_percentage',
+                      'predicted_changed_agents_false_negatives_percentage'
+                  ]
+                  ],
+            y_axis_title='Prediction Quality Percentage'
+        )
 
 
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame,

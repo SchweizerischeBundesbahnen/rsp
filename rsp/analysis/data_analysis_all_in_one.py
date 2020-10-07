@@ -14,6 +14,7 @@ from rsp.analysis.compute_time_analysis import plot_shared_heatmap
 from rsp.analysis.compute_time_analysis import plot_time_density
 from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
 from rsp.analysis.compute_time_analysis import plot_train_paths
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_prediction_quality
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_changed_agents
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_lateness
@@ -94,6 +95,10 @@ def hypothesis_one_data_analysis(
             output_folder=results_folder
         )
         hypothesis_one_analysis_visualize_changed_agents(
+            experiment_data=experiment_data,
+            output_folder=results_folder
+        )
+        hypothesis_one_analysis_prediction_quality(
             experiment_data=experiment_data,
             output_folder=results_folder
         )

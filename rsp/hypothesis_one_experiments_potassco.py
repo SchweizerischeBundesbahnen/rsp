@@ -10,6 +10,8 @@ from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
+
+
 # TODO pass arguments instead of hacky file editing
 
 
@@ -54,7 +56,7 @@ def run_potassco_agenda(base_directory: str, experiment_ids=None):
         earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
         # TODO SIM-699 take only first 10 of each schedule
-        malfunction_agent_id=[0, 10, 10],
+        malfunction_agent_id=[0, 5, 5],
 
         number_of_shortest_paths_per_agent=[10, 10, 1],
 
@@ -173,4 +175,10 @@ if __name__ == '__main__':
     )
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        # only first 3 schedules of every infra and only first ten agents
+        experiment_ids=[
+            infra_id * 800 + schedule_id * 80 + agent_id
+            for infra_id in range(8)
+            for schedule_id in range(3)
+            for agent_id in range(10)]
     )
