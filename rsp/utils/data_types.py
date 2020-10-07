@@ -152,6 +152,7 @@ ReScheduleParameters = NamedTuple('ReScheduleParameters', [
 ExperimentParameters = NamedTuple('ExperimentParameters', [
     ('experiment_id', int),  # unique per execution (there may be multiple `experiment_id`s for the same `grid_id`
     ('grid_id', int),  # same if all params are the same
+    ('infra_id_schedule_id', int),
 
     ('infra_parameters', InfrastructureParameters),
     ('schedule_parameters', ScheduleParameters),
@@ -519,6 +520,7 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('grid_id', int),
     ('infra_id', int),
     ('schedule_id', int),
+    ('infra_id_schedule_id', int),
     ('size', int),
     ('n_agents', int),
     ('max_num_cities', int),
@@ -717,6 +719,7 @@ def expand_experiment_results_for_analysis(
 
             infra_id=experiment_parameters.infra_parameters.infra_id,
             schedule_id=experiment_parameters.schedule_parameters.schedule_id,
+            infra_id_schedule_id=experiment_parameters.infra_id_schedule_id,
             earliest_malfunction=experiment_parameters.earliest_malfunction,
             malfunction_duration=experiment_parameters.malfunction_duration,
             malfunction_agent_id=experiment_parameters.malfunction_agent_id,

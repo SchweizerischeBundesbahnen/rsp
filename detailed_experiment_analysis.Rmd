@@ -48,7 +48,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 9
+experiment_of_interest = 2
 ```
 
 ```{python}

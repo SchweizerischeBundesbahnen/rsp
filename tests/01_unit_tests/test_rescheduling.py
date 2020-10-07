@@ -31,6 +31,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 test_parameters = ExperimentParameters(
     experiment_id=0,
     grid_id=0,
+    infra_id_schedule_id=0,
     infra_parameters=InfrastructureParameters(
         infra_id=0,
         width=30,

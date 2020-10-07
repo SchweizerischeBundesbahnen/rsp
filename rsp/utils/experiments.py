@@ -869,6 +869,7 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
             current_experiment = ExperimentParameters(
                 experiment_id=experiment_id,
                 grid_id=grid_id,
+                infra_id_schedule_id=grid_id,
 
                 infra_parameters=InfrastructureParameters(
                     infra_id=grid_id,
@@ -981,6 +982,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
     # we want to be able to have different number of schedules for two infrastructures, therefore, we increment counters
     experiment_id = 0
     grid_id = 0
+    infra_id_schedule_id = 0
     for infra_id, list_of_schedule_parameters in infra_schedule_dict.items():
         infra_parameters: InfrastructureParameters = infra_parameters_dict[infra_id]
         for schedule_parameters, _ in list_of_schedule_parameters:
@@ -997,6 +999,8 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                             infra_parameters=infra_parameters,
 
                             grid_id=grid_id,
+                            infra_id_schedule_id=infra_id_schedule_id,
+
                             earliest_malfunction=re_schedule_parameters.earliest_malfunction,
                             malfunction_duration=re_schedule_parameters.malfunction_duration,
                             malfunction_agent_id=re_schedule_parameters.malfunction_agent_id,
@@ -1006,7 +1010,8 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                         )
                     )
                     experiment_id += 1
-            grid_id += 1
+                grid_id += 1
+            infra_id_schedule_id += 1
     return ExperimentAgenda(
         experiment_name=experiment_name,
         experiments=experiments
