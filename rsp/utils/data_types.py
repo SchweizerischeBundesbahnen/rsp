@@ -241,6 +241,10 @@ def solver_statistics_times_solve_from_experiment_results(results: SchedulingExp
     return results.solver_statistics["summary"]["times"]["solve"]
 
 
+def solver_statistics_times_total_without_solve_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
+    return results.solver_statistics["summary"]["times"]["total"] - results.solver_statistics["summary"]["times"]["solve"]
+
+
 def trainrun_dict_from_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> TrainrunDict:
     return results.trainruns_dict
 
@@ -456,6 +460,7 @@ experiment_results_analysis_all_scopes_fields = {
     'solver_statistics_costs': (float, solver_statistics_costs_from_experiment_results),
     'solver_statistics_times_total': (float, solver_statistics_times_total_from_experiment_results),
     'solver_statistics_times_solve': (float, solver_statistics_times_solve_from_experiment_results),
+    'solver_statistics_times_total_without_solve': (float, solver_statistics_times_total_without_solve_from_experiment_results),
     'solver_statistics_choices': (float, solver_statistics_choices_from_results),
     'solver_statistics_conflicts': (float, solver_statistics_conflicts_from_results),
     'summed_user_accu_propagations': (float, summed_user_accu_propagations_from_results),
