@@ -27,7 +27,9 @@ def scoper_random_for_all_agents(
         schedule_trainrun_dict: TrainrunDict,
         weight_route_change: int,
         weight_lateness_seconds: int,
-        max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
+        max_window_size_from_earliest: int,
+        changed_running_agents_online: int
+) -> ScheduleProblemDescription:
     """The scoper random only opens up the malfunction agent and the same
     amount of agents as were changed in the full re-schedule, but chosen
     randomly.
@@ -61,30 +63,14 @@ def scoper_random_for_all_agents(
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
 
-    agents_running_after_malfunction = {
+    agents_running_after_malfunction = [
         agent_id
         for agent_id, schedule_trainrun in schedule_trainrun_dict.items()
         if schedule_trainrun[-1].scheduled_at >= malfunction.time_step
-    }
+    ]
     assert malfunction.agent_id in agents_running_after_malfunction
-    ground_truth_changed_after_malfunction = {
-        agent_id
-        for agent_id in agents_running_after_malfunction
-        if set(full_reschedule_trainrun_dict[agent_id]) != set(schedule_trainrun_dict[agent_id])
-    }
-    assert malfunction.agent_id in ground_truth_changed_after_malfunction
 
-    nb_agents_running_after_malfunction = len(agents_running_after_malfunction)
-    nb_ground_truth_changed_after_malfunction = len(ground_truth_changed_after_malfunction)
-    p_changed = nb_ground_truth_changed_after_malfunction / nb_agents_running_after_malfunction
-
-    changed_agents = {
-        agent_id
-        for agent_id in full_reschedule_trainrun_dict
-        if agent_id in ground_truth_changed_after_malfunction and (
-                agent_id == malfunction.agent_id or np.random.choice(a=[True, False], p=[p_changed, 1 - p_changed])
-        )
-    }
+    changed_agents = np.random.choice(agents_running_after_malfunction, changed_running_agents_online)
 
     for agent_id in schedule_trainrun_dict.keys():
         earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
@@ -93,11 +79,11 @@ def scoper_random_for_all_agents(
             schedule_trainrun=schedule_trainrun_dict[agent_id],
             full_reschedule_problem=full_reschedule_problem,
             changed=(agent_id in changed_agents),
-            exact=False,
+            time_flexibility=True,
             malfunction=malfunction,
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,
-            minimum_travel_time=minimum_travel_time_dict[agent_id]
+            minimum_travel_time=minimum_travel_time_dict[agent_id],
         )
         freeze_dict[agent_id] = RouteDAGConstraints(
             earliest=earliest_dict,
@@ -127,4 +113,4 @@ def scoper_random_for_all_agents(
             weight_route_change=weight_route_change
         ),
         weight_lateness_seconds=weight_lateness_seconds
-    ), changed_agents
+    ), set(changed_agents)

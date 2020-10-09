@@ -24,6 +24,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
 from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
 from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
+from rsp.utils.global_constants import NB_RANDOM
 from rsp.utils.rsp_logger import rsp_logger
 
 SpeedData = Mapping[float, float]
@@ -201,29 +202,47 @@ def parameter_ranges_and_speed_data_to_hiearchical(
     )
 
 
-ExperimentResults = NamedTuple('ExperimentResults', [
-    ('experiment_parameters', ExperimentParameters),
-    ('malfunction', ExperimentMalfunction),
-    ('problem_full', ScheduleProblemDescription),
-    ('problem_full_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_trivially_perfect_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_no_rerouting_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_random_after_malfunction', ScheduleProblemDescription),
-    ('results_full', SchedulingExperimentResult),
-    ('results_full_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_trivially_perfect_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_no_rerouting_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_online_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_random_after_malfunction', SchedulingExperimentResult),
-    ('predicted_changed_agents_online_after_malfunction', Set[int]),
-    ('predicted_changed_agents_random_after_malfunction', Set[int]),
-])
+ExperimentResults = NamedTuple(
+    'ExperimentResults',
+    [
+        ('experiment_parameters', ExperimentParameters),
+        ('malfunction', ExperimentMalfunction),
+        ('problem_full', ScheduleProblemDescription),
+        ('problem_full_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_trivially_perfect_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_no_rerouting_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_online_no_time_flexibility_after_malfunction', ScheduleProblemDescription),
+        ('results_full', SchedulingExperimentResult),
+        ('results_full_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_trivially_perfect_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_no_rerouting_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_online_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_online_no_time_flexibility_after_malfunction', SchedulingExperimentResult),
+        ('predicted_changed_agents_online_after_malfunction', Set[int]),
+        ('predicted_changed_agents_online_no_time_flexibility_after_malfunction', Set[int]),
+    ] + [
+        (f'problem_delta_random_{i}_after_malfunction', ScheduleProblemDescription) for i in range(NB_RANDOM)
+    ] + [
+        (f'results_delta_random_{i}_after_malfunction', SchedulingExperimentResult) for i in range(NB_RANDOM)
+    ] + [
+        (f'predicted_changed_agents_random_{i}_after_malfunction', Set[int]) for i in range(NB_RANDOM)
+    ]
+)
 
-speed_up_scopes = [f"delta_{infix}_after_malfunction" for infix in ['trivially_perfect', 'perfect', 'no_rerouting', 'online', 'random']]
-prediction_scopes = [f"delta_{infix}_after_malfunction" for infix in ['online', 'random']]
+speed_up_scopes = [
+    f"delta_{infix}_after_malfunction" for infix in
+    ([
+         'trivially_perfect',
+         'perfect',
+         'no_rerouting',
+         'online',
+         'online_no_time_flexibility',
+     ] + [f'random_{i}' for i in range(NB_RANDOM)])
+]
+prediction_scopes = [f"delta_{infix}_after_malfunction" for infix in (['online'] + [f'random_{i}' for i in range(NB_RANDOM)])]
 
 after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
@@ -502,66 +521,71 @@ prediction_scopes_fields = {
     'predicted_changed_agents_false_negatives': int,
 }
 
-ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
-    ('experiment_parameters', ExperimentParameters),
-    ('malfunction', ExperimentMalfunction),
-    ('problem_full', ScheduleProblemDescription),
-    ('problem_full_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_trivially_perfect_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_no_rerouting_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
-    ('problem_delta_random_after_malfunction', ScheduleProblemDescription),
-    ('results_full', SchedulingExperimentResult),
-    ('results_full_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_trivially_perfect_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_no_rerouting_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_online_after_malfunction', SchedulingExperimentResult),
-    ('results_delta_random_after_malfunction', SchedulingExperimentResult),
-    ('predicted_changed_agents_online_after_malfunction', Set[int]),
-    ('predicted_changed_agents_random_after_malfunction', Set[int]),
-    ('experiment_id', int),
-    ('grid_id', int),
-    ('infra_id', int),
-    ('schedule_id', int),
-    ('infra_id_schedule_id', int),
-    ('size', int),
-    ('n_agents', int),
-    ('max_num_cities', int),
-    ('max_rail_between_cities', int),
-    ('max_rail_in_city', int),
-    ('earliest_malfunction', int),
-    ('malfunction_duration', int),
-    ('malfunction_agent_id', int),
-    ('weight_route_change', int),
-    ('weight_lateness_seconds', int),
-    ('max_window_size_from_earliest', int),
+ExperimentResultsAnalysis = NamedTuple(
+    'ExperimentResultsAnalysis',
+    [
+        ('experiment_parameters', ExperimentParameters),
+        ('malfunction', ExperimentMalfunction),
+        ('problem_full', ScheduleProblemDescription),
+        ('problem_full_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_trivially_perfect_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_perfect_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_no_rerouting_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_online_after_malfunction', ScheduleProblemDescription),
+        ('problem_delta_online_no_time_flexibility_after_malfunction', ScheduleProblemDescription),
+        ('results_full', SchedulingExperimentResult),
+        ('results_full_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_trivially_perfect_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_perfect_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_no_rerouting_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_online_after_malfunction', SchedulingExperimentResult),
+        ('results_delta_online_no_time_flexibility_after_malfunction', SchedulingExperimentResult),
+        ('predicted_changed_agents_online_after_malfunction', Set[int]),
+        ('predicted_changed_agents_online_no_time_flexibility_after_malfunction', Set[int]),
+        ('experiment_id', int),
+        ('grid_id', int),
+        ('infra_id', int),
+        ('schedule_id', int),
+        ('infra_id_schedule_id', int),
+        ('size', int),
+        ('n_agents', int),
+        ('max_num_cities', int),
+        ('max_rail_between_cities', int),
+        ('max_rail_in_city', int),
+        ('earliest_malfunction', int),
+        ('malfunction_duration', int),
+        ('malfunction_agent_id', int),
+        ('weight_route_change', int),
+        ('weight_lateness_seconds', int),
+        ('max_window_size_from_earliest', int),
 
-    # ========================================
-    # lower_bound / upper_bound
-    # ========================================
+        ('factor_resource_conflicts', int),
 
-    ('factor_resource_conflicts', int),
-
-] + [
-                                           (f'{prefix}_{scope}', type_)
-                                           for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items()
-                                           for scope in all_scopes
-                                       ] + [
-                                           (f'{prefix}_{scope}', type_)
-                                           for prefix, (type_, _) in experiment_results_analysis_after_malfunction_scopes_fields.items()
-                                           for scope in after_malfunction_scopes
-                                       ] + [
-                                           (f'{prefix}_{scope}', type_)
-                                           for prefix, (type_, _) in speedup_scopes_fields.items()
-                                           for scope in speed_up_scopes
-                                       ] + [
-                                           (f'{prefix}_{scope}', type_)
-                                           for prefix, type_ in prediction_scopes_fields.items()
-                                           for scope in prediction_scopes
-                                       ]
-                                       )
+    ] + [
+        (f'problem_delta_random_{i}_after_malfunction', ScheduleProblemDescription) for i in range(NB_RANDOM)
+    ] + [
+        (f'results_delta_random_{i}_after_malfunction', SchedulingExperimentResult) for i in range(NB_RANDOM)
+    ] + [
+        (f'predicted_changed_agents_random_{i}_after_malfunction', Set[int]) for i in range(NB_RANDOM)
+    ] +
+    [
+        (f'{prefix}_{scope}', type_)
+        for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items()
+        for scope in all_scopes
+    ] + [
+        (f'{prefix}_{scope}', type_)
+        for prefix, (type_, _) in experiment_results_analysis_after_malfunction_scopes_fields.items()
+        for scope in after_malfunction_scopes
+    ] + [
+        (f'{prefix}_{scope}', type_)
+        for prefix, (type_, _) in speedup_scopes_fields.items()
+        for scope in speed_up_scopes
+    ] + [
+        (f'{prefix}_{scope}', type_)
+        for prefix, type_ in prediction_scopes_fields.items()
+        for scope in prediction_scopes
+    ]
+)
 
 COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
@@ -684,13 +708,16 @@ def expand_experiment_results_for_analysis(
         }
 
     online_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, 'delta_online_after_malfunction')
-    random_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_random_after_malfunction, 'delta_random_after_malfunction')
+    random_predicted_dict = {}
+    for i in range(NB_RANDOM):
+        random_predicted_dict.update(**predicted_dict(
+            experiment_results._asdict()[f'predicted_changed_agents_random_{i}_after_malfunction'], f'delta_random_{i}_after_malfunction'))
     d = dict(
         **experiment_results._asdict(),
         **{
-            f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}'], experiment_results._asdict()[f'problem_{scope}']) for
-            prefix, (_, results_extractor) in
-            experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes
+            f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}'], experiment_results._asdict()[f'problem_{scope}'])
+            for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
+            for scope in all_scopes
         },
         **{
             f'{prefix}_{scope}': results_extractor(
@@ -754,7 +781,10 @@ def expand_experiment_results_for_analysis(
             'experiment_parameters': None,
             'malfunction': None,
             'predicted_changed_agents_online_after_malfunction': None,
-            'predicted_changed_agents_random_after_malfunction': None,
+
+        })
+        d.update({
+            f'predicted_changed_agents_random_{i}_after_malfunction': None for i in range(NB_RANDOM)
         })
 
     return _to_experiment_results_analysis()
@@ -824,10 +854,11 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
                 f"costs_from_route_section_penalties_{scope}={costs_from_route_section_penalties} "
         except AssertionError as e:
             rsp_logger.warn(str(e))
+    # TODO
     for scope in ['trivially_perfect', 'perfect']:
         costs = experiment_results_analysis._asdict()[f'costs_delta_{scope}_after_malfunction']
         assert costs == experiment_results_analysis.costs_full_after_malfunction
-    for scope in ['no_rerouting', 'random', 'online']:
+    for scope in ['no_rerouting', 'online'] + [f'random_{i}' for i in range(NB_RANDOM)]:
         costs = experiment_results_analysis._asdict()[f'costs_delta_{scope}_after_malfunction']
         assert costs >= experiment_results_analysis.costs_full_after_malfunction
 
