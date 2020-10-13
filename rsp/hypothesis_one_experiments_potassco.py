@@ -10,6 +10,7 @@ from rsp.utils.data_types import ScheduleParametersRange
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
@@ -50,7 +51,10 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
-def run_potassco_agenda(base_directory: str, experiment_filter=None):
+def run_potassco_agenda(
+        base_directory: str,
+        experiment_output_base_directory: Optional[str] = None,
+        experiment_filter=None):
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
@@ -75,6 +79,7 @@ def run_potassco_agenda(base_directory: str, experiment_filter=None):
         set_defaults()
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
+            experiment_output_base_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%sbaseline' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -87,6 +92,7 @@ def run_potassco_agenda(base_directory: str, experiment_filter=None):
 
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
+            experiment_output_base_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_SEQ' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -98,6 +104,7 @@ def run_potassco_agenda(base_directory: str, experiment_filter=None):
         set_delay_model_resolution(2)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
+            experiment_output_base_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -107,6 +114,7 @@ def run_potassco_agenda(base_directory: str, experiment_filter=None):
         set_delay_model_resolution(5)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
+            experiment_output_base_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -116,6 +124,7 @@ def run_potassco_agenda(base_directory: str, experiment_filter=None):
         set_delay_model_resolution(10)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
+            experiment_output_base_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_delay_model_resolution_10' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -126,6 +135,7 @@ def run_potassco_agenda(base_directory: str, experiment_filter=None):
         enable_propagate_partial(enable=False)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
+            experiment_output_base_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -178,5 +188,7 @@ if __name__ == '__main__':
     )
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        # incremental re-start after interruption
+        experiment_output_base_directory=BASELINE_DATA_FOLDER,
         experiment_filter=experiment_filter_first_ten_of_each_schedule
     )
