@@ -242,7 +242,7 @@ speed_up_scopes = [
          'online_no_time_flexibility',
      ] + [f'random_{i}' for i in range(NB_RANDOM)])
 ]
-prediction_scopes = [f"delta_{infix}_after_malfunction" for infix in (['online'] + [f'random_{i}' for i in range(NB_RANDOM)])]
+prediction_scopes = [f"delta_{infix}_after_malfunction" for infix in (['online', 'online_no_time_flexibility'] + [f'random_{i}' for i in range(NB_RANDOM)])]
 
 after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
@@ -708,6 +708,7 @@ def expand_experiment_results_for_analysis(
         }
 
     online_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, 'delta_online_after_malfunction')
+    online_no_time_flexibility_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, 'delta_online_no_time_flexibility_after_malfunction')
     random_predicted_dict = {}
     for i in range(NB_RANDOM):
         random_predicted_dict.update(**predicted_dict(
@@ -763,6 +764,7 @@ def expand_experiment_results_for_analysis(
 
             **d,
             **online_predicted_dict,
+            **online_no_time_flexibility_predicted_dict,
             **random_predicted_dict,
         )
 
