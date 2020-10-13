@@ -9,6 +9,7 @@ from typing import NamedTuple
 from typing import Set
 from typing import Tuple
 
+import numpy as np
 import pandas as pd
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
@@ -594,6 +595,12 @@ ExperimentResultsAnalysis = NamedTuple(
         (f'{prefix}_{scope}', type_)
         for prefix, type_ in prediction_scopes_fields.items()
         for scope in prediction_scopes
+    ] + [
+        (f'{prefix}_random_average', float)
+        for prefix in (list(speedup_scopes_fields.keys()) +
+                       list(experiment_results_analysis_all_scopes_fields.keys()) +
+                       list(experiment_results_analysis_after_malfunction_scopes_fields.keys()))
+        if prefix != 'solution' and '_per_' not in prefix and not prefix.startswith('vertex_')
     ]
 )
 
@@ -718,7 +725,8 @@ def expand_experiment_results_for_analysis(
         }
 
     online_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, 'delta_online_after_malfunction')
-    online_no_time_flexibility_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, 'delta_online_no_time_flexibility_after_malfunction')
+    online_no_time_flexibility_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction,
+                                                               'delta_online_no_time_flexibility_after_malfunction')
     random_predicted_dict = {}
     for i in range(NB_RANDOM):
         random_predicted_dict.update(**predicted_dict(
@@ -748,6 +756,16 @@ def expand_experiment_results_for_analysis(
             for scope in speed_up_scopes
         }
 
+    )
+    d = dict(
+        **d,
+        **{
+            f'{prefix}_random_average': np.mean([d[f'{prefix}_delta_random_{i}_after_malfunction'] for i in range(NB_RANDOM)])
+            for prefix in (list(speedup_scopes_fields.keys()) +
+                           list(experiment_results_analysis_all_scopes_fields.keys()) +
+                           list(experiment_results_analysis_after_malfunction_scopes_fields.keys()))
+            if prefix != 'solution' and '_per_' not in prefix and not prefix.startswith('vertex_')
+        }
     )
 
     def _to_experiment_results_analysis():
