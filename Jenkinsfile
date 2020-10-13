@@ -120,7 +120,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
         }
         stage("Integration Test Notebooks") {
             when {
-                anyOf {
+                allOf {
                     // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
                     expression { env.CHANGE_ID == null }
                     // TODO notebook tests currently disabled

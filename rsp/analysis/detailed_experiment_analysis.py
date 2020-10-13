@@ -20,11 +20,11 @@ from pandas import DataFrame
 
 from rsp.analysis.compute_time_analysis import plot_box_plot
 from rsp.analysis.compute_time_analysis import plot_speed_up
-from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import after_malfunction_scopes
 from rsp.utils.data_types import all_scopes
-from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import prediction_scopes
 from rsp.utils.data_types import speed_up_scopes
 from rsp.utils.file_utils import check_create_folder
@@ -86,7 +86,7 @@ def hypothesis_one_analysis_prediction_quality(
             output_folder=output_folder,
             cols=['n_agents', 'changed_agents_full_after_malfunction'] +
                  [prediction_col + '_' + scope
-                  for scope in prediction_scopes
+                  for scope in [scope for scope in prediction_scopes if 'random' not in scope] + ['random_average']
                   for prediction_col in [
                       'changed_agents',
                       'predicted_changed_agents_number',
