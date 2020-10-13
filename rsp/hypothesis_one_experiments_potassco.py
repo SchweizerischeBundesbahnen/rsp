@@ -13,9 +13,7 @@ from rsp.utils.file_utils import check_create_folder
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
-# TODO pass arguments instead of hacky file editing
-
-
+# TODO SIM-719 pass arguments instead of hacky file editing
 def enable_seq(enable=True):
     off = "RESCHEDULE_HEURISTICS = []"
     on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
@@ -26,7 +24,7 @@ def enable_seq(enable=True):
         output.write(output_str)
 
 
-# TODO pass arguments instead of hacky file editing
+# TODO SIM-719 pass arguments instead of hacky file editing
 def set_delay_model_resolution(resolution=1):
     file_name = "rsp/utils/global_constants.py"
     with open(file_name, "r") as fh:
@@ -36,7 +34,7 @@ def set_delay_model_resolution(resolution=1):
         output.write(output_str)
 
 
-# TODO pass arguments instead of hacky file editing
+# TODO SIM-719 pass arguments instead of hacky file editing
 def enable_propagate_partial(enable: bool = True):
     file_name = "rsp/utils/global_constants.py"
     with open(file_name, "r") as fh:
@@ -149,7 +147,7 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None)
         flatland_seed_value=[12, 12, 1],
         max_num_cities=[10, 10, 1],
         max_rail_in_city=[3, 3, 1],
-        max_rail_between_cities=[2, 2, 1],
+        max_rail_between_cities=[1, 1, 1],
         number_of_shortest_paths_per_agent=[10, 10, 1]
     )
     schedule_parameters_range = ScheduleParametersRange(
@@ -178,7 +176,6 @@ if __name__ == '__main__':
     generate_potassco_infras_and_schedules(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )
-
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         experiment_filter=experiment_filter_first_ten_of_each_schedule
