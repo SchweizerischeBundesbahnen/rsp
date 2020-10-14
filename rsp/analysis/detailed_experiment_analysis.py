@@ -20,11 +20,11 @@ from pandas import DataFrame
 
 from rsp.analysis.compute_time_analysis import plot_box_plot
 from rsp.analysis.compute_time_analysis import plot_speed_up
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
-from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.utils.data_types import after_malfunction_scopes
 from rsp.utils.data_types import all_scopes
+from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import prediction_scopes
 from rsp.utils.data_types import speed_up_scopes
 from rsp.utils.file_utils import check_create_folder
