@@ -912,7 +912,8 @@ def create_infrastructure_and_schedule_from_ranges(
         schedule_parameters_range: ScheduleParametersRange,
         base_directory: str,
         speed_data: SpeedData,
-        grid_mode: bool = False
+        grid_mode: bool = False,
+        run_experiments_parallel: int = 5
 ) -> List[ScheduleParameters]:
     list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range=infrastructure_parameters_range,
@@ -920,10 +921,33 @@ def create_infrastructure_and_schedule_from_ranges(
         speed_data=speed_data,
         grid_mode=grid_mode
     )
-    list_of_schedule_parameters: List[ScheduleParameters] = list(itertools.chain.from_iterable([
-        expand_schedule_parameter_range_and_generate_schedule(
+
+    list_of_schedule_parameters_to_generate: List[ScheduleParameters] = list(itertools.chain.from_iterable([
+        expand_schedule_parameter_range_and_get_those_not_existing_yet(
             schedule_parameters_range=schedule_parameters_range,
             base_directory=base_directory,
+            infra_id=infrastructure_parameters.infra_id
+        )
+        for infrastructure_parameters in list_of_infrastructure_parameters
+    ]))
+    pool = multiprocessing.Pool(
+        processes=run_experiments_parallel,
+        maxtasksperchild=1)
+    gen_and_save_schedule_partial = partial(
+        gen_and_save_schedule,
+        base_directory=base_directory
+    )
+    for done in tqdm.tqdm(
+            pool.imap_unordered(
+                gen_and_save_schedule_partial,
+                list_of_schedule_parameters_to_generate
+            ),
+            total=len(list_of_schedule_parameters_to_generate)):
+        rsp_logger.info(f"done: {done}")
+
+    list_of_schedule_parameters: List[ScheduleParameters] = list(itertools.chain.from_iterable([
+        expand_schedule_parameter_range(
+            schedule_parameter_range=schedule_parameters_range,
             infra_id=infrastructure_parameters.infra_id
         )
         for infrastructure_parameters in list_of_infrastructure_parameters
@@ -1087,7 +1111,24 @@ def expand_infrastructure_parameter_range_and_generate_infrastructure(
     return list_of_infra_parameters
 
 
-def expand_schedule_parameter_range_and_generate_schedule(
+def gen_and_save_schedule(schedule_parameters: ScheduleParameters, base_directory: str):
+    infra_id = schedule_parameters.infra_id
+    infra, infra_parameters = load_infrastructure(
+        base_directory=base_directory,
+        infra_id=infra_id
+    )
+    rsp_logger.info(f"gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters}")
+    schedule = gen_schedule(infrastructure=infra, schedule_parameters=schedule_parameters)
+    save_schedule(
+        schedule=schedule,
+        schedule_parameters=schedule_parameters,
+        base_directory=base_directory
+    )
+    _print_stats(schedule.schedule_experiment_result.solver_statistics)
+    return schedule_parameters
+
+
+def expand_schedule_parameter_range_and_get_those_not_existing_yet(
         schedule_parameters_range: ScheduleParametersRange,
         base_directory: str,
         infra_id: int) -> List[ScheduleParameters]:
@@ -1098,20 +1139,14 @@ def expand_schedule_parameter_range_and_generate_schedule(
         base_directory=base_directory,
         infra_id=infra_id
     )
+    list_of_schedule_parameters_to_generate = []
     for schedule_parameters in list_of_schedule_parameters:
         if exists_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_parameters.schedule_id):
             rsp_logger.info(f"skipping gen schedule for [infra {infra_id}/schedule{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
                             f"-> schedule already exists")
             continue
-        rsp_logger.info(f"gen schedule for [{infra_id}/{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters}")
-        schedule = gen_schedule(infrastructure=infra, schedule_parameters=schedule_parameters)
-        save_schedule(
-            schedule=schedule,
-            schedule_parameters=schedule_parameters,
-            base_directory=base_directory
-        )
-        _print_stats(schedule.schedule_experiment_result.solver_statistics)
-    return list_of_schedule_parameters
+        list_of_schedule_parameters_to_generate.append(schedule_parameters)
+    return list_of_schedule_parameters_to_generate
 
 
 def span_n_grid(collected_parameters: List, open_dimensions: List) -> list:

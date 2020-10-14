@@ -7,6 +7,7 @@ from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParametersRange
+from rsp.utils.experiments import AVAILABLE_CPUS
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.file_utils import check_create_folder
@@ -54,7 +55,9 @@ def set_defaults():
 def run_potassco_agenda(
         base_directory: str,
         experiment_output_base_directory: Optional[str] = None,
-        experiment_filter=None):
+        experiment_filter=None,
+        parallel_compute: int = 5
+):
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
@@ -74,7 +77,7 @@ def run_potassco_agenda(
     try:
         experiments_per_grid_element = 1
         experiment_name_prefix = os.path.basename(base_directory) + "_"
-        parallel_compute = 5
+        parallel_compute = parallel_compute
         # baseline with defaults
         set_defaults()
         list_from_base_directory_and_run_experiment_agenda(
@@ -145,7 +148,10 @@ def run_potassco_agenda(
         set_defaults()
 
 
-def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None):
+def generate_potassco_infras_and_schedules(
+        base_directory: Optional[str] = None,
+        parallel_compute: int = 5
+):
     if base_directory is None:
         base_directory = create_experiment_folder_name("h1")
         check_create_folder(base_directory)
@@ -173,7 +179,8 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None)
                     1. / 2.: 0.25,  # Fast freight train
                     1. / 3.: 0.25,  # Slow commuter train
                     1. / 4.: 0.25},  # Slow freight train
-        grid_mode=False
+        grid_mode=False,
+        run_experiments_parallel=parallel_compute
     )
     return base_directory
 
@@ -183,12 +190,15 @@ def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameter
 
 
 if __name__ == '__main__':
+    parallel_compute = AVAILABLE_CPUS // 2
     generate_potassco_infras_and_schedules(
-        base_directory=INFRAS_AND_SCHEDULES_FOLDER
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        parallel_compute=parallel_compute
     )
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         # incremental re-start after interruption
         experiment_output_base_directory=BASELINE_DATA_FOLDER,
-        experiment_filter=experiment_filter_first_ten_of_each_schedule
+        experiment_filter=experiment_filter_first_ten_of_each_schedule,
+        parallel_compute=parallel_compute
     )
