@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
@@ -7,19 +5,11 @@ from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
-from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
 
 
 def test_hypothesis_one_all_in_one():
     """Run hypothesis one with qualitative analysis and potassco export and
     check that expected files are present wihout inspecting them."""
-    # TODO skip run_analysis under Linux because ffmpeg not available in ci -> make it available or add option to skip ffmpeg conversion
-    run_analysis = True
-    from sys import platform
-    if platform == "linux" or platform == "linux2":
-        run_analysis = False
 
     hypothesis_base_folder, _ = hypothesis_one_pipeline_all_in_one(
         parameter_ranges_and_speed_data=ParameterRangesAndSpeedData(
@@ -44,22 +34,9 @@ def test_hypothesis_one_all_in_one():
         asp_export_experiment_ids=[0],
         qualitative_analysis_experiment_ids=[0],
         experiment_name="test_hypothesis_one",
-        run_analysis=run_analysis,
+        run_analysis=False,
         experiment_base_directory=create_experiment_folder_name("test_hypothesis_one_all_in_one")
     )
-    try:
-        data_file_list = os.listdir(os.path.join(hypothesis_base_folder, EXPERIMENT_DATA_SUBDIRECTORY_NAME))
-        assert len(data_file_list) > 0
-        if run_analysis:
-            analysis_file_list = os.listdir(os.path.join(hypothesis_base_folder, EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME))
-            assert len(analysis_file_list) > 0
-            potassco_file_list = os.listdir(os.path.join(hypothesis_base_folder, EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME))
-            assert len(potassco_file_list) > 0
-            print(data_file_list)
-            print(analysis_file_list)
-            print(potassco_file_list)
-    finally:
-        delete_experiment_folder(hypothesis_base_folder)
 
 
 def test_parallel_experiment_execution():
