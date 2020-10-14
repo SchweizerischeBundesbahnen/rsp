@@ -16,9 +16,8 @@ def scoper_changed_or_unchanged(
         minimum_travel_time: int,
         latest_arrival: int,
         changed: bool,
-        max_window_size_from_earliest,
-        # TODO do we need distinction?
-        exact: bool):
+        max_window_size_from_earliest: int,
+        time_flexibility: bool):
     """"scoper changed or unchanged":
 
     - if no change for train between schedule and re-schedule,
@@ -30,7 +29,7 @@ def scoper_changed_or_unchanged(
     if changed:
         route_dag_constraints = full_reschedule_problem.route_dag_constraints_dict[agent_id]
         return route_dag_constraints.earliest.copy(), route_dag_constraints.latest.copy(), full_reschedule_problem.topo_dict[agent_id].copy()
-    elif exact:
+    elif not time_flexibility:
         schedule = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in set(schedule_trainrun)}
         nodes_to_keep = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         nodes_to_remove = {node for node in topo_.nodes if node not in nodes_to_keep}

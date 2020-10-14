@@ -86,7 +86,7 @@ def hypothesis_one_analysis_prediction_quality(
             output_folder=output_folder,
             cols=['n_agents', 'changed_agents_full_after_malfunction'] +
                  [prediction_col + '_' + scope
-                  for scope in prediction_scopes
+                  for scope in [scope for scope in prediction_scopes if 'random' not in scope] + ['random_average']
                   for prediction_col in [
                       'changed_agents',
                       'predicted_changed_agents_number',

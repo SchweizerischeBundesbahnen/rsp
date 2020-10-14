@@ -33,6 +33,7 @@ def scoper_online_for_all_agents(
         schedule_trainrun_dict: TrainrunDict,
         weight_route_change: int,
         weight_lateness_seconds: int,
+        time_flexibility: bool,
         max_window_size_from_earliest: int = np.inf) -> Tuple[ScheduleProblemDescription, Set[int]]:
     """The scoper online only opens up the differences between the schedule and
     the imaginary re-schedule. It gives no additional routing flexibility!
@@ -91,8 +92,7 @@ def scoper_online_for_all_agents(
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
             changed=(agent_id in online_reached_agents),
-            # TODO SIM-692 finalize
-            exact=False
+            time_flexibility=time_flexibility
         )
         freeze_dict[agent_id] = RouteDAGConstraints(
             earliest=earliest_dict,
