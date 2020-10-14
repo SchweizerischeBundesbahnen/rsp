@@ -152,6 +152,7 @@ ReScheduleParameters = NamedTuple('ReScheduleParameters', [
 ExperimentParameters = NamedTuple('ExperimentParameters', [
     ('experiment_id', int),  # unique per execution (there may be multiple `experiment_id`s for the same `grid_id`
     ('grid_id', int),  # same if all params are the same
+    ('infra_id_schedule_id', int),
 
     ('infra_parameters', InfrastructureParameters),
     ('schedule_parameters', ScheduleParameters),
@@ -238,6 +239,18 @@ def solver_statistics_times_total_from_experiment_results(results: SchedulingExp
 
 def solver_statistics_times_solve_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return results.solver_statistics["summary"]["times"]["solve"]
+
+
+def solver_statistics_times_unsat_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
+    return results.solver_statistics["summary"]["times"]["unsat"]
+
+
+def solver_statistics_times_sat_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
+    return results.solver_statistics["summary"]["times"]["sat"]
+
+
+def solver_statistics_times_total_without_solve_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
+    return results.solver_statistics["summary"]["times"]["total"] - results.solver_statistics["summary"]["times"]["solve"]
 
 
 def trainrun_dict_from_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> TrainrunDict:
@@ -455,6 +468,9 @@ experiment_results_analysis_all_scopes_fields = {
     'solver_statistics_costs': (float, solver_statistics_costs_from_experiment_results),
     'solver_statistics_times_total': (float, solver_statistics_times_total_from_experiment_results),
     'solver_statistics_times_solve': (float, solver_statistics_times_solve_from_experiment_results),
+    'solver_statistics_times_sat': (float, solver_statistics_times_sat_from_experiment_results),
+    'solver_statistics_times_unsat': (float, solver_statistics_times_unsat_from_experiment_results),
+    'solver_statistics_times_total_without_solve': (float, solver_statistics_times_total_without_solve_from_experiment_results),
     'solver_statistics_choices': (float, solver_statistics_choices_from_results),
     'solver_statistics_conflicts': (float, solver_statistics_conflicts_from_results),
     'summed_user_accu_propagations': (float, summed_user_accu_propagations_from_results),
@@ -519,6 +535,7 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('grid_id', int),
     ('infra_id', int),
     ('schedule_id', int),
+    ('infra_id_schedule_id', int),
     ('size', int),
     ('n_agents', int),
     ('max_num_cities', int),
@@ -717,6 +734,7 @@ def expand_experiment_results_for_analysis(
 
             infra_id=experiment_parameters.infra_parameters.infra_id,
             schedule_id=experiment_parameters.schedule_parameters.schedule_id,
+            infra_id_schedule_id=experiment_parameters.infra_id_schedule_id,
             earliest_malfunction=experiment_parameters.earliest_malfunction,
             malfunction_duration=experiment_parameters.malfunction_duration,
             malfunction_agent_id=experiment_parameters.malfunction_agent_id,

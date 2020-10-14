@@ -13,6 +13,7 @@ from rsp.utils.experiments import create_schedule_problem_description_from_instr
 test_parameters = ExperimentParameters(
     experiment_id=0,
     grid_id=0,
+    infra_id_schedule_id=0,
     infra_parameters=InfrastructureParameters(
         infra_id=0,
         width=30,

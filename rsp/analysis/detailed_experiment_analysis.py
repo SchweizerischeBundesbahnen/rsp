@@ -54,7 +54,7 @@ def hypothesis_one_analysis_visualize_lateness(
             experiment_data[f'costs_{scope}']
 
     for axis_of_interest, axis_of_interest_suffix in {
-        'grid_id': '',
+        'infra_id_schedule_id': '',
     }.items():
         for speed_up_col_pattern, y_axis_title in [
             ('costs_{}', 'Costs [-]'),
@@ -77,7 +77,7 @@ def hypothesis_one_analysis_prediction_quality(
         output_folder: str = None):
     for axis_of_interest, axis_of_interest_suffix in {
         'experiment_id': '',
-        'grid_id': '',
+        'infra_id_schedule_id': '',
     }.items():
         plot_speed_up(
             experiment_data=experiment_data,
@@ -158,7 +158,7 @@ def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame,
                 (experiment_data[f'solver_statistics_times_total_{scope}'] - experiment_data[f'solver_statistics_times_solve_{scope}']))
 
     for axis_of_interest, axis_of_interest_suffix in {
-        'grid_id': '',
+        'infra_id_schedule_id': '',
         'solver_statistics_times_total_full_after_malfunction': '[s]',
     }.items():
         for speed_up_col_pattern, y_axis_title in [

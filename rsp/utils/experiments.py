@@ -21,6 +21,7 @@ load_experiment_results_to_file
     Load the results form an experiment result file
 """
 import datetime
+import glob
 import itertools
 import logging
 import multiprocessing
@@ -869,6 +870,7 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
             current_experiment = ExperimentParameters(
                 experiment_id=experiment_id,
                 grid_id=grid_id,
+                infra_id_schedule_id=grid_id,
 
                 infra_parameters=InfrastructureParameters(
                     infra_id=grid_id,
@@ -981,6 +983,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
     # we want to be able to have different number of schedules for two infrastructures, therefore, we increment counters
     experiment_id = 0
     grid_id = 0
+    infra_id_schedule_id = 0
     for infra_id, list_of_schedule_parameters in infra_schedule_dict.items():
         infra_parameters: InfrastructureParameters = infra_parameters_dict[infra_id]
         for schedule_parameters, _ in list_of_schedule_parameters:
@@ -997,6 +1000,8 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                             infra_parameters=infra_parameters,
 
                             grid_id=grid_id,
+                            infra_id_schedule_id=infra_id_schedule_id,
+
                             earliest_malfunction=re_schedule_parameters.earliest_malfunction,
                             malfunction_duration=re_schedule_parameters.malfunction_duration,
                             malfunction_agent_id=re_schedule_parameters.malfunction_agent_id,
@@ -1006,7 +1011,8 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                         )
                     )
                     experiment_id += 1
-            grid_id += 1
+                grid_id += 1
+            infra_id_schedule_id += 1
     return ExperimentAgenda(
         experiment_name=experiment_name,
         experiments=experiments
@@ -1240,6 +1246,19 @@ def save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name: str, 
     _write_sha_txt(experiment_agenda_folder_name)
 
 
+def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
+    """Save experiment agenda to the folder with the experiments.
+    Parameters
+    ----------
+    experiment_folder_name: str
+        Folder name of experiment where all experiment files and agenda are stored
+    """
+    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    with open(file_name, 'rb') as handle:
+        file_data: ExperimentAgenda = pickle.load(handle)
+        return file_data
+
+
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
     return "{}_{}".format(experiment_name, datetime_string)
@@ -1267,6 +1286,26 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
 
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_experiments_results(experiment_data_folder_name: str, experiment_id: int) -> Optional[ExperimentResults]:
+    """
+    Load experiment results from single file.
+    Parameters
+    ----------
+    experiment_data_folder_name
+    experiment_id
+
+    Returns
+    -------
+    Content if file exists (and is unique). `None` else.
+    """
+    file_name = glob.glob(f'{experiment_data_folder_name}/experiment{experiment_id:04d}+_.*.pkl')
+    if len(file_name) != 1:
+        return None
+    with open(file_name[0], 'rb') as handle:
+        file_data: ExperimentResults = pickle.load(handle)
+        return file_data
 
 
 def load_and_expand_experiment_results_from_data_folder(

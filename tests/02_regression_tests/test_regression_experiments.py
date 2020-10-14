@@ -83,6 +83,7 @@ def test_created_env_tuple():
     test_parameters = ExperimentParameters(
         experiment_id=0,
         grid_id=0,
+        infra_id_schedule_id=0,
         infra_parameters=InfrastructureParameters(
             infra_id=0,
             width=30,
@@ -132,6 +133,7 @@ def test_regression_experiment_agenda(regen: bool = False):
         ExperimentParameters(
             experiment_id=0,
             grid_id=0,
+            infra_id_schedule_id=0,
             infra_parameters=InfrastructureParameters(
                 infra_id=0,
                 width=30,
@@ -262,6 +264,7 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     experiment_parameters = ExperimentParameters(
         experiment_id=0,
         grid_id=0,
+        infra_id_schedule_id=0,
         infra_parameters=InfrastructureParameters(
             infra_id=0,
             width=30,
