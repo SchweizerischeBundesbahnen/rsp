@@ -167,7 +167,7 @@ def test_regression_experiment_agenda(regen: bool = False):
     experiment_folder_name = run_experiment_agenda(
         experiment_agenda=agenda,
         # do not clutter folder
-        experiment_output_base_directory='.',
+        experiment_output_directory=create_experiment_folder_name(agenda.experiment_name),
         run_experiments_parallel=1,
         verbose=True,
         experiment_base_directory="tests/02_regression_tests/data/regression_experiment_agenda"

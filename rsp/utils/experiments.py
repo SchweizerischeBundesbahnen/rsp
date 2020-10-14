@@ -473,10 +473,10 @@ def run_experiment_in_memory(
             f'problem_delta_random_{i}_after_malfunction': randoms[i][0] for i in range(NB_RANDOM)
         },
         **{
-            f'results_delta_random_{i}_after_malfunction': randoms[i][1]for i in range(NB_RANDOM)
+            f'results_delta_random_{i}_after_malfunction': randoms[i][1] for i in range(NB_RANDOM)
         },
         **{
-            f'predicted_changed_agents_random_{i}_after_malfunction': randoms[i][2]for i in range(NB_RANDOM)
+            f'predicted_changed_agents_random_{i}_after_malfunction': randoms[i][2] for i in range(NB_RANDOM)
         }
 
     )
@@ -742,7 +742,7 @@ def run_experiment_from_to_file(
 def run_experiment_agenda(
         experiment_agenda: ExperimentAgenda,
         experiment_base_directory: str,
-        experiment_output_base_directory: Optional[str] = None,
+        experiment_output_directory: str,
         filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
         # take only half of avilable cpus so the machine stays responsive
         run_experiments_parallel: int = AVAILABLE_CPUS // 2,
@@ -752,7 +752,7 @@ def run_experiment_agenda(
     Parameters
     ----------
 
-    experiment_output_base_directory
+    experiment_output_directory
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_base_directory: str
@@ -768,9 +768,6 @@ def run_experiment_agenda(
     -------
     Returns the name of the experiment base and data folders
     """
-    if experiment_output_base_directory is None:
-        experiment_output_base_directory = experiment_base_directory
-    experiment_output_directory = f"{experiment_output_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)
     experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
     check_create_folder(experiment_data_directory)
@@ -793,17 +790,12 @@ def run_experiment_agenda(
             )
 
         rsp_logger.info(f"============================================================================================================")
-        rsp_logger.info(f"RUNNING agenda {experiment_base_directory} -> {experiment_data_directory} ({len(experiment_agenda.experiments)} experiments)")
+        rsp_logger.info(f"RUNNING agenda -> {experiment_data_directory} ({len(experiment_agenda.experiments)} experiments)")
         rsp_logger.info(f"============================================================================================================")
         for file_name in ["rsp/utils/global_constants.py"]:
             with open(file_name, "r") as content:
                 rsp_logger.info(f"{file_name}: {content.read()}")
         rsp_logger.info(f"============================================================================================================")
-
-        save_experiment_agenda_and_hash_to_file(
-            experiment_agenda_folder_name=experiment_output_directory,
-            experiment_agenda=experiment_agenda
-        )
 
         # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
         # https://stackoverflow.com/questions/38294608/python-multiprocessing-pool-new-process-for-each-variable
@@ -817,8 +809,8 @@ def run_experiment_agenda(
         newline_and_flush_stdout_and_stderr()
         run_and_save_one_experiment_partial = partial(
             run_experiment_from_to_file,
-            verbose=verbose,
             experiment_base_directory=experiment_base_directory,
+            verbose=verbose,
             experiment_output_directory=experiment_output_directory,
         )
 
@@ -1307,23 +1299,23 @@ def create_schedule_problem_description_from_instructure(
     return schedule_problem_description
 
 
-def save_experiment_agenda_and_hash_to_file(experiment_agenda_folder_name: str, experiment_agenda: ExperimentAgenda):
+def save_experiment_agenda_and_hash_to_file(output_base_folder: str, experiment_agenda: ExperimentAgenda):
     """Save experiment agenda and current git hash to the folder with the
     experiments.
     Parameters
     ----------
-    experiment_agenda_folder_name: str
+    output_base_folder: str
         Folder name of experiment where all experiment files and agenda are stored
     experiment_agenda: ExperimentAgenda
         The experiment agenda to save
     """
-    file_name = os.path.join(experiment_agenda_folder_name, "experiment_agenda.pkl")
-    check_create_folder(experiment_agenda_folder_name)
+    file_name = os.path.join(output_base_folder, "experiment_agenda.pkl")
+    check_create_folder(output_base_folder)
     with open(file_name, 'wb') as handle:
         pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # write current hash to sha.txt to experiment folder
-    _write_sha_txt(experiment_agenda_folder_name)
+    _write_sha_txt(output_base_folder)
 
 
 def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentAgenda:
@@ -1426,11 +1418,11 @@ def load_and_expand_experiment_results_from_data_folder(
         try:
             with open(file_name, 'rb') as handle:
                 file_data: ExperimentResults = pickle.load(handle)
+            experiment_results_list.append(expand_experiment_results_for_analysis(
+                file_data,
+                nonify_all_structured_fields=nonify_all_structured_fields))
         except Exception as e:
             rsp_logger.warn(f"skipping {file} because of {e}")
-        experiment_results_list.append(expand_experiment_results_for_analysis(
-            file_data,
-            nonify_all_structured_fields=nonify_all_structured_fields))
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()

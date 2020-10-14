@@ -24,7 +24,7 @@ def test_hypothesis_two():
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         experiment_base_directory=experiment_base_directory,
-        experiment_output_base_directory="."
+        experiment_output_directory="."
     )
 
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
