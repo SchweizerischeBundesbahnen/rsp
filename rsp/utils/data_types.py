@@ -217,11 +217,12 @@ ExperimentResults = NamedTuple('ExperimentResults', [
     ('results_delta_no_rerouting_after_malfunction', SchedulingExperimentResult),
     ('results_delta_online_after_malfunction', SchedulingExperimentResult),
     ('results_delta_random_after_malfunction', SchedulingExperimentResult),
-    ('delta_online_after_malfunction_predicted_agents', Set[int]),
-    ('delta_random_after_malfunction_predicted_agents', Set[int]),
+    ('predicted_changed_agents_online_after_malfunction', Set[int]),
+    ('predicted_changed_agents_random_after_malfunction', Set[int]),
 ])
 
 speed_up_scopes = [f"delta_{infix}_after_malfunction" for infix in ['trivially_perfect', 'perfect', 'no_rerouting', 'online', 'random']]
+prediction_scopes = [f"delta_{infix}_after_malfunction" for infix in ['online', 'random']]
 
 after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
@@ -486,6 +487,15 @@ speedup_scopes_fields = {
     'costs_ratio': (float, costs_ratio_from_results),
 }
 
+prediction_scopes_fields = {
+    'predicted_changed_agents_number': int,
+    'predicted_changed_agents_percentage': float,
+    'predicted_changed_agents_false_positives_percentage': float,
+    'predicted_changed_agents_false_negatives_percentage': float,
+    'predicted_changed_agents_false_positives': int,
+    'predicted_changed_agents_false_negatives': int,
+}
+
 ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('experiment_parameters', ExperimentParameters),
     ('malfunction', ExperimentMalfunction),
@@ -503,8 +513,8 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('results_delta_no_rerouting_after_malfunction', SchedulingExperimentResult),
     ('results_delta_online_after_malfunction', SchedulingExperimentResult),
     ('results_delta_random_after_malfunction', SchedulingExperimentResult),
-    ('delta_online_after_malfunction_predicted_agents', Set[int]),
-    ('delta_random_after_malfunction_predicted_agents', Set[int]),
+    ('predicted_changed_agents_online_after_malfunction', Set[int]),
+    ('predicted_changed_agents_random_after_malfunction', Set[int]),
     ('experiment_id', int),
     ('grid_id', int),
     ('infra_id', int),
@@ -520,13 +530,6 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
     ('weight_route_change', int),
     ('weight_lateness_seconds', int),
     ('max_window_size_from_earliest', int),
-
-    ('online_predicted_changed_agents_percentage', float),
-    ('online_predicted_changed_agents_false_positives_percentage', float),
-    ('online_predicted_changed_agents_false_negatives_percentage', float),
-    ('online_predicted_changed_agents', int),
-    ('online_predicted_changed_agents_false_positives', int),
-    ('online_predicted_changed_agents_false_negatives', int),
 
     # ========================================
     # lower_bound / upper_bound
@@ -546,6 +549,10 @@ ExperimentResultsAnalysis = NamedTuple('ExperimentResultsAnalysis', [
                                            (f'{prefix}_{scope}', type_)
                                            for prefix, (type_, _) in speedup_scopes_fields.items()
                                            for scope in speed_up_scopes
+                                       ] + [
+                                           (f'{prefix}_{scope}', type_)
+                                           for prefix, type_ in prediction_scopes_fields.items()
+                                           for scope in prediction_scopes
                                        ]
                                        )
 
@@ -652,11 +659,25 @@ def expand_experiment_results_for_analysis(
 
     ground_truth_negative_changed_agents = \
         (set(range(nb_agents)).difference(ground_truth_positive_changed_agents))
-    online_predicted_changed_agents = experiment_results.delta_online_after_malfunction_predicted_agents
-    online_predicted_changed_agents_false_positives = \
-        (online_predicted_changed_agents.intersection(ground_truth_negative_changed_agents))
-    online_predicted_changed_agents_false_negatives = \
-        (set(range(nb_agents)).difference(online_predicted_changed_agents)).intersection(ground_truth_positive_changed_agents)
+
+    def predicted_dict(predicted_changed_agents: Set[int], scope: str):
+        predicted_changed_agents_false_positives = \
+            (predicted_changed_agents.intersection(ground_truth_negative_changed_agents))
+        predicted_changed_agents_false_negatives = \
+            (set(range(nb_agents)).difference(predicted_changed_agents)).intersection(ground_truth_positive_changed_agents)
+        return {
+            f'predicted_changed_agents_number_{scope}': len(predicted_changed_agents),
+            f'predicted_changed_agents_false_positives_{scope}': len(predicted_changed_agents_false_positives),
+            f'predicted_changed_agents_false_negatives_{scope}': len(predicted_changed_agents_false_negatives),
+            f'predicted_changed_agents_percentage_{scope}': (len(predicted_changed_agents) / nb_agents),
+            f'predicted_changed_agents_false_positives_percentage_{scope}': (len(predicted_changed_agents_false_positives) /
+                                                                             len(ground_truth_negative_changed_agents)),
+            f'predicted_changed_agents_false_negatives_percentage_{scope}': (len(predicted_changed_agents_false_negatives) /
+                                                                             len(ground_truth_positive_changed_agents))
+        }
+
+    online_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, 'delta_online_after_malfunction')
+    random_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_random_after_malfunction, 'delta_random_after_malfunction')
     d = dict(
         **experiment_results._asdict(),
         **{
@@ -681,6 +702,7 @@ def expand_experiment_results_for_analysis(
             for prefix, (_, results_extractor) in speedup_scopes_fields.items()
             for scope in speed_up_scopes
         }
+
     )
 
     def _to_experiment_results_analysis():
@@ -704,15 +726,9 @@ def expand_experiment_results_for_analysis(
 
             factor_resource_conflicts=factor_resource_conflicts,
 
-            online_predicted_changed_agents=len(online_predicted_changed_agents),
-            online_predicted_changed_agents_false_positives=len(online_predicted_changed_agents_false_positives),
-            online_predicted_changed_agents_false_negatives=len(online_predicted_changed_agents_false_negatives),
-            online_predicted_changed_agents_percentage=(len(online_predicted_changed_agents) / nb_agents),
-            online_predicted_changed_agents_false_positives_percentage=(len(online_predicted_changed_agents_false_positives) /
-                                                                        len(ground_truth_negative_changed_agents)),
-            online_predicted_changed_agents_false_negatives_percentage=(len(online_predicted_changed_agents_false_negatives) /
-                                                                        len(ground_truth_positive_changed_agents)),
-            **d
+            **d,
+            **online_predicted_dict,
+            **random_predicted_dict,
         )
 
     plausibility_check_experiment_results_analysis(experiment_results_analysis=_to_experiment_results_analysis())
@@ -729,8 +745,8 @@ def expand_experiment_results_for_analysis(
         d.update({
             'experiment_parameters': None,
             'malfunction': None,
-            'delta_online_after_malfunction_predicted_agents': None,
-            'delta_random_after_malfunction_predicted_agents': None
+            'predicted_changed_agents_online_after_malfunction': None,
+            'predicted_changed_agents_random_after_malfunction': None,
         })
 
     return _to_experiment_results_analysis()

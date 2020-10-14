@@ -38,6 +38,7 @@ from rsp.analysis.compute_time_analysis import plot_resource_occupation_heat_map
 from rsp.analysis.compute_time_analysis import plot_train_paths
 from rsp.analysis.compute_time_analysis import plot_changed_agents
 from rsp.analysis.compute_time_analysis import print_situation_overview
+from rsp.analysis.detailed_experiment_analysis import plot_nb_route_alternatives, plot_time_window_sizes, plot_agent_speeds
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 
 
@@ -47,7 +48,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 40
+experiment_of_interest = 9
 ```
 
 ```{python}
@@ -104,6 +105,20 @@ for scope in all_scopes:
 
 ```{python}
 plot_changed_agents(exp_results_of_experiment_of_interest)
+```
+
+### Visualize Problems
+
+```{python}
+plot_nb_route_alternatives(experiment_results=exp_results_of_experiment_of_interest)
+```
+
+```{python}
+plot_agent_speeds(experiment_results=exp_results_of_experiment_of_interest)
+```
+
+```{python}
+plot_time_window_sizes(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
 ### Visualize Problem instances as time-resource graphs

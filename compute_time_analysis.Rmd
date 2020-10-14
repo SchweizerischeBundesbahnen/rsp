@@ -36,6 +36,7 @@ from rsp.analysis.compute_time_analysis import plot_route_dag
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_lateness
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_changed_agents
+from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_prediction_quality
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 
 
@@ -71,7 +72,6 @@ display(experiment_data_filtered)
 ```{python}
 axis_of_interest = 'n_agents'
 columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']]
-display(experiment_data_filtered['lateness_full_after_malfunction'])
 ```
 
 ### Inspect experiment parameters
@@ -125,31 +125,10 @@ hypothesis_one_analysis_visualize_changed_agents(experiment_data=experiment_data
 hypothesis_one_analysis_visualize_lateness(experiment_data=experiment_data_filtered)
 ```
 
-```{python}
-display((experiment_data_filtered['costs_delta_online_after_malfunction']>experiment_data_filtered['costs_full_after_malfunction']).sum())
-```
-
 ### Visualize Online Prediction Quality
 
 ```{python}
-axis_of_interest = 'experiment_id'
-columns_of_interest = ['changed_agents_percentage_full_after_malfunction', 'online_predicted_changed_agents_percentage','online_predicted_changed_agents_false_positives_percentage', 'online_predicted_changed_agents_false_negatives_percentage']
-
-plot_box_plot(experiment_data=experiment_data_filtered,
-                         axis_of_interest=axis_of_interest,
-                         columns_of_interest=columns_of_interest,
-                         title='Online Prediction Quality Percentage',
-                         color_offset=1,
-                         y_axis_title='Fraction [-]'
-                        )
-columns_of_interest = ['n_agents', 'changed_agents_full_after_malfunction', 'online_predicted_changed_agents','online_predicted_changed_agents_false_positives', 'online_predicted_changed_agents_false_negatives']
-
-plot_box_plot(experiment_data=experiment_data_filtered,
-                         axis_of_interest=axis_of_interest,
-                         columns_of_interest=columns_of_interest,
-                         title='Online Prediction Quality Absolute Numbers',
-                             y_axis_title='Number [-]'
-                        )
+hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data_filtered)
 ```
 
 ```{python}

@@ -3,6 +3,7 @@ import re
 from typing import Optional
 
 from rsp.hypothesis_one_pipeline_all_in_one import list_from_base_directory_and_run_experiment_agenda
+from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.data_types import ScheduleParametersRange
@@ -10,6 +11,8 @@ from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
+
+
 # TODO pass arguments instead of hacky file editing
 
 
@@ -49,12 +52,12 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
-def run_potassco_agenda(base_directory: str, experiment_ids=None):
+def run_potassco_agenda(base_directory: str, experiment_filter=None):
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
-        # TODO SIM-699 take only first 10 of each schedule
-        malfunction_agent_id=[0, 10, 10],
+        # take all agents (200 is larger than largest number of agents)
+        malfunction_agent_id=[0, 200, 200],
 
         number_of_shortest_paths_per_agent=[10, 10, 1],
 
@@ -78,7 +81,7 @@ def run_potassco_agenda(base_directory: str, experiment_ids=None):
             experiment_name=('%sbaseline' % experiment_name_prefix),
             parallel_compute=parallel_compute,
             experiments_per_grid_element=experiments_per_grid_element,
-            experiment_ids=experiment_ids
+            experiment_filter=experiment_filter
         )
         # effect of SEQ heuristic (SIM-167)
         set_defaults()
@@ -167,10 +170,16 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None)
     return base_directory
 
 
+def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
+    return experiment.malfunction_agent_id < 10
+
+
 if __name__ == '__main__':
     generate_potassco_infras_and_schedules(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER
     )
+
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        experiment_filter=experiment_filter_first_ten_of_each_schedule
     )
