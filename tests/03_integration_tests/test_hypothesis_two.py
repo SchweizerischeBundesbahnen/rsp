@@ -6,7 +6,8 @@ from rsp.hypothesis_two_encounter_graph import extract_time_windows_and_transmis
 from rsp.hypothesis_two_encounter_graph import plot_transmission_chains_time_window
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data, create_experiment_folder_name
+from rsp.utils.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
+from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
