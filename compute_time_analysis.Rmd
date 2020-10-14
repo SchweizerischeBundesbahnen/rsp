@@ -50,6 +50,7 @@ from_cache = False
 ```{python}
 experiments_of_interest = None
 experiment_base_directory = BASELINE_DATA_FOLDER
+print(experiment_base_directory)
 if from_cache:
     experiment_data_filtered = pd.read_csv(f'{experiment_base_directory}.csv')
 else:

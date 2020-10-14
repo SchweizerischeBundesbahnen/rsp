@@ -79,6 +79,7 @@ def scoper_random_for_all_agents(
             schedule_trainrun=schedule_trainrun_dict[agent_id],
             full_reschedule_problem=full_reschedule_problem,
             changed=(agent_id in changed_agents),
+            # N.B. we do not require malfunction agent to have re-routing flexibility!
             time_flexibility=True,
             malfunction=malfunction,
             latest_arrival=latest_arrival,
