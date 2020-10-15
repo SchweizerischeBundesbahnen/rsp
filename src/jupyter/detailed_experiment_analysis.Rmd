@@ -22,17 +22,20 @@ sys.path.append("../../src/asp")
 from IPython.display import Video
 import pandas as pd
 
+
 from rsp.utils.data_types import *
 from rsp.utils.experiments import *
+from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 
-from rsp.step_04_analysis.compute_time_analysis import *
-from rsp.step_04_analysis.detailed_experiment_analysis import *
+from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import *
+from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import *
+
 from rsp.step_04_analysis.plot_utils import *
+
 from rsp.utils.global_data_configuration import *
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 
 
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 ```
 
 ```{python}

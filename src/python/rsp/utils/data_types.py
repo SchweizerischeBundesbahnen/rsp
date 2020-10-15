@@ -636,7 +636,6 @@ ExperimentResultsAnalysis = NamedTuple(
     ]
 )
 
-COLUMNS_ANALYSIS = ExperimentResultsAnalysis._fields
 
 LeftClosedInterval = NamedTuple('LeftClosedInterval', [
     ('from_incl', int),
@@ -680,7 +679,7 @@ SchedulingProblemInTimeWindows = NamedTuple('SchedulingProblemInTimeWindows', [
 
 
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
-    return pd.DataFrame(columns=COLUMNS_ANALYSIS, data=[r._asdict() for r in l])
+    return pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
 
 
 def filter_experiment_results_analysis_data_frame(experiment_data: pd.DataFrame) -> pd.DataFrame:

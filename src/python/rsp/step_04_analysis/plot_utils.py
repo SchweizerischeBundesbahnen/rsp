@@ -6,17 +6,8 @@ from typing import Tuple
 import numpy as np
 import plotly.graph_objects as go
 from _plotly_utils.colors.qualitative import Plotly
-from flatland.core.grid.grid_utils import coordinate_to_position
 from pandas import DataFrame
-from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import ScheduleAsResourceOccupations
-from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-from rsp.utils.data_types_converters_and_validators import verify_schedule_as_resource_occupations
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.global_constants import RELEASE_TIME
-from rsp.utils.plotting_data_types import PlottingInformation
-from rsp.utils.plotting_data_types import SchedulePlotting
 
 PLOTLY_COLORLIST = ['aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure',
                     'beige', 'bisque', 'black', 'blanchedalmond', 'blue',
@@ -171,7 +162,7 @@ def plot_box_plot_from_traces(
         fig.write_image(pdf_file)
 
 
-def plot_speed_up(
+def plot_binned_box_plot(
         experiment_data: DataFrame,
         axis_of_interest: str,
         cols: List[str],
@@ -255,96 +246,3 @@ def plot_speed_up(
         pdf_file = os.path.join(output_folder, f'{axis_of_interest}__speed_up.pdf')
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
-
-
-def extract_schedule_plotting(
-        experiment_result: ExperimentResultsAnalysis,
-        sorting_agent_id: Optional[int] = None) -> SchedulePlotting:
-    """Extract the scheduling information from a experiment data for plotting.
-
-    Parameters
-    ----------
-    experiment_result
-        Experiment results for plotting
-    sorting_agent_id
-        Agent according to which trainrun the resources will be sorted
-    Returns
-    -------
-    """
-    schedule = experiment_result.solution_full
-    reschedule_full = experiment_result.solution_full_after_malfunction
-    reschedule_delta_perfect = experiment_result.solution_delta_perfect_after_malfunction
-    schedule_as_resource_occupations: ScheduleAsResourceOccupations = extract_resource_occupations(
-        schedule=schedule,
-        release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations,
-                                            release_time=RELEASE_TIME)
-    reschedule_full_as_resource_occupations = extract_resource_occupations(
-        schedule=reschedule_full,
-        release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_full_as_resource_occupations,
-                                            release_time=RELEASE_TIME)
-    reschedule_delta_perfect_as_resource_occupations = extract_resource_occupations(
-        schedule=reschedule_delta_perfect,
-        release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations,
-                                            release_time=RELEASE_TIME)
-    plotting_information: PlottingInformation = extract_plotting_information(
-        schedule_as_resource_occupations=schedule_as_resource_occupations,
-        grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
-        sorting_agent_id=sorting_agent_id)
-    return SchedulePlotting(
-        schedule_as_resource_occupations=schedule_as_resource_occupations,
-        reschedule_full_as_resource_occupations=reschedule_full_as_resource_occupations,
-        reschedule_delta_perfect_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations,
-        plotting_information=plotting_information,
-        malfunction=experiment_result.malfunction
-    )
-
-
-def extract_plotting_information(
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        grid_depth: int,
-        sorting_agent_id: Optional[int] = None) -> PlottingInformation:
-    """Extract plotting information.
-
-    Parameters
-    ----------
-    schedule_as_resource_occupations:
-    grid_depth
-        Ranges of the window to be shown, used for consistent plotting
-    sorting_agent_id
-        agent id to be used for sorting the resources
-    Returns
-    -------
-    PlottingInformation
-        The extracted plotting information.
-    """
-    sorted_index = 0
-    max_time = 0
-    sorting = {}
-    # If specified, sort according to path of agent with sorting_agent_id
-    if sorting_agent_id is not None and sorting_agent_id in schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-        for resource_occupation in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent[sorting_agent_id]):
-            position = coordinate_to_position(grid_depth, [resource_occupation.resource])[0]
-            time = resource_occupation.interval.to_excl
-            if time > max_time:
-                max_time = time
-            if position not in sorting:
-                sorting[position] = sorted_index
-                sorted_index += 1
-
-    # Sort the rest of the resources according to agent handle sorting
-    for _, sorted_resource_occupations in sorted(schedule_as_resource_occupations.sorted_resource_occupations_per_agent.items()):
-        for resource_occupation in sorted_resource_occupations:
-            resource_occupation: ResourceOccupation = resource_occupation
-            time = resource_occupation.interval.to_excl
-            if time > max_time:
-                max_time = time
-            position = coordinate_to_position(grid_depth, [resource_occupation.resource])[0]
-            if position not in sorting:
-                sorting[position] = sorted_index
-                sorted_index += 1
-    max_ressource = max(list(sorting.values()))
-    plotting_information = PlottingInformation(sorting=sorting, dimensions=(max_ressource, max_time), grid_width=grid_depth)
-    return plotting_information

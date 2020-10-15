@@ -1,40 +1,49 @@
-"""Rendering methods to use with jupyter notebooks."""
-import os.path
+"""Analysis of the experiment data for hypothesis one.
+
+Hypothesis 1:
+    We can compute good recourse actions, i.e., an adapted plan within the time budget,
+    if all the variables are fixed, except those related to services that are affected by the
+    disruptions implicitly or explicitly.
+
+Hypothesis 2:
+    Machine learning can predict services that are affected by disruptions implicitly or
+    explicitly. Hypothesis 3: If hypothesis 2 is true, in addition, machine
+    learning can predict the state of the system in the next time period
+    after re-scheduling.
+"""
+import os
 import re
 from copy import copy
-from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Set
-from typing import Tuple
 
 import numpy as np
 import plotly.graph_objects as go
-from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.core.grid.grid_utils import position_to_coordinate
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints
+from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
+from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
+from rsp.step_04_analysis.detailed_experiment_analysis.route_dag_analysis import visualize_route_dag_constraints
+from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import PlottingInformation
+from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import Resource
+from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import SchedulePlotting
+from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import get_difference_in_time_space_trajectories
+from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import time_windows_as_resource_occupations_per_agent
+from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import Trajectories
+from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
 from rsp.step_04_analysis.plot_utils import GREY_BACKGROUND_COLOR
 from rsp.step_04_analysis.plot_utils import PLOTLY_COLORLIST
-from rsp.step_04_analysis.trajectories import SpaceTimeDifference
-from rsp.step_04_analysis.trajectories import time_windows_as_resource_occupations_per_agent
-from rsp.step_04_analysis.trajectories import Trajectories
 from rsp.utils.data_types import after_malfunction_scopes
+from rsp.utils.data_types import all_scopes
 from rsp.utils.data_types import ExperimentResultsAnalysis
-from rsp.utils.data_types import Resource
 from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SortedResourceOccupationsPerAgent
-from rsp.utils.experiments import create_env_from_experiment_parameters
-from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.flatland_replay_utils import render_trainruns
-from rsp.utils.plotting_data_types import PlottingInformation
-from rsp.utils.plotting_data_types import SchedulePlotting
 
 
 def plot_time_window_resource_trajectories(
@@ -599,139 +608,6 @@ def plot_route_dag(
     )
 
 
-def render_flatland_env(data_folder: str,  # noqa
-                        experiment_data: ExperimentResultsAnalysis,
-                        experiment_id: int,
-                        render_schedule: bool = True,
-                        render_reschedule: bool = True):
-    """
-    Method to render the environment for visual inspection
-    Parameters
-    ----------
-render_flatland_env
-    data_folder: str
-        Folder name to store and load images from
-    experiment_data: ExperimentResultsAnalysis
-        experiment data used for visualization
-    experiment_id: int
-        ID of experiment we like to visualize
-    render_reschedule
-    render_schedule
-
-    Returns
-    -------
-    File paths to generated videos to render in the notebook
-    """
-
-    # Generate environment for rendering
-    rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters.infra_parameters)
-
-    # Generate aggregated visualization
-    output_folder = f'{data_folder}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
-    check_create_folder(output_folder)
-    video_src_schedule = None
-    video_src_reschedule = None
-
-    # Generate the Schedule video
-    if render_schedule:
-        # Import the generated video
-        title = 'Schedule'
-        video_src_schedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
-                                          f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
-                                          f"experiment_{experiment_id}_flatland_data_analysis.mp4")
-
-        # Only render if file is not yet created
-        if not os.path.exists(video_src_schedule):
-            render_trainruns(data_folder=output_folder,
-                             experiment_id=experiment_data.experiment_id,
-                             title=title,
-                             rail_env=rail_env,
-                             trainruns=experiment_data.solution_full,
-                             convert_to_mpeg=True)
-
-    # Generate the Reschedule video
-    if render_reschedule:
-        # Import the generated video
-        title = 'Reschedule'
-        video_src_reschedule = os.path.join(output_folder, f"experiment_{experiment_data.experiment_id:04d}_analysis",
-                                            f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
-                                            f"experiment_{experiment_id}_flatland_data_analysis.mp4")
-        # Only render if file is not yet created
-        if not os.path.exists(video_src_reschedule):
-            render_trainruns(data_folder=output_folder,
-                             experiment_id=experiment_data.experiment_id,
-                             malfunction=experiment_data.malfunction,
-                             title=title,
-                             rail_env=rail_env,
-                             trainruns=experiment_data.solution_full_after_malfunction,
-                             convert_to_mpeg=True)
-
-    return Path(video_src_schedule) if render_schedule else None, Path(video_src_reschedule) if render_reschedule else None
-
-
-def explode_trajectories(trajectories: Trajectories) -> Dict[int, Set[Tuple[int, int]]]:
-    """Return for each agent the pairs of `(resource,time)` corresponding to
-    the trajectories.
-
-    Parameters
-    ----------
-    trajectories
-
-    Returns
-    -------
-    Dict indexed by `agent_id`, containing `(resource,time_step)` pairs.
-    """
-    exploded = {agent_id: set() for agent_id in trajectories.keys()}
-    for agent_id, trajectory in trajectories.items():
-        # ensure we have triplets (resource,from_time), (resource,to_time), (None,None)
-        assert len(trajectory) % 3 == 0
-        while len(trajectory) > 0:
-            (resource, from_time), (resource, to_time), (_, _) = trajectory[:3]
-            for time in range(from_time, to_time + 1):
-                exploded[agent_id].add((resource, time))
-            trajectory = trajectory[3:]
-    return exploded
-
-
-def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, target_trajectories: Trajectories) -> SpaceTimeDifference:
-    """
-    Compute the difference between schedules and return in plot ready format (in base but not in target)
-    Parameters
-    ----------
-    base_trajectories
-    target_trajectories
-
-    Returns
-    -------
-
-    """
-    # Detect changes to original schedule
-    traces_influenced_agents: Trajectories = {}
-    additional_information = dict()
-    # explode trajectories in order to be able to do point-wise diff!
-    base_trajectories_exploded = explode_trajectories(base_trajectories)
-    target_trajectories_exploded = explode_trajectories(target_trajectories)
-    for agent_id in base_trajectories.keys():
-        difference_exploded = base_trajectories_exploded[agent_id] - target_trajectories_exploded[agent_id]
-
-        if len(difference_exploded) > 0:
-            trace = []
-            for (resource, time_step) in difference_exploded:
-                # TODO we draw one-dot strokes, should we collapse to longer strokes?
-                #  We want to keep the triplet structure in the trajectories in order not to have to distinguish between cases!
-                trace.append((resource, time_step))
-                trace.append((resource, time_step))
-                trace.append((None, None))
-            traces_influenced_agents[agent_id] = trace
-            additional_information.update({agent_id: True})
-        else:
-            traces_influenced_agents[agent_id] = [(None, None)]
-            additional_information.update({agent_id: False})
-    space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
-                                                additional_information=additional_information)
-    return space_time_difference
-
-
 def plot_resource_occupation_heat_map(
         schedule_plotting: SchedulePlotting,
         plotting_information: PlottingInformation,
@@ -1123,32 +999,93 @@ def plot_time_density(
         fig.write_image(pdf_file)
 
 
-def trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule: SortedResourceOccupationsPerAgent,
-        plotting_information: PlottingInformation
-) -> Trajectories:
-    """
-    Build trajectories for time-resource graph
-    Parameters
-    ----------
-    resource_occupations_schedule
+def plot_nb_route_alternatives(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
+    """Plot a histogram of the delay of agents in the full and reschedule delta
+    perfect compared to the schedule.
 
     Returns
     -------
-
     """
-    resource_sorting = plotting_information.sorting
-    width = plotting_information.grid_width
-    schedule_trajectories: Trajectories = {}
-    for agent_handle, resource_ocupations in resource_occupations_schedule.items():
-        train_time_path = []
-        for resource_ocupation in resource_ocupations:
-            position = coordinate_to_position(width, [resource_ocupation.resource])[0]
-            # TODO dirty hack: add positions from re-scheduling to resource_sorting in the first place instead of workaround here!
-            if position not in resource_sorting:
-                resource_sorting[position] = len(resource_sorting)
-            train_time_path.append((resource_sorting[position], resource_ocupation.interval.from_incl))
-            train_time_path.append((resource_sorting[position], resource_ocupation.interval.to_excl))
-            train_time_path.append((None, None))
-        schedule_trajectories[agent_handle] = train_time_path
-    return schedule_trajectories
+    fig = go.Figure()
+    for scope in all_scopes:
+        topo_dict = experiment_results._asdict()[f'problem_{scope}'].topo_dict
+        values = [
+            len(get_paths_in_route_dag(topo))
+            for _, topo in topo_dict.items()
+        ]
+        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'{scope}'))
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Routing alternatives")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Nb routing alternatives [-]")
+
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'nb_route_alternatives.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
+
+
+def plot_agent_speeds(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(x=list(experiment_results.problem_full.minimum_travel_time_dict.keys()),
+               y=list(experiment_results.problem_full.minimum_travel_time_dict.values()),
+               ))
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Speed")
+    fig.update_xaxes(title="Train ID")
+    fig.update_yaxes(title="Minimum running time [time steps per cell]")
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'speeds.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)
+
+
+def plot_time_window_sizes(
+        experiment_results: ExperimentResultsAnalysis,
+        output_folder: Optional[str] = None
+):
+    fig = go.Figure()
+    for scope in all_scopes:
+        route_dag_constraints_dict: RouteDAGConstraintsDict = experiment_results._asdict()[f'problem_{scope}'].route_dag_constraints_dict
+        vals = [(constraints.latest[v] - constraints.earliest[v], agent_id, v)
+                for agent_id, constraints in route_dag_constraints_dict.items()
+                for v in constraints.latest
+                ]
+        fig.add_trace(
+            go.Histogram(
+                x=[val[0] for val in vals],
+                name=f"{scope}",
+            ))
+    fig.update_layout(barmode='group',
+                      legend=dict(
+                          yanchor="bottom",
+                          y=1.02,
+                          xanchor="right",
+                          x=1
+                      ))
+    fig.update_traces(hovertemplate='<i>Time Window Size</i>:' + '%{x}' + '<extra></extra>',
+                      selector=dict(type="histogram"))
+
+    fig.update_layout(title_text="Time Window Size Distribution")
+    fig.update_xaxes(title="Time Window Size [time steps]")
+    fig.update_yaxes(title="Counts over all agents and vertices [time steps]")
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f'time_window_sizes.pdf')
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file)

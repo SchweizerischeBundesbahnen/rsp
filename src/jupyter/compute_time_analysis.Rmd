@@ -27,10 +27,9 @@ from IPython.display import Video
 from rsp.utils.data_types import *
 
 from rsp.utils.experiments import *
-from rsp.step_04_analysis.compute_time_analysis import *
 from rsp.step_04_analysis.plot_utils import *
-from rsp.step_04_analysis.detailed_experiment_analysis import *
-from rsp.step_04_analysis.asp_plausi import *
+from rsp.step_04_analysis.compute_time_analysis.compute_time_analysis import *
+from rsp.step_04_analysis.compute_time_analysis.asp_plausi import *
 from rsp.utils.global_data_configuration import *
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 

@@ -1,5 +1,5 @@
-from rsp.step_04_analysis.compute_time_analysis import explode_trajectories
-from rsp.step_04_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import explode_trajectories
+from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import get_difference_in_time_space_trajectories
 
 
 def test_explode_trajectories():
