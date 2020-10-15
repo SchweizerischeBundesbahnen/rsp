@@ -5,7 +5,6 @@ from typing import Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import route_dag_constraints_dict_from_list_of_train_run_waypoint
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription

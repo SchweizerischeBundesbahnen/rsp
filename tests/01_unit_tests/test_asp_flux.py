@@ -8,7 +8,6 @@ from flatland.envs.rail_generators import rail_from_grid_transition_map
 from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail
 from importlib_resources import path
-
 from rsp.experiment_solvers.asp.asp_helper import _asp_helper
 from rsp.experiment_solvers.asp.asp_helper import flux_helper
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
@@ -19,7 +18,7 @@ from rsp.utils.experiments import create_schedule_problem_description_from_instr
 
 def test_asp_helper():
     with path('tests.01_unit_tests.data.asp.instances', 'dummy.lp') as instance_in:
-        with path('res.asp.encodings', 'encoding.lp') as encoding_in:
+        with path('rsp_encodings', 'encoding.lp') as encoding_in:
             models, _, _, _, _ = _asp_helper([instance_in, encoding_in])
 
     print(models)
@@ -35,7 +34,7 @@ def test_asp_helper():
 
 def test_mutual_exclusion():
     with path('tests.01_unit_tests.data.asp.instances', 'dummy_two_agents.lp') as instance_in:
-        with path('res.asp.encodings', 'encoding.lp') as encoding_in:
+        with path('rsp_encodings', 'encoding.lp') as encoding_in:
             models, statistics, _, _, _ = _asp_helper([instance_in, encoding_in])
 
     # we do not optimize, we get two models!
@@ -99,7 +98,7 @@ def test_simple_rail_asp_one_agent():
 def test_asp_helper_forcing():
     """Case study to freeze variables by adding facts."""
     with path('tests.01_unit_tests.data.asp.instances', 'dummy_forced.lp') as instance_in:
-        with path('res.asp.encodings', 'encoding.lp') as encoding_in:
+        with path('rsp_encodings', 'encoding.lp') as encoding_in:
             models, _, _, _, _ = _asp_helper([instance_in, encoding_in])
 
     print(models)
@@ -133,9 +132,9 @@ def test_minimize_sum_of_running_times_scheduling():
     with path('tests.01_unit_tests.data.asp.instances',
               'dummy_two_agents_minimize_sum_of_running_times.lp') as instance_in:
         encodings.append(instance_in)
-    with path('res.asp.encodings', 'encoding.lp') as encoding_in:
+    with path('rsp_encodings', 'encoding.lp') as encoding_in:
         encodings.append(encoding_in)
-    with path('res.asp.encodings', 'minimize_total_sum_of_running_times.lp') as encoding_in:
+    with path('rsp_encodings', 'minimize_total_sum_of_running_times.lp') as encoding_in:
         encodings.append(encoding_in)
     models, all_statistics, _, _, _ = _asp_helper(encodings)
 
@@ -165,9 +164,9 @@ def test_minimize_delay_rescheduling():
     encodings = []
     with path('tests.01_unit_tests.data.asp.instances', 'dummy_two_agents_rescheduling.lp') as instance_in:
         encodings.append(instance_in)
-    with path('res.asp.encodings', 'encoding.lp') as encoding_in:
+    with path('rsp_encodings', 'encoding.lp') as encoding_in:
         encodings.append(encoding_in)
-    with path('res.asp.encodings', 'minimize_delay.lp') as encoding_in:
+    with path('rsp_encodings', 'minimize_delay.lp') as encoding_in:
         encodings.append(encoding_in)
     models, all_statistics, _, _, _ = _asp_helper(encoding_files=encodings)
     print(models)

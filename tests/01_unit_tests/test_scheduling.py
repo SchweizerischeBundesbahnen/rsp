@@ -1,6 +1,5 @@
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-
 from rsp.experiment_solvers.experiment_solver import asp_schedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_sum_running_times_trainruns_dict
 from rsp.utils.data_types import ExperimentParameters

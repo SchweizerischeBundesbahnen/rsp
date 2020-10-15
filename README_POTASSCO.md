@@ -36,7 +36,7 @@ $WORKSPACE_FOLDER/rsp-data   # <---- your local clone of git@github.com:Schweize
 ```shell script
 conda activate rsp
 cd $WORKSPACE_FOLDER/rsp
-export PYTHONPATH=$PWD
+export PYTHONPATH=$PWD/src/python:$PWD/src/asp
 python rsp/asp_plausibility/potassco_export.py --experiment_base_directory=../rsp-data/agent_0_malfunction_2020_05_27T19_45_49 --experiment_id=0 --problem=full_after_malfunction
 ```
 This generates a folder `../rsp-data/many_agent_example/potassco`:

@@ -24,11 +24,12 @@ setup(
     description='Description of my package',
     long_description=readme,
     long_description_content_type="text/markdown",
-    packages=find_packages(),
+    packages=find_packages(where='src/python'),
+    package_dir={'rsp': 'src/python/rsp'},
     # TODO requirements see tox.ini
     install_requires=[],
     include_package_data=True,
-    data_files=[('res', get_all_files_in_directory('res')),
+    data_files=[('asp', get_all_files_in_directory('src/asp')),
                 ('tests', get_all_files_in_directory('tests'))],
     zip_safe=False,
 )

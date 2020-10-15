@@ -3,7 +3,6 @@ import pprint
 import networkx as nx
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
 from rsp.experiment_solvers.asp.asp_solve_problem import solve_problem
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription

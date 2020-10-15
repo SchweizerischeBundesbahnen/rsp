@@ -1,5 +1,4 @@
 import networkx as nx
-
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import schedule_problem_description_equals
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription

@@ -1,7 +1,6 @@
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-
 from rsp.utils.flatland_replay_utils import convert_trainrun_dict_to_train_schedule_dict
 
 
