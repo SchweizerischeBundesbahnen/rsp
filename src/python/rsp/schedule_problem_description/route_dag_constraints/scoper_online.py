@@ -5,6 +5,7 @@ from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
@@ -13,7 +14,6 @@ from rsp.schedule_problem_description.route_dag_constraints.scoper_agent_changed
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import validate_transmission_chains
-from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraintsDict
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
 from rsp.utils.global_constants import RELEASE_TIME

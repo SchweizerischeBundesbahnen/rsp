@@ -5,6 +5,7 @@ from typing import Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.schedule_problem_description.data_types_and_utils import _get_topology_from_agents_path_dict
 from rsp.schedule_problem_description.data_types_and_utils import route_dag_constraints_dict_from_list_of_train_run_waypoint
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
@@ -13,7 +14,6 @@ from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import d
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import scoper_zero_running
 from rsp.utils.data_types import experiment_freeze_dict_pretty_print
 from rsp.utils.data_types import experiment_freeze_pretty_print
-from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
 from rsp.utils.data_types import RouteDAGConstraintsDict
 

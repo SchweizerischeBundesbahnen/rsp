@@ -2,12 +2,12 @@
 from typing import List
 
 from pandas import DataFrame
+from rsp.step_03_run.experiment_results_analysis import after_malfunction_scopes_visualization
+from rsp.step_03_run.experiment_results_analysis import all_scopes_visualization
+from rsp.step_03_run.experiment_results_analysis import prediction_scopes_visualization
+from rsp.step_03_run.experiment_results_analysis import speed_up_scopes_visualization
 from rsp.step_04_analysis.plot_utils import plot_binned_box_plot
 from rsp.step_04_analysis.plot_utils import plot_box_plot
-from rsp.utils.data_types import after_malfunction_scopes_visualization
-from rsp.utils.data_types import all_scopes_visualization
-from rsp.utils.data_types import prediction_scopes_visualization
-from rsp.utils.data_types import speed_up_scopes_visualization
 
 HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f'solver_statistics_times_total_{scope}' for scope in all_scopes_visualization]
 

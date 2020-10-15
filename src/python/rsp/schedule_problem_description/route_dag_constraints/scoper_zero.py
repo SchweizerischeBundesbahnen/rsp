@@ -6,6 +6,7 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.schedule_problem_description.data_types_and_utils import get_sinks_for_topo
 from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenaltiesDict
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
@@ -14,7 +15,6 @@ from rsp.schedule_problem_description.route_dag_constraints.propagate import _ge
 from rsp.schedule_problem_description.route_dag_constraints.propagate import propagate
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_trainrun_satisfies_route_dag_constraints
-from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraints
 from rsp.utils.rsp_logger import rsp_logger
 from rsp.utils.rsp_logger import VERBOSE

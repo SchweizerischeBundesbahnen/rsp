@@ -8,6 +8,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.experiment_solvers.experiment_solver import asp_reschedule_wrapper
 from rsp.experiment_solvers.trainrun_utils import get_delay_trainruns_dict
 from rsp.experiment_solvers.trainrun_utils import verify_trainrun_dict_for_schedule_problem
@@ -16,7 +17,6 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.scoper_perfect import scoper_perfect_for_all_agents
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
-from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import ScheduleParameters

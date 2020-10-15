@@ -1,9 +1,9 @@
 from typing import Optional
 
 import pandas as pd
+from rsp.step_03_run.experiment_results_analysis import all_scopes_visualization
 from rsp.step_04_analysis.plot_utils import plot_box_plot
 from rsp.step_04_analysis.plot_utils import plot_box_plot_from_traces
-from rsp.utils.data_types import all_scopes_visualization
 
 
 def visualize_hypotheses_asp(

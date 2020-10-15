@@ -4,8 +4,8 @@ from typing import List
 from rsp.hypothesis_one_pipeline_all_in_one import get_agenda_pipeline_params_001_simple_setting
 from rsp.hypothesis_two_encounter_graph import extract_time_windows_and_transmission_chains
 from rsp.hypothesis_two_encounter_graph import plot_transmission_chains_time_window
+from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
 from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder

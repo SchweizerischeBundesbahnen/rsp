@@ -8,6 +8,7 @@ import numpy as np
 import plotly.graph_objects as go
 import tqdm
 from flatland.core.grid.grid_utils import coordinate_to_position
+from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_time_resource_trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import extract_schedule_plotting
 from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import SchedulePlotting
@@ -19,7 +20,6 @@ from rsp.transmission_chains.transmission_chains import distance_matrix_from_tra
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_time_windows
 from rsp.transmission_chains.transmission_chains import TransmissionChain
-from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import SchedulingProblemInTimeWindows

@@ -3,12 +3,12 @@ from typing import Dict
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
 from rsp.schedule_problem_description.data_types_and_utils import TopoDict
 from rsp.schedule_problem_description.route_dag_constraints.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import _extract_route_section_penalties
-from rsp.utils.data_types import ExperimentMalfunction
 from rsp.utils.data_types import RouteDAGConstraintsDict
 
 _pp = pprint.PrettyPrinter(indent=4)

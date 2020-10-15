@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_env_from_experiment_parameters
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder

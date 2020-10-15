@@ -8,7 +8,7 @@ import numpy as np
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from rsp.utils.data_types import ExperimentMalfunction
+from rsp.experiment_solvers.data_types import ExperimentMalfunction
 from rsp.utils.file_utils import check_create_folder
 
 _pp = pprint.PrettyPrinter(indent=4)

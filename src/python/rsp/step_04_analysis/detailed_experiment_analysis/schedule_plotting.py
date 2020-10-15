@@ -6,7 +6,7 @@ from typing import Tuple
 
 from flatland.core.grid.grid_utils import coordinate_to_position
 from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.utils.data_types import ExperimentResultsAnalysis
+from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types_converters_and_validators import extract_resource_occupations

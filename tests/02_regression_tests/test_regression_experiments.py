@@ -3,12 +3,12 @@ from typing import List
 
 import numpy as np
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
+from rsp.step_03_run.experiment_results import ExperimentResults
+from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import ExperimentResults
-from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.data_types import InfrastructureParameters
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
