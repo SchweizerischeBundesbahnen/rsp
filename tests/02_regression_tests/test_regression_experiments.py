@@ -2,8 +2,8 @@
 from typing import List
 
 import numpy as np
-from rsp.analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
+from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters

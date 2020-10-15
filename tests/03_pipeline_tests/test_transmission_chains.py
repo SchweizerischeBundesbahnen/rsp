@@ -17,7 +17,7 @@ from rsp.utils.experiments import run_experiment_agenda
 
 def test_hypothesis_two():
     """Run hypothesis two."""
-    experiment_base_directory = './tests/03_integration_tests/mini_toy_example'
+    experiment_base_directory = './tests/03_pipeline_tests/mini_toy_example'
 
     experiment_agenda: ExperimentAgenda = create_experiment_agenda_from_parameter_ranges_and_speed_data(
         experiment_name='test_hypothesis_two',

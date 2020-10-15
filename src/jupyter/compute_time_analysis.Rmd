@@ -24,26 +24,18 @@ sys.path.append("../../src/asp")
 import pandas as pd
 from IPython.display import Video
 
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.data_types import filter_experiment_results_analysis_data_frame
+from rsp.utils.data_types import *
 
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.analysis.compute_time_analysis import plot_box_plot
-from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.analysis.compute_time_analysis import plot_speed_up
-from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
-from rsp.analysis.compute_time_analysis import render_flatland_env
-from rsp.analysis.compute_time_analysis import plot_route_dag
-from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_lateness
-from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_changed_agents
-from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_prediction_quality
-from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
+from rsp.utils.experiments import *
+from rsp.step_04_analysis.compute_time_analysis import *
+from rsp.step_04_analysis.plot_utils import *
+from rsp.step_04_analysis.detailed_experiment_analysis import *
+from rsp.step_04_analysis.asp_plausi import *
+from rsp.utils.global_data_configuration import *
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 
 
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
+from rsp.schedule_problem_description.data_types_and_utils import *
 
 from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:80% !important; }</style>"))
@@ -51,7 +43,7 @@ from_cache = False
 ```
 
 ```{python}
-experiments_of_interest = None
+experiments_of_interest = [2064]
 experiment_base_directory = BASELINE_DATA_FOLDER
 print(experiment_base_directory)
 if from_cache:
@@ -109,7 +101,6 @@ hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=
 ### Visualize Speed Up factors for experiments
 
 ```{python}
-from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_speed_up
 hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_filtered)
 
 # for exploration, use:
@@ -136,7 +127,6 @@ hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data_filte
 ```
 
 ```{python}
-from rsp.utils.data_types import after_malfunction_scopes_visualization
 # Choices represent the size of the solution space (how many routing alternatives, how many potential resource conflicts?
 # Conflicts represent the number of decisions
 for prefix in ['solver_statistics_conflicts', 'solver_statistics_choices', 'nb_resource_conflicts']:

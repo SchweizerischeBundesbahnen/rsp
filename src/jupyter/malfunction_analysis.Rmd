@@ -24,15 +24,15 @@ sys.path.append("../../src/asp")
 
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
-from rsp.analysis.compute_time_analysis import extract_schedule_plotting
-from rsp.analysis.compute_time_analysis import plot_time_resource_trajectories
-from rsp.analysis.compute_time_analysis import plot_resource_time_diagrams
-from rsp.analysis.compute_time_analysis import get_difference_in_time_space_trajectories
-from rsp.analysis.compute_time_analysis import plot_delay_propagation_2d
-from rsp.analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.analysis.compute_time_analysis import plot_changed_agents
-from rsp.analysis.compute_time_analysis import print_situation_overview
+from rsp.step_04_analysis.compute_time_analysis import trajectories_from_resource_occupations_per_agent
+from rsp.step_04_analysis.compute_time_analysis import extract_schedule_plotting
+from rsp.step_04_analysis.compute_time_analysis import plot_time_resource_trajectories
+from rsp.step_04_analysis.compute_time_analysis import plot_resource_time_diagrams
+from rsp.step_04_analysis.compute_time_analysis import get_difference_in_time_space_trajectories
+from rsp.step_04_analysis.compute_time_analysis import plot_delay_propagation_2d
+from rsp.step_04_analysis.compute_time_analysis import plot_histogram_from_delay_data
+from rsp.step_04_analysis.compute_time_analysis import plot_changed_agents
+from rsp.step_04_analysis.compute_time_analysis import print_situation_overview
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 
@@ -162,7 +162,7 @@ plot_delay_propagation_graph(minimal_depth = minimal_depth,
 
 ```{python}
 from rsp.hypothesis_two_encounter_graph import extract_time_windows_and_transmission_chains,plot_transmission_chains_time_window
-from rsp.analysis.compute_time_analysis import plot_time_window_resource_trajectories
+from rsp.step_04_analysis.compute_time_analysis import plot_time_window_resource_trajectories
 ```
 
 ```{python}

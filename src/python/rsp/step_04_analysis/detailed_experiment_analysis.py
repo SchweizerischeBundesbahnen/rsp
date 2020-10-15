@@ -17,10 +17,10 @@ from typing import Optional
 import numpy as np
 import plotly.graph_objects as go
 from pandas import DataFrame
-from rsp.analysis.compute_time_analysis import plot_box_plot
-from rsp.analysis.compute_time_analysis import plot_speed_up
 from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
 from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
+from rsp.step_04_analysis.plot_utils import plot_box_plot
+from rsp.step_04_analysis.plot_utils import plot_speed_up
 from rsp.utils.data_types import after_malfunction_scopes_visualization
 from rsp.utils.data_types import all_scopes
 from rsp.utils.data_types import all_scopes_visualization

@@ -81,7 +81,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
         # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
         python -m pytest tests/01_unit_tests
         python -m pytest tests/02_regression_tests
-        python -m pytest tests/03_integration_tests
+        python -m pytest tests/03_pipeline_tests
         python -m pydeps src/python/rsp  --show-cycles -o rsp_cycles.png -T png --noshow
         python -m pydeps src/python/rsp --cluster -o rsp_pydeps.png -T png --noshow
     """

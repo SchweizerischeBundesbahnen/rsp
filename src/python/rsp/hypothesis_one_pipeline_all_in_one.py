@@ -4,7 +4,7 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
-from rsp.analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
+from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.data_types import parameter_ranges_and_speed_data_to_hiearchical
