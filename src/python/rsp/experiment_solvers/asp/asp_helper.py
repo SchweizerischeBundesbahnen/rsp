@@ -17,26 +17,29 @@ from rsp.utils.global_constants import DL_PROPAGATE_PARTIAL
 from rsp.utils.rsp_logger import rsp_logger
 from rsp.utils.rsp_logger import VERBOSE
 
-FluxHelperResult = NamedTuple('FluxHelperResult', [
-    # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
-    ('answer_sets', List[Set[str]]),
-    ('stats', Dict),
-    # future use for incremental solving?
-    ('ctl', clingo.Control),
-    ('dl', theory.Theory),
-    ('asp_seed_value', Optional[int])
-])
+FluxHelperResult = NamedTuple(
+    "FluxHelperResult",
+    [
+        # TODO SIM-121 asp_solver should use proper data structures instead of strings to represent answer sets
+        ("answer_sets", List[Set[str]]),
+        ("stats", Dict),
+        # future use for incremental solving?
+        ("ctl", clingo.Control),
+        ("dl", theory.Theory),
+        ("asp_seed_value", Optional[int]),
+    ],
+)
 
 
 def flux_helper(
-        asp_data: List[str],
-        asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-        asp_heuristics: Optional[List[ASPHeuristics]] = None,
-        asp_seed_value: int = 94,
-        nb_threads: int = 2,
-        no_optimize: bool = False,
-        verbose: bool = False,
-        debug: bool = False
+    asp_data: List[str],
+    asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
+    asp_heuristics: Optional[List[ASPHeuristics]] = None,
+    asp_seed_value: int = 94,
+    nb_threads: int = 2,
+    no_optimize: bool = False,
+    verbose: bool = False,
+    debug: bool = False,
 ) -> FluxHelperResult:
     """Includes the necessary encodings and calls `_asp_helper` with them.
 
@@ -65,18 +68,18 @@ def flux_helper(
     if debug:
         print(prg_text_joined)
 
-    with path('rsp_encodings', 'encoding.lp') as encoding_path:
+    with path("rsp_encodings", "encoding.lp") as encoding_path:
         paths = [encoding_path]
     rsp_logger.info(f"asp_heuristics={asp_heuristics}")
     if asp_heuristics:
         for asp_heurisic in asp_heuristics:
-            with path('rsp_encodings', f'{asp_heurisic.value}.lp') as heuristic_routes_path:
+            with path("rsp_encodings", f"{asp_heurisic.value}.lp") as heuristic_routes_path:
                 paths.append(heuristic_routes_path)
     if asp_objective and not no_optimize:
-        with path('rsp_encodings', f'{asp_objective.value}.lp') as objetive_path:
+        with path("rsp_encodings", f"{asp_objective.value}.lp") as objetive_path:
             paths.append(objetive_path)
         if asp_objective in [ASPObjective.MINIMIZE_DELAY, ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED]:
-            with path('rsp_encodings', f'delay_linear_within_one_minute.lp') as delay_model_path:
+            with path("rsp_encodings", f"delay_linear_within_one_minute.lp") as delay_model_path:
                 paths.append(delay_model_path)
 
     flux_result = _asp_helper(
@@ -87,21 +90,23 @@ def flux_helper(
         verbose=verbose,
         debug=debug,
         no_optimize=no_optimize,
-        asp_heuristics=asp_heuristics
+        asp_heuristics=asp_heuristics,
     )
 
     return flux_result
 
 
 # snippets from https://code.sbb.ch/projects/TP_TMS_PAS/repos/kapaplan-asp/browse/src/solver/clingo_controller.py
-def _asp_helper(encoding_files: List[str],  # noqa: C901
-                plain_encoding: Optional[str] = None,
-                verbose: bool = False,
-                debug: bool = False,
-                nb_threads: int = 2,
-                no_optimize: bool = False,
-                asp_heuristics: List[ASPHeuristics] = None,
-                asp_seed_value: Optional[int] = None) -> FluxHelperResult:
+def _asp_helper(  # noqa: C901
+    encoding_files: List[str],
+    plain_encoding: Optional[str] = None,
+    verbose: bool = False,
+    debug: bool = False,
+    nb_threads: int = 2,
+    no_optimize: bool = False,
+    asp_heuristics: List[ASPHeuristics] = None,
+    asp_seed_value: Optional[int] = None,
+) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
     Parameters
     ----------
@@ -137,7 +142,7 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
     # find optimal model; if not optimizing, find all models!
     ctl.configuration.solve.models = 0
     # find only first optimal model
-    ctl.configuration.solve.opt_mode = 'opt'  # noqa
+    ctl.configuration.solve.opt_mode = "opt"  # noqa
     dl.register_propagator(ctl)
 
     if verbose:
@@ -164,18 +169,14 @@ def _asp_helper(encoding_files: List[str],  # noqa: C901
         _print_stats(statistics)
 
     # SIM-429 assert that our models are tight (sccs==0)
-    assert statistics["problem"]["lp"][
-               "sccs"] == 0, f'not tight statistics["problem"]["lp"]["sccs"]={statistics["problem"]["lp"]["sccs"]}'
+    assert statistics["problem"]["lp"]["sccs"] == 0, f'not tight statistics["problem"]["lp"]["sccs"]={statistics["problem"]["lp"]["sccs"]}'
 
     return FluxHelperResult(all_answers, statistics, ctl, dl, asp_seed_value)
 
 
-def _asp_loop(ctl: clingo.Control,  # noqa: C901
-              dl: theory.Theory,
-              no_optimize: bool = False,
-              verbose: bool = False,
-              debug: bool = False,
-              timeout: int = 10 * 60 * 60):
+def _asp_loop(  # noqa: C901
+    ctl: clingo.Control, dl: theory.Theory, no_optimize: bool = False, verbose: bool = False, debug: bool = False, timeout: int = 10 * 60 * 60
+):
     """Loop over models coming from the ASP solve call until optimal one found
     and return the first optimal.
 
@@ -250,7 +251,7 @@ def _print_stats(statistics, print_full_statistics: bool = False):
         print("=================================================================================")
         print("= FULL STATISTICS                                                               =")
         print("=================================================================================")
-        print(json.dumps(statistics, sort_keys=True, indent=4, separators=(',', ': ')))
+        print(json.dumps(statistics, sort_keys=True, indent=4, separators=(",", ": ")))
         print("")
     print("=================================================================================")
     print("= SUMMARY                                                                       =")
@@ -259,15 +260,17 @@ def _print_stats(statistics, print_full_statistics: bool = False):
     print("Optimum      : {:3}".format("yes" if statistics["summary"]["models"]["optimal"] else "no"))
     print("Optimization : {}".format(statistics["summary"]["costs"]))
     print("Calls        : {}".format(statistics["summary"]["call"]))
-    print("Time         : {:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s)"
-          .format(statistics["summary"]["times"]["total"],
-                  statistics["summary"]["times"]["solve"],
-                  statistics["summary"]["times"]["sat"],
-                  statistics["summary"]["times"]["unsat"],
-                  ))
-    percentage_solving_time = \
-        100 * statistics["summary"]["times"]["solve"] / (statistics["summary"]["times"]["total"]
-                                                         if statistics["summary"]["times"]["total"] != 0 else 1)
+    print(
+        "Time         : {:5.3f}s (Solving: {}s 1st Model: {}s Unsat: {}s)".format(
+            statistics["summary"]["times"]["total"],
+            statistics["summary"]["times"]["solve"],
+            statistics["summary"]["times"]["sat"],
+            statistics["summary"]["times"]["unsat"],
+        )
+    )
+    percentage_solving_time = (
+        100 * statistics["summary"]["times"]["solve"] / (statistics["summary"]["times"]["total"] if statistics["summary"]["times"]["total"] != 0 else 1)
+    )
     print("Solving time : {:5.1f}%".format(percentage_solving_time))
     print("CPU Time     : {:5.3f}s".format(statistics["summary"]["times"]["cpu"]))
     print("=================================================================================")
@@ -301,15 +304,10 @@ def _print_configuration(ctl):
     print("= CONFIGRUATION                                                                 =")
     print("=================================================================================")
     for _, k in enumerate(ctl.configuration.solve.keys):
-        print("{}={}\n  {}: {}"
-              .format(k,
-                      getattr(ctl.configuration.solve, k), k,
-                      getattr(ctl.configuration.solve, "__desc_" + k))
-              )
+        print("{}={}\n  {}: {}".format(k, getattr(ctl.configuration.solve, k), k, getattr(ctl.configuration.solve, "__desc_" + k)))
     print("")
 
 
 def configuration_as_dict_from_control(ctl):
-    configuration_as_dict = {k: str(getattr(ctl.configuration.solve, k)) for _, k in
-                             enumerate(ctl.configuration.solve.keys)}
+    configuration_as_dict = {k: str(getattr(ctl.configuration.solve, k)) for _, k in enumerate(ctl.configuration.solve.keys)}
     return configuration_as_dict

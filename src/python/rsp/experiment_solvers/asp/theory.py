@@ -54,27 +54,22 @@ class Theory:
         self.__on_statistics = self.__fun(prefix, "on_statistics", c_bool, [c_void_p, c_void_p, c_void_p])
 
         # bool lookup_symbol(propagator_t *propagator, clingo_symbol_t symbol, size_t *index);
-        self.__lookup_symbol = self.__fun(prefix, "lookup_symbol", c_bool, [c_void_p, c_uint64, POINTER(c_size_t)],
-                                          False)
+        self.__lookup_symbol = self.__fun(prefix, "lookup_symbol", c_bool, [c_void_p, c_uint64, POINTER(c_size_t)], False)
 
         # clingo_symbol_t get_symbol(propagator_t *propagator, size_t index);
         self.__get_symbol = self.__fun(prefix, "get_symbol", c_uint64, [c_void_p, c_size_t], False)
 
         # void assignment_begin(propagator_t *propagator, uint32_t thread_id, size_t *index);
-        self.__assignment_begin = self.__fun(prefix, "assignment_begin", None, [c_void_p, c_uint, POINTER(c_size_t)],
-                                             False)
+        self.__assignment_begin = self.__fun(prefix, "assignment_begin", None, [c_void_p, c_uint, POINTER(c_size_t)], False)
 
         # bool assignment_next(propagator_t *propagator, uint32_t thread_id, size_t *index);
-        self.__assignment_next = self.__fun(prefix, "assignment_next", c_bool, [c_void_p, c_uint, POINTER(c_size_t)],
-                                            False)
+        self.__assignment_next = self.__fun(prefix, "assignment_next", c_bool, [c_void_p, c_uint, POINTER(c_size_t)], False)
 
         # void assignment_has_value(propagator_t *propagator, uint32_t thread_id, size_t index);
-        self.__assignment_has_value = self.__fun(prefix, "assignment_has_value", c_bool, [c_void_p, c_uint, c_size_t],
-                                                 False)
+        self.__assignment_has_value = self.__fun(prefix, "assignment_has_value", c_bool, [c_void_p, c_uint, c_size_t], False)
 
         # void assignment_get_value(propagator_t *propagator, uint32_t thread_id, size_t index, value_t *value);
-        self.__assignment_get_value = self.__fun(prefix, "assignment_get_value", None,
-                                                 [c_void_p, c_uint, c_size_t, POINTER(_c_variant)], False)
+        self.__assignment_get_value = self.__fun(prefix, "assignment_get_value", None, [c_void_p, c_uint, c_size_t, POINTER(_c_variant)], False)
 
         self.__configure_propagator = self.__fun(prefix, "configure", c_bool, [c_void_p, c_char_p, c_char_p])
 

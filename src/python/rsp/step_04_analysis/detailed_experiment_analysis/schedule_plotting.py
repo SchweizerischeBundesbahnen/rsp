@@ -13,29 +13,25 @@ from rsp.utils.data_types_converters_and_validators import extract_resource_occu
 from rsp.utils.data_types_converters_and_validators import verify_schedule_as_resource_occupations
 from rsp.utils.global_constants import RELEASE_TIME
 
-Resource = NamedTuple('Resource', [
-    ('row', int),
-    ('column', int)])
+Resource = NamedTuple("Resource", [("row", int), ("column", int)])
 
 ResourceSorting = Dict[Resource, int]
 
-PlottingInformation = NamedTuple('PlottingInformation', [
-    ('sorting', ResourceSorting),
-    ('dimensions', Tuple[int, int]),
-    ('grid_width', int)])
+PlottingInformation = NamedTuple("PlottingInformation", [("sorting", ResourceSorting), ("dimensions", Tuple[int, int]), ("grid_width", int)])
 
-SchedulePlotting = NamedTuple('SchedulePlotting', [
-    ('schedule_as_resource_occupations', ScheduleAsResourceOccupations),
-    ('reschedule_full_as_resource_occupations', ScheduleAsResourceOccupations),
-    ('reschedule_delta_perfect_as_resource_occupations', ScheduleAsResourceOccupations),
-    ('malfunction', ExperimentMalfunction),
-    ('plotting_information', PlottingInformation)
-])
+SchedulePlotting = NamedTuple(
+    "SchedulePlotting",
+    [
+        ("schedule_as_resource_occupations", ScheduleAsResourceOccupations),
+        ("reschedule_full_as_resource_occupations", ScheduleAsResourceOccupations),
+        ("reschedule_delta_perfect_as_resource_occupations", ScheduleAsResourceOccupations),
+        ("malfunction", ExperimentMalfunction),
+        ("plotting_information", PlottingInformation),
+    ],
+)
 
 
-def extract_schedule_plotting(
-        experiment_result: ExperimentResultsAnalysis,
-        sorting_agent_id: Optional[int] = None) -> SchedulePlotting:
+def extract_schedule_plotting(experiment_result: ExperimentResultsAnalysis, sorting_agent_id: Optional[int] = None) -> SchedulePlotting:
     """Extract the scheduling information from a experiment data for plotting.
 
     Parameters
@@ -50,38 +46,29 @@ def extract_schedule_plotting(
     schedule = experiment_result.solution_full
     reschedule_full = experiment_result.solution_full_after_malfunction
     reschedule_delta_perfect = experiment_result.solution_delta_perfect_after_malfunction
-    schedule_as_resource_occupations: ScheduleAsResourceOccupations = extract_resource_occupations(
-        schedule=schedule,
-        release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations,
-                                            release_time=RELEASE_TIME)
-    reschedule_full_as_resource_occupations = extract_resource_occupations(
-        schedule=reschedule_full,
-        release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_full_as_resource_occupations,
-                                            release_time=RELEASE_TIME)
-    reschedule_delta_perfect_as_resource_occupations = extract_resource_occupations(
-        schedule=reschedule_delta_perfect,
-        release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations,
-                                            release_time=RELEASE_TIME)
+    schedule_as_resource_occupations: ScheduleAsResourceOccupations = extract_resource_occupations(schedule=schedule, release_time=RELEASE_TIME)
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations, release_time=RELEASE_TIME)
+    reschedule_full_as_resource_occupations = extract_resource_occupations(schedule=reschedule_full, release_time=RELEASE_TIME)
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_full_as_resource_occupations, release_time=RELEASE_TIME)
+    reschedule_delta_perfect_as_resource_occupations = extract_resource_occupations(schedule=reschedule_delta_perfect, release_time=RELEASE_TIME)
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations, release_time=RELEASE_TIME)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
         grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
-        sorting_agent_id=sorting_agent_id)
+        sorting_agent_id=sorting_agent_id,
+    )
     return SchedulePlotting(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
         reschedule_full_as_resource_occupations=reschedule_full_as_resource_occupations,
         reschedule_delta_perfect_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations,
         plotting_information=plotting_information,
-        malfunction=experiment_result.malfunction
+        malfunction=experiment_result.malfunction,
     )
 
 
 def extract_plotting_information(
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        grid_depth: int,
-        sorting_agent_id: Optional[int] = None) -> PlottingInformation:
+    schedule_as_resource_occupations: ScheduleAsResourceOccupations, grid_depth: int, sorting_agent_id: Optional[int] = None
+) -> PlottingInformation:
     """Extract plotting information.
 
     Parameters

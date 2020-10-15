@@ -22,9 +22,7 @@ infrastructure_parameter_range = InfrastructureParametersRange(
 
 def test_expand_infrastructure_ranges():
     infrastructure_parameters = expand_infrastructure_parameter_range(
-        infrastructure_parameter_range=infrastructure_parameter_range,
-        grid_mode=False,
-        speed_data={1.0: 0.25}
+        infrastructure_parameter_range=infrastructure_parameter_range, grid_mode=False, speed_data={1.0: 0.25}
     )
     assert len(infrastructure_parameters) == 10
     for i, first_infrastructure_parameters in enumerate(infrastructure_parameters):
@@ -46,15 +44,13 @@ def test_expand_infrastructure_parameter_range_and_save():
 
     try:
         list_of_infra_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
-            infrastructure_parameter_range=infrastructure_parameter_range,
-            base_directory=folder_name,
-            speed_data={1.: 1.}
+            infrastructure_parameter_range=infrastructure_parameter_range, base_directory=folder_name, speed_data={1.0: 1.0}
         )
         assert len(list_of_infra_parameters) == 10
 
-        assert len(glob.glob(f'{folder_name}/infra/[0-9]*/')) == 10
-        assert len(glob.glob(f'{folder_name}/infra/**/infrastructure.pkl')) == 10
-        assert len(glob.glob(f'{folder_name}/infra/**/infrastructure_parameters.pkl')) == 10
+        assert len(glob.glob(f"{folder_name}/infra/[0-9]*/")) == 10
+        assert len(glob.glob(f"{folder_name}/infra/**/infrastructure.pkl")) == 10
+        assert len(glob.glob(f"{folder_name}/infra/**/infrastructure_parameters.pkl")) == 10
 
         for i, infra_parameters in enumerate(list_of_infra_parameters):
             assert i == infra_parameters.infra_id

@@ -10,15 +10,12 @@ def test_schedule_problem_description_equals():
         topo.add_edge(5, 10)
         topo.add_edge(6, 11)
         return ScheduleProblemDescription(
-            route_dag_constraints_dict={0: RouteDAGConstraints(
-                earliest={},
-                latest={}
-            )},
+            route_dag_constraints_dict={0: RouteDAGConstraints(earliest={}, latest={})},
             topo_dict={0: topo},
             minimum_travel_time_dict={0: 1},
             max_episode_steps=555,
             route_section_penalties={0: {}},
-            weight_lateness_seconds=1
+            weight_lateness_seconds=1,
         )
 
     s1 = _data()

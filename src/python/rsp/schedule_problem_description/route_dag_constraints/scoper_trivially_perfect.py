@@ -15,16 +15,17 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 
 def scoper_trivially_perfect_for_all_agents(
-        full_reschedule_trainrun_dict: TrainrunDict,
-        malfunction: ExperimentMalfunction,
-        minimum_travel_time_dict: Dict[int, int],
-        max_episode_steps: int,
-        # pytorch convention for in-place operations: postfixed with underscore.
-        delta_trivially_perfect_topo_dict_: TopoDict,
-        schedule_trainrun_dict: TrainrunDict,
-        weight_route_change: int,
-        weight_lateness_seconds: int,
-        max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
+    full_reschedule_trainrun_dict: TrainrunDict,
+    malfunction: ExperimentMalfunction,
+    minimum_travel_time_dict: Dict[int, int],
+    max_episode_steps: int,
+    # pytorch convention for in-place operations: postfixed with underscore.
+    delta_trivially_perfect_topo_dict_: TopoDict,
+    schedule_trainrun_dict: TrainrunDict,
+    weight_route_change: int,
+    weight_lateness_seconds: int,
+    max_window_size_from_earliest: int = np.inf,
+) -> ScheduleProblemDescription:
     """The scoper trivially_perfect only opens up the malfunction agent and the
     same amount of agents as were changed in the full re-reschedule, but chosen
     trivially_perfectly.
@@ -62,10 +63,7 @@ def scoper_trivially_perfect_for_all_agents(
         nodes_to_keep = {trainrun_waypoint.waypoint for trainrun_waypoint in full_reschedule_trainrun}
         nodes_to_remove = {node for node in topo_.nodes if node not in nodes_to_keep}
         topo_.remove_nodes_from(nodes_to_remove)
-        freeze_dict[agent_id] = RouteDAGConstraints(
-            earliest=reschedule,
-            latest=reschedule
-        )
+        freeze_dict[agent_id] = RouteDAGConstraints(earliest=reschedule, latest=reschedule)
 
     # TODO SIM-324 pull out verification
     for agent_id, _ in freeze_dict.items():
@@ -84,9 +82,7 @@ def scoper_trivially_perfect_for_all_agents(
         topo_dict=delta_trivially_perfect_topo_dict_,
         max_episode_steps=max_episode_steps,
         route_section_penalties=_extract_route_section_penalties(
-            schedule_trainruns=schedule_trainrun_dict,
-            topo_dict=delta_trivially_perfect_topo_dict_,
-            weight_route_change=weight_route_change
+            schedule_trainruns=schedule_trainrun_dict, topo_dict=delta_trivially_perfect_topo_dict_, weight_route_change=weight_route_change
         ),
-        weight_lateness_seconds=weight_lateness_seconds
+        weight_lateness_seconds=weight_lateness_seconds,
     )

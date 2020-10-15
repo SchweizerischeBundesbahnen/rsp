@@ -7,8 +7,7 @@ conv = ASPProblemDescription.convert_position_and_entry_direction_to_waypoint
 
 def test_convert_transition():
     def _helper(actual, expected):
-        assert np.array_equal(actual, expected), \
-            "found {}, expected {}".format(actual, expected)
+        assert np.array_equal(actual, expected), "found {}, expected {}".format(actual, expected)
 
     actual = conv(2, 2, Grid4TransitionsEnum.NORTH)
     expected = ((2, 2), 0)

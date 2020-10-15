@@ -42,22 +42,15 @@ test_parameters = ExperimentParameters(
         max_rail_between_cities=2,
         max_rail_in_city=6,
         speed_data={1: 1.0},
-        number_of_shortest_paths_per_agent=10
-
+        number_of_shortest_paths_per_agent=10,
     ),
-    schedule_parameters=ScheduleParameters(
-        infra_id=0,
-        schedule_id=0,
-        asp_seed_value=94,
-        number_of_shortest_paths_per_agent_schedule=1
-    ),
-
+    schedule_parameters=ScheduleParameters(infra_id=0, schedule_id=0, asp_seed_value=94, number_of_shortest_paths_per_agent_schedule=1),
     earliest_malfunction=20,
     malfunction_duration=20,
     malfunction_agent_id=0,
     weight_route_change=1,
     weight_lateness_seconds=1,
-    max_window_size_from_earliest=np.inf
+    max_window_size_from_earliest=np.inf,
 )
 
 
@@ -67,54 +60,162 @@ test_parameters = ExperimentParameters(
 def test_rescheduling_no_bottleneck():
     static_env = create_env_from_experiment_parameters(params=test_parameters.infra_parameters)
 
-    expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 16386, 1025, 1025, 1025, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386, 1025, 1025,
-                      1025, 4608, 0, 0, 0, 0],
-                     [0, 16386, 1025, 5633, 17411, 3089, 1025, 1025, 1025, 1097, 5633, 17411, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1025, 5633, 17411, 3089, 1025, 1025, 1025, 1097, 5633, 17411, 1025, 4608],
-                     [0, 49186, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 37408],
-                     [0, 32800, 0, 0, 0, 72, 5633, 1025, 17411, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 5633, 1025,
-                      17411, 2064, 0, 0, 0, 32800],
-                     [0, 32800, 0, 0, 0, 0, 72, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 2064, 0, 0,
-                      0, 0, 32800],
-                     [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
-                     [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
-                     [0, 32872, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386,
-                      34864],
-                     [16386, 34864, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800, 32800],
-                     [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800, 32800],
-                     [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800, 32800],
-                     [32800, 49186, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72,
-                      37408],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [72, 33897, 1025, 5633, 17411, 1025, 1025, 1025, 1025, 1025, 5633, 17411, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1025, 5633, 17411, 1025, 1025, 1025, 1025, 1025, 5633, 17411, 1025, 34864],
-                     [0, 72, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 2064],
-                     [0, 0, 0, 0, 0, 72, 1025, 1025, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 1025, 1025,
-                      2064, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    expected_grid = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 16386, 1025, 1025, 1025, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386, 1025, 1025, 1025, 4608, 0, 0, 0, 0],
+        [
+            0,
+            16386,
+            1025,
+            5633,
+            17411,
+            3089,
+            1025,
+            1025,
+            1025,
+            1097,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            3089,
+            1025,
+            1025,
+            1025,
+            1097,
+            5633,
+            17411,
+            1025,
+            4608,
+        ],
+        [
+            0,
+            49186,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            37408,
+        ],
+        [0, 32800, 0, 0, 0, 72, 5633, 1025, 17411, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 5633, 1025, 17411, 2064, 0, 0, 0, 32800],
+        [0, 32800, 0, 0, 0, 0, 72, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 2064, 0, 0, 0, 0, 32800],
+        [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [0, 32872, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386, 34864],
+        [16386, 34864, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800, 32800],
+        [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800, 32800],
+        [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800, 32800],
+        [32800, 49186, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 37408],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [
+            72,
+            33897,
+            1025,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            1025,
+            34864,
+        ],
+        [
+            0,
+            72,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            2064,
+        ],
+        [0, 0, 0, 0, 0, 72, 1025, 1025, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 1025, 1025, 2064, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
     assert static_env.rail.grid.tolist() == expected_grid
 
     fake_schedule = {
@@ -147,7 +248,8 @@ def test_rescheduling_no_bottleneck():
             TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(24, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
+            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3)),
+        ],
         1: [
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -177,12 +279,14 @@ def test_rescheduling_no_bottleneck():
             TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(7, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
+            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3)),
+        ],
+    }
 
     k = 10
     schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(
-        infrastructure=create_infrastructure_from_rail_env(static_env, k=k),
-        number_of_shortest_paths_per_agent_schedule=k)
+        infrastructure=create_infrastructure_from_rail_env(static_env, k=k), number_of_shortest_paths_per_agent_schedule=k
+    )
     verify_trainrun_dict_for_schedule_problem(schedule_problem=schedule_problem, trainrun_dict=fake_schedule)
 
     fake_malfunction = ExperimentMalfunction(time_step=19, agent_id=0, malfunction_duration=20)
@@ -194,20 +298,17 @@ def test_rescheduling_no_bottleneck():
         topo_dict_=schedule_problem.topo_dict,
         latest_arrival=static_env._max_episode_steps,
         weight_lateness_seconds=1,
-        weight_route_change=1
+        weight_route_change=1,
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem_description.route_dag_constraints_dict
 
     for agent_id, _ in freeze_dict.items():
         verify_consistency_of_route_dag_constraints_for_agent(
-            agent_id=agent_id,
-            route_dag_constraints=freeze_dict[agent_id],
-            topo=schedule_problem.topo_dict[agent_id]
+            agent_id=agent_id, route_dag_constraints=freeze_dict[agent_id], topo=schedule_problem.topo_dict[agent_id]
         )
 
     schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(
-        infrastructure=create_infrastructure_from_rail_env(static_env, k),
-        number_of_shortest_paths_per_agent_schedule=k
+        infrastructure=create_infrastructure_from_rail_env(static_env, k), number_of_shortest_paths_per_agent_schedule=k
     )
 
     full_reschedule_result = asp_reschedule_wrapper(
@@ -218,10 +319,10 @@ def test_rescheduling_no_bottleneck():
             latest_arrival=static_env._max_episode_steps,
             topo_dict_=schedule_problem.topo_dict,
             weight_lateness_seconds=1,
-            weight_route_change=1
+            weight_route_change=1,
         ),
         schedule=fake_schedule,
-        asp_seed_value=94
+        asp_seed_value=94,
     )
     full_reschedule_trainruns: TrainrunDict = full_reschedule_result.trainruns_dict
 
@@ -238,54 +339,162 @@ def test_rescheduling_no_bottleneck():
 def test_rescheduling_bottleneck():
     static_env = create_env_from_experiment_parameters(params=test_parameters.infra_parameters)
 
-    expected_grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 16386, 1025, 1025, 1025, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386, 1025, 1025,
-                      1025, 4608, 0, 0, 0, 0],
-                     [0, 16386, 1025, 5633, 17411, 3089, 1025, 1025, 1025, 1097, 5633, 17411, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1025, 5633, 17411, 3089, 1025, 1025, 1025, 1097, 5633, 17411, 1025, 4608],
-                     [0, 49186, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 37408],
-                     [0, 32800, 0, 0, 0, 72, 5633, 1025, 17411, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 5633, 1025,
-                      17411, 2064, 0, 0, 0, 32800],
-                     [0, 32800, 0, 0, 0, 0, 72, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 2064, 0, 0,
-                      0, 0, 32800],
-                     [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
-                     [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
-                     [0, 32872, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386,
-                      34864],
-                     [16386, 34864, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800, 32800],
-                     [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800, 32800],
-                     [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800, 32800],
-                     [32800, 49186, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72,
-                      37408],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      32800],
-                     [72, 33897, 1025, 5633, 17411, 1025, 1025, 1025, 1025, 1025, 5633, 17411, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1025, 5633, 17411, 1025, 1025, 1025, 1025, 1025, 5633, 17411, 1025, 34864],
-                     [0, 72, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 1025, 1025, 1025, 1025,
-                      1025, 1025, 1097, 3089, 5633, 1025, 1025, 1025, 17411, 1097, 3089, 1025, 2064],
-                     [0, 0, 0, 0, 0, 72, 1025, 1025, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 1025, 1025,
-                      2064, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    expected_grid = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 16386, 1025, 1025, 1025, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386, 1025, 1025, 1025, 4608, 0, 0, 0, 0],
+        [
+            0,
+            16386,
+            1025,
+            5633,
+            17411,
+            3089,
+            1025,
+            1025,
+            1025,
+            1097,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            3089,
+            1025,
+            1025,
+            1025,
+            1097,
+            5633,
+            17411,
+            1025,
+            4608,
+        ],
+        [
+            0,
+            49186,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            37408,
+        ],
+        [0, 32800, 0, 0, 0, 72, 5633, 1025, 17411, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 5633, 1025, 17411, 2064, 0, 0, 0, 32800],
+        [0, 32800, 0, 0, 0, 0, 72, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 2064, 0, 0, 0, 0, 32800],
+        [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [0, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [0, 32872, 4608, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16386, 34864],
+        [16386, 34864, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800, 32800],
+        [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800, 32800],
+        [32800, 32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800, 32800],
+        [32800, 49186, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 37408],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [32800, 32800, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32800],
+        [
+            72,
+            33897,
+            1025,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            5633,
+            17411,
+            1025,
+            34864,
+        ],
+        [
+            0,
+            72,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1025,
+            1097,
+            3089,
+            5633,
+            1025,
+            1025,
+            1025,
+            17411,
+            1097,
+            3089,
+            1025,
+            2064,
+        ],
+        [0, 0, 0, 0, 0, 72, 1025, 1025, 1025, 2064, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 72, 1025, 1025, 1025, 2064, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
     assert static_env.rail.grid.tolist() == expected_grid
 
     fake_schedule = {
@@ -318,7 +527,8 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(24, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
+            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3)),
+        ],
         1: [
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -348,7 +558,9 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(7, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
+            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3)),
+        ],
+    }
     fake_malfunction = ExperimentMalfunction(time_step=14, agent_id=1, malfunction_duration=20)
     expected_reschedule = {
         0: [
@@ -382,7 +594,8 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=42 + 3, waypoint=Waypoint(position=(24, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=43 + 3, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=44 + 3, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=45 + 3, waypoint=Waypoint(position=(24, 23), direction=3))],
+            TrainrunWaypoint(scheduled_at=45 + 3, waypoint=Waypoint(position=(24, 23), direction=3)),
+        ],
         1: [
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -412,25 +625,23 @@ def test_rescheduling_bottleneck():
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 23), direction=3))]}
+            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(7, 23), direction=3)),
+        ],
+    }
 
     # we derive the re-schedule problem from the schedule problem
     k = 10
     infrastructure = create_infrastructure_from_rail_env(static_env, k=k)
-    schedule_problem = create_schedule_problem_description_from_instructure(
-        infrastructure=infrastructure,
-        number_of_shortest_paths_per_agent_schedule=10
-    )
+    schedule_problem = create_schedule_problem_description_from_instructure(infrastructure=infrastructure, number_of_shortest_paths_per_agent_schedule=10)
     verify_trainrun_dict_for_schedule_problem(schedule_problem=schedule_problem, trainrun_dict=fake_schedule)
     reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
         malfunction=fake_malfunction,
         schedule_trainruns=fake_schedule,
-        minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data['speed']))
-                                  for agent in static_env.agents},
+        minimum_travel_time_dict={agent.handle: int(np.ceil(1 / agent.speed_data["speed"])) for agent in static_env.agents},
         topo_dict_=infrastructure.topo_dict,
         latest_arrival=static_env._max_episode_steps,
         weight_lateness_seconds=1,
-        weight_route_change=1
+        weight_route_change=1,
     )
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem.route_dag_constraints_dict
 
@@ -448,7 +659,7 @@ def test_rescheduling_bottleneck():
         TrainrunWaypoint(scheduled_at=11, waypoint=Waypoint(position=(19, 29), direction=0)),
         TrainrunWaypoint(scheduled_at=12, waypoint=Waypoint(position=(18, 29), direction=0)),
         TrainrunWaypoint(scheduled_at=13, waypoint=Waypoint(position=(17, 29), direction=0)),
-        TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0))
+        TrainrunWaypoint(scheduled_at=14, waypoint=Waypoint(position=(16, 29), direction=0)),
     ]:
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].earliest[trainrun_waypoint.waypoint]
         assert trainrun_waypoint.scheduled_at == freeze_dict[1].latest[trainrun_waypoint.waypoint]
@@ -458,15 +669,10 @@ def test_rescheduling_bottleneck():
 
     for agent_id, _ in freeze_dict.items():
         verify_consistency_of_route_dag_constraints_for_agent(
-            agent_id=agent_id,
-            route_dag_constraints=freeze_dict[agent_id],
-            topo=reschedule_problem.topo_dict[agent_id])
+            agent_id=agent_id, route_dag_constraints=freeze_dict[agent_id], topo=reschedule_problem.topo_dict[agent_id]
+        )
 
-    full_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=reschedule_problem,
-        schedule=fake_schedule,
-        asp_seed_value=94
-    )
+    full_reschedule_result = asp_reschedule_wrapper(reschedule_problem_description=reschedule_problem, schedule=fake_schedule, asp_seed_value=94)
     full_reschedule_trainruns: Dict[int, List[TrainrunWaypoint]] = full_reschedule_result.trainruns_dict
 
     assert full_reschedule_trainruns[0][-1].scheduled_at == 48, f"found {full_reschedule_trainruns[0][-1].scheduled_at}"
@@ -481,8 +687,7 @@ def test_rescheduling_bottleneck():
     print(fake_schedule)
     print(expected_reschedule)
     actual_delay_wr_schedule = get_delay_trainruns_dict(fake_schedule, full_reschedule_trainruns)
-    assert actual_delay_wr_schedule == expected_delay_wr_schedule, \
-        f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
+    assert actual_delay_wr_schedule == expected_delay_wr_schedule, f"actual delay {actual_delay_wr_schedule}, expected {expected_delay_wr_schedule}"
 
     expected_rerouting_penalty = 1
     expected_costs = expected_delay_wr_schedule + expected_rerouting_penalty
@@ -492,6 +697,7 @@ def test_rescheduling_bottleneck():
 # ---------------------------------------------------------------------------------------------------------------------
 # Tests re-scheduling
 # ---------------------------------------------------------------------------------------------------------------------
+
 
 def test_rescheduling_delta_perfect_no_bottleneck():
     """Train 1 has already passed the bottlneck when train 0 gets stuck in
@@ -528,7 +734,8 @@ def test_rescheduling_delta_perfect_no_bottleneck():
             TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(24, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3))],
+            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 23), direction=3)),
+        ],
         1: [
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -558,7 +765,9 @@ def test_rescheduling_delta_perfect_no_bottleneck():
             TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(7, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
+            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3)),
+        ],
+    }
 
     full_reschedule_trainruns = {
         0: [
@@ -590,7 +799,8 @@ def test_rescheduling_delta_perfect_no_bottleneck():
             TrainrunWaypoint(scheduled_at=63, waypoint=Waypoint(position=(24, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=64, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(24, 23), direction=3))],
+            TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(24, 23), direction=3)),
+        ],
         1: [
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=2, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -620,15 +830,21 @@ def test_rescheduling_delta_perfect_no_bottleneck():
             TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(7, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3))]}
+            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(7, 23), direction=3)),
+        ],
+    }
 
     # train 0 arrives at 46 (schedule) + 20 delay
     # train 1 arrives at 29 (schedule and re-eschedule)
     # agent 0: scheduled arrival was 46, new arrival is 45 -> penalty = 0 (no negative delay!)
     # agent 1: scheduled arrival was 29, new arrival is 49 -> penalty = 20 = delay
-    _verify_rescheduling_delta_perfect(fake_malfunction=fake_malfunction, fake_schedule=fake_schedule,
-                                       fake_full_reschedule_trainruns=full_reschedule_trainruns,
-                                       expected_arrivals={0: 46 + 20, 1: 29}, expected_delay=20)
+    _verify_rescheduling_delta_perfect(
+        fake_malfunction=fake_malfunction,
+        fake_schedule=fake_schedule,
+        fake_full_reschedule_trainruns=full_reschedule_trainruns,
+        expected_arrivals={0: 46 + 20, 1: 29},
+        expected_delay=20,
+    )
 
 
 def test_rescheduling_delta_perfect_bottleneck():
@@ -668,7 +884,8 @@ def test_rescheduling_delta_perfect_bottleneck():
             TrainrunWaypoint(scheduled_at=26, waypoint=Waypoint(position=(24, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=27, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=28, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(24, 23), direction=3))],
+            TrainrunWaypoint(scheduled_at=29, waypoint=Waypoint(position=(24, 23), direction=3)),
+        ],
         1: [
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -698,7 +915,9 @@ def test_rescheduling_delta_perfect_bottleneck():
             TrainrunWaypoint(scheduled_at=43, waypoint=Waypoint(position=(7, 26), direction=0)),
             TrainrunWaypoint(scheduled_at=44, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=45, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 23), direction=3))]}
+            TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(7, 23), direction=3)),
+        ],
+    }
     fake_full_reschedule_trainruns = {
         0: [
             TrainrunWaypoint(scheduled_at=1, waypoint=Waypoint(position=(8, 23), direction=1)),
@@ -729,7 +948,8 @@ def test_rescheduling_delta_perfect_bottleneck():
             TrainrunWaypoint(scheduled_at=46, waypoint=Waypoint(position=(24, 26), direction=3)),
             TrainrunWaypoint(scheduled_at=47, waypoint=Waypoint(position=(24, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=48, waypoint=Waypoint(position=(24, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(24, 23), direction=3))],
+            TrainrunWaypoint(scheduled_at=49, waypoint=Waypoint(position=(24, 23), direction=3)),
+        ],
         1: [
             TrainrunWaypoint(scheduled_at=18, waypoint=Waypoint(position=(23, 23), direction=1)),
             TrainrunWaypoint(scheduled_at=19, waypoint=Waypoint(position=(23, 24), direction=1)),
@@ -759,21 +979,25 @@ def test_rescheduling_delta_perfect_bottleneck():
             TrainrunWaypoint(scheduled_at=63, waypoint=Waypoint(position=(7, 26), direction=0)),
             TrainrunWaypoint(scheduled_at=64, waypoint=Waypoint(position=(7, 25), direction=3)),
             TrainrunWaypoint(scheduled_at=65, waypoint=Waypoint(position=(7, 24), direction=3)),
-            TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3))]}
+            TrainrunWaypoint(scheduled_at=66, waypoint=Waypoint(position=(7, 23), direction=3)),
+        ],
+    }
 
     # train 0 arrives at 29 (schedule) + 20 delay in re-schedule (full and delta perfect) -> 20
     # train 1 arrives at 46 (schedule) 66 (in re-eschedule full and delta perfect) -> 20
     # (it has to wait for the other train to leave a bottleneck in opposite direction
-    _verify_rescheduling_delta_perfect(fake_malfunction=fake_malfunction,
-                                       fake_schedule=fake_schedule,
-                                       fake_full_reschedule_trainruns=fake_full_reschedule_trainruns,
-                                       expected_arrivals={0: 29 + 20, 1: 46 + 20}, expected_delay=40)
+    _verify_rescheduling_delta_perfect(
+        fake_malfunction=fake_malfunction,
+        fake_schedule=fake_schedule,
+        fake_full_reschedule_trainruns=fake_full_reschedule_trainruns,
+        expected_arrivals={0: 29 + 20, 1: 46 + 20},
+        expected_delay=40,
+    )
 
 
-def _verify_rescheduling_delta_perfect(fake_malfunction: ExperimentMalfunction,
-                                       fake_schedule: TrainrunDict,
-                                       fake_full_reschedule_trainruns: TrainrunDict,
-                                       expected_arrivals, expected_delay):
+def _verify_rescheduling_delta_perfect(
+    fake_malfunction: ExperimentMalfunction, fake_schedule: TrainrunDict, fake_full_reschedule_trainruns: TrainrunDict, expected_arrivals, expected_delay
+):
     fake_malfunction, schedule_problem = _dummy_test_case(fake_malfunction)
     delta_perfect_reschedule_problem: ScheduleProblemDescription = scoper_perfect_for_all_agents(
         full_reschedule_trainrun_dict=fake_full_reschedule_trainruns,
@@ -783,19 +1007,17 @@ def _verify_rescheduling_delta_perfect(fake_malfunction: ExperimentMalfunction,
         schedule_trainrun_dict=fake_schedule,
         minimum_travel_time_dict=schedule_problem.schedule_problem_description.minimum_travel_time_dict,
         weight_lateness_seconds=1,
-        weight_route_change=1
-
+        weight_route_change=1,
     )
     delta_perfect_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_perfect_reschedule_problem,
-        schedule=fake_schedule,
-        asp_seed_value=94
+        reschedule_problem_description=delta_perfect_reschedule_problem, schedule=fake_schedule, asp_seed_value=94
     )
     delta_perfect_reschedule_trainruns = delta_perfect_reschedule_result.trainruns_dict
     for train, expected_arrival in expected_arrivals.items():
         delta_perfect_reschedule_train_arrival = delta_perfect_reschedule_trainruns[train][-1]
-        assert delta_perfect_reschedule_train_arrival.scheduled_at == expected_arrival, \
-            f"train {train} found {delta_perfect_reschedule_train_arrival.scheduled_at} arrival but expected {expected_arrival}"
+        assert (
+            delta_perfect_reschedule_train_arrival.scheduled_at == expected_arrival
+        ), f"train {train} found {delta_perfect_reschedule_train_arrival.scheduled_at} arrival but expected {expected_arrival}"
 
     delay_in_delta_perfect_reschedule = get_delay_trainruns_dict(fake_schedule, delta_perfect_reschedule_trainruns)
     assert delay_in_delta_perfect_reschedule == expected_delay, f"found {delay_in_delta_perfect_reschedule}, expected={expected_delay}"
@@ -816,7 +1038,8 @@ def _dummy_test_case(fake_malfunction: Malfunction):
     schedule_problem = ASPProblemDescription.factory_scheduling(
         schedule_problem_description=create_schedule_problem_description_from_instructure(
             infrastructure=gen_infrastructure(infra_parameters=test_parameters.infra_parameters),
-            number_of_shortest_paths_per_agent_schedule=test_parameters.infra_parameters.number_of_shortest_paths_per_agent
-        ))
+            number_of_shortest_paths_per_agent_schedule=test_parameters.infra_parameters.number_of_shortest_paths_per_agent,
+        )
+    )
 
     return fake_malfunction, schedule_problem

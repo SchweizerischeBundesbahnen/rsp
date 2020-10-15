@@ -13,11 +13,7 @@ from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_r
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def solve_problem(
-        problem: ASPProblemDescription,
-        debug: bool = False,
-        verbose: bool = False
-) -> Tuple[SchedulingExperimentResult, ASPSolutionDescription]:
+def solve_problem(problem: ASPProblemDescription, debug: bool = False, verbose: bool = False) -> Tuple[SchedulingExperimentResult, ASPSolutionDescription]:
     """Solves an :class:`AbstractProblemDescription` and optionally verifies it
     againts the provided :class:`RailEnv`.
 
@@ -37,7 +33,8 @@ def solve_problem(
     # Preparations
     # --------------------------------------------------------------------------------------
     minimum_number_of_shortest_paths_over_all_agents = np.min(
-        [len(get_paths_in_route_dag(topo)) for agent_id, topo in problem.schedule_problem_description.topo_dict.items()])
+        [len(get_paths_in_route_dag(topo)) for agent_id, topo in problem.schedule_problem_description.topo_dict.items()]
+    )
 
     if minimum_number_of_shortest_paths_over_all_agents == 0:
         raise Exception("At least one Agent has no path to its target!")
@@ -54,17 +51,20 @@ def solve_problem(
     if debug:
         print("####train runs dict")
         print(_pp.pformat(trainruns_dict))
-    return SchedulingExperimentResult(
-        total_reward=-np.inf,
-        solve_time=solution.get_solve_time(),
-        optimization_costs=solution.get_objective_value(),
-        build_problem_time=solution.get_preprocessing_time(),
-        nb_conflicts=solution.extract_nb_resource_conflicts(),
-        trainruns_dict=solution.get_trainruns_dict(),
-        route_dag_constraints=problem.schedule_problem_description.route_dag_constraints_dict,
-        solver_statistics=solution.asp_solution.stats,
-        solver_result=solution.answer_set,
-        solver_configuration=configuration_as_dict_from_control(solution.asp_solution.ctl),
-        solver_seed=solution.asp_solution.asp_seed_value,
-        solver_program=problem.asp_program
-    ), solution
+    return (
+        SchedulingExperimentResult(
+            total_reward=-np.inf,
+            solve_time=solution.get_solve_time(),
+            optimization_costs=solution.get_objective_value(),
+            build_problem_time=solution.get_preprocessing_time(),
+            nb_conflicts=solution.extract_nb_resource_conflicts(),
+            trainruns_dict=solution.get_trainruns_dict(),
+            route_dag_constraints=problem.schedule_problem_description.route_dag_constraints_dict,
+            solver_statistics=solution.asp_solution.stats,
+            solver_result=solution.answer_set,
+            solver_configuration=configuration_as_dict_from_control(solution.asp_solution.ctl),
+            solver_seed=solution.asp_solution.asp_seed_value,
+            solver_program=problem.asp_program,
+        ),
+        solution,
+    )

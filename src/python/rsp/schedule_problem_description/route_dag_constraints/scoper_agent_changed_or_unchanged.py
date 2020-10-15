@@ -6,17 +6,18 @@ from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import s
 
 
 def scoper_changed_or_unchanged(
-        agent_id: int,
-        # pytorch convention for in-place operations: postfixed with underscore.
-        topo_: nx.DiGraph,
-        schedule_trainrun: Trainrun,
-        full_reschedule_problem: ScheduleProblemDescription,
-        malfunction: ExperimentMalfunction,
-        minimum_travel_time: int,
-        latest_arrival: int,
-        changed: bool,
-        max_window_size_from_earliest: int,
-        time_flexibility: bool):
+    agent_id: int,
+    # pytorch convention for in-place operations: postfixed with underscore.
+    topo_: nx.DiGraph,
+    schedule_trainrun: Trainrun,
+    full_reschedule_problem: ScheduleProblemDescription,
+    malfunction: ExperimentMalfunction,
+    minimum_travel_time: int,
+    latest_arrival: int,
+    changed: bool,
+    max_window_size_from_earliest: int,
+    time_flexibility: bool,
+):
     """"scoper changed or unchanged":
 
     - if no change for train between schedule and re-schedule,
@@ -45,6 +46,6 @@ def scoper_changed_or_unchanged(
             minimum_travel_time=minimum_travel_time,
             malfunction=malfunction,
             latest_arrival=latest_arrival,
-            max_window_size_from_earliest=max_window_size_from_earliest
+            max_window_size_from_earliest=max_window_size_from_earliest,
         )
         return earliest, latest, topo_

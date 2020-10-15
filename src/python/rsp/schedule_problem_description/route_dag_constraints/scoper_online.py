@@ -22,18 +22,19 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 
 def scoper_online_for_all_agents(
-        full_reschedule_trainrun_dict: TrainrunDict,
-        full_reschedule_problem: ScheduleProblemDescription,
-        malfunction: ExperimentMalfunction,
-        minimum_travel_time_dict: Dict[int, int],
-        latest_arrival: int,
-        # pytorch convention for in-place operations: postfixed with underscore.
-        delta_online_topo_dict_to_: TopoDict,
-        schedule_trainrun_dict: TrainrunDict,
-        weight_route_change: int,
-        weight_lateness_seconds: int,
-        time_flexibility: bool,
-        max_window_size_from_earliest: int = np.inf) -> Tuple[ScheduleProblemDescription, Set[int]]:
+    full_reschedule_trainrun_dict: TrainrunDict,
+    full_reschedule_problem: ScheduleProblemDescription,
+    malfunction: ExperimentMalfunction,
+    minimum_travel_time_dict: Dict[int, int],
+    latest_arrival: int,
+    # pytorch convention for in-place operations: postfixed with underscore.
+    delta_online_topo_dict_to_: TopoDict,
+    schedule_trainrun_dict: TrainrunDict,
+    weight_route_change: int,
+    weight_lateness_seconds: int,
+    time_flexibility: bool,
+    max_window_size_from_earliest: int = np.inf,
+) -> Tuple[ScheduleProblemDescription, Set[int]]:
     """The scoper online only opens up the differences between the schedule and
     the imaginary re-schedule. It gives no additional routing flexibility!
 
@@ -65,16 +66,11 @@ def scoper_online_for_all_agents(
     """
     # 1. compute the forward-only wave of the malfunction
     schedule_occupations = extract_resource_occupations(schedule=schedule_trainrun_dict, release_time=RELEASE_TIME)
-    transmission_chains = extract_transmission_chains_from_schedule(
-        malfunction=malfunction,
-        occupations=schedule_occupations)
+    transmission_chains = extract_transmission_chains_from_schedule(malfunction=malfunction, occupations=schedule_occupations)
     validate_transmission_chains(transmission_chains=transmission_chains)
 
     # 2. compute reached agents
-    online_reached_agents = {
-        transmission_chain[-1].hop_off.agent_id
-        for transmission_chain in transmission_chains
-    }
+    online_reached_agents = {transmission_chain[-1].hop_off.agent_id for transmission_chain in transmission_chains}
 
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
@@ -91,12 +87,9 @@ def scoper_online_for_all_agents(
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
             changed=(agent_id in online_reached_agents),
-            time_flexibility=time_flexibility
+            time_flexibility=time_flexibility,
         )
-        freeze_dict[agent_id] = RouteDAGConstraints(
-            earliest=earliest_dict,
-            latest=latest_dict
-        )
+        freeze_dict[agent_id] = RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
         topo_dict[agent_id] = topo
 
     # TODO SIM-324 pull out verification
@@ -110,15 +103,16 @@ def scoper_online_for_all_agents(
         )
     # N.B. re-schedule train run must not necessarily be open in route dag constraints!
 
-    return ScheduleProblemDescription(
-        route_dag_constraints_dict=freeze_dict,
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        topo_dict=topo_dict,
-        max_episode_steps=latest_arrival,
-        route_section_penalties=_extract_route_section_penalties(
-            schedule_trainruns=schedule_trainrun_dict,
+    return (
+        ScheduleProblemDescription(
+            route_dag_constraints_dict=freeze_dict,
+            minimum_travel_time_dict=minimum_travel_time_dict,
             topo_dict=topo_dict,
-            weight_route_change=weight_route_change
+            max_episode_steps=latest_arrival,
+            route_section_penalties=_extract_route_section_penalties(
+                schedule_trainruns=schedule_trainrun_dict, topo_dict=topo_dict, weight_route_change=weight_route_change
+            ),
+            weight_lateness_seconds=weight_lateness_seconds,
         ),
-        weight_lateness_seconds=weight_lateness_seconds
-    ), online_reached_agents
+        online_reached_agents,
+    )

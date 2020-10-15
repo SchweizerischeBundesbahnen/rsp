@@ -6,10 +6,7 @@ from rsp.utils.data_types import RouteDAGConstraints
 
 
 def _get_route_dag_constraints_for_scheduling(
-        topo: nx.DiGraph,
-        source_waypoint: Waypoint,
-        minimum_travel_time: int,
-        latest_arrival: int
+    topo: nx.DiGraph, source_waypoint: Waypoint, minimum_travel_time: int, latest_arrival: int
 ) -> RouteDAGConstraints:
     earliest = {source_waypoint: 0}
     latest = {sink: latest_arrival - 1 for sink in get_sinks_for_topo(topo)}
@@ -23,7 +20,4 @@ def _get_route_dag_constraints_for_scheduling(
         must_be_visited=set(),
         topo=topo,
     )
-    return RouteDAGConstraints(
-        earliest=earliest,
-        latest=latest,
-    )
+    return RouteDAGConstraints(earliest=earliest, latest=latest,)

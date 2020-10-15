@@ -14,6 +14,7 @@ def test_malfunction_variation():
     experiment_output_base_directory = create_experiment_folder_name("test_malfunction_variation")
     # TODO skip this test since rsp-data not available here - bad design smell
     from sys import platform
+
     if platform == "linux" or platform == "linux2" or platform == "win32":
         return
     try:
@@ -26,7 +27,7 @@ def test_malfunction_variation():
             # run only small fraction resulting in choosing one agent
             fraction_of_malfunction_agents=0.013,
         )
-        files = glob.glob(f'{output_dir}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/experiment*.pkl')
+        files = glob.glob(f"{output_dir}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}/experiment*.pkl")
         assert len(files) == 1, f"found {len(files)} files: {files}"
 
     finally:

@@ -10,11 +10,7 @@ from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SchedulingProblemInTimeWindows
 from rsp.utils.rsp_logger import rsp_logger
 
-TransmissionLeg = NamedTuple('TransmissionLeg', [
-    ('hop_on', ResourceOccupation),
-    ('hop_off', ResourceOccupation),
-    ('delay_time', int)
-])
+TransmissionLeg = NamedTuple("TransmissionLeg", [("hop_on", ResourceOccupation), ("hop_off", ResourceOccupation), ("delay_time", int)])
 TransmissionChain = List[TransmissionLeg]
 
 # hop-on resource-occupations reaching at this depth (int key = depth)
@@ -25,9 +21,9 @@ WAVE_PER_AGENT_AND_DEPTH = Dict[int, WAVE_PER_DEPTH]
 
 # TODO remove, not needed currently?
 
+
 def extract_transmission_chains_from_time_windows(  # noqa: C901
-        malfunction: ExperimentMalfunction,
-        time_windows: SchedulingProblemInTimeWindows
+    malfunction: ExperimentMalfunction, time_windows: SchedulingProblemInTimeWindows
 ) -> List[TransmissionChain]:
     """Derive transmission chains happening by time window overlap.
 
@@ -137,10 +133,11 @@ def extract_transmission_chains_from_schedule(malfunction: ExperimentMalfunction
                 impact_distance_from_wave_front = delay_time - remaining_delay_time
                 assert impact_distance_from_wave_front >= 0
                 # the propagation may flow backwards!
-                for subsequent_ro in [subsequent_ro
-                                      for subsequent_ro in resource_occupations_per_agent[ro.agent_id]
-                                      if subsequent_ro.interval.from_incl >= ro.interval.from_incl - remaining_delay_time
-                                      ]:
+                for subsequent_ro in [
+                    subsequent_ro
+                    for subsequent_ro in resource_occupations_per_agent[ro.agent_id]
+                    if subsequent_ro.interval.from_incl >= ro.interval.from_incl - remaining_delay_time
+                ]:
                     chain = history + [TransmissionLeg(ro, subsequent_ro, remaining_delay_time)]
                     assert subsequent_ro not in history
                     if ro in closed_wave_front and closed_wave_front[ro] > remaining_delay_time:
@@ -191,18 +188,17 @@ def validate_transmission_chain_time_window(transmission_chain: TransmissionChai
         assert tr2.hop_on.resource == tr1.hop_off.resource, (tr1, tr2)
 
         # transmission via time window overlap at the same resource
-        assert (tr1.hop_off.interval.from_incl <= tr2.hop_on.interval.from_incl <= tr1.hop_off.interval.to_excl) or \
-               (tr2.hop_on.interval.from_incl <= tr1.hop_off.interval.from_incl <= tr2.hop_on.interval.to_excl) or \
-               (tr2.hop_on.interval.from_incl <= tr1.hop_off.interval.from_incl and
-                tr2.hop_on.interval.to_excl >= tr1.hop_off.interval.to_excl) or \
-               (tr2.hop_on.interval.from_incl >= tr1.hop_off.interval.from_incl and
-                tr2.hop_on.interval.to_excl <= tr1.hop_off.interval.to_excl), \
-            (tr1, tr2)
+        assert (
+            (tr1.hop_off.interval.from_incl <= tr2.hop_on.interval.from_incl <= tr1.hop_off.interval.to_excl)
+            or (tr2.hop_on.interval.from_incl <= tr1.hop_off.interval.from_incl <= tr2.hop_on.interval.to_excl)
+            or (tr2.hop_on.interval.from_incl <= tr1.hop_off.interval.from_incl and tr2.hop_on.interval.to_excl >= tr1.hop_off.interval.to_excl)
+            or (tr2.hop_on.interval.from_incl >= tr1.hop_off.interval.from_incl and tr2.hop_on.interval.to_excl <= tr1.hop_off.interval.to_excl)
+        ), (tr1, tr2)
 
 
 def distance_matrix_from_tranmission_chains(
-        number_of_trains: int,
-        transmission_chains: List[TransmissionChain]) -> Tuple[np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
+    number_of_trains: int, transmission_chains: List[TransmissionChain]
+) -> Tuple[np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
     """
 
     Parameters

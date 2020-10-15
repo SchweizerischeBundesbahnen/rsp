@@ -16,18 +16,18 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 
 def scoper_random_for_all_agents(
-        full_reschedule_trainrun_dict: TrainrunDict,
-        full_reschedule_problem: ScheduleProblemDescription,
-        malfunction: ExperimentMalfunction,
-        minimum_travel_time_dict: Dict[int, int],
-        latest_arrival: int,
-        # pytorch convention for in-place operations: postfixed with underscore.
-        delta_random_topo_dict_to_: TopoDict,
-        schedule_trainrun_dict: TrainrunDict,
-        weight_route_change: int,
-        weight_lateness_seconds: int,
-        max_window_size_from_earliest: int,
-        changed_running_agents_online: int
+    full_reschedule_trainrun_dict: TrainrunDict,
+    full_reschedule_problem: ScheduleProblemDescription,
+    malfunction: ExperimentMalfunction,
+    minimum_travel_time_dict: Dict[int, int],
+    latest_arrival: int,
+    # pytorch convention for in-place operations: postfixed with underscore.
+    delta_random_topo_dict_to_: TopoDict,
+    schedule_trainrun_dict: TrainrunDict,
+    weight_route_change: int,
+    weight_lateness_seconds: int,
+    max_window_size_from_earliest: int,
+    changed_running_agents_online: int,
 ) -> ScheduleProblemDescription:
     """The scoper random only opens up the malfunction agent and the same
     amount of agents as were changed in the full re-schedule, but chosen
@@ -63,9 +63,7 @@ def scoper_random_for_all_agents(
     topo_dict: TopoDict = {}
 
     agents_running_after_malfunction = [
-        agent_id
-        for agent_id, schedule_trainrun in schedule_trainrun_dict.items()
-        if schedule_trainrun[-1].scheduled_at >= malfunction.time_step
+        agent_id for agent_id, schedule_trainrun in schedule_trainrun_dict.items() if schedule_trainrun[-1].scheduled_at >= malfunction.time_step
     ]
     assert malfunction.agent_id in agents_running_after_malfunction
 
@@ -85,10 +83,7 @@ def scoper_random_for_all_agents(
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
         )
-        freeze_dict[agent_id] = RouteDAGConstraints(
-            earliest=earliest_dict,
-            latest=latest_dict
-        )
+        freeze_dict[agent_id] = RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
         topo_dict[agent_id] = topo
 
     # TODO SIM-324 pull out verification
@@ -102,15 +97,16 @@ def scoper_random_for_all_agents(
         )
         # N.B. re-schedule train run must not necessarily be open in route dag constraints!
 
-    return ScheduleProblemDescription(
-        route_dag_constraints_dict=freeze_dict,
-        minimum_travel_time_dict=minimum_travel_time_dict,
-        topo_dict=topo_dict,
-        max_episode_steps=latest_arrival,
-        route_section_penalties=_extract_route_section_penalties(
-            schedule_trainruns=schedule_trainrun_dict,
+    return (
+        ScheduleProblemDescription(
+            route_dag_constraints_dict=freeze_dict,
+            minimum_travel_time_dict=minimum_travel_time_dict,
             topo_dict=topo_dict,
-            weight_route_change=weight_route_change
+            max_episode_steps=latest_arrival,
+            route_section_penalties=_extract_route_section_penalties(
+                schedule_trainruns=schedule_trainrun_dict, topo_dict=topo_dict, weight_route_change=weight_route_change
+            ),
+            weight_lateness_seconds=weight_lateness_seconds,
         ),
-        weight_lateness_seconds=weight_lateness_seconds
-    ), set(changed_agents)
+        set(changed_agents),
+    )

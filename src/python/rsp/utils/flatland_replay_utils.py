@@ -55,15 +55,17 @@ def convert_trainrun_dict_to_train_schedule_dict(trainrun_dict: TrainrunDict) ->
     return train_schedule_dict
 
 
-def render_trainruns(rail_env: RailEnv,  # noqa:C901
-                     trainruns: TrainrunDict,
-                     title: str = None,
-                     malfunction: Optional[ExperimentMalfunction] = None,
-                     experiment_id: int = 0,
-                     data_folder: Optional[str] = None,
-                     convert_to_mpeg: bool = False,
-                     mpeg_resolution: str = '640x360',
-                     show: bool = False):
+def render_trainruns(  # noqa:C901
+    rail_env: RailEnv,
+    trainruns: TrainrunDict,
+    title: str = None,
+    malfunction: Optional[ExperimentMalfunction] = None,
+    experiment_id: int = 0,
+    data_folder: Optional[str] = None,
+    convert_to_mpeg: bool = False,
+    mpeg_resolution: str = "640x360",
+    show: bool = False,
+):
     """
 
     Parameters
@@ -98,9 +100,7 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
 
         if title is not None:
             foldername = f"experiment_{experiment_id}_rendering_output_{title}"
-        image_output_directory = os.path.join(data_folder,
-                                              f"experiment_{experiment_id:04d}_analysis",
-                                              foldername)
+        image_output_directory = os.path.join(data_folder, f"experiment_{experiment_id:04d}_analysis", foldername)
 
         check_create_folder(image_output_directory)
     train_schedule_dict: TrainScheduleDict = convert_trainrun_dict_to_train_schedule_dict(trainrun_dict=trainruns)
@@ -123,12 +123,7 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
             else:
                 rail_env.agents[malfunction.agent_id].malfunction_data["malfunction"] = 0
         # TODO SIM-516  simplify: test_id, solver_name???
-        render_env(renderer,
-                   test_id=0,
-                   solver_name='data_analysis',
-                   i_step=time_step,
-                   show=show,
-                   image_output_directory=image_output_directory)
+        render_env(renderer, test_id=0, solver_name="data_analysis", i_step=time_step, show=show, image_output_directory=image_output_directory)
 
     try:
         cleanup_renderer_for_env(renderer)
@@ -137,15 +132,13 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
         warnings.warn(str(e))
     if convert_to_mpeg:
         import ffmpeg
-        (ffmpeg
-         .input(f'{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png', r='5', s=mpeg_resolution)
-         .output(
-            f'{image_output_directory}/experiment_{experiment_id}_flatland_data_analysis.mp4',
-            crf=15,
-            pix_fmt='yuv420p', vcodec='libx264')
-         .overwrite_output()
-         .run()
-         )
+
+        (
+            ffmpeg.input(f"{image_output_directory}/flatland_frame_0000_%04d_data_analysis.png", r="5", s=mpeg_resolution)
+            .output(f"{image_output_directory}/experiment_{experiment_id}_flatland_data_analysis.mp4", crf=15, pix_fmt="yuv420p", vcodec="libx264")
+            .overwrite_output()
+            .run()
+        )
 
 
 # --------------------------------------------------------------------------------------
@@ -156,19 +149,19 @@ def render_trainruns(rail_env: RailEnv,  # noqa:C901
 def init_renderer_for_env(env: RailEnv):
     from flatland.utils.rendertools import AgentRenderVariant
     from flatland.utils.rendertools import RenderTool
-    return RenderTool(env, gl="PILSVG",
-                      agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
-                      show_debug=True,
-                      clear_debug_text=True,
-                      screen_height=1000,
-                      screen_width=1000)
+
+    return RenderTool(
+        env,
+        gl="PILSVG",
+        agent_render_variant=AgentRenderVariant.AGENT_SHOWS_OPTIONS_AND_BOX,
+        show_debug=True,
+        clear_debug_text=True,
+        screen_height=1000,
+        screen_width=1000,
+    )
 
 
-def render_env(renderer,
-               test_id: int,
-               solver_name, i_step: int,
-               show=True,
-               image_output_directory: Optional[str] = './rendering_output'):
+def render_env(renderer, test_id: int, solver_name, i_step: int, show=True, image_output_directory: Optional[str] = "./rendering_output"):
     """
 
     Parameters
@@ -186,19 +179,18 @@ def render_env(renderer,
         store files to this directory if given
     """
     from flatland.utils.rendertools import RenderTool
+
     renderer: RenderTool = renderer
     renderer.render_env(show=show, show_observations=False, show_predictions=False)
     if image_output_directory is not None:
         if not os.path.exists(image_output_directory):
             os.makedirs(image_output_directory)
-        renderer.gl.save_image(os.path.join(image_output_directory,
-                                            "flatland_frame_{:04d}_{:04d}_{}.png".format(test_id,
-                                                                                         i_step,
-                                                                                         solver_name)))
+        renderer.gl.save_image(os.path.join(image_output_directory, "flatland_frame_{:04d}_{:04d}_{}.png".format(test_id, i_step, solver_name)))
 
 
 def cleanup_renderer_for_env(renderer):
     from flatland.utils.rendertools import RenderTool
+
     renderer: RenderTool = renderer
     # close renderer window
     try:

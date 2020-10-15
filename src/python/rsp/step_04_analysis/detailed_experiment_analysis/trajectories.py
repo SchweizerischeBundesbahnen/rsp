@@ -16,12 +16,12 @@ from rsp.utils.global_constants import RELEASE_TIME
 
 Trajectory = List[Tuple[Optional[int], Optional[int]]]  # Time and sorted resource, optional
 Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle
-SpaceTimeDifference = NamedTuple('Space_Time_Difference', [('changed_agents', Trajectories),
-                                                           ('additional_information', Dict)])
+SpaceTimeDifference = NamedTuple("Space_Time_Difference", [("changed_agents", Trajectories), ("additional_information", Dict)])
 
 
 # Information used for plotting time-resource-graphs: Sorting is dict mapping ressource to int value used to sort
 # resources for nice visualization
+
 
 def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescription) -> SortedResourceOccupationsPerAgent:
     time_windows_per_agent = {}
@@ -32,12 +32,11 @@ def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescr
             waypoint: Waypoint = waypoint
             resource = waypoint.position
             latest = route_dag_constraints.latest[waypoint]
-            time_windows_per_agent[agent_id].append(ResourceOccupation(
-                interval=LeftClosedInterval(earliest, latest + RELEASE_TIME),
-                resource=resource,
-                agent_id=agent_id,
-                direction=waypoint.direction
-            ))
+            time_windows_per_agent[agent_id].append(
+                ResourceOccupation(
+                    interval=LeftClosedInterval(earliest, latest + RELEASE_TIME), resource=resource, agent_id=agent_id, direction=waypoint.direction
+                )
+            )
     return time_windows_per_agent
 
 
@@ -99,14 +98,12 @@ def get_difference_in_time_space_trajectories(base_trajectories: Trajectories, t
         else:
             traces_influenced_agents[agent_id] = [(None, None)]
             additional_information.update({agent_id: False})
-    space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents,
-                                                additional_information=additional_information)
+    space_time_difference = SpaceTimeDifference(changed_agents=traces_influenced_agents, additional_information=additional_information)
     return space_time_difference
 
 
 def trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule: SortedResourceOccupationsPerAgent,
-        plotting_information: PlottingInformation
+    resource_occupations_schedule: SortedResourceOccupationsPerAgent, plotting_information: PlottingInformation
 ) -> Trajectories:
     """
     Build trajectories for time-resource graph

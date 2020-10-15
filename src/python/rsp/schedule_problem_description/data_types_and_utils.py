@@ -15,24 +15,24 @@ TopoDict = Dict[int, nx.DiGraph]
 AgentPaths = List[List[Waypoint]]
 AgentsPathsDict = Dict[int, AgentPaths]
 
-RouteDAGConstraints = NamedTuple('RouteDAGConstraints', [
-    ('earliest', Dict[Waypoint, int]),
-    ('latest', Dict[Waypoint, int])
-])
+RouteDAGConstraints = NamedTuple("RouteDAGConstraints", [("earliest", Dict[Waypoint, int]), ("latest", Dict[Waypoint, int])])
 
 RouteDAGConstraintsDict = Dict[int, RouteDAGConstraints]
 RouteDagEdge = Tuple[Waypoint, Waypoint]
 RouteSectionPenalties = Dict[RouteDagEdge, int]
 WaypointPenalties = Dict[Waypoint, int]
 RouteSectionPenaltiesDict = Dict[int, RouteSectionPenalties]
-ScheduleProblemDescription = NamedTuple('ScheduleProblemDescription', [
-    ('route_dag_constraints_dict', RouteDAGConstraintsDict),
-    ('minimum_travel_time_dict', Dict[int, int]),
-    ('topo_dict', Dict[int, nx.DiGraph]),
-    ('max_episode_steps', int),
-    ('route_section_penalties', RouteSectionPenaltiesDict),
-    ('weight_lateness_seconds', int),
-])
+ScheduleProblemDescription = NamedTuple(
+    "ScheduleProblemDescription",
+    [
+        ("route_dag_constraints_dict", RouteDAGConstraintsDict),
+        ("minimum_travel_time_dict", Dict[int, int]),
+        ("topo_dict", Dict[int, nx.DiGraph]),
+        ("max_episode_steps", int),
+        ("route_section_penalties", RouteSectionPenaltiesDict),
+        ("weight_lateness_seconds", int),
+    ],
+)
 
 
 class ScheduleProblemEnum(Enum):
@@ -49,7 +49,7 @@ def schedule_problem_description_equals(s1: ScheduleProblemDescription, s2: Sche
     We cannot test by == since we have `nx.DiGraph` objects as values.
     """
     for index, slot in enumerate(s1._fields):
-        if slot == 'topo_dict':
+        if slot == "topo_dict":
             if s1.topo_dict.keys() != s2.topo_dict.keys():
                 return False
             for agent_id in s1.topo_dict:
@@ -64,9 +64,7 @@ def schedule_problem_description_equals(s1: ScheduleProblemDescription, s2: Sche
     return True
 
 
-def route_dag_constraints_dict_from_list_of_train_run_waypoint(
-        l: List[TrainrunWaypoint]
-) -> Dict[TrainrunWaypoint, int]:
+def route_dag_constraints_dict_from_list_of_train_run_waypoint(l: List[TrainrunWaypoint]) -> Dict[TrainrunWaypoint, int]:
     """Generate dictionary of scheduled time at waypoint.
 
     Parameters
@@ -158,7 +156,6 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
 
 def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> TopoDict:
     # get topology from agent paths
-    topo_dict = {agent_id: topo_from_agent_paths(agents_paths_dict[agent_id])
-                 for agent_id in agents_paths_dict}
+    topo_dict = {agent_id: topo_from_agent_paths(agents_paths_dict[agent_id]) for agent_id in agents_paths_dict}
 
     return topo_dict

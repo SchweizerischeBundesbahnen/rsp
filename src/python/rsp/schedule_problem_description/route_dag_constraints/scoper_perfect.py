@@ -23,15 +23,15 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 
 def scoper_perfect(
-        agent_id: int,
-        # pytorch convention for in-place operations: postfixed with underscore.
-        topo_: nx.DiGraph,
-        schedule_trainrun: Trainrun,
-        full_reschedule_trainrun: Trainrun,
-        malfunction: ExperimentMalfunction,
-        minimum_travel_time: int,
-        latest_arrival: int,
-        max_window_size_from_earliest: int = np.inf
+    agent_id: int,
+    # pytorch convention for in-place operations: postfixed with underscore.
+    topo_: nx.DiGraph,
+    schedule_trainrun: Trainrun,
+    full_reschedule_trainrun: Trainrun,
+    malfunction: ExperimentMalfunction,
+    minimum_travel_time: int,
+    latest_arrival: int,
+    max_window_size_from_earliest: int = np.inf,
 ):
     """"Scoper perfect":
 
@@ -86,17 +86,15 @@ def scoper_perfect(
 
     # this is v_2 in paper
     delayed_trainrun_waypoint_after_malfunction = _get_delayed_trainrun_waypoint_after_malfunction(
-        agent_id=agent_id,
-        trainrun=schedule_trainrun,
-        malfunction=malfunction,
-        minimum_travel_time=minimum_travel_time
+        agent_id=agent_id, trainrun=schedule_trainrun, malfunction=malfunction, minimum_travel_time=minimum_travel_time
     )
     earliest_dict[delayed_trainrun_waypoint_after_malfunction.waypoint] = delayed_trainrun_waypoint_after_malfunction.scheduled_at
 
     force_earliest = waypoints_same_location_and_time.union({delayed_trainrun_waypoint_after_malfunction.waypoint})
-    assert set(force_earliest).issubset(topo_out.nodes), \
-        f"{force_earliest.difference(topo_out.nodes)} - {set(topo_out.nodes).difference(force_earliest)} // " \
+    assert set(force_earliest).issubset(topo_out.nodes), (
+        f"{force_earliest.difference(topo_out.nodes)} - {set(topo_out.nodes).difference(force_earliest)} // "
         f"{set(topo_out.nodes).intersection(force_earliest)} // {delayed_trainrun_waypoint_after_malfunction}"
+    )
     propagate(
         earliest_dict=earliest_dict,
         latest_dict=latest_dict,
@@ -106,21 +104,22 @@ def scoper_perfect(
         must_be_visited=waypoints_same_location,
         minimum_travel_time=minimum_travel_time,
         latest_arrival=latest_arrival,
-        max_window_size_from_earliest=max_window_size_from_earliest
+        max_window_size_from_earliest=max_window_size_from_earliest,
     )
     return earliest_dict, latest_dict, topo_out
 
 
 def scoper_perfect_for_all_agents(
-        full_reschedule_trainrun_dict: TrainrunDict,
-        malfunction: ExperimentMalfunction,
-        minimum_travel_time_dict: Dict[int, int],
-        max_episode_steps: int,
-        delta_perfect_reschedule_topo_dict_: TopoDict,
-        schedule_trainrun_dict: TrainrunDict,
-        weight_route_change: int,
-        weight_lateness_seconds: int,
-        max_window_size_from_earliest: int = np.inf) -> ScheduleProblemDescription:
+    full_reschedule_trainrun_dict: TrainrunDict,
+    malfunction: ExperimentMalfunction,
+    minimum_travel_time_dict: Dict[int, int],
+    max_episode_steps: int,
+    delta_perfect_reschedule_topo_dict_: TopoDict,
+    schedule_trainrun_dict: TrainrunDict,
+    weight_route_change: int,
+    weight_lateness_seconds: int,
+    max_window_size_from_earliest: int = np.inf,
+) -> ScheduleProblemDescription:
     """The scoper perfect only opens up the differences between the schedule
     and the imaginary re-schedule. It gives no additional routing flexibility!
 
@@ -160,13 +159,9 @@ def scoper_perfect_for_all_agents(
             malfunction=malfunction,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
             latest_arrival=max_episode_steps,
-            max_window_size_from_earliest=max_window_size_from_earliest
-
+            max_window_size_from_earliest=max_window_size_from_earliest,
         )
-        freeze_dict[agent_id] = RouteDAGConstraints(
-            earliest=earliest_dict,
-            latest=latest_dict
-        )
+        freeze_dict[agent_id] = RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
         topo_dict[agent_id] = topo
 
     # TODO SIM-324 pull out verification
@@ -180,9 +175,7 @@ def scoper_perfect_for_all_agents(
         )
         # re-schedule train run must be open in route dag constraints
         verify_trainrun_satisfies_route_dag_constraints(
-            agent_id=agent_id,
-            route_dag_constraints=freeze_dict[agent_id],
-            scheduled_trainrun=full_reschedule_trainrun_dict[agent_id]
+            agent_id=agent_id, route_dag_constraints=freeze_dict[agent_id], scheduled_trainrun=full_reschedule_trainrun_dict[agent_id]
         )
 
     return ScheduleProblemDescription(
@@ -191,9 +184,7 @@ def scoper_perfect_for_all_agents(
         topo_dict=topo_dict,
         max_episode_steps=max_episode_steps,
         route_section_penalties=_extract_route_section_penalties(
-            schedule_trainruns=schedule_trainrun_dict,
-            topo_dict=topo_dict,
-            weight_route_change=weight_route_change
+            schedule_trainruns=schedule_trainrun_dict, topo_dict=topo_dict, weight_route_change=weight_route_change
         ),
-        weight_lateness_seconds=weight_lateness_seconds
+        weight_lateness_seconds=weight_lateness_seconds,
     )

@@ -10,82 +10,79 @@ from rsp.utils.experiment_env_generators import create_flatland_environment
 
 
 def _get_test_env():
-    env = create_flatland_environment(number_of_agents=1,
-                                      width=30,
-                                      height=30,
-                                      flatland_seed_value=12,
-                                      max_num_cities=20,
-                                      grid_mode=True,
-                                      max_rails_between_cities=2,
-                                      max_rails_in_city=6,
-                                      speed_data={1: 1.0})
+    env = create_flatland_environment(
+        number_of_agents=1,
+        width=30,
+        height=30,
+        flatland_seed_value=12,
+        max_num_cities=20,
+        grid_mode=True,
+        max_rails_between_cities=2,
+        max_rails_in_city=6,
+        speed_data={1: 1.0},
+    )
     env.reset(random_seed=12)
 
-    k_shortest_paths = get_k_shortest_paths(env,
-                                            env.agents[0].initial_position,
-                                            env.agents[0].initial_direction,
-                                            env.agents[0].target,
-                                            10)
+    k_shortest_paths = get_k_shortest_paths(env, env.agents[0].initial_position, env.agents[0].initial_direction, env.agents[0].target, 10)
     topo_dict = _get_topology_from_agents_path_dict({0: k_shortest_paths})
-    minimum_travel_time = int(np.ceil(1 / env.agents[0].speed_data['speed']))
+    minimum_travel_time = int(np.ceil(1 / env.agents[0].speed_data["speed"]))
     latest_arrival = env._max_episode_steps
 
     return topo_dict, minimum_travel_time, latest_arrival
 
 
 def test_scheduling_propagate_earliest():
-    earliest_truth = {Waypoint(position=(8, 23), direction=1): 1 - 1,
-                      Waypoint(position=(8, 24), direction=1): 2 - 1,
-                      Waypoint(position=(8, 25), direction=1): 3 - 1,
-                      Waypoint(position=(8, 26), direction=1): 4 - 1,
-                      Waypoint(position=(8, 27), direction=1): 5 - 1,
-                      Waypoint(position=(8, 28), direction=1): 6 - 1,
-                      Waypoint(position=(7, 27), direction=0): 6 - 1,
-                      Waypoint(position=(8, 29), direction=1): 7 - 1,
-                      Waypoint(position=(9, 29), direction=2): 8 - 1,
-                      Waypoint(position=(10, 29), direction=2): 9 - 1,
-                      Waypoint(position=(11, 29), direction=2): 10 - 1,
-                      Waypoint(position=(12, 29), direction=2): 11 - 1,
-                      Waypoint(position=(13, 29), direction=2): 12 - 1,
-                      Waypoint(position=(14, 29), direction=2): 13 - 1,
-                      Waypoint(position=(13, 28), direction=3): 13 - 1,
-                      Waypoint(position=(15, 29), direction=2): 14 - 1,
-                      Waypoint(position=(16, 29), direction=2): 15 - 1,
-                      Waypoint(position=(17, 29), direction=2): 16 - 1,
-                      Waypoint(position=(18, 29), direction=2): 17 - 1,
-                      Waypoint(position=(19, 29), direction=2): 18 - 1,
-                      Waypoint(position=(20, 29), direction=2): 19 - 1,
-                      Waypoint(position=(21, 29), direction=2): 20 - 1,
-                      Waypoint(position=(22, 29), direction=2): 21 - 1,
-                      Waypoint(position=(23, 29), direction=2): 22 - 1,
-                      Waypoint(position=(24, 29), direction=2): 23 - 1,
-                      Waypoint(position=(23, 28), direction=3): 23 - 1,
-                      Waypoint(position=(24, 28), direction=3): 24 - 1,
-                      Waypoint(position=(24, 27), direction=3): 25 - 1,
-                      Waypoint(position=(24, 26), direction=3): 26 - 1,
-                      Waypoint(position=(24, 25), direction=3): 27 - 1,
-                      Waypoint(position=(24, 24), direction=3): 28 - 1,
-                      Waypoint(position=(24, 23), direction=3): 29 - 1,
-                      Waypoint(position=(24, 23), direction=5): 30 - 1,
-                      Waypoint(position=(23, 27), direction=3): 24 - 1,
-                      Waypoint(position=(24, 27), direction=2): 25 - 1,
-                      Waypoint(position=(7, 28), direction=1): 7 - 1,
-                      Waypoint(position=(7, 29), direction=1): 8 - 1,
-                      Waypoint(position=(8, 29), direction=2): 9 - 1,
-                      Waypoint(position=(14, 28), direction=2): 14 - 1,
-                      Waypoint(position=(15, 28), direction=2): 15 - 1,
-                      Waypoint(position=(16, 28), direction=2): 16 - 1,
-                      Waypoint(position=(17, 28), direction=2): 17 - 1,
-                      Waypoint(position=(17, 29), direction=1): 18 - 1}
+    earliest_truth = {
+        Waypoint(position=(8, 23), direction=1): 1 - 1,
+        Waypoint(position=(8, 24), direction=1): 2 - 1,
+        Waypoint(position=(8, 25), direction=1): 3 - 1,
+        Waypoint(position=(8, 26), direction=1): 4 - 1,
+        Waypoint(position=(8, 27), direction=1): 5 - 1,
+        Waypoint(position=(8, 28), direction=1): 6 - 1,
+        Waypoint(position=(7, 27), direction=0): 6 - 1,
+        Waypoint(position=(8, 29), direction=1): 7 - 1,
+        Waypoint(position=(9, 29), direction=2): 8 - 1,
+        Waypoint(position=(10, 29), direction=2): 9 - 1,
+        Waypoint(position=(11, 29), direction=2): 10 - 1,
+        Waypoint(position=(12, 29), direction=2): 11 - 1,
+        Waypoint(position=(13, 29), direction=2): 12 - 1,
+        Waypoint(position=(14, 29), direction=2): 13 - 1,
+        Waypoint(position=(13, 28), direction=3): 13 - 1,
+        Waypoint(position=(15, 29), direction=2): 14 - 1,
+        Waypoint(position=(16, 29), direction=2): 15 - 1,
+        Waypoint(position=(17, 29), direction=2): 16 - 1,
+        Waypoint(position=(18, 29), direction=2): 17 - 1,
+        Waypoint(position=(19, 29), direction=2): 18 - 1,
+        Waypoint(position=(20, 29), direction=2): 19 - 1,
+        Waypoint(position=(21, 29), direction=2): 20 - 1,
+        Waypoint(position=(22, 29), direction=2): 21 - 1,
+        Waypoint(position=(23, 29), direction=2): 22 - 1,
+        Waypoint(position=(24, 29), direction=2): 23 - 1,
+        Waypoint(position=(23, 28), direction=3): 23 - 1,
+        Waypoint(position=(24, 28), direction=3): 24 - 1,
+        Waypoint(position=(24, 27), direction=3): 25 - 1,
+        Waypoint(position=(24, 26), direction=3): 26 - 1,
+        Waypoint(position=(24, 25), direction=3): 27 - 1,
+        Waypoint(position=(24, 24), direction=3): 28 - 1,
+        Waypoint(position=(24, 23), direction=3): 29 - 1,
+        Waypoint(position=(24, 23), direction=5): 30 - 1,
+        Waypoint(position=(23, 27), direction=3): 24 - 1,
+        Waypoint(position=(24, 27), direction=2): 25 - 1,
+        Waypoint(position=(7, 28), direction=1): 7 - 1,
+        Waypoint(position=(7, 29), direction=1): 8 - 1,
+        Waypoint(position=(8, 29), direction=2): 9 - 1,
+        Waypoint(position=(14, 28), direction=2): 14 - 1,
+        Waypoint(position=(15, 28), direction=2): 15 - 1,
+        Waypoint(position=(16, 28), direction=2): 16 - 1,
+        Waypoint(position=(17, 28), direction=2): 17 - 1,
+        Waypoint(position=(17, 29), direction=1): 18 - 1,
+    }
 
     topo_dict, minimum_travel_time, latest_arrival = _get_test_env()
     source_waypoint = next(get_sources_for_topo(topo_dict[0]))
 
     earliest = _propagate_earliest(
-        earliest_dict={source_waypoint: 0},
-        minimum_travel_time=minimum_travel_time,
-        force_earliest={source_waypoint},
-        topo=topo_dict[0],
+        earliest_dict={source_waypoint: 0}, minimum_travel_time=minimum_travel_time, force_earliest={source_waypoint}, topo=topo_dict[0],
     )
 
     for waypoint, earliest_time in earliest.items():
@@ -150,7 +147,7 @@ def test_scheduling_propagate_latest_backwards():
         max_window_size_from_earliest=np.inf,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
-        must_be_visited=set()
+        must_be_visited=set(),
     )
 
     for waypoint, earliest_time in latest.items():
@@ -173,7 +170,7 @@ def test_scheduling_propagate_latest_forward():
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
-        must_be_visited=set()
+        must_be_visited=set(),
     )
 
     for waypoint, earliest_time in earliest.items():
@@ -244,7 +241,7 @@ def test_scheduling_propagate_latest_forward_backward_min():
         max_window_size_from_earliest=max_window_size_from_earliest,
         minimum_travel_time=minimum_travel_time,
         topo=topo_dict[0],
-        must_be_visited=set()
+        must_be_visited=set(),
     )
 
     for waypoint, latest_time in latest.items():

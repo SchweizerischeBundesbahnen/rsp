@@ -5,8 +5,7 @@ VERBOSE = 15
 
 rsp_logger = logging.getLogger()
 rsp_logger.setLevel(logging.INFO)
-rsp_log_formatter = logging.Formatter(
-    '[%(asctime)s][%(levelname)s][%(process)d][%(filename)s:%(funcName)s:%(lineno)d] %(message)s')
+rsp_log_formatter = logging.Formatter("[%(asctime)s][%(levelname)s][%(process)d][%(filename)s:%(funcName)s:%(lineno)d] %(message)s")
 
 # standard handler to stdout
 stdout_handler = logging.StreamHandler(sys.stdout)

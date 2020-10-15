@@ -14,7 +14,7 @@ def human_readable_size(size, significant_places=3):
     -------
 
     """
-    for unit in ['B', 'KiB', 'MiB', 'GiB', 'TiB']:  # noqa: B007
+    for unit in ["B", "KiB", "MiB", "GiB", "TiB"]:  # noqa: B007
         if size < 1024.0:
             break
         size /= 1024.0
@@ -24,11 +24,13 @@ def human_readable_size(size, significant_places=3):
 def virtual_memory_human_readable() -> str:
     """Print virtual memory stats in a human readable format."""
     svmem = psutil.virtual_memory()
-    return (f"total={human_readable_size(svmem.total)},"
-            f"available={human_readable_size(svmem.available)},"
-            f"percent={svmem.percent}%,"
-            f"used={human_readable_size(svmem.used)},"
-            f"free={human_readable_size(svmem.free)}")
+    return (
+        f"total={human_readable_size(svmem.total)},"
+        f"available={human_readable_size(svmem.available)},"
+        f"percent={svmem.percent}%,"
+        f"used={human_readable_size(svmem.used)},"
+        f"free={human_readable_size(svmem.free)}"
+    )
 
 
 def current_process_stats_human_readable():

@@ -47,9 +47,8 @@ from rsp.utils.file_utils import check_create_folder
 
 
 def plot_time_window_resource_trajectories(
-        experiment_result: ExperimentResultsAnalysis,
-        schedule_plotting: SchedulePlotting,
-        output_folder: Optional[str] = None):
+    experiment_result: ExperimentResultsAnalysis, schedule_plotting: SchedulePlotting, output_folder: Optional[str] = None
+):
     """Plot time-window -- resource diagram for all three problems.
 
     Parameters
@@ -58,47 +57,43 @@ def plot_time_window_resource_trajectories(
     schedule_plotting
     """
     for title, problem in {
-        'Schedule': experiment_result.problem_full,
-        'Full Re-Schedule': experiment_result.problem_full_after_malfunction,
-        'scope perfect re-schedule': experiment_result.problem_delta_perfect_after_malfunction
+        "Schedule": experiment_result.problem_full,
+        "Full Re-Schedule": experiment_result.problem_full_after_malfunction,
+        "scope perfect re-schedule": experiment_result.problem_delta_perfect_after_malfunction,
     }.items():
         resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
         trajectories = trajectories_from_resource_occupations_per_agent(
-            resource_occupations_schedule=resource_occupations_schedule,
-            plotting_information=schedule_plotting.plotting_information)
+            resource_occupations_schedule=resource_occupations_schedule, plotting_information=schedule_plotting.plotting_information
+        )
         plot_time_resource_trajectories(
-            trajectories=trajectories, title=title,
+            trajectories=trajectories,
+            title=title,
             plotting_information=schedule_plotting.plotting_information,
             malfunction=schedule_plotting.malfunction,
-            output_folder=output_folder)
+            output_folder=output_folder,
+        )
 
 
-def plot_shared_heatmap(
-        schedule_plotting: SchedulePlotting,
-        experiment_result: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
     ----------
     experiment_result
     """
-    layout = go.Layout(
-        plot_bgcolor=GREY_BACKGROUND_COLOR
-    )
+    layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
     plotting_information = schedule_plotting.plotting_information
     for title, result in {
-        'Schedule': experiment_result.results_full,
-        'Full Re-Schedule': experiment_result.results_full_after_malfunction,
-        'scope perfect re-schedule': experiment_result.results_delta_perfect_after_malfunction
+        "Schedule": experiment_result.results_full,
+        "Full Re-Schedule": experiment_result.results_full_after_malfunction,
+        "scope perfect re-schedule": experiment_result.results_delta_perfect_after_malfunction,
     }.items():
-        shared = list(filter(lambda s: s.startswith('shared'), result.solver_result))
+        shared = list(filter(lambda s: s.startswith("shared"), result.solver_result))
         shared_per_resource = {}
         for sh in shared:
-            sh = sh.replace('shared', '')
-            sh = re.sub('t[0-9]+', '"XXX"', sh)
+            sh = sh.replace("shared", "")
+            sh = re.sub("t[0-9]+", '"XXX"', sh)
             #  the position of each entry waypoint is the cell that will be in conflict
             (_, (wp00, _), _, (wp10, _)) = eval(sh)
             if wp00[0] not in shared_per_resource:
@@ -117,42 +112,31 @@ def plot_shared_heatmap(
             y.append(resource[0])
             z.append(occupancy)
 
-        fig.add_trace(go.Scattergl(
-            x=x,
-            y=y,
-            mode='markers',
-            name=title,
-            marker=dict(
-                color=z,
-                size=15,
-                symbol='square',
-                showscale=True,
-                reversescale=False,
-                colorbar=dict(
-                    title="Number of shared", len=0.75
-                ), colorscale="Hot"
-            )))
+        fig.add_trace(
+            go.Scattergl(
+                x=x,
+                y=y,
+                mode="markers",
+                name=title,
+                marker=dict(
+                    color=z, size=15, symbol="square", showscale=True, reversescale=False, colorbar=dict(title="Number of shared", len=0.75), colorscale="Hot"
+                ),
+            )
+        )
 
-    fig.update_layout(title_text="Shared Resources",
-                      autosize=False,
-                      width=1000,
-                      height=1000)
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_layout(title_text="Shared Resources", autosize=False, width=1000, height=1000)
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
     if output_folder is None:
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'shared_heatmap.pdf')
+        pdf_file = os.path.join(output_folder, f"shared_heatmap.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
-def plot_resource_time_diagrams(
-        schedule_plotting: SchedulePlotting,
-        with_diff: bool = True,
-        output_folder: Optional[str] = None
-) -> Dict[int, bool]:
+def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True, output_folder: Optional[str] = None) -> Dict[int, bool]:
     """Method to draw resource-time diagrams in 2d.
 
     Parameters
@@ -166,34 +150,32 @@ def plot_resource_time_diagrams(
         List of agent ids that changed between schedule an reschedule full
     """
     plotting_information = schedule_plotting.plotting_information
-    resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_full: SortedResourceOccupationsPerAgent = \
-        schedule_plotting.reschedule_full_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_delta_perfect: SortedResourceOccupationsPerAgent = \
-        schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_schedule = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_reschedule_full = schedule_plotting.reschedule_full_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_reschedule_delta_perfect = schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
     trajectories_schedule: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_schedule,
-        plotting_information=plotting_information)
+        resource_occupations_schedule=resource_occupations_schedule, plotting_information=plotting_information
+    )
     trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_reschedule_full,
-        plotting_information=plotting_information)
+        resource_occupations_schedule=resource_occupations_reschedule_full, plotting_information=plotting_information
+    )
     trajectories_reschedule_delta_perfect: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_reschedule_delta_perfect,
-        plotting_information=plotting_information)
+        resource_occupations_schedule=resource_occupations_reschedule_delta_perfect, plotting_information=plotting_information
+    )
 
     # Plot Schedule
     plot_time_resource_trajectories(
-        title='Schedule',
+        title="Schedule",
         plotting_information=schedule_plotting.plotting_information,
         malfunction=schedule_plotting.malfunction,
         trajectories=trajectories_schedule,
-        output_folder=output_folder
+        output_folder=output_folder,
     )
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
     trajectories_influenced_agents, changed_agents_dict = get_difference_in_time_space_trajectories(
-        target_trajectories=trajectories_schedule,
-        base_trajectories=trajectories_reschedule_full)
+        target_trajectories=trajectories_schedule, base_trajectories=trajectories_reschedule_full
+    )
 
     # Printing situation overview
 
@@ -204,29 +186,29 @@ def plot_resource_time_diagrams(
     if nb_changed_agents > 0:
         plot_time_resource_trajectories(
             trajectories=trajectories_reschedule_full,
-            title='Full Reschedule',
+            title="Full Reschedule",
             plotting_information=schedule_plotting.plotting_information,
             malfunction=schedule_plotting.malfunction,
-            output_folder=output_folder
+            output_folder=output_folder,
         )
 
     # Plot Reschedule Delta Perfect with additional data
     plot_time_resource_trajectories(
-        title='Delta Perfect Reschedule',
+        title="Delta Perfect Reschedule",
         plotting_information=schedule_plotting.plotting_information,
         malfunction=schedule_plotting.malfunction,
         trajectories=trajectories_reschedule_delta_perfect,
-        output_folder=output_folder
+        output_folder=output_folder,
     )
 
     # Plot difference if asked for
     if with_diff:
         plot_time_resource_trajectories(
             trajectories=trajectories_influenced_agents,
-            title='Changed Agents',
+            title="Changed Agents",
             plotting_information=schedule_plotting.plotting_information,
             malfunction=schedule_plotting.malfunction,
-            output_folder=output_folder
+            output_folder=output_folder,
         )
 
     return changed_agents_dict
@@ -236,8 +218,7 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
     # Printing situation overview
     malfunction = schedule_plotting.malfunction
     resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_delta_perfect: SortedResourceOccupationsPerAgent = \
-        schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_reschedule_delta_perfect = schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
 
     nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
     total_lateness = sum(
@@ -246,21 +227,19 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
     )
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
-            malfunction.agent_id,
-            malfunction.time_step,
-            malfunction.malfunction_duration,
-            nb_changed_agents,
-            total_lateness))
+            malfunction.agent_id, malfunction.time_step, malfunction.malfunction_duration, nb_changed_agents, total_lateness
+        )
+    )
 
 
 def plot_time_resource_trajectories(
-        title: str,
-        trajectories: Trajectories,
-        plotting_information: PlottingInformation,
-        malfunction: ExperimentMalfunction,
-        additional_data: Dict = None,
-        malfunction_wave: List[Trajectories] = None,
-        output_folder: Optional[str] = None,
+    title: str,
+    trajectories: Trajectories,
+    plotting_information: PlottingInformation,
+    malfunction: ExperimentMalfunction,
+    additional_data: Dict = None,
+    malfunction_wave: List[Trajectories] = None,
+    output_folder: Optional[str] = None,
 ):
     """
     Plot the time-resource-diagram with additional data for each train
@@ -283,22 +262,19 @@ def plot_time_resource_trajectories(
     -------
 
     """
-    layout = go.Layout(
-        plot_bgcolor=GREY_BACKGROUND_COLOR
-    )
+    layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
     ranges = plotting_information.dimensions
-    ticks = [position_to_coordinate(plotting_information.grid_width, [key])[0]
-             for key in plotting_information.sorting.keys()]
+    ticks = [position_to_coordinate(plotting_information.grid_width, [key])[0] for key in plotting_information.sorting.keys()]
 
     # Get keys and information to add to hover data
-    hovertemplate = '<b>Resource ID:<b> %{x}<br>' + '<b>Time:<b> %{y}<br>'
+    hovertemplate = "<b>Resource ID:<b> %{x}<br>" + "<b>Time:<b> %{y}<br>"
     if additional_data is not None:
         list_keys = [k for k in additional_data]
         list_values = [v for v in additional_data.values()]
         # Build hovertemplate
         for idx, data_point in enumerate(list_keys):
-            hovertemplate += '<b>' + str(data_point) + '</b>: %{{customdata[{}]}}<br>'.format(idx)
+            hovertemplate += "<b>" + str(data_point) + "</b>: %{{customdata[{}]}}<br>".format(idx)
         for idx, line in trajectories.items():
             # Don't plot trains with no paths --> this is just to make plots more readable
             if len(line) < 2:
@@ -306,16 +282,18 @@ def plot_time_resource_trajectories(
             x, y = zip(*line)
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
-            fig.add_trace(go.Scattergl(
-                x=x,
-                y=y,
-                mode='lines+markers',
-                marker=dict(size=2, color=trace_color),
-                line=dict(color=trace_color),
-                name="Agent {}".format(idx),
-                customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[0],
-                hovertemplate=hovertemplate
-            ))
+            fig.add_trace(
+                go.Scattergl(
+                    x=x,
+                    y=y,
+                    mode="lines+markers",
+                    marker=dict(size=2, color=trace_color),
+                    line=dict(color=trace_color),
+                    name="Agent {}".format(idx),
+                    customdata=np.dstack([list_values[:][k][idx] for k in range(len(list_values[:]))])[0],
+                    hovertemplate=hovertemplate,
+                )
+            )
     else:
         for idx, line in trajectories.items():
             # Don't plot trains with no paths --> this is just to make plots more readable
@@ -325,48 +303,48 @@ def plot_time_resource_trajectories(
             trace_color = PLOTLY_COLORLIST[int(idx % len(PLOTLY_COLORLIST))]
 
             fig.add_trace(
-                go.Scattergl(x=x,
-                             y=y,
-                             mode='lines+markers',
-                             marker=dict(size=2, color=trace_color),
-                             line=dict(color=trace_color),
-                             name="Agent {}".format(idx),
-                             hovertemplate=hovertemplate
-                             ))
+                go.Scattergl(
+                    x=x,
+                    y=y,
+                    mode="lines+markers",
+                    marker=dict(size=2, color=trace_color),
+                    line=dict(color=trace_color),
+                    name="Agent {}".format(idx),
+                    hovertemplate=hovertemplate,
+                )
+            )
     if malfunction is not None:
         x = [-10, ranges[1] + 10]
         y = [malfunction.time_step, malfunction.time_step]
-        fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction start', line=dict(color='red')))
+        fig.add_trace(go.Scattergl(x=x, y=y, name="malfunction start", line=dict(color="red")))
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
-        fig.add_trace(go.Scattergl(x=x, y=y, name='malfunction end', line=dict(color='red', dash='dash')))
+        fig.add_trace(go.Scattergl(x=x, y=y, name="malfunction end", line=dict(color="red", dash="dash")))
 
     if malfunction_wave is not None:
         x, y = zip(*list(malfunction_wave[0].values())[0])
         fig.add_trace(
-            go.Scattergl(x=x,
-                         y=y,
-                         mode='lines+markers',
-                         marker=dict(size=2, color="red"),
-                         line=dict(color="red"),
-                         name="True Positives",
-                         hovertemplate=hovertemplate
-                         ))
+            go.Scattergl(
+                x=x, y=y, mode="lines+markers", marker=dict(size=2, color="red"), line=dict(color="red"), name="True Positives", hovertemplate=hovertemplate
+            )
+        )
         x, y = zip(*list(malfunction_wave[1].values())[0])
         fig.add_trace(
-            go.Scattergl(x=x,
-                         y=y,
-                         mode='lines+markers',
-                         marker=dict(size=2, color="yellow"),
-                         line=dict(color="yellow"),
-                         name="False Positives",
-                         hovertemplate=hovertemplate
-                         ))
-    fig.update_layout(title_text=title, xaxis_showgrid=False, yaxis_showgrid=False,
-                      xaxis=dict(
-                          tickmode='array',
-                          tickvals=np.arange(len(ticks)),
-                          ticktext=ticks,
-                          tickangle=270))
+            go.Scattergl(
+                x=x,
+                y=y,
+                mode="lines+markers",
+                marker=dict(size=2, color="yellow"),
+                line=dict(color="yellow"),
+                name="False Positives",
+                hovertemplate=hovertemplate,
+            )
+        )
+    fig.update_layout(
+        title_text=title,
+        xaxis_showgrid=False,
+        yaxis_showgrid=False,
+        xaxis=dict(tickmode="array", tickvals=np.arange(len(ticks)), ticktext=ticks, tickangle=270),
+    )
     fig.update_xaxes(title="Resource Coordinates", range=[0, ranges[0]])
 
     fig.update_yaxes(title="Time", range=[ranges[1], 0])
@@ -379,24 +357,14 @@ def plot_time_resource_trajectories(
         fig.write_image(pdf_file)
 
 
-def plot_histogram_from_delay_data(
-        experiment_results: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """Plot a histogram of the delay of agents in the full and delta perfect
     reschedule compared to the schedule."""
 
     fig = go.Figure()
     for scope in after_malfunction_scopes:
-        fig.add_trace(go.Histogram(
-            x=[v for v in experiment_results._asdict()[f'lateness_per_agent_{scope}'].values()],
-            name=f'results_{scope}'))
-    fig.update_layout(barmode='group', legend=dict(
-        yanchor="bottom",
-        y=1.02,
-        xanchor="right",
-        x=1
-    ))
+        fig.add_trace(go.Histogram(x=[v for v in experiment_results._asdict()[f"lateness_per_agent_{scope}"].values()], name=f"results_{scope}"))
+    fig.update_layout(barmode="group", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
 
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Delay distributions")
@@ -406,15 +374,12 @@ def plot_histogram_from_delay_data(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'delay_histogram.pdf')
+        pdf_file = os.path.join(output_folder, f"delay_histogram.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
-def plot_lateness(
-        experiment_results: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_lateness(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """
     Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
     Parameters
@@ -428,17 +393,16 @@ def plot_lateness(
     """
     fig = go.Figure()
     for scope in after_malfunction_scopes:
-        fig.add_trace(go.Bar(x=[f'costs_{scope}'], y=[experiment_results._asdict()[f'costs_{scope}']], name=f'costs_{scope}'))
-        fig.add_trace(go.Bar(x=[f'lateness_{scope}'], y=[experiment_results._asdict()[f'lateness_{scope}']], name=f'lateness_{scope}'))
-        fig.add_trace(go.Bar(x=[f'costs_from_route_section_penalties_{scope}'],
-                             y=[experiment_results._asdict()[f'costs_from_route_section_penalties_{scope}']],
-                             name=f'costs_from_route_section_penalties_{scope}'))
-    fig.update_layout(barmode='overlay', legend=dict(
-        yanchor="bottom",
-        y=1.02,
-        xanchor="right",
-        x=1
-    ))
+        fig.add_trace(go.Bar(x=[f"costs_{scope}"], y=[experiment_results._asdict()[f"costs_{scope}"]], name=f"costs_{scope}"))
+        fig.add_trace(go.Bar(x=[f"lateness_{scope}"], y=[experiment_results._asdict()[f"lateness_{scope}"]], name=f"lateness_{scope}"))
+        fig.add_trace(
+            go.Bar(
+                x=[f"costs_from_route_section_penalties_{scope}"],
+                y=[experiment_results._asdict()[f"costs_from_route_section_penalties_{scope}"]],
+                name=f"costs_from_route_section_penalties_{scope}",
+            )
+        )
+    fig.update_layout(barmode="overlay", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Total delay and Solver objective")
     fig.update_yaxes(title="discrete time steps [-] / weighted sum [-]")
@@ -447,15 +411,12 @@ def plot_lateness(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'lateness.pdf')
+        pdf_file = os.path.join(output_folder, f"lateness.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
-def plot_agent_specific_delay(
-        experiment_results: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """plot_histogram_from_delay_data
     Plot a histogram of the delay of agents in the full and reschedule delta perfect compared to the schedule
     Parameters
@@ -470,10 +431,10 @@ def plot_agent_specific_delay(
     fig = go.Figure()
     for scope in after_malfunction_scopes:
         d = {}
-        for dim in ['lateness_per_agent', 'costs_from_route_section_penalties_per_agent']:
-            values = list(experiment_results._asdict()[f'{dim}_{scope}'].values())
+        for dim in ["lateness_per_agent", "costs_from_route_section_penalties_per_agent"]:
+            values = list(experiment_results._asdict()[f"{dim}_{scope}"].values())
             d[dim] = sum(values)
-            fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'{dim}_{scope}'))
+            fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f"{dim}_{scope}"))
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Delay per Train")
     fig.update_xaxes(title="Train ID")
@@ -483,15 +444,12 @@ def plot_agent_specific_delay(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'agen_specific_delay.pdf')
+        pdf_file = os.path.join(output_folder, f"agen_specific_delay.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
-def plot_changed_agents(
-        experiment_results: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """Plot a histogram of the delay of agents in the full and reschedule delta
     perfect compared to the schedule.
 
@@ -501,13 +459,12 @@ def plot_changed_agents(
     fig = go.Figure()
     schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
     for scope in after_malfunction_scopes:
-        reschedule_trainruns_dict = experiment_results._asdict()[f'results_{scope}'].trainruns_dict
+        reschedule_trainruns_dict = experiment_results._asdict()[f"results_{scope}"].trainruns_dict
         values = [
             1.0 if set(schedule_trainruns_dict[agent_id]) != set(trainrun_reschedule) else 0.0
             for agent_id, trainrun_reschedule in reschedule_trainruns_dict.items()
-
         ]
-        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'results_{scope}'))
+        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f"results_{scope}"))
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Changed per Train")
     fig.update_xaxes(title="Train ID")
@@ -517,22 +474,24 @@ def plot_changed_agents(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'changed_per_train.pdf')
+        pdf_file = os.path.join(output_folder, f"changed_per_train.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
     fig = go.Figure()
     schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
     for scope in after_malfunction_scopes:
-        reschedule_trainruns_dict = experiment_results._asdict()[f'results_{scope}'].trainruns_dict
+        reschedule_trainruns_dict = experiment_results._asdict()[f"results_{scope}"].trainruns_dict
         values = [
             1.0
-            if ({trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainruns_dict[agent_id]} !=
-                {trainrun_waypoint.waypoint for trainrun_waypoint in trainrun_reschedule})
+            if (
+                {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainruns_dict[agent_id]}
+                != {trainrun_waypoint.waypoint for trainrun_waypoint in trainrun_reschedule}
+            )
             else 0.0
             for agent_id, trainrun_reschedule in reschedule_trainruns_dict.items()
         ]
-        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'results_{scope}'))
+        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f"results_{scope}"))
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Changed routes per Train")
     fig.update_xaxes(title="Train ID")
@@ -542,17 +501,17 @@ def plot_changed_agents(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'changed_routes_per_train.pdf')
+        pdf_file = os.path.join(output_folder, f"changed_routes_per_train.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
 def plot_route_dag(
-        experiment_results_analysis: ExperimentResultsAnalysis,
-        agent_id: int,
-        suffix_of_constraints_to_visualize: ScheduleProblemEnum,
-        save: bool = False,
-        output_folder: Optional[str] = None
+    experiment_results_analysis: ExperimentResultsAnalysis,
+    agent_id: int,
+    suffix_of_constraints_to_visualize: ScheduleProblemEnum,
+    save: bool = False,
+    output_folder: Optional[str] = None,
 ):
     train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
     train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
@@ -569,24 +528,29 @@ def plot_route_dag(
     config = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: [
             problem_schedule,
-            f'Schedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
-            train_run_full],
+            f"Schedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            train_run_full,
+        ],
         ScheduleProblemEnum.PROBLEM_RSP_FULL_AFTER_MALFUNCTION: [
             problem_rsp_full,
-            f'Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
-            train_run_full_after_malfunction],
+            f"Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            train_run_full_after_malfunction,
+        ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
-            f'Delta Perfect Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
-            train_run_delta_perfect_after_malfunction],
+            f"Delta Perfect Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            train_run_delta_perfect_after_malfunction,
+        ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_ONLINE_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
-            f'Online Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
-            train_run_delta_perfect_after_malfunction],
+            f"Online Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            train_run_delta_perfect_after_malfunction,
+        ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_RANDOM_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
-            f'Delta Random Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}',
-            train_run_delta_perfect_after_malfunction],
+            f"Delta Random Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            train_run_delta_perfect_after_malfunction,
+        ],
     }
 
     problem_to_visualize, title, trainrun_to_visualize = config[suffix_of_constraints_to_visualize]
@@ -602,17 +566,12 @@ def plot_route_dag(
         costs_from_route_section_penalties_per_agent_and_edge={},
         route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],
         title=title,
-        file_name=(
-            f"{output_folder}/experiment_{experiment_results_analysis.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf"
-            if save else None)
+        file_name=(f"{output_folder}/experiment_{experiment_results_analysis.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf" if save else None),
     )
 
 
 def plot_resource_occupation_heat_map(
-        schedule_plotting: SchedulePlotting,
-        plotting_information: PlottingInformation,
-        title_suffix: str = '',
-        output_folder: Optional[str] = None
+    schedule_plotting: SchedulePlotting, plotting_information: PlottingInformation, title_suffix: str = "", output_folder: Optional[str] = None
 ):
     """Plot agent density over resource.
 
@@ -627,9 +586,7 @@ def plot_resource_occupation_heat_map(
     x = []
     y = []
     size = []
-    layout = go.Layout(
-        plot_bgcolor=GREY_BACKGROUND_COLOR
-    )
+    layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
 
     schedule_as_resource_occupations = schedule_plotting.schedule_as_resource_occupations
@@ -683,72 +640,78 @@ def plot_resource_occupation_heat_map(
         size_st.append(city_size)
 
     # Plot resource occupations diff
-    fig.add_trace(go.Scattergl(x=x_r,
-                               y=y_r,
-                               mode='markers',
-                               name="Resources Occupation Diff",
-                               marker=dict(
-                                   color=size_r,
-                                   size=15,
-                                   symbol='square',
-                                   showscale=True,
-                                   reversescale=False,
-                                   colorbar=dict(
-                                       title="Resource Occupations", len=0.75
-                                   ), colorscale="Hot"
-                               )))
+    fig.add_trace(
+        go.Scattergl(
+            x=x_r,
+            y=y_r,
+            mode="markers",
+            name="Resources Occupation Diff",
+            marker=dict(
+                color=size_r,
+                size=15,
+                symbol="square",
+                showscale=True,
+                reversescale=False,
+                colorbar=dict(title="Resource Occupations", len=0.75),
+                colorscale="Hot",
+            ),
+        )
+    )
 
     # Plot resource occupations
-    fig.add_trace(go.Scattergl(x=x,
-                               y=y,
-                               mode='markers',
-                               name="Schedule Resources",
-                               marker=dict(
-                                   color=size,
-                                   size=15,
-                                   symbol='square',
-                                   showscale=True,
-                                   reversescale=False,
-                                   colorbar=dict(
-                                       title="Resource Occupations", len=0.75
-                                   ), colorscale="Hot"
-                               )))
+    fig.add_trace(
+        go.Scattergl(
+            x=x,
+            y=y,
+            mode="markers",
+            name="Schedule Resources",
+            marker=dict(
+                color=size,
+                size=15,
+                symbol="square",
+                showscale=True,
+                reversescale=False,
+                colorbar=dict(title="Resource Occupations", len=0.75),
+                colorscale="Hot",
+            ),
+        )
+    )
 
     # Plot targets and starts
-    fig.add_trace(go.Scattergl(x=x_st,
-                               y=y_st,
-                               mode='markers',
-                               name="Schedule Start-Targets",
-                               hovertext=size_st,
-                               hovertemplate="Nr. Agents %{hovertext}",
-                               marker=dict(
-                                   color=size_st,
-                                   size=100 * size_st,
-                                   sizemode='area',
-                                   sizeref=2. * max(size) / (40. ** 2),
-                                   sizemin=4,
-                                   symbol='circle',
-                                   opacity=1.,
-                                   showscale=True,
-                                   reversescale=False,
-                                   colorbar=dict(
-                                       title="Targets", len=0.75
-                                   ), colorscale="Hot"
-                               )))
+    fig.add_trace(
+        go.Scattergl(
+            x=x_st,
+            y=y_st,
+            mode="markers",
+            name="Schedule Start-Targets",
+            hovertext=size_st,
+            hovertemplate="Nr. Agents %{hovertext}",
+            marker=dict(
+                color=size_st,
+                size=100 * size_st,
+                sizemode="area",
+                sizeref=2.0 * max(size) / (40.0 ** 2),
+                sizemin=4,
+                symbol="circle",
+                opacity=1.0,
+                showscale=True,
+                reversescale=False,
+                colorbar=dict(title="Targets", len=0.75),
+                colorscale="Hot",
+            ),
+        )
+    )
 
-    fig.update_layout(title_text=f"Train Density at Resources {title_suffix}",
-                      autosize=False,
-                      width=1000,
-                      height=1000)
+    fig.update_layout(title_text=f"Train Density at Resources {title_suffix}", autosize=False, width=1000, height=1000)
 
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
 
     if output_folder is None:
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'resource_occupation_heat_map.pdf')
+        pdf_file = os.path.join(output_folder, f"resource_occupation_heat_map.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
@@ -786,11 +749,12 @@ def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
 
 
 def plot_delay_propagation_2d(
-        plotting_data: SchedulePlotting,
-        delay_information: Dict[int, int],
-        depth_dict: Dict[int, int],
-        changed_agents: Optional[Dict[int, bool]] = None,
-        file_name: Optional[str] = None):
+    plotting_data: SchedulePlotting,
+    delay_information: Dict[int, int],
+    depth_dict: Dict[int, int],
+    changed_agents: Optional[Dict[int, bool]] = None,
+    file_name: Optional[str] = None,
+):
     """
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
@@ -803,11 +767,9 @@ def plot_delay_propagation_2d(
 
     """
 
-    marker_list = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
-    depth_color = ['red', 'orange', 'yellow', 'white', 'LightGreen', 'green']
-    layout = go.Layout(
-        plot_bgcolor=GREY_BACKGROUND_COLOR
-    )
+    marker_list = ["triangle-up", "triangle-right", "triangle-down", "triangle-left"]
+    depth_color = ["red", "orange", "yellow", "white", "LightGreen", "green"]
+    layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
 
     # Sort agents according to influence depth for plotting only plot disturbed agents
@@ -853,49 +815,48 @@ def plot_delay_propagation_2d(
             color = depth_color[int(np.clip(depth_dict[agent_id], 0, 5))]
         else:
             color = "red"
-        fig.add_trace(go.Scattergl(x=x,
-                                   y=y,
-                                   mode='markers',
-                                   name="Train {}".format(agent_id),
-                                   marker_symbol=marker,
-                                   customdata=list(zip(times, delay, conflict_depth)),
-                                   marker_size=size,
-                                   marker_opacity=0.2,
-                                   marker_color=color,
-                                   marker_line_color=color,
-                                   hovertemplate="Time:\t%{customdata[0]}<br>" +
-                                                 "Delay:\t%{customdata[1]}<br>" +
-                                                 "Influence depth:\t%{customdata[2]}"
-                                   ))
+        fig.add_trace(
+            go.Scattergl(
+                x=x,
+                y=y,
+                mode="markers",
+                name="Train {}".format(agent_id),
+                marker_symbol=marker,
+                customdata=list(zip(times, delay, conflict_depth)),
+                marker_size=size,
+                marker_opacity=0.2,
+                marker_color=color,
+                marker_line_color=color,
+                hovertemplate="Time:\t%{customdata[0]}<br>" + "Delay:\t%{customdata[1]}<br>" + "Influence depth:\t%{customdata[2]}",
+            )
+        )
     # Plot malfunction
     malfunction_resource = plotting_data.schedule_as_resource_occupations.resource_occupations_per_agent_and_time_step[
-        (plotting_data.malfunction.agent_id, plotting_data.malfunction.time_step)][
-        0].resource
-    fig.add_trace(go.Scattergl(x=[malfunction_resource[1]],
-                               y=[malfunction_resource[0]],
-                               mode='markers',
-                               name="Malfunction",
-                               marker_symbol='x',
-                               marker_size=25,
-                               marker_line_color='black',
-                               marker_color='black'))
-    fig.update_layout(title_text="Malfunction position and effects",
-                      autosize=False,
-                      width=1000,
-                      height=1000)
+        (plotting_data.malfunction.agent_id, plotting_data.malfunction.time_step)
+    ][0].resource
+    fig.add_trace(
+        go.Scattergl(
+            x=[malfunction_resource[1]],
+            y=[malfunction_resource[0]],
+            mode="markers",
+            name="Malfunction",
+            marker_symbol="x",
+            marker_size=25,
+            marker_line_color="black",
+            marker_color="black",
+        )
+    )
+    fig.update_layout(title_text="Malfunction position and effects", autosize=False, width=1000, height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
     if file_name is None:
         fig.show()
     else:
         fig.write_image(file_name)
 
 
-def plot_train_paths(
-        plotting_data: SchedulePlotting,
-        agent_ids: List[int],
-        file_name: Optional[str] = None):
+def plot_train_paths(plotting_data: SchedulePlotting, agent_ids: List[int], file_name: Optional[str] = None):
     """
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
@@ -908,10 +869,8 @@ def plot_train_paths(
 
     """
 
-    marker_list = ['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']
-    layout = go.Layout(
-        plot_bgcolor=GREY_BACKGROUND_COLOR
-    )
+    marker_list = ["triangle-up", "triangle-right", "triangle-down", "triangle-left"]
+    layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
 
     # Plot traces of agents
@@ -932,37 +891,32 @@ def plot_train_paths(
             times.append(time)
             color = PLOTLY_COLORLIST[agent_id]
 
-        fig.add_trace(go.Scattergl(x=x,
-                                   y=y,
-                                   mode='markers',
-                                   name="Train {}".format(agent_id),
-                                   marker_symbol=marker,
-                                   customdata=list(zip(times, delay, conflict_depth)),
-                                   marker_size=10,
-                                   marker_opacity=1,
-                                   marker_color=color,
-                                   marker_line_color=color,
-                                   hovertemplate="Time:\t%{customdata[0]}<br>" +
-                                                 "Delay:\t%{customdata[1]}<br>" +
-                                                 "Influence depth:\t%{customdata[2]}"
-                                   ))
-    fig.update_layout(title_text="Malfunction position and effects",
-                      autosize=False,
-                      width=1000,
-                      height=1000)
+        fig.add_trace(
+            go.Scattergl(
+                x=x,
+                y=y,
+                mode="markers",
+                name="Train {}".format(agent_id),
+                marker_symbol=marker,
+                customdata=list(zip(times, delay, conflict_depth)),
+                marker_size=10,
+                marker_opacity=1,
+                marker_color=color,
+                marker_line_color=color,
+                hovertemplate="Time:\t%{customdata[0]}<br>" + "Delay:\t%{customdata[1]}<br>" + "Influence depth:\t%{customdata[2]}",
+            )
+        )
+    fig.update_layout(title_text="Malfunction position and effects", autosize=False, width=1000, height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor='Grey')
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor='Grey')
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
     if file_name is None:
         fig.show()
     else:
         fig.write_image(file_name)
 
 
-def plot_time_density(
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        output_folder: Optional[str] = None
-):
+def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations, output_folder: Optional[str] = None):
     """Plot agent density over time.
 
     Parameters
@@ -974,9 +928,7 @@ def plot_time_density(
     """
     x = []
     y = []
-    layout = go.Layout(
-        plot_bgcolor=GREY_BACKGROUND_COLOR
-    )
+    layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
 
     schedule_times = {}
@@ -994,15 +946,12 @@ def plot_time_density(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'time_density.pdf')
+        pdf_file = os.path.join(output_folder, f"time_density.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
-def plot_nb_route_alternatives(
-        experiment_results: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_nb_route_alternatives(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """Plot a histogram of the delay of agents in the full and reschedule delta
     perfect compared to the schedule.
 
@@ -1011,12 +960,9 @@ def plot_nb_route_alternatives(
     """
     fig = go.Figure()
     for scope in all_scopes:
-        topo_dict = experiment_results._asdict()[f'problem_{scope}'].topo_dict
-        values = [
-            len(get_paths_in_route_dag(topo))
-            for _, topo in topo_dict.items()
-        ]
-        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f'{scope}'))
+        topo_dict = experiment_results._asdict()[f"problem_{scope}"].topo_dict
+        values = [len(get_paths_in_route_dag(topo)) for _, topo in topo_dict.items()]
+        fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f"{scope}"))
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Routing alternatives")
     fig.update_xaxes(title="Train ID")
@@ -1026,20 +972,18 @@ def plot_nb_route_alternatives(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'nb_route_alternatives.pdf')
+        pdf_file = os.path.join(output_folder, f"nb_route_alternatives.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
-def plot_agent_speeds(
-        experiment_results: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_agent_speeds(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     fig = go.Figure()
     fig.add_trace(
-        go.Bar(x=list(experiment_results.problem_full.minimum_travel_time_dict.keys()),
-               y=list(experiment_results.problem_full.minimum_travel_time_dict.values()),
-               ))
+        go.Bar(
+            x=list(experiment_results.problem_full.minimum_travel_time_dict.keys()), y=list(experiment_results.problem_full.minimum_travel_time_dict.values()),
+        )
+    )
     fig.update_traces(opacity=0.75)
     fig.update_layout(title_text="Speed")
     fig.update_xaxes(title="Train ID")
@@ -1048,36 +992,23 @@ def plot_agent_speeds(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'speeds.pdf')
+        pdf_file = os.path.join(output_folder, f"speeds.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
 
 
-def plot_time_window_sizes(
-        experiment_results: ExperimentResultsAnalysis,
-        output_folder: Optional[str] = None
-):
+def plot_time_window_sizes(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     fig = go.Figure()
     for scope in all_scopes:
-        route_dag_constraints_dict: RouteDAGConstraintsDict = experiment_results._asdict()[f'problem_{scope}'].route_dag_constraints_dict
-        vals = [(constraints.latest[v] - constraints.earliest[v], agent_id, v)
-                for agent_id, constraints in route_dag_constraints_dict.items()
-                for v in constraints.latest
-                ]
-        fig.add_trace(
-            go.Histogram(
-                x=[val[0] for val in vals],
-                name=f"{scope}",
-            ))
-    fig.update_layout(barmode='group',
-                      legend=dict(
-                          yanchor="bottom",
-                          y=1.02,
-                          xanchor="right",
-                          x=1
-                      ))
-    fig.update_traces(hovertemplate='<i>Time Window Size</i>:' + '%{x}' + '<extra></extra>',
-                      selector=dict(type="histogram"))
+        route_dag_constraints_dict: RouteDAGConstraintsDict = experiment_results._asdict()[f"problem_{scope}"].route_dag_constraints_dict
+        vals = [
+            (constraints.latest[v] - constraints.earliest[v], agent_id, v)
+            for agent_id, constraints in route_dag_constraints_dict.items()
+            for v in constraints.latest
+        ]
+        fig.add_trace(go.Histogram(x=[val[0] for val in vals], name=f"{scope}",))
+    fig.update_layout(barmode="group", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
+    fig.update_traces(hovertemplate="<i>Time Window Size</i>:" + "%{x}" + "<extra></extra>", selector=dict(type="histogram"))
 
     fig.update_layout(title_text="Time Window Size Distribution")
     fig.update_xaxes(title="Time Window Size [time steps]")
@@ -1086,6 +1017,6 @@ def plot_time_window_sizes(
         fig.show()
     else:
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f'time_window_sizes.pdf')
+        pdf_file = os.path.join(output_folder, f"time_window_sizes.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)

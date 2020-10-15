@@ -20,11 +20,7 @@ from rsp.utils.rsp_logger import rsp_logger
 from rsp.utils.rsp_logger import VERBOSE
 
 
-def _extract_route_section_penalties(
-        schedule_trainruns: TrainrunDict,
-        topo_dict: TopoDict,
-        weight_route_change: int
-):
+def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict: TopoDict, weight_route_change: int):
     """Penalize edges by 1 in the topology departing from scheduled
     trainrun."""
     route_section_penalties: RouteSectionPenaltiesDict = {}
@@ -40,13 +36,13 @@ def _extract_route_section_penalties(
 
 
 def scoper_zero_running(
-        agent_id: int,
-        schedule_trainrun: Trainrun,
-        malfunction: ExperimentMalfunction,
-        minimum_travel_time: int,
-        topo: nx.DiGraph,
-        latest_arrival: int,
-        max_window_size_from_earliest: int = np.inf
+    agent_id: int,
+    schedule_trainrun: Trainrun,
+    malfunction: ExperimentMalfunction,
+    minimum_travel_time: int,
+    topo: nx.DiGraph,
+    latest_arrival: int,
+    max_window_size_from_earliest: int = np.inf,
 ) -> RouteDAGConstraints:
     """Construct route DAG constraints for this agent. Consider only case where
     malfunction happens during schedule or if there is a (force freeze from the
@@ -69,24 +65,16 @@ def scoper_zero_running(
     RouteDAGConstraints
         constraints for the situation
     """
-    must_be_visited = {
-        trainrun_waypoint.waypoint
-        for trainrun_waypoint in schedule_trainrun
-        if trainrun_waypoint.scheduled_at <= malfunction.time_step
-    }
+    must_be_visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun if trainrun_waypoint.scheduled_at <= malfunction.time_step}
     earliest_dict = {
         trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
         for trainrun_waypoint in schedule_trainrun
         if trainrun_waypoint.scheduled_at <= malfunction.time_step
-
     }
     latest_dict = earliest_dict.copy()
 
     subdag_source = _get_delayed_trainrun_waypoint_after_malfunction(
-        agent_id=agent_id,
-        trainrun=schedule_trainrun,
-        malfunction=malfunction,
-        minimum_travel_time=minimum_travel_time
+        agent_id=agent_id, trainrun=schedule_trainrun, malfunction=malfunction, minimum_travel_time=minimum_travel_time
     )
     must_be_visited.add(subdag_source.waypoint)
 
@@ -108,23 +96,20 @@ def scoper_zero_running(
         must_be_visited=must_be_visited,
         minimum_travel_time=minimum_travel_time,
         latest_arrival=latest_arrival,
-        max_window_size_from_earliest=max_window_size_from_earliest
+        max_window_size_from_earliest=max_window_size_from_earliest,
     )
 
-    return RouteDAGConstraints(
-        earliest=earliest_dict,
-        latest=latest_dict
-    )
+    return RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
 
 
 def scoper_zero(
-        schedule_trainrun: Trainrun,
-        minimum_travel_time: int,
-        topo_: nx.DiGraph,
-        malfunction: ExperimentMalfunction,
-        agent_id: int,
-        latest_arrival: int,
-        max_window_size_from_earliest: int
+    schedule_trainrun: Trainrun,
+    minimum_travel_time: int,
+    topo_: nx.DiGraph,
+    malfunction: ExperimentMalfunction,
+    agent_id: int,
+    latest_arrival: int,
+    max_window_size_from_earliest: int,
 ) -> RouteDAGConstraints:
     """Derives the `RouteDAGConstraints` given the malfunction. The node after
     the malfunction time has to be visited with an earliest constraint. Given
@@ -154,8 +139,7 @@ def scoper_zero(
     -------
     RouteDAGConstraints
     """
-    if (malfunction.time_step >= schedule_trainrun[0].scheduled_at and  # noqa: W504
-            malfunction.time_step < schedule_trainrun[-2].scheduled_at):
+    if malfunction.time_step >= schedule_trainrun[0].scheduled_at and malfunction.time_step < schedule_trainrun[-2].scheduled_at:  # noqa: W504
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
         return scoper_zero_running(
             agent_id=agent_id,
@@ -164,7 +148,7 @@ def scoper_zero(
             minimum_travel_time=minimum_travel_time,
             topo=topo_,
             latest_arrival=latest_arrival,
-            max_window_size_from_earliest=max_window_size_from_earliest
+            max_window_size_from_earliest=max_window_size_from_earliest,
         )
 
     # handle the special case of malfunction before scheduled start or after scheduled arrival of agent
@@ -183,10 +167,7 @@ def scoper_zero(
             must_be_visited=set(),
             topo=topo_,
         )
-        route_dag_constraints = RouteDAGConstraints(
-            earliest=earliest,
-            latest=latest,
-        )
+        route_dag_constraints = RouteDAGConstraints(earliest=earliest, latest=latest,)
         freeze: RouteDAGConstraints = route_dag_constraints
         # N.B. copy keys into new list (cannot delete keys while looping concurrently looping over them)
         waypoints: List[Waypoint] = list(freeze.earliest.keys())
@@ -200,24 +181,22 @@ def scoper_zero(
         visited = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         topo_.remove_nodes_from(set(topo_.nodes).difference(visited))
         return RouteDAGConstraints(
-            earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                      for trainrun_waypoint in schedule_trainrun},
-            latest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at
-                    for trainrun_waypoint in schedule_trainrun},
+            earliest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in schedule_trainrun},
+            latest={trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in schedule_trainrun},
         )
     else:
         raise Exception(f"Unexepcted state for agent {agent_id} malfunction {malfunction}")
 
 
 def delta_zero_for_all_agents(
-        malfunction: ExperimentMalfunction,
-        schedule_trainruns: TrainrunDict,
-        minimum_travel_time_dict: Dict[int, int],
-        topo_dict_: Dict[int, nx.DiGraph],
-        latest_arrival: int,
-        weight_route_change: int,
-        weight_lateness_seconds: int,
-        max_window_size_from_earliest: int = np.inf,
+    malfunction: ExperimentMalfunction,
+    schedule_trainruns: TrainrunDict,
+    minimum_travel_time_dict: Dict[int, int],
+    topo_dict_: Dict[int, nx.DiGraph],
+    latest_arrival: int,
+    weight_route_change: int,
+    weight_lateness_seconds: int,
+    max_window_size_from_earliest: int = np.inf,
 ) -> ScheduleProblemDescription:
     """Returns the experiment freeze for the full re-scheduling problem. Wraps
     the generic freeze by freezing everything up to and including the
@@ -234,15 +213,15 @@ def delta_zero_for_all_agents(
                 malfunction=malfunction,
                 agent_id=agent_id,
                 latest_arrival=latest_arrival,
-                max_window_size_from_earliest=max_window_size_from_earliest
+                max_window_size_from_earliest=max_window_size_from_earliest,
             )
-            for agent_id in schedule_trainruns},
+            for agent_id in schedule_trainruns
+        },
         topo_dict=topo_dict_,
         minimum_travel_time_dict=minimum_travel_time_dict,
         max_episode_steps=latest_arrival,
         route_section_penalties=_extract_route_section_penalties(schedule_trainruns, topo_dict_, weight_route_change),
-        weight_lateness_seconds=weight_lateness_seconds
-
+        weight_lateness_seconds=weight_lateness_seconds,
     )
     # TODO SIM-324 pull out verification
     for agent_id in spd.route_dag_constraints_dict:
@@ -251,13 +230,11 @@ def delta_zero_for_all_agents(
             topo=spd.topo_dict[agent_id],
             route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
             malfunction=malfunction if malfunction.agent_id == agent_id else None,
-            max_window_size_from_earliest=max_window_size_from_earliest
+            max_window_size_from_earliest=max_window_size_from_earliest,
         )
         verify_trainrun_satisfies_route_dag_constraints(
             agent_id=agent_id,
             route_dag_constraints=spd.route_dag_constraints_dict[agent_id],
-            scheduled_trainrun=list(
-                filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step,
-                       schedule_trainruns[agent_id]))
+            scheduled_trainrun=list(filter(lambda trainrun_waypoint: trainrun_waypoint.scheduled_at <= malfunction.time_step, schedule_trainruns[agent_id])),
         )
     return spd

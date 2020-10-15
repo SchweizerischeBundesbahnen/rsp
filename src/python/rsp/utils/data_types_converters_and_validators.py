@@ -17,9 +17,7 @@ from rsp.utils.data_types import TimeWindowsPerResourceAndTimeStep
 
 
 def extract_time_windows(
-        route_dag_constraints_dict: RouteDAGConstraintsDict,
-        minimum_travel_time_dict: Dict[int, int],
-        release_time: int
+    route_dag_constraints_dict: RouteDAGConstraintsDict, minimum_travel_time_dict: Dict[int, int], release_time: int
 ) -> SchedulingProblemInTimeWindows:
     """Derive time windows from constraints.
 
@@ -40,12 +38,7 @@ def extract_time_windows(
             # TODO actually, we should take latest leaving event for resource!
             latest = route_dag_constraints.latest[waypoint] + minimum_travel_time_dict[agent_id] + release_time
             resource = Resource(*waypoint.position)
-            time_window = TimeWindow(
-                interval=LeftClosedInterval(earliest, latest),
-                resource=resource,
-                direction=waypoint.direction,
-                agent_id=agent_id
-            )
+            time_window = TimeWindow(interval=LeftClosedInterval(earliest, latest), resource=resource, direction=waypoint.direction, agent_id=agent_id)
             for time_step in range(earliest, latest):
                 time_windows_per_resource_and_time_step.setdefault((resource, time_step), [])
                 # TODO duplicates because of different directions?
@@ -53,17 +46,15 @@ def extract_time_windows(
                     time_windows_per_resource_and_time_step[(resource, time_step)].append(time_window)
             time_windows_per_agent_sorted_by_lower_bound.setdefault(agent_id, []).append(time_window)
     for _, time_windows in time_windows_per_agent_sorted_by_lower_bound.items():
-        time_windows.sort(key=lambda t_w: t_w.interval.from_incl, )
+        time_windows.sort(key=lambda t_w: t_w.interval.from_incl,)
 
     return SchedulingProblemInTimeWindows(
         time_windows_per_agent_sorted_by_lower_bound=time_windows_per_agent_sorted_by_lower_bound,
-        time_windows_per_resource_and_time_step=time_windows_per_resource_and_time_step)
+        time_windows_per_resource_and_time_step=time_windows_per_resource_and_time_step,
+    )
 
 
-def extract_resource_occupations(
-        schedule: TrainrunDict,
-        release_time: int
-) -> ScheduleAsResourceOccupations:
+def extract_resource_occupations(schedule: TrainrunDict, release_time: int) -> ScheduleAsResourceOccupations:
     """Extract the resource occuptaions from the (unexpanded) `TrainrunDict`.
 
     Parameters
@@ -85,10 +76,7 @@ def extract_resource_occupations(
             from_incl = entry_event.scheduled_at
             to_excl = exit_event.scheduled_at + release_time
             ro = ResourceOccupation(
-                interval=LeftClosedInterval(from_incl, to_excl),
-                resource=resource,
-                direction=entry_event.waypoint.direction,
-                agent_id=agent_id
+                interval=LeftClosedInterval(from_incl, to_excl), resource=resource, direction=entry_event.waypoint.direction, agent_id=agent_id
             )
             resource_occupations_per_resource.setdefault(resource, []).append(ro)
             resource_occupations_per_agent[agent_id].append(ro)
@@ -102,10 +90,7 @@ def extract_resource_occupations(
     return ScheduleAsResourceOccupations(resource_occupations_per_resource, resource_occupations_per_agent, resource_occupations_per_agent_and_timestep)
 
 
-def verify_schedule_as_resource_occupations(  # noqa: C901
-        schedule_as_resource_occupations: ScheduleAsResourceOccupations,
-        release_time: int
-):
+def verify_schedule_as_resource_occupations(schedule_as_resource_occupations: ScheduleAsResourceOccupations, release_time: int):  # noqa: C901
     """Check consistency of the two dicts.
 
     Parameters
@@ -135,7 +120,8 @@ def verify_schedule_as_resource_occupations(  # noqa: C901
 
     # 5. intervals must be non-empty
     for occupations in chain(
-            schedule_as_resource_occupations.sorted_resource_occupations_per_resource.values(),
-            schedule_as_resource_occupations.sorted_resource_occupations_per_agent.values()):
+        schedule_as_resource_occupations.sorted_resource_occupations_per_resource.values(),
+        schedule_as_resource_occupations.sorted_resource_occupations_per_agent.values(),
+    ):
         for ro in occupations:
             assert ro.interval.to_excl > ro.interval.from_incl

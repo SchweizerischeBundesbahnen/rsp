@@ -42,4 +42,4 @@ def get_experiment_id_from_filename(filename: str) -> int:
     -------
     """
     # the match the 4-digit group after experimemnt_0004_.....pkl
-    return int(re.findall(r'experiment_([0-9]{4})', filename)[-1])
+    return int(re.findall(r"experiment_([0-9]{4})", filename)[-1])

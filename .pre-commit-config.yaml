@@ -13,14 +13,13 @@ repos:
     hooks:
       - id: docformatter
 
-      # TODO SIM-257 make rsp black compatible (conflicts with flake8)
-      #  - repo: https://github.com/psf/black
-      #    # https://github.com/psf/black/issues/875
-      #    rev: 19.10b0
-      #    hooks:
-      #      - id: black
-      #        exclude: 'Jenkinsfile'
-      #        args: [--line-length, '160']
+  - repo: https://github.com/psf/black
+    # https://github.com/psf/black/issues/875
+    rev: 19.10b0
+    hooks:
+      - id: black
+        exclude: 'Jenkinsfile'
+        args: [--line-length, '160']
 
 
   - repo: https://gitlab.com/pycqa/flake8

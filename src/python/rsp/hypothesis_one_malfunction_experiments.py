@@ -15,17 +15,17 @@ from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
 def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
-        experiment_name: str,
-        infra_parameters_list: List[InfrastructureParameters],
-        infra_schedule_dict: Dict[InfrastructureParameters, List[Tuple[ScheduleParameters, Schedule]]],
-        latest_malfunction_as_fraction_of_max_episode_steps: float,
-        malfunction_interval_as_fraction_of_max_episode_steps: float,
-        fraction_of_malfunction_agents: float,
-        malfunction_duration: int,
-        weight_route_change: int,
-        weight_lateness_seconds: int,
-        max_window_size_from_earliest: int,
-        experiments_per_grid_element: int = 1,
+    experiment_name: str,
+    infra_parameters_list: List[InfrastructureParameters],
+    infra_schedule_dict: Dict[InfrastructureParameters, List[Tuple[ScheduleParameters, Schedule]]],
+    latest_malfunction_as_fraction_of_max_episode_steps: float,
+    malfunction_interval_as_fraction_of_max_episode_steps: float,
+    fraction_of_malfunction_agents: float,
+    malfunction_duration: int,
+    weight_route_change: int,
+    weight_lateness_seconds: int,
+    max_window_size_from_earliest: int,
+    experiments_per_grid_element: int = 1,
 ):
     """Create malfunction variation for these schedules over a range of agents
     and a range of malfunction time steps.
@@ -81,10 +81,8 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                         experiments.append(
                             ExperimentParameters(
                                 experiment_id=experiment_id,
-
                                 schedule_parameters=schedule_parameters,
                                 infra_parameters=infra_parameters,
-
                                 grid_id=grid_id,
                                 infra_id_schedule_id=infra_id_schedule_id,
                                 earliest_malfunction=earliest_malfunction,
@@ -98,10 +96,7 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                         experiment_id += 1
                     grid_id += 1
             infra_id_schedule_id += 1
-    return ExperimentAgenda(
-        experiment_name=experiment_name,
-        experiments=experiments
-    )
+    return ExperimentAgenda(experiment_name=experiment_name, experiments=experiments)
 
 
 def get_filter(infra_id: int, schedule_id: int) -> Callable[[int, int], bool]:
@@ -112,24 +107,23 @@ def get_filter(infra_id: int, schedule_id: int) -> Callable[[int, int], bool]:
 
 
 def malfunction_variation_for_one_schedule(
-        infra_id: int,
-        schedule_id: int,
-        experiments_per_grid_element: int,
-        experiment_base_directory: str,
-        experiment_output_base_directory: Optional[str] = None,
-        latest_malfunction_as_fraction_of_max_episode_steps: float = 0.5,
-        malfunction_interval_as_fraction_of_max_episode_steps: float = 0.1,
-        fraction_of_malfunction_agents: float = 1.0,
-        malfunction_duration: int = 50,
-        weight_route_change: int = 30,
-        weight_lateness_seconds: int = 1,
-        max_window_size_from_earliest: int = 60
+    infra_id: int,
+    schedule_id: int,
+    experiments_per_grid_element: int,
+    experiment_base_directory: str,
+    experiment_output_base_directory: Optional[str] = None,
+    latest_malfunction_as_fraction_of_max_episode_steps: float = 0.5,
+    malfunction_interval_as_fraction_of_max_episode_steps: float = 0.1,
+    fraction_of_malfunction_agents: float = 1.0,
+    malfunction_duration: int = 50,
+    weight_route_change: int = 30,
+    weight_lateness_seconds: int = 1,
+    max_window_size_from_earliest: int = 60,
 ):
     experiment_name = f"malfunction_variation_{infra_id}_{schedule_id}"
 
     infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
-        base_directory=experiment_base_directory,
-        filter_experiment_agenda=get_filter(infra_id=infra_id, schedule_id=schedule_id)
+        base_directory=experiment_base_directory, filter_experiment_agenda=get_filter(infra_id=infra_id, schedule_id=schedule_id)
     )
 
     experiment_agenda = create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
@@ -143,24 +137,19 @@ def malfunction_variation_for_one_schedule(
         malfunction_duration=malfunction_duration,
         weight_route_change=weight_route_change,
         weight_lateness_seconds=weight_lateness_seconds,
-        max_window_size_from_earliest=max_window_size_from_earliest
+        max_window_size_from_earliest=max_window_size_from_earliest,
     )
 
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         verbose=False,
         experiment_base_directory=experiment_base_directory,
-        experiment_output_directory=experiment_output_base_directory
+        experiment_output_directory=experiment_output_base_directory,
     )
 
     return experiment_output_directory
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # sample call
-    malfunction_variation_for_one_schedule(
-        infra_id=0,
-        schedule_id=0,
-        experiments_per_grid_element=1,
-        experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER
-    )
+    malfunction_variation_for_one_schedule(infra_id=0, schedule_id=0, experiments_per_grid_element=1, experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER)

@@ -24,15 +24,15 @@ from rsp.utils.global_constants import SCHEDULE_HEURISTICS
 
 
 class ASPProblemDescription:
-
-    def __init__(self,
-                 schedule_problem_description: ScheduleProblemDescription,
-                 asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-                 asp_heuristics: Optional[List[ASPHeuristics]] = None,
-                 asp_seed_value: Optional[int] = None,
-                 nb_threads: int = 2,
-                 no_optimize: bool = False
-                 ):
+    def __init__(
+        self,
+        schedule_problem_description: ScheduleProblemDescription,
+        asp_objective: ASPObjective = ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
+        asp_heuristics: Optional[List[ASPHeuristics]] = None,
+        asp_seed_value: Optional[int] = None,
+        nb_threads: int = 2,
+        no_optimize: bool = False,
+    ):
         self.schedule_problem_description = schedule_problem_description
         self.asp_seed_value = asp_seed_value
         self.asp_objective: ASPObjective = asp_objective
@@ -42,42 +42,40 @@ class ASPProblemDescription:
 
     @staticmethod
     def factory_rescheduling(
-            schedule_problem_description: ScheduleProblemDescription,
-            additional_costs_at_targets: Dict[int, Dict[Waypoint, int]] = None,
-            asp_seed_value: Optional[int] = None
-    ) -> 'ASPProblemDescription':
+        schedule_problem_description: ScheduleProblemDescription,
+        additional_costs_at_targets: Dict[int, Dict[Waypoint, int]] = None,
+        asp_seed_value: Optional[int] = None,
+    ) -> "ASPProblemDescription":
         asp_problem = ASPProblemDescription(
             schedule_problem_description=schedule_problem_description,
             asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
             asp_heuristics=RESCHEDULE_HEURISTICS,
             asp_seed_value=asp_seed_value,
-            no_optimize=False  # Optimize if set to False
+            no_optimize=False,  # Optimize if set to False
         )
         asp_problem._build_asp_program(
             schedule_problem_description=schedule_problem_description,
             add_minimumrunnigtime_per_agent=False,
-            additional_costs_at_targets=additional_costs_at_targets
+            additional_costs_at_targets=additional_costs_at_targets,
         )
         return asp_problem
 
     @staticmethod
     def factory_scheduling(
-            schedule_problem_description: ScheduleProblemDescription,
-            asp_seed_value: Optional[int] = None,
-            no_optimize: bool = False
-    ) -> 'ASPProblemDescription':
+        schedule_problem_description: ScheduleProblemDescription, asp_seed_value: Optional[int] = None, no_optimize: bool = False
+    ) -> "ASPProblemDescription":
         asp_problem = ASPProblemDescription(
             schedule_problem_description=schedule_problem_description,
             asp_objective=ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
             asp_heuristics=SCHEDULE_HEURISTICS,
             asp_seed_value=asp_seed_value,
             no_optimize=no_optimize,
-            nb_threads=2  # not deterministic any more!
+            nb_threads=2,  # not deterministic any more!
         )
         asp_problem._build_asp_program(
             schedule_problem_description=schedule_problem_description,
             # minimize_total_sum_of_running_times.lp requires minimumrunningtime(agent_id,<minimumrunningtime)
-            add_minimumrunnigtime_per_agent=True
+            add_minimumrunnigtime_per_agent=True,
         )
         return asp_problem
 
@@ -101,12 +99,15 @@ class ASPProblemDescription:
         for target_waypoint in target_vertices:
             self.asp_program.append("end(t{}, {}).".format(agent_id, self._sanitize_waypoint(target_waypoint)))
 
-    def _implement_route_section(self, agent_id: int,
-                                 entry_waypoint: Waypoint,
-                                 exit_waypoint: Waypoint,
-                                 resource_id: Tuple[int, int],
-                                 minimum_travel_time: int = 1,
-                                 route_section_penalty=0):
+    def _implement_route_section(
+        self,
+        agent_id: int,
+        entry_waypoint: Waypoint,
+        exit_waypoint: Waypoint,
+        resource_id: Tuple[int, int],
+        minimum_travel_time: int = 1,
+        route_section_penalty=0,
+    ):
         """Rule 103 Minimum section time For each trainrun_section the
         following holds:
 
@@ -129,26 +130,23 @@ class ASPProblemDescription:
         """
 
         # add edge: edge(T,V,V')
-        self.asp_program.append("edge(t{}, {},{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
-                                                           self._sanitize_waypoint(exit_waypoint)))
+        self.asp_program.append("edge(t{}, {},{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint), self._sanitize_waypoint(exit_waypoint)))
 
         # minimum waiting time: w(T,E,W)
         # TODO workaround we use waiting times to model train-specific minimum travel time;
         #      instead we should use train-specific route graphs which are linked by resources only!
         self.asp_program.append(
-            "w(t{}, ({},{}),{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint),
-                                         self._sanitize_waypoint(exit_waypoint),
-                                         int(minimum_travel_time)))
+            "w(t{}, ({},{}),{}).".format(agent_id, self._sanitize_waypoint(entry_waypoint), self._sanitize_waypoint(exit_waypoint), int(minimum_travel_time))
+        )
         # minimum running time: m(E,M)
-        self.asp_program.append("m(({},{}),{}).".format(self._sanitize_waypoint(entry_waypoint),
-                                                        self._sanitize_waypoint(exit_waypoint), 0))
+        self.asp_program.append("m(({},{}),{}).".format(self._sanitize_waypoint(entry_waypoint), self._sanitize_waypoint(exit_waypoint), 0))
 
         # declare resource
         # TODO SIM-144 resource may be declared multiple times, maybe we should declare resource by
         #      loop over grid cells and their transitions
         self.asp_program.append(
-            "resource(resource_{}_{},({},{})).".format(*resource_id, self._sanitize_waypoint(entry_waypoint),
-                                                       self._sanitize_waypoint(exit_waypoint)))
+            "resource(resource_{}_{},({},{})).".format(*resource_id, self._sanitize_waypoint(entry_waypoint), self._sanitize_waypoint(exit_waypoint))
+        )
 
         # TODO SIM-129: release time = 1 to allow for synchronization in FLATland - can we get rid of it?
         self.asp_program.append("b(resource_{}_{},1).".format(*resource_id))
@@ -157,20 +155,24 @@ class ASPProblemDescription:
         # N.B. we do not use penalty(E,P) as for objective minimize_routes.lp and heuristic_ROUTES.lp
         if route_section_penalty > 0:
             # penalty(T,E,P) # noqa: E800
-            self.asp_program.append("penalty(t{},({},{}),{})."
-                                    .format(agent_id, self._sanitize_waypoint(entry_waypoint),
-                                            self._sanitize_waypoint(exit_waypoint), route_section_penalty))
+            self.asp_program.append(
+                "penalty(t{},({},{}),{}).".format(
+                    agent_id, self._sanitize_waypoint(entry_waypoint), self._sanitize_waypoint(exit_waypoint), route_section_penalty
+                )
+            )
 
     def solve(self, verbose: bool = False) -> ASPSolutionDescription:
         """Return the solver and return solver-specific solution
         description."""
-        asp_solution = flux_helper(self.asp_program,
-                                   asp_objective=self.asp_objective,
-                                   asp_heuristics=self.asp_heuristics,
-                                   asp_seed_value=self.asp_seed_value,
-                                   nb_threads=self.nb_threads,
-                                   no_optimize=self.no_optimize,
-                                   verbose=verbose)
+        asp_solution = flux_helper(
+            self.asp_program,
+            asp_objective=self.asp_objective,
+            asp_heuristics=self.asp_heuristics,
+            asp_seed_value=self.asp_seed_value,
+            nb_threads=self.nb_threads,
+            no_optimize=self.no_optimize,
+            verbose=verbose,
+        )
         return ASPSolutionDescription(asp_solution=asp_solution, schedule_problem_description=self.schedule_problem_description)
 
     @staticmethod
@@ -189,14 +191,14 @@ class ASPProblemDescription:
         -------
         row, column, entry direction
         """
-        return Waypoint(position=(r, c),
-                        direction=int(d))  # convert Grid4TransitionsEnum to int so it can be used as int in ASP!
+        return Waypoint(position=(r, c), direction=int(d))  # convert Grid4TransitionsEnum to int so it can be used as int in ASP!
 
-    def _build_asp_program(self,
-                           schedule_problem_description: ScheduleProblemDescription,
-                           add_minimumrunnigtime_per_agent: bool = False,
-                           additional_costs_at_targets: Dict[int, Dict[Waypoint, int]] = None
-                           ):
+    def _build_asp_program(
+        self,
+        schedule_problem_description: ScheduleProblemDescription,
+        add_minimumrunnigtime_per_agent: bool = False,
+        additional_costs_at_targets: Dict[int, Dict[Waypoint, int]] = None,
+    ):
         # preparation
         _new_asp_program = []
         self.asp_program = _new_asp_program
@@ -219,10 +221,7 @@ class ASPProblemDescription:
             sinks = get_sinks_for_topo(topo)
             freeze = schedule_problem_description.route_dag_constraints_dict[agent_id]
 
-            self._implement_train(agent_id=agent_id,
-                                  start_vertices=sources,
-                                  target_vertices=sinks
-                                  )
+            self._implement_train(agent_id=agent_id, start_vertices=sources, target_vertices=sinks)
 
             for (entry_waypoint, exit_waypoint) in topo.edges:
                 self._implement_route_section(
@@ -231,12 +230,12 @@ class ASPProblemDescription:
                     exit_waypoint=exit_waypoint,
                     resource_id=entry_waypoint.position,
                     minimum_travel_time=schedule_problem_description.minimum_travel_time_dict[agent_id],
-                    route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0))
+                    route_section_penalty=schedule_problem_description.route_section_penalties[agent_id].get((entry_waypoint, exit_waypoint), 0),
+                )
 
             _new_asp_program += self._translate_route_dag_constraints_to_asp(
-                agent_id=agent_id,
-                topo=schedule_problem_description.topo_dict[agent_id],
-                freeze=freeze)
+                agent_id=agent_id, topo=schedule_problem_description.topo_dict[agent_id], freeze=freeze
+            )
 
         if add_minimumrunnigtime_per_agent:
             for agent_id in self.schedule_problem_description.minimum_travel_time_dict:
@@ -267,10 +266,7 @@ class ASPProblemDescription:
         # cleanup
         return _new_asp_program
 
-    def _translate_route_dag_constraints_to_asp(self,  # noqa: C901
-                                                agent_id: int,
-                                                topo: nx.DiGraph,
-                                                freeze: RouteDAGConstraints):
+    def _translate_route_dag_constraints_to_asp(self, agent_id: int, topo: nx.DiGraph, freeze: RouteDAGConstraints):  # noqa: C901
         """The model is freezed by translating the ExperimentFreeze into ASP:
 
         - for all schedule_time_(train,vertex) <= malfunction.time_step:
