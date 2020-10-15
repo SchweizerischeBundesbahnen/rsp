@@ -32,7 +32,6 @@ def test_hypothesis_one_all_in_one():
                             1. / 4.: 0.25}  # Slow freight train
 
             ),
-            asp_export_experiment_ids=[0],
             qualitative_analysis_experiment_ids=[0],
             experiment_name="test_hypothesis_one",
             run_analysis=False,

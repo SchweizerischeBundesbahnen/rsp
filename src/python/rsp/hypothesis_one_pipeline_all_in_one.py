@@ -52,7 +52,6 @@ def hypothesis_one_pipeline_all_in_one(
         parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
         experiment_base_directory: str,
         qualitative_analysis_experiment_ids: Optional[List[int]] = None,
-        asp_export_experiment_ids: Optional[List[int]] = None,
         experiment_name: str = "exp_hypothesis_one",
         run_analysis: bool = True,
         parallel_compute: int = AVAILABLE_CPUS // 2
@@ -66,8 +65,6 @@ def hypothesis_one_pipeline_all_in_one(
     experiment_ids
         filter for experiment ids (data generation)
     qualitative_analysis_experiment_ids
-        filter for data analysis on the generated data
-    asp_export_experiment_ids
         filter for data analysis on the generated data
     experiment_base_directory
         base directory from the same agenda with serialized schedule and malfunction.
@@ -116,7 +113,6 @@ def hypothesis_one_pipeline_all_in_one(
             experiment_output_directory=experiment_output_directory,
             analysis_2d=True,
             qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
-            asp_export_experiment_ids=asp_export_experiment_ids
         )
 
     return experiment_output_directory, experiment_agenda

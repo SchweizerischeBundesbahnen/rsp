@@ -12,19 +12,19 @@ conda env create -f rsp_environment.yml
 # activate the conda env (if you want to use a different env name, run conda env create -f rsp_environment.yml --name other-env-name)
 conda activate rsp
 
-# install rsp in virtual env
-python setup.py install
+# 
+export PYTHONPATH=$PWD/src/python:$PWD/src/asp:$PYTHONPATH
 
 # run pipeline
-python rsp/hypothesis_one_experiments.py
+python src/python/rsp/hypothesis_one_experiments.py
 
 # ..... do some development....
 
 # (optionally) update the conda env if rsp_environment.yml was modified
 conda env update -f rsp_environment.yml
 
-# install new version and run tests
-python setup.py install && python -m pytest && python -m flake8 rsp tests
+# run tests
+python -m pytest
 ```
 ### Setup Jupyter Notebooks
 Taken from [this](https://towardsdatascience.com/version-control-with-jupyter-notebooks-f096f4d7035a) post,

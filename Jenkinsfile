@@ -82,8 +82,8 @@ curl --insecure -v --request POST -H "Authorization: token ${
         python -m pytest tests/01_unit_tests
         python -m pytest tests/02_regression_tests
         python -m pytest tests/03_integration_tests
-        python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
-        python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
+        python -m pydeps src/python/rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+        python -m pydeps src/python/rsp --cluster -o rsp_pydeps.png -T png --noshow
     """
                         }
                 )

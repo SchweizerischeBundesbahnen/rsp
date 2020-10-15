@@ -19,6 +19,8 @@ jupyter:
 # %load_ext autoreload
 # %autoreload 2
 import sys
+sys.path.append("../../src/python")
+sys.path.append("../../src/asp")
 import pandas as pd
 from IPython.display import Video
 
@@ -38,6 +40,7 @@ from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_vi
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_changed_agents
 from rsp.analysis.detailed_experiment_analysis import hypothesis_one_analysis_prediction_quality
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
+BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum

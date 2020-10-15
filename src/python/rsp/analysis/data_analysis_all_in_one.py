@@ -22,7 +22,6 @@ from rsp.analysis.detailed_experiment_analysis import plot_agent_speeds
 from rsp.analysis.detailed_experiment_analysis import plot_nb_route_alternatives
 from rsp.analysis.detailed_experiment_analysis import plot_time_window_sizes
 from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
-from rsp.asp_plausibility.potassco_export import potassco_export
 from rsp.schedule_problem_description.analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
 from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
@@ -31,7 +30,6 @@ from rsp.utils.data_types import filter_experiment_results_analysis_data_frame
 from rsp.utils.experiment_render_utils import visualize_experiment
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME
 from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
@@ -40,7 +38,6 @@ from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 def hypothesis_one_data_analysis(
         experiment_output_directory: str,
         analysis_2d: bool = False,
-        asp_export_experiment_ids: List[int] = None,
         qualitative_analysis_experiment_ids: List[int] = None,
         save_as_tsv: bool = False
 ):
@@ -49,7 +46,6 @@ def hypothesis_one_data_analysis(
     Parameters
     ----------
     analysis_2d
-    asp_export_experiment_ids
     experiment_output_directory
     save_as_tsv
     qualitative_analysis_experiment_ids
@@ -58,7 +54,6 @@ def hypothesis_one_data_analysis(
     # Import the desired experiment results
     experiment_analysis_directory = f'{experiment_output_directory}/{EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME}/'
     experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-    experiment_potassco_directory = f'{experiment_output_directory}/{EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME}'
 
     # Create output directoreis
     check_create_folder(experiment_analysis_directory)
@@ -194,19 +189,9 @@ def hypothesis_one_data_analysis(
                 file_name=f"{output_folder_of_interest}/schedule_route_dag.pdf"
             )
 
-    if asp_export_experiment_ids:
-        experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-            experiment_data_folder_name=experiment_data_directory,
-            experiment_ids=asp_export_experiment_ids
-        )
-        potassco_export(experiment_potassco_directory=experiment_potassco_directory,
-                        experiment_results_list=experiment_results_list,
-                        asp_export_experiment_ids=asp_export_experiment_ids)
-
 
 if __name__ == '__main__':
     hypothesis_one_data_analysis(
         experiment_output_directory=BASELINE_DATA_FOLDER,
         analysis_2d=True,
-        asp_export_experiment_ids=[96, 106, 163]
     )

@@ -17,6 +17,8 @@ jupyter:
 # %load_ext autoreload
 # %autoreload 2
 import sys
+sys.path.append("../../src/python")
+sys.path.append("../../src/asp")
 from IPython.display import Video
 import pandas as pd
 
@@ -40,6 +42,7 @@ from rsp.analysis.compute_time_analysis import plot_changed_agents
 from rsp.analysis.compute_time_analysis import print_situation_overview
 from rsp.analysis.detailed_experiment_analysis import plot_nb_route_alternatives, plot_time_window_sizes, plot_agent_speeds
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
+BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 
 
 from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
@@ -48,7 +51,7 @@ from rsp.schedule_problem_description.data_types_and_utils import ScheduleProble
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 2
+experiment_of_interest = 2064
 ```
 
 ```{python}

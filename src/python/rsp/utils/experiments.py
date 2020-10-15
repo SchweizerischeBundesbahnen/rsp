@@ -104,7 +104,6 @@ EXPERIMENT_SCHEDULE_SUBDIRECTORY_NAME = "schedule"
 
 EXPERIMENT_DATA_SUBDIRECTORY_NAME = "data"
 EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME = "analysis"
-EXPERIMENT_POTASSCO_SUBDIRECTORY_NAME = "potassco"
 
 
 def _pickle_dump(obj: Any, file_name: str, folder: Optional[str] = None):
