@@ -87,6 +87,7 @@ from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.global_constants import NB_RANDOM
 from rsp.utils.psutil_helpers import current_process_stats_human_readable
 from rsp.utils.psutil_helpers import virtual_memory_human_readable
+from rsp.utils.rename_unpickler import RenameUnpickler
 from rsp.utils.rsp_logger import add_file_handler_to_rsp_logger
 from rsp.utils.rsp_logger import remove_file_handler_from_rsp_logger
 from rsp.utils.rsp_logger import rsp_logger
@@ -110,7 +111,9 @@ def _pickle_dump(obj: Any, file_name: str, folder: Optional[str] = None):
     file_path = file_name
     if folder is not None:
         file_path = os.path.join(folder, file_name)
-    check_create_folder(folder)
+        check_create_folder(folder)
+    else:
+        check_create_folder(os.path.dirname(file_name))
     with open(file_path, "wb") as handle:
         pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -120,7 +123,7 @@ def _pickle_load(file_name: str, folder: Optional[str] = None):
     if folder is not None:
         file_path = os.path.join(folder, file_name)
     with open(file_path, "rb") as handle:
-        return pickle.load(handle)
+        return RenameUnpickler(handle).load()
 
 
 def save_schedule(
@@ -1185,10 +1188,7 @@ def save_experiment_agenda_and_hash_to_file(output_base_folder: str, experiment_
     experiment_agenda: ExperimentAgenda
         The experiment agenda to save
     """
-    file_name = os.path.join(output_base_folder, "experiment_agenda.pkl")
-    check_create_folder(output_base_folder)
-    with open(file_name, "wb") as handle:
-        pickle.dump(experiment_agenda, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    _pickle_dump(obj=experiment_agenda, file_name="experiment_agenda.pkl", folder=output_base_folder)
 
     # write current hash to sha.txt to experiment folder
     _write_sha_txt(output_base_folder)
@@ -1201,10 +1201,7 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
     experiment_folder_name: str
         Folder name of experiment where all experiment files and agenda are stored
     """
-    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
-    with open(file_name, "rb") as handle:
-        file_data: ExperimentAgenda = pickle.load(handle)
-        return file_data
+    return _pickle_load(file_name="experiment_agenda.pkl", folder=experiment_folder_name)
 
 
 def create_experiment_folder_name(experiment_name: str) -> str:
@@ -1230,10 +1227,7 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
     Returns
     -------
     """
-    check_create_folder(os.path.dirname(file_name))
-
-    with open(file_name, "wb") as handle:
-        pickle.dump(experiment_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    _pickle_dump(obj=experiment_results, file_name=file_name)
 
 
 def load_experiments_results(experiment_data_folder_name: str, experiment_id: int) -> Optional[ExperimentResults]:
@@ -1248,12 +1242,10 @@ def load_experiments_results(experiment_data_folder_name: str, experiment_id: in
     -------
     Content if file exists (and is unique). `None` else.
     """
-    file_name = glob.glob(f"{experiment_data_folder_name}/experiment{experiment_id:04d}+_.*.pkl")
-    if len(file_name) != 1:
+    file_names = glob.glob(f"{experiment_data_folder_name}/experiment{experiment_id:04d}+_.*.pkl")
+    if len(file_names) != 1:
         return None
-    with open(file_name[0], "rb") as handle:
-        file_data: ExperimentResults = pickle.load(handle)
-        return file_data
+    return _pickle_load(file_names[0])
 
 
 def load_and_expand_experiment_results_from_data_folder(
@@ -1290,8 +1282,7 @@ def load_and_expand_experiment_results_from_data_folder(
         if experiment_ids is not None and exp_id not in experiment_ids:
             continue
         try:
-            with open(file_name, "rb") as handle:
-                file_data: ExperimentResults = pickle.load(handle)
+            file_data: ExperimentResults = _pickle_load(file_name=file_name)
             experiment_results_list.append(expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields))
         except Exception as e:
             rsp_logger.warn(f"skipping {file} because of {e}")
