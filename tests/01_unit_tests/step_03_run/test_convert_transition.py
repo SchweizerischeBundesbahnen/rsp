@@ -1,6 +1,6 @@
 import numpy as np
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
-from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
+from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
 
 conv = ASPProblemDescription.convert_position_and_entry_direction_to_waypoint
 

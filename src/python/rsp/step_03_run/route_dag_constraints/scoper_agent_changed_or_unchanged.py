@@ -1,8 +1,8 @@
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import Trainrun
-from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.route_dag_constraints.scoper_zero import scoper_zero
+from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
+from rsp.step_02_setup.data_types import ExperimentMalfunction
+from rsp.step_03_run.route_dag_constraints.scoper_zero import scoper_zero
 
 
 def scoper_changed_or_unchanged(

@@ -4,11 +4,11 @@ from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from rsp.experiment_solvers.asp.asp_helper import configuration_as_dict_from_control
-from rsp.experiment_solvers.asp.asp_problem_description import ASPProblemDescription
-from rsp.experiment_solvers.asp.asp_solution_description import ASPSolutionDescription
-from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
+from rsp.scheduling.asp.asp_helper import configuration_as_dict_from_control
+from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
+from rsp.scheduling.asp.asp_solution_description import ASPSolutionDescription
+from rsp.scheduling.schedule import SchedulingExperimentResult
+from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
 
 _pp = pprint.PrettyPrinter(indent=4)
 

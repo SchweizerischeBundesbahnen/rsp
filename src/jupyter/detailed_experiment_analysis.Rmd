@@ -233,7 +233,7 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 ### solver statistics
 
 ```{python}
-from rsp.experiment_solvers.asp.asp_helper import _print_stats
+from rsp.scheduling.asp.asp_helper import _print_stats
 print("=================================================================================")
 print(f"= {experiment_base_directory} results_full_after_malfunction ")
 print("=================================================================================")

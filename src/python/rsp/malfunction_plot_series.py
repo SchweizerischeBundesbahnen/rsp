@@ -1,11 +1,11 @@
 from rsp.hypothesis_two_encounter_graph import compute_disturbance_propagation_graph
 from rsp.hypothesis_two_encounter_graph import plot_delay_propagation_graph
+from rsp.step_03_run.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.step_03_run.experiments import load_and_expand_experiment_results_from_data_folder
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_delay_propagation_2d
 from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import extract_schedule_plotting
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import get_difference_in_time_space_trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
 
 if __name__ == "__main__":
     experiment_base_directory = "../src.python.rsp-data/agent_0_malfunction_2020_06_22T11_48_47/"

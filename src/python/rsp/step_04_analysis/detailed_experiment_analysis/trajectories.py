@@ -7,7 +7,7 @@ from typing import Tuple
 
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import PlottingInformation
 from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import ResourceOccupation

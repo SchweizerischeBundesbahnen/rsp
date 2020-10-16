@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
-from rsp.utils.experiments import create_env_from_experiment_parameters
-from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
+from rsp.step_03_run.experiments import create_env_from_experiment_parameters
+from rsp.step_03_run.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.flatland_replay_utils import render_trainruns
 

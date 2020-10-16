@@ -11,9 +11,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from numpy import inf
 from pandas import DataFrame
-from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.experiment_solvers.data_types import SchedulingExperimentResult
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
+from rsp.scheduling.schedule import SchedulingExperimentResult
+from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
+from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results import plausibility_check_experiment_results
 from rsp.utils.data_types import ExperimentParameters

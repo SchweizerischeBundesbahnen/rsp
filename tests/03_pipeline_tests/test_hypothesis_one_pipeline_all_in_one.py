@@ -1,9 +1,9 @@
 import numpy as np
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
+from rsp.step_03_run.experiments import create_experiment_folder_name
+from rsp.step_03_run.experiments import delete_experiment_folder
 from rsp.utils.data_types import ParameterRanges
 from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.experiments import create_experiment_folder_name
-from rsp.utils.experiments import delete_experiment_folder
 
 
 def test_hypothesis_one_all_in_one():

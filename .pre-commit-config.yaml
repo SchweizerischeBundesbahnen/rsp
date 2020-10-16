@@ -49,7 +49,7 @@ repos:
           pep8-naming, # Check PEP-8 naming conventions, plugin for flake8
         ]
         args: [
-          "--exclude", "src/python/rsp/experiment_solvers/asp/theory.py"
+          "--exclude", "src/python/rsp/scheduling/asp/theory.py"
         ]
   - repo: local
     hooks:
@@ -61,7 +61,7 @@ repos:
         entry: vulture
         args: [
           "--min-confidence", "40",
-          "--exclude", "src/python/rsp/experiment_solvers/asp/theory.py,src/python/rsp/read_in.py",
+          "--exclude", "src/python/rsp/scheduling/asp/theory.py,src/python/rsp/read_in.py",
           "src/python/rsp", "tests"
         ]
         language: system

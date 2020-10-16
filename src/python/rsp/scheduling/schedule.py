@@ -4,12 +4,9 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Set
 
-import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-
-ExperimentMalfunction = NamedTuple("ExperimentMalfunction", [("time_step", int), ("agent_id", int), ("malfunction_duration", int)])
+from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
+from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 
 SchedulingExperimentResult = NamedTuple(
     "SchedulingExperimentResult",
@@ -30,7 +27,3 @@ SchedulingExperimentResult = NamedTuple(
 )
 
 Schedule = NamedTuple("Schedule", [("schedule_problem_description", ScheduleProblemDescription), ("schedule_experiment_result", SchedulingExperimentResult)])
-
-# TODO SIM-661 we should separate grid generation from agent placement, speed generation and topo_dict extraction (shortest paths);
-#  however, we do not pass the city information out of FLATland to place agents.
-Infrastructure = NamedTuple("Infrastructure", [("topo_dict", Dict[int, nx.DiGraph]), ("minimum_travel_time_dict", Dict[int, int]), ("max_episode_steps", int)])

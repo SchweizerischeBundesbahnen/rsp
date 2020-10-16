@@ -10,12 +10,12 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from rsp.experiment_solvers.data_types import ExperimentMalfunction
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
-from rsp.schedule_problem_description.data_types_and_utils import RouteDagEdge
-from rsp.schedule_problem_description.data_types_and_utils import RouteSectionPenalties
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemDescription
-from rsp.schedule_problem_description.data_types_and_utils import WaypointPenalties
+from rsp.scheduling.scheduling_problem import RouteDAGConstraints
+from rsp.scheduling.scheduling_problem import RouteDagEdge
+from rsp.scheduling.scheduling_problem import RouteSectionPenalties
+from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
+from rsp.scheduling.scheduling_problem import WaypointPenalties
+from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.utils.rsp_logger import rsp_logger
 from rsp.utils.rsp_logger import VERBOSE
 

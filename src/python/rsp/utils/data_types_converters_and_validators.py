@@ -2,7 +2,7 @@ from itertools import chain
 from typing import Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
+from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.utils.data_types import LeftClosedInterval
 from rsp.utils.data_types import Resource
 from rsp.utils.data_types import ResourceOccupation

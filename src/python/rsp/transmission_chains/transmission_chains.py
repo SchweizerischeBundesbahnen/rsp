@@ -4,7 +4,7 @@ from typing import NamedTuple
 from typing import Tuple
 
 import numpy as np
-from rsp.experiment_solvers.data_types import ExperimentMalfunction
+from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.utils.data_types import ResourceOccupation
 from rsp.utils.data_types import ScheduleAsResourceOccupations
 from rsp.utils.data_types import SchedulingProblemInTimeWindows

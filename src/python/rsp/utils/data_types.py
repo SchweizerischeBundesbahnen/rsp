@@ -7,8 +7,8 @@ from typing import Mapping
 from typing import NamedTuple
 from typing import Tuple
 
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraints
-from rsp.schedule_problem_description.data_types_and_utils import RouteDAGConstraintsDict
+from rsp.scheduling.scheduling_problem import RouteDAGConstraints
+from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 
 SpeedData = Mapping[float, float]
 

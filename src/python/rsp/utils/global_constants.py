@@ -1,5 +1,5 @@
 # TODO add these constants to experiment_agenda?
-from rsp.experiment_solvers.asp.data_types import ASPHeuristics
+from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 
 RELEASE_TIME = 1
 
