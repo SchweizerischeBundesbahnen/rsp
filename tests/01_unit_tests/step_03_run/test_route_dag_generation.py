@@ -14,8 +14,8 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import topo_from_agent_paths
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.route_dag_constraints.scoper_online_unrestricted import scoper_online_unrestricted_for_all_agents
-from rsp.step_03_run.route_dag_constraints.scoper_online_unrestricted import scoper_online_unrestricted_running
+from rsp.step_03_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_for_all_agents
+from rsp.step_03_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_running
 
 _pp = pprint.PrettyPrinter(indent=4)
 

@@ -9,8 +9,8 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.route_dag_constraints.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
-from rsp.step_03_run.route_dag_constraints.scoper_online_unrestricted import _extract_route_section_penalties
+from rsp.step_03_run.scopers.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
+from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_section_penalties
 
 _pp = pprint.PrettyPrinter(indent=4)
 
