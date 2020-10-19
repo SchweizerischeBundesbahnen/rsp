@@ -1,6 +1,7 @@
 import numpy as np
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
-from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData, ParameterRanges
+from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRanges
+from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import delete_experiment_folder
 
