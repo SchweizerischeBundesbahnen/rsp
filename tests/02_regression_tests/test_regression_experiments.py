@@ -3,6 +3,12 @@ from typing import List
 
 import numpy as np
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRanges
+from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
+from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
@@ -19,12 +25,6 @@ from rsp.step_03_run.experiments import run_experiment_agenda
 from rsp.step_03_run.experiments import run_experiment_in_memory
 from rsp.step_03_run.experiments import save_schedule
 from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
-from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import InfrastructureParameters
-from rsp.utils.data_types import ParameterRanges
-from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.rsp_logger import rsp_logger
 
 

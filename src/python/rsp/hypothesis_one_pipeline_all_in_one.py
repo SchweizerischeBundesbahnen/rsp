@@ -4,6 +4,12 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import parameter_ranges_and_speed_data_to_hiearchical
+from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRanges
+from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
+from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_03_run.experiments import AVAILABLE_CPUS
 from rsp.step_03_run.experiments import create_experiment_agenda_from_infrastructure_and_schedule_ranges
 from rsp.step_03_run.experiments import create_experiment_folder_name
@@ -15,12 +21,6 @@ from rsp.step_03_run.experiments import load_experiments_results
 from rsp.step_03_run.experiments import run_experiment_agenda
 from rsp.step_03_run.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
-from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import parameter_ranges_and_speed_data_to_hiearchical
-from rsp.utils.data_types import ParameterRanges
-from rsp.utils.data_types import ParameterRangesAndSpeedData
-from rsp.utils.data_types import ReScheduleParametersRange
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.rsp_logger import rsp_logger
 

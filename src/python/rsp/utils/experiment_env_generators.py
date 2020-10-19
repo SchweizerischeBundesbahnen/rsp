@@ -12,7 +12,7 @@ create_flatland_environment_with_malfunction:
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_generators import sparse_rail_generator
 from flatland.envs.schedule_generators import sparse_schedule_generator
-from rsp.utils.data_types import SpeedData
+from rsp.step_01_planning.experiment_parameters_and_ranges import SpeedData
 
 
 def create_flatland_environment(

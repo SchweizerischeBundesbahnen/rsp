@@ -13,10 +13,10 @@ from numpy import inf
 from pandas import DataFrame
 from rsp.scheduling.schedule import SchedulingExperimentResult
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results import plausibility_check_experiment_results
-from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
 from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
 from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY

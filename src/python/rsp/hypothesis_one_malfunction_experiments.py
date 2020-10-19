@@ -4,13 +4,13 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from rsp.step_02_setup.data_types import Schedule
+from rsp.scheduling.schedule import Schedule
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_03_run.experiments import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.step_03_run.experiments import run_experiment_agenda
-from rsp.utils.data_types import ExperimentAgenda
-from rsp.utils.data_types import ExperimentParameters
-from rsp.utils.data_types import InfrastructureParameters
-from rsp.utils.data_types import ScheduleParameters
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 

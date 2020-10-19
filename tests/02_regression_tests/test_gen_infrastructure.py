@@ -1,11 +1,11 @@
 import glob
 
+from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import delete_experiment_folder
 from rsp.step_03_run.experiments import expand_infrastructure_parameter_range
 from rsp.step_03_run.experiments import expand_infrastructure_parameter_range_and_generate_infrastructure
 from rsp.step_03_run.experiments import load_infrastructure
-from rsp.utils.data_types import InfrastructureParametersRange
 from rsp.utils.file_utils import check_create_folder
 
 infrastructure_parameter_range = InfrastructureParametersRange(

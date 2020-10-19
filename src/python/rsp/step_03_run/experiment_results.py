@@ -5,8 +5,8 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.scheduling.schedule import SchedulingExperimentResult
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
+from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.utils.data_types import ExperimentParameters
 from rsp.utils.global_constants import NB_RANDOM
 
 ExperimentResults = NamedTuple(
