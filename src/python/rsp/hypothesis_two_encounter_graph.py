@@ -102,8 +102,8 @@ def plot_transmission_chains_time_window(
 
     """
     schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result)
-    reschedule_full_resource_occupations_per_agent = schedule_plotting.reschedule_full_as_resource_occupations.sorted_resource_occupations_per_agent
-    num_agents = len(experiment_result.results_full.trainruns_dict.keys())
+    online_unrestricted_resource_occupations_per_agent = schedule_plotting.online_unrestricted_as_resource_occupations.sorted_resource_occupations_per_agent
+    num_agents = len(experiment_result.results_schedule.trainruns_dict.keys())
     plotting_information = schedule_plotting.plotting_information
 
     prediction = extract_trajectories_from_transmission_chains_time_window(num_agents, plotting_information, transmission_chains_time_window)
@@ -116,12 +116,12 @@ def plot_transmission_chains_time_window(
     )
 
     # TODO sanity check:
-    trajectories_reschedule_full_time_windows = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=time_windows_as_resource_occupations_per_agent(problem=experiment_result.problem_full_after_malfunction),
+    trajectories_online_unrestricted_time_windows = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=time_windows_as_resource_occupations_per_agent(problem=experiment_result.problem_online_unrestricted),
         plotting_information=schedule_plotting.plotting_information,
     )
     sanity_false_positives, _ = get_difference_in_time_space_trajectories(
-        base_trajectories=prediction, target_trajectories=trajectories_reschedule_full_time_windows
+        base_trajectories=prediction, target_trajectories=trajectories_online_unrestricted_time_windows
     )
     plot_time_resource_trajectories(
         trajectories=sanity_false_positives,
@@ -131,7 +131,7 @@ def plot_transmission_chains_time_window(
         output_folder=output_folder,
     )
     sanity_false_negatives, _ = get_difference_in_time_space_trajectories(
-        target_trajectories=prediction, base_trajectories=trajectories_reschedule_full_time_windows
+        target_trajectories=prediction, base_trajectories=trajectories_online_unrestricted_time_windows
     )
     plot_time_resource_trajectories(
         trajectories=sanity_false_negatives,
@@ -141,12 +141,12 @@ def plot_transmission_chains_time_window(
         output_folder=output_folder,
     )
     # Get trajectories for reschedule full
-    trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=reschedule_full_resource_occupations_per_agent, plotting_information=plotting_information
+    trajectories_online_unrestricted: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=online_unrestricted_resource_occupations_per_agent, plotting_information=plotting_information
     )
 
     # Plot difference with prediction
-    false_negatives, _ = get_difference_in_time_space_trajectories(base_trajectories=trajectories_reschedule_full, target_trajectories=prediction)
+    false_negatives, _ = get_difference_in_time_space_trajectories(base_trajectories=trajectories_online_unrestricted, target_trajectories=prediction)
     plot_time_resource_trajectories(
         trajectories=false_negatives,
         # TODO SIM-549 is there something wrong because release times are not contained in time windows?
@@ -155,7 +155,7 @@ def plot_transmission_chains_time_window(
         malfunction=schedule_plotting.malfunction,
         output_folder=output_folder,
     )
-    false_positives, _ = get_difference_in_time_space_trajectories(base_trajectories=prediction, target_trajectories=trajectories_reschedule_full)
+    false_positives, _ = get_difference_in_time_space_trajectories(base_trajectories=prediction, target_trajectories=trajectories_online_unrestricted)
     plot_time_resource_trajectories(
         trajectories=false_positives,
         title="False positives (in prediction but not in re-schedule full)",
@@ -198,15 +198,15 @@ def extract_time_windows_and_transmission_chains(experiment_result: ExperimentRe
     """
     rsp_logger.info("start extract_time_windows")
     malfunction = experiment_result.malfunction
-    re_schedule_full_time_windows: SchedulingProblemInTimeWindows = extract_time_windows(
-        route_dag_constraints_dict=experiment_result.problem_full_after_malfunction.route_dag_constraints_dict,
-        minimum_travel_time_dict=experiment_result.problem_full_after_malfunction.minimum_travel_time_dict,
+    online_unrestricted_time_windows: SchedulingProblemInTimeWindows = extract_time_windows(
+        route_dag_constraints_dict=experiment_result.problem_online_unrestricted.route_dag_constraints_dict,
+        minimum_travel_time_dict=experiment_result.problem_online_unrestricted.minimum_travel_time_dict,
         release_time=RELEASE_TIME,
     )
     rsp_logger.info("end extract_time_windows")
     rsp_logger.info("start extract_transmission_chains_from_time_windows")
     transmission_chains_time_window: List[TransmissionChain] = extract_transmission_chains_from_time_windows(
-        time_windows=re_schedule_full_time_windows, malfunction=malfunction
+        time_windows=online_unrestricted_time_windows, malfunction=malfunction
     )
     rsp_logger.info("end extract_transmission_chains_from_time_windows")
     return transmission_chains_time_window

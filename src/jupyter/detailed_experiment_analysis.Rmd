@@ -70,9 +70,9 @@ from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_r
 
 
 items = {
-    'problem_full': exp_results_of_experiment_of_interest.problem_full,
-    'problem_full_after_malfunction': exp_results_of_experiment_of_interest.problem_full_after_malfunction,
-    'problem_delta_perfect_after_malfunction': exp_results_of_experiment_of_interest.problem_delta_perfect_after_malfunction
+    'problem_schedule': exp_results_of_experiment_of_interest.problem_schedule,
+    'problem_online_unrestricted': exp_results_of_experiment_of_interest.problem_online_unrestricted,
+    'problem_offline_delta': exp_results_of_experiment_of_interest.problem_offline_delta
 }
 for item, problem in items.items():
     for agent_id, topo in problem.topo_dict.items():
@@ -118,12 +118,12 @@ plot_time_window_sizes(experiment_results=exp_results_of_experiment_of_interest)
 This visualization shows the parameter spaced available to the optimizer to find solutions. Initial schedule is not shown as we have a tabularasa approach with no restrictions. Full rescheduling has the following available parameter space
 
 ```{python}
-resource_occupations_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_full_after_malfunction)
+resource_occupations_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_online_unrestricted)
 trajectories = trajectories_from_resource_occupations_per_agent(
     resource_occupations_schedule=resource_occupations_reschedule,
     plotting_information=plotting_data.plotting_information)
-choices_full_reschedule = exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_full_reschedule))
+choices_online_unrestricted = exp_results_of_experiment_of_interest.results_online_unrestricted.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_online_unrestricted))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Full Reschedule Problem",
                                 plotting_information=plotting_data.plotting_information,
@@ -134,12 +134,12 @@ plot_time_resource_trajectories(trajectories=trajectories,
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
 
 ```{python}
-resource_occupations_delta_perfect_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_perfect_after_malfunction)
+resource_occupations_offline_delta = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_offline_delta)
 trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=resource_occupations_delta_perfect_reschedule,
+    resource_occupations_schedule=resource_occupations_offline_delta,
     plotting_information=plotting_data.plotting_information)
-choices_delta_perfect_reschedule = exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_delta_perfect_reschedule))
+choices_offline_delta = exp_results_of_experiment_of_interest.results_offline_delta.solver_statistics["solving"]["solvers"]["choices"]
+print("Number of choices the solver has to make was {}".format(choices_offline_delta))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta Perfect Reschedule Problem",
                                 plotting_information=plotting_data.plotting_information,
@@ -147,11 +147,11 @@ plot_time_resource_trajectories(trajectories=trajectories,
 ```
 
 ```{python}
-resource_occupations_delta_naive_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_no_rerouting_after_malfunction)
+resource_occupations_delta_naive_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_online_route_restricted)
 trajectories = trajectories_from_resource_occupations_per_agent(
     resource_occupations_schedule=resource_occupations_delta_naive_reschedule,
     plotting_information=plotting_data.plotting_information)
-choices_delta_naive_reschedule = exp_results_of_experiment_of_interest.results_delta_no_rerouting_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_naive_reschedule = exp_results_of_experiment_of_interest.results_online_route_restricted.solver_statistics["solving"]["solvers"]["choices"]
 print("Number of choices the solver has to make was {}".format(choices_delta_naive_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta Naive Reschedule Problem",
@@ -160,11 +160,11 @@ plot_time_resource_trajectories(trajectories=trajectories,
 ```
 
 ```{python}
-resource_occupations_delta_online_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_delta_online_after_malfunction)
+resource_occupations_delta_online_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_online_transmission_chains_fully_restricted)
 trajectories = trajectories_from_resource_occupations_per_agent(
     resource_occupations_schedule=resource_occupations_delta_online_reschedule,
     plotting_information=plotting_data.plotting_information)
-choices_delta_online_reschedule = exp_results_of_experiment_of_interest.results_delta_online_after_malfunction.solver_statistics["solving"]["solvers"]["choices"]
+choices_delta_online_reschedule = exp_results_of_experiment_of_interest.results_online_transmission_chains_fully_restricted.solver_statistics["solving"]["solvers"]["choices"]
 print("Number of choices the solver has to make was {}".format(choices_delta_online_reschedule))
 plot_time_resource_trajectories(trajectories=trajectories,
                                 title="Delta online Reschedule Problem",
@@ -235,11 +235,11 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 ```{python}
 from rsp.scheduling.asp.asp_helper import _print_stats
 print("=================================================================================")
-print(f"= {experiment_base_directory} results_full_after_malfunction ")
+print(f"= {experiment_base_directory} results_online_unrestricted ")
 print("=================================================================================")
-_print_stats(exp_results_of_experiment_of_interest.results_full_after_malfunction.solver_statistics)
+_print_stats(exp_results_of_experiment_of_interest.results_online_unrestricted.solver_statistics)
 print("=================================================================================")
-print(f"= {experiment_base_directory} results_delta_perfect_after_malfunction ")
+print(f"= {experiment_base_directory} results_offline_delta ")
 print("=================================================================================")
-_print_stats(exp_results_of_experiment_of_interest.results_delta_perfect_after_malfunction.solver_statistics)
+_print_stats(exp_results_of_experiment_of_interest.results_offline_delta.solver_statistics)
 ```

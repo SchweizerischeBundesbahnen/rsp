@@ -246,8 +246,8 @@ def _asp_loop(  # noqa: C901
     return all_answers
 
 
-def _print_stats(statistics, print_full_statistics: bool = False):
-    if print_full_statistics:
+def _print_stats(statistics, print_full_dump: bool = False):
+    if print_full_dump:
         print("=================================================================================")
         print("= FULL STATISTICS                                                               =")
         print("=================================================================================")

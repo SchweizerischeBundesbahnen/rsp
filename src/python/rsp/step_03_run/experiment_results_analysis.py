@@ -24,21 +24,26 @@ from rsp.utils.global_constants import NB_RANDOM
 from rsp.utils.rsp_logger import rsp_logger
 
 speed_up_scopes = [
-    f"delta_{infix}_after_malfunction"
-    for infix in (["trivially_perfect", "perfect", "no_rerouting", "online", "online_no_time_flexibility"] + [f"random_{i}" for i in range(NB_RANDOM)])
+    "online_fully_restricted",
+    "offline_delta",
+    "online_route_restricted",
+    "online_transmission_chains_fully_restricted",
+    "online_transmission_chains_route_restricted",
+] + [f"online_random_{i}" for i in range(NB_RANDOM)]
+prediction_scopes = ["online_transmission_chains_route_restricted", "online_transmission_chains_fully_restricted"] + [
+    f"online_random_{i}" for i in range(NB_RANDOM)
 ]
-prediction_scopes = [f"delta_{infix}_after_malfunction" for infix in (["online", "online_no_time_flexibility"] + [f"random_{i}" for i in range(NB_RANDOM)])]
 
-after_malfunction_scopes = ["full_after_malfunction"] + speed_up_scopes
-all_scopes = ["full"] + after_malfunction_scopes
+rescheduling_scopes = ["online_unrestricted"] + speed_up_scopes
+all_scopes = ["schedule"] + rescheduling_scopes
 
 
 def _extract_visulization(l: List[str]):
-    return [scope for scope in l if not scope.startswith("delta_random_")] + ["random_average"]
+    return [scope for scope in l if not scope.startswith("online_random_")] + ["online_random_average"]
 
 
 all_scopes_visualization = _extract_visulization(all_scopes)
-after_malfunction_scopes_visualization = _extract_visulization(after_malfunction_scopes)
+rescheduling_scopes_visualization = _extract_visulization(rescheduling_scopes)
 prediction_scopes_visualization = _extract_visulization(prediction_scopes)
 speed_up_scopes_visualization = _extract_visulization(speed_up_scopes)
 
@@ -217,49 +222,49 @@ def costs_from_route_section_penalties(
 
 
 def speed_up_from_results(
-    results_full_reschedule: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
+    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
 ) -> float:
-    return results_full_reschedule.solver_statistics["summary"]["times"]["total"] / results_other_reschedule.solver_statistics["summary"]["times"]["total"]
+    return results_online_unrestricted.solver_statistics["summary"]["times"]["total"] / results_other_reschedule.solver_statistics["summary"]["times"]["total"]
 
 
 def speed_up_solve_time_from_results(
-    results_full_reschedule: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
+    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
 ) -> float:
-    return results_full_reschedule.solver_statistics["summary"]["times"]["solve"] / results_other_reschedule.solver_statistics["summary"]["times"]["solve"]
+    return results_online_unrestricted.solver_statistics["summary"]["times"]["solve"] / results_other_reschedule.solver_statistics["summary"]["times"]["solve"]
 
 
 def speed_up_non_solve_time_from_results(
-    results_full_reschedule: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
+    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
 ) -> float:
-    return (results_full_reschedule.solver_statistics["summary"]["times"]["total"] - results_full_reschedule.solver_statistics["summary"]["times"]["solve"]) / (
-        results_other_reschedule.solver_statistics["summary"]["times"]["total"] - results_other_reschedule.solver_statistics["summary"]["times"]["solve"]
-    )
+    return (
+        results_online_unrestricted.solver_statistics["summary"]["times"]["total"] - results_online_unrestricted.solver_statistics["summary"]["times"]["solve"]
+    ) / (results_other_reschedule.solver_statistics["summary"]["times"]["total"] - results_other_reschedule.solver_statistics["summary"]["times"]["solve"])
 
 
 def costs_ratio_from_results(
-    results_full_reschedule: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
+    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
 ) -> float:
-    costs_full_reschedule = costs_from_results(
-        results_schedule=experiment_results.results_full,
-        results_reschedule=results_full_reschedule,
-        problem_reschedule=experiment_results.problem_full_after_malfunction,
+    costs_online_unrestricted = costs_from_results(
+        results_schedule=experiment_results.results_schedule,
+        results_reschedule=results_online_unrestricted,
+        problem_reschedule=experiment_results.problem_online_unrestricted,
     )
     # TODO SIM-324 pull out verification
-    assert costs_full_reschedule >= experiment_results.malfunction.malfunction_duration, (
-        f"costs_full_reschedule {costs_full_reschedule} should be greater than malfunction duration, "
+    assert costs_online_unrestricted >= experiment_results.malfunction.malfunction_duration, (
+        f"costs_online_unrestricted {costs_online_unrestricted} should be greater than malfunction duration, "
         f"{experiment_results.malfunction} {experiment_results.experiment_parameters}"
     )
     costs_other_reschedule = costs_from_results(
-        results_schedule=experiment_results.results_full,
+        results_schedule=experiment_results.results_schedule,
         results_reschedule=results_other_reschedule,
-        problem_reschedule=experiment_results.problem_full_after_malfunction,
+        problem_reschedule=experiment_results.problem_online_unrestricted,
     )
     # TODO SIM-324 pull out verification
     assert costs_other_reschedule >= experiment_results.malfunction.malfunction_duration
     try:
-        return (costs_full_reschedule / costs_other_reschedule,)
+        return (costs_online_unrestricted / costs_other_reschedule,)
     except ZeroDivisionError as e:
-        rsp_logger.error(f"{costs_full_reschedule} / {costs_other_reschedule}")
+        rsp_logger.error(f"{costs_online_unrestricted} / {costs_other_reschedule}")
         raise e
 
 
@@ -302,7 +307,7 @@ experiment_results_analysis_all_scopes_fields = {
     "size_used": (int, size_used_from_results),
 }
 
-experiment_results_analysis_after_malfunction_scopes_fields = {
+experiment_results_analysis_rescheduling_scopes_fields = {
     "costs": (float, costs_from_results),
     "costs_from_route_section_penalties": (float, costs_from_route_section_penalties),
     "costs_from_route_section_penalties_per_agent": (Dict[int, float], costs_from_route_section_penalties_per_agent_from_results),
@@ -335,12 +340,12 @@ prediction_scopes_fields = {
     "predicted_changed_agents_false_negatives": int,
 }
 
-random_average_fields = [
+online_random_average_fields = [
     prefix
     for prefix in (
         list(speedup_scopes_fields.keys())
         + list(experiment_results_analysis_all_scopes_fields.keys())
-        + list(experiment_results_analysis_after_malfunction_scopes_fields.keys())
+        + list(experiment_results_analysis_rescheduling_scopes_fields.keys())
         + list(prediction_scopes_fields.keys())
     )
     if prefix != "solution" and "_per_" not in prefix and not prefix.startswith("vertex_")
@@ -351,22 +356,22 @@ ExperimentResultsAnalysis = NamedTuple(
     [
         ("experiment_parameters", ExperimentParameters),
         ("malfunction", ExperimentMalfunction),
-        ("problem_full", ScheduleProblemDescription),
-        ("problem_full_after_malfunction", ScheduleProblemDescription),
-        ("problem_delta_trivially_perfect_after_malfunction", ScheduleProblemDescription),
-        ("problem_delta_perfect_after_malfunction", ScheduleProblemDescription),
-        ("problem_delta_no_rerouting_after_malfunction", ScheduleProblemDescription),
-        ("problem_delta_online_after_malfunction", ScheduleProblemDescription),
-        ("problem_delta_online_no_time_flexibility_after_malfunction", ScheduleProblemDescription),
-        ("results_full", SchedulingExperimentResult),
-        ("results_full_after_malfunction", SchedulingExperimentResult),
-        ("results_delta_trivially_perfect_after_malfunction", SchedulingExperimentResult),
-        ("results_delta_perfect_after_malfunction", SchedulingExperimentResult),
-        ("results_delta_no_rerouting_after_malfunction", SchedulingExperimentResult),
-        ("results_delta_online_after_malfunction", SchedulingExperimentResult),
-        ("results_delta_online_no_time_flexibility_after_malfunction", SchedulingExperimentResult),
-        ("predicted_changed_agents_online_after_malfunction", Set[int]),
-        ("predicted_changed_agents_online_no_time_flexibility_after_malfunction", Set[int]),
+        ("problem_schedule", ScheduleProblemDescription),
+        ("problem_online_unrestricted", ScheduleProblemDescription),
+        ("problem_online_fully_restricted", ScheduleProblemDescription),
+        ("problem_offline_delta", ScheduleProblemDescription),
+        ("problem_online_route_restricted", ScheduleProblemDescription),
+        ("problem_online_transmission_chains_fully_restricted", ScheduleProblemDescription),
+        ("problem_online_transmission_chains_route_restricted", ScheduleProblemDescription),
+        ("results_schedule", SchedulingExperimentResult),
+        ("results_online_unrestricted", SchedulingExperimentResult),
+        ("results_online_fully_restricted", SchedulingExperimentResult),
+        ("results_offline_delta", SchedulingExperimentResult),
+        ("results_online_route_restricted", SchedulingExperimentResult),
+        ("results_online_transmission_chains_fully_restricted", SchedulingExperimentResult),
+        ("results_online_transmission_chains_route_restricted", SchedulingExperimentResult),
+        ("predicted_changed_agents_online_transmission_chains_fully_restricted", Set[int]),
+        ("predicted_changed_agents_online_transmission_chains_route_restricted", Set[int]),
         ("experiment_id", int),
         ("grid_id", int),
         ("infra_id", int),
@@ -385,18 +390,14 @@ ExperimentResultsAnalysis = NamedTuple(
         ("max_window_size_from_earliest", int),
         ("factor_resource_conflicts", int),
     ]
-    + [(f"problem_delta_random_{i}_after_malfunction", ScheduleProblemDescription) for i in range(NB_RANDOM)]
-    + [(f"results_delta_random_{i}_after_malfunction", SchedulingExperimentResult) for i in range(NB_RANDOM)]
-    + [(f"predicted_changed_agents_random_{i}_after_malfunction", Set[int]) for i in range(NB_RANDOM)]
+    + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(NB_RANDOM)]
+    + [(f"results_online_random_{i}", SchedulingExperimentResult) for i in range(NB_RANDOM)]
+    + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(NB_RANDOM)]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes]
-    + [
-        (f"{prefix}_{scope}", type_)
-        for prefix, (type_, _) in experiment_results_analysis_after_malfunction_scopes_fields.items()
-        for scope in after_malfunction_scopes
-    ]
+    + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_rescheduling_scopes_fields.items() for scope in rescheduling_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in speedup_scopes_fields.items() for scope in speed_up_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, type_ in prediction_scopes_fields.items() for scope in prediction_scopes]
-    + [(f"{prefix}_random_average", float) for prefix in random_average_fields],
+    + [(f"{prefix}_online_random_average", float) for prefix in online_random_average_fields],
 )
 
 
@@ -405,7 +406,7 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
     plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
 
     # sanity check costs
-    for scope in after_malfunction_scopes:
+    for scope in rescheduling_scopes:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
         costs_from_route_section_penalties = experiment_results_analysis._asdict()[f"costs_from_route_section_penalties_{scope}"]
         costs_from_lateness = experiment_results_analysis._asdict()[f"costs_from_lateness_{scope}"]
@@ -419,13 +420,14 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
             )
         except AssertionError as e:
             rsp_logger.warn(str(e))
-    # TODO
-    for scope in ["trivially_perfect", "perfect"]:
-        costs = experiment_results_analysis._asdict()[f"costs_delta_{scope}_after_malfunction"]
-        assert costs == experiment_results_analysis.costs_full_after_malfunction
-    for scope in ["no_rerouting", "online"] + [f"random_{i}" for i in range(NB_RANDOM)]:
-        costs = experiment_results_analysis._asdict()[f"costs_delta_{scope}_after_malfunction"]
-        assert costs >= experiment_results_analysis.costs_full_after_malfunction
+    for scope in ["online_fully_restricted", "offline_delta"]:
+        costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
+        assert costs == experiment_results_analysis.costs_online_unrestricted
+    for scope in ["online_route_restricted", "online_transmission_chains_fully_restricted", "online_transmission_chains_fully_restricted"] + [
+        f"online_random_{i}" for i in range(NB_RANDOM)
+    ]:
+        costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
+        assert costs >= experiment_results_analysis.costs_online_unrestricted
 
 
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
@@ -433,8 +435,8 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
 
 
 def filter_experiment_results_analysis_data_frame(experiment_data: pd.DataFrame) -> pd.DataFrame:
-    time_full_after_malfunction = experiment_data["solver_statistics_times_total_full_after_malfunction"]
-    return experiment_data[(time_full_after_malfunction > 10) & (time_full_after_malfunction <= time_full_after_malfunction.quantile(0.97))]
+    time_online_unrestricted = experiment_data["solver_statistics_times_total_online_unrestricted"]
+    return experiment_data[(time_online_unrestricted > 10) & (time_online_unrestricted <= time_online_unrestricted.quantile(0.97))]
 
 
 def expand_experiment_results_for_analysis(experiment_results: ExperimentResults, nonify_all_structured_fields: bool = False) -> ExperimentResultsAnalysis:
@@ -461,12 +463,12 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
     experiment_id = experiment_parameters.experiment_id
 
     # derive speed up
-    nb_resource_conflicts_delta_perfect_after_malfunction = experiment_results.results_delta_perfect_after_malfunction.nb_conflicts
-    nb_resource_conflicts_full_after_malfunction = experiment_results.results_full_after_malfunction.nb_conflicts
+    nb_resource_conflicts_offline_delta = experiment_results.results_offline_delta.nb_conflicts
+    nb_resource_conflicts_online_unrestricted = experiment_results.results_online_unrestricted.nb_conflicts
     # search space indiciators
     factor_resource_conflicts = -1
     try:
-        factor_resource_conflicts = nb_resource_conflicts_delta_perfect_after_malfunction / nb_resource_conflicts_full_after_malfunction
+        factor_resource_conflicts = nb_resource_conflicts_offline_delta / nb_resource_conflicts_online_unrestricted
     except ZeroDivisionError:
         warnings.warn(f"no resource conflicts for experiment {experiment_id} -> set ratio to -1")
 
@@ -474,8 +476,8 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
 
     ground_truth_positive_changed_agents = {
         agent_id
-        for agent_id, trainrun_full_after_malfunction in experiment_results.results_full_after_malfunction.trainruns_dict.items()
-        if set(experiment_results.results_full.trainruns_dict[agent_id]) != set(trainrun_full_after_malfunction)
+        for agent_id, trainrun_online_unrestricted in experiment_results.results_online_unrestricted.trainruns_dict.items()
+        if set(experiment_results.results_schedule.trainruns_dict[agent_id]) != set(trainrun_online_unrestricted)
     }
 
     ground_truth_negative_changed_agents = set(range(nb_agents)).difference(ground_truth_positive_changed_agents)
@@ -502,13 +504,15 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
     d = experiment_results._asdict()
 
     # extract predicted numbers
-    d.update(**predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, "delta_online_after_malfunction"))
-    d.update(**predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, "delta_online_no_time_flexibility_after_malfunction"))
+    d.update(
+        **predicted_dict(experiment_results.predicted_changed_agents_online_transmission_chains_fully_restricted, "online_transmission_chains_fully_restricted")
+    )
+    d.update(
+        **predicted_dict(experiment_results.predicted_changed_agents_online_transmission_chains_fully_restricted, "online_transmission_chains_route_restricted")
+    )
 
     for i in range(NB_RANDOM):
-        d.update(
-            **predicted_dict(experiment_results._asdict()[f"predicted_changed_agents_random_{i}_after_malfunction"], f"delta_random_{i}_after_malfunction")
-        )
+        d.update(**predicted_dict(experiment_results._asdict()[f"predicted_changed_agents_online_random_{i}"], f"online_random_{i}"))
 
     # extract other fields by configuration
     d.update(
@@ -519,16 +523,16 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
         },
         **{
             f"{prefix}_{scope}": results_extractor(
-                results_schedule=experiment_results._asdict()[f"results_full"],
+                results_schedule=experiment_results._asdict()[f"results_schedule"],
                 results_reschedule=experiment_results._asdict()[f"results_{scope}"],
                 problem_reschedule=experiment_results._asdict()[f"problem_{scope}"],
             )
-            for prefix, (_, results_extractor) in experiment_results_analysis_after_malfunction_scopes_fields.items()
-            for scope in after_malfunction_scopes
+            for prefix, (_, results_extractor) in experiment_results_analysis_rescheduling_scopes_fields.items()
+            for scope in rescheduling_scopes
         },
         **{
             f"{prefix}_{scope}": results_extractor(
-                results_full_reschedule=experiment_results._asdict()[f"results_full_after_malfunction"],
+                results_online_unrestricted=experiment_results._asdict()[f"results_online_unrestricted"],
                 results_other_reschedule=experiment_results._asdict()[f"results_{scope}"],
                 experiment_results=experiment_results,
             )
@@ -537,13 +541,10 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
         },
     )
 
-    # add random_average by averaging over delta_random_{i}_after_malfunction
+    # add online_random_average by averaging over online_random_{i}
     d = dict(
         **d,
-        **{
-            f"{prefix}_random_average": np.mean([d[f"{prefix}_delta_random_{i}_after_malfunction"] for i in range(NB_RANDOM)])
-            for prefix in random_average_fields
-        },
+        **{f"{prefix}_online_random_average": np.mean([d[f"{prefix}_online_random_{i}"] for i in range(NB_RANDOM)]) for prefix in online_random_average_fields},
     )
 
     def _to_experiment_results_analysis():
@@ -575,11 +576,11 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
         d.update({f"problem_{scope}": None for scope in all_scopes})
         d.update({f"results_{scope}": None for scope in all_scopes})
         d.update({f"solution_{scope}": None for scope in all_scopes})
-        d.update({f"lateness_per_agent_{scope}": None for scope in after_malfunction_scopes})
-        d.update({f"costs_from_route_section_penalties_per_agent_{scope}": None for scope in after_malfunction_scopes})
-        d.update({f"vertex_lateness_{scope}": None for scope in after_malfunction_scopes})
-        d.update({f"costs_from_route_section_penalties_per_agent_and_edge_{scope}": None for scope in after_malfunction_scopes})
-        d.update({"experiment_parameters": None, "malfunction": None, "predicted_changed_agents_online_after_malfunction": None})
-        d.update({f"predicted_changed_agents_random_{i}_after_malfunction": None for i in range(NB_RANDOM)})
+        d.update({f"lateness_per_agent_{scope}": None for scope in rescheduling_scopes})
+        d.update({f"costs_from_route_section_penalties_per_agent_{scope}": None for scope in rescheduling_scopes})
+        d.update({f"vertex_lateness_{scope}": None for scope in rescheduling_scopes})
+        d.update({f"costs_from_route_section_penalties_per_agent_and_edge_{scope}": None for scope in rescheduling_scopes})
+        d.update({"experiment_parameters": None, "malfunction": None, "predicted_changed_agents_online_transmission_chains_fully_restricted": None})
+        d.update({f"predicted_changed_agents_online_random_{i}": None for i in range(NB_RANDOM)})
 
     return _to_experiment_results_analysis()

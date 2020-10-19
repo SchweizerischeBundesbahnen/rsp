@@ -11,9 +11,7 @@ def visualize_hypotheses_asp(experiment_data: pd.DataFrame, output_folder: Optio
 
     # problem reduction in terms of shared, conflicts, choices
     for column_prefix in ["nb_resource_conflicts", "solver_statistics_conflicts", "solver_statistics_choices"]:
-        experiment_data[f"{column_prefix}_ratio"] = (
-            experiment_data[f"{column_prefix}_full_after_malfunction"] / experiment_data[f"{column_prefix}_delta_perfect_after_malfunction"]
-        )
+        experiment_data[f"{column_prefix}_ratio"] = experiment_data[f"{column_prefix}_online_unrestricted"] / experiment_data[f"{column_prefix}_offline_delta"]
 
     plot_box_plot(
         experiment_data=experiment_data,

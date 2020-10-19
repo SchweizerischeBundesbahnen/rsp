@@ -30,7 +30,7 @@ if __name__ == "__main__":
         schedule_resource_occupations = plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
         schedule_trajectories = trajectories_from_resource_occupations_per_agent(schedule_resource_occupations, plotting_data.plotting_information)
 
-        reschedule_resource_occupations = plotting_data.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
+        reschedule_resource_occupations = plotting_data.offline_delta_as_resource_occupations.sorted_resource_occupations_per_agent
         reschedule_trajectories = trajectories_from_resource_occupations_per_agent(reschedule_resource_occupations, plotting_data.plotting_information)
 
         _, changed_agents_dict = get_difference_in_time_space_trajectories(base_trajectories=schedule_trajectories, target_trajectories=reschedule_trajectories)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
         plot_delay_propagation_2d(
             plotting_data=plotting_data,
-            delay_information=exp_results_of_experiment_of_interest.lateness_delta_perfect_after_malfunction,
+            delay_information=exp_results_of_experiment_of_interest.lateness_offline_delta,
             depth_dict=minimal_depth,
             changed_agents=changed_agents_dict,
             file_name=file_name_2d,

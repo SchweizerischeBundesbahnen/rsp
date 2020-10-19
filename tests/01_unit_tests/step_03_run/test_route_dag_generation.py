@@ -14,8 +14,8 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import topo_from_agent_paths
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
-from rsp.step_03_run.route_dag_constraints.scoper_zero import scoper_zero_running
+from rsp.step_03_run.route_dag_constraints.scoper_online_unrestricted import scoper_online_unrestricted_for_all_agents
+from rsp.step_03_run.route_dag_constraints.scoper_online_unrestricted import scoper_online_unrestricted_running
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -742,7 +742,7 @@ def _get_data():
     return agent_paths, train_run
 
 
-def test_get_freeze_for_full_rescheduling():
+def test_get_freeze_for_online_unrestricted():
     agent_paths, train_run = _get_data()
     malfunction = ExperimentMalfunction(time_step=19, agent_id=2, malfunction_duration=20)
     expected_route_dag_constraints = RouteDAGConstraints(
@@ -837,7 +837,7 @@ def test_get_freeze_for_full_rescheduling():
         latest=[],
     )
     topo_dict = _get_topology_from_agents_path_dict({2: agent_paths})
-    reschedule_full_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
+    online_unrestricted_problem_description: ScheduleProblemDescription = scoper_online_unrestricted_for_all_agents(
         minimum_travel_time_dict={2: 1},
         topo_dict_=topo_dict,
         malfunction=malfunction,
@@ -846,7 +846,7 @@ def test_get_freeze_for_full_rescheduling():
         weight_lateness_seconds=1,
         weight_route_change=1,
     )
-    route_dag_constraints: RouteDAGConstraints = reschedule_full_problem_description.route_dag_constraints_dict[2]
+    route_dag_constraints: RouteDAGConstraints = online_unrestricted_problem_description.route_dag_constraints_dict[2]
     print(f"earliest={_pp.pformat(route_dag_constraints.earliest)}")
     print(f"latest={_pp.pformat(route_dag_constraints.latest)}")
 
@@ -858,7 +858,7 @@ def test_get_freeze_for_full_rescheduling():
     )
 
 
-def test_get_freeze_for_delta_perfect():
+def test_get_freeze_for_offline_delta():
     agents_path_dict = {
         0: [
             (
@@ -1700,7 +1700,7 @@ def test_get_freeze_for_delta_perfect():
         ),
     }
 
-    reschedule_problem_description: ScheduleProblemDescription = delta_zero_for_all_agents(
+    reschedule_problem_description: ScheduleProblemDescription = scoper_online_unrestricted_for_all_agents(
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict={0: 1, 1: 1},
         topo_dict_={agent_id: topo_from_agent_paths(agents_path_dict[agent_id]) for agent_id in agents_path_dict},
@@ -2049,7 +2049,7 @@ def test_bugfix_sim_172():
     ]
     malfunction = ExperimentMalfunction(time_step=19, agent_id=4, malfunction_duration=20)
 
-    actual_route_dag_constraints = scoper_zero_running(
+    actual_route_dag_constraints = scoper_online_unrestricted_running(
         agent_id=malfunction.agent_id,
         schedule_trainrun=schedule_trainrun,
         malfunction=malfunction,
@@ -2185,7 +2185,7 @@ def test_bugfix_sim_175_no_path_splitting_forward():
     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = scoper_zero_running(
+    actual_route_dag_constraints = scoper_online_unrestricted_running(
         agent_id=0,
         malfunction=ExperimentMalfunction(agent_id=1, time_step=55, malfunction_duration=55),
         schedule_trainrun=force_freeze,
@@ -2237,7 +2237,7 @@ def test_bugfix_sim_175_no_path_splitting_backward():
     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = scoper_zero_running(
+    actual_route_dag_constraints = scoper_online_unrestricted_running(
         agent_id=0,
         malfunction=ExperimentMalfunction(time_step=4, agent_id=0, malfunction_duration=20),
         schedule_trainrun=force_freeze,
@@ -2290,7 +2290,7 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
     ]
 
     topo = topo_from_agent_paths(agent_paths)
-    actual_route_dag_constraints = scoper_zero_running(
+    actual_route_dag_constraints = scoper_online_unrestricted_running(
         agent_id=0,
         malfunction=ExperimentMalfunction(agent_id=1, time_step=55, malfunction_duration=55),
         schedule_trainrun=force_freeze,

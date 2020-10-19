@@ -2,9 +2,9 @@
 from typing import List
 
 from pandas import DataFrame
-from rsp.step_03_run.experiment_results_analysis import after_malfunction_scopes_visualization
 from rsp.step_03_run.experiment_results_analysis import all_scopes_visualization
 from rsp.step_03_run.experiment_results_analysis import prediction_scopes_visualization
+from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes_visualization
 from rsp.step_03_run.experiment_results_analysis import speed_up_scopes_visualization
 from rsp.step_04_analysis.plot_utils import plot_binned_box_plot
 from rsp.step_04_analysis.plot_utils import plot_box_plot
@@ -15,7 +15,7 @@ HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f"solver_statistics_times_total_{scope}" f
 def hypothesis_one_analysis_visualize_computational_time_comparison(
     experiment_data: DataFrame, output_folder: str = None, columns_of_interest: List[str] = HYPOTHESIS_ONE_COLUMNS_OF_INTEREST
 ):
-    for axis_of_interest in ["experiment_id", "n_agents", "size", "size_used_full_after_malfunction", "solver_statistics_times_total_full_after_malfunction"]:
+    for axis_of_interest in ["experiment_id", "n_agents", "size", "size_used_online_unrestricted", "solver_statistics_times_total_online_unrestricted"]:
         plot_box_plot(experiment_data=experiment_data, axis_of_interest=axis_of_interest, columns_of_interest=columns_of_interest, output_folder=output_folder)
 
 
@@ -44,7 +44,7 @@ def hypothesis_one_analysis_prediction_quality(experiment_data: DataFrame, outpu
             axis_of_interest=axis_of_interest,
             axis_of_interest_suffix=axis_of_interest_suffix,
             output_folder=output_folder,
-            cols=["n_agents", "changed_agents_full_after_malfunction"]
+            cols=["n_agents", "changed_agents_online_unrestricted"]
             + [
                 prediction_col + "_" + scope
                 for scope in prediction_scopes_visualization
@@ -62,7 +62,7 @@ def hypothesis_one_analysis_prediction_quality(experiment_data: DataFrame, outpu
             axis_of_interest=axis_of_interest,
             axis_of_interest_suffix=axis_of_interest_suffix,
             output_folder=output_folder,
-            cols=["changed_agents_percentage_full_after_malfunction"]
+            cols=["changed_agents_percentage_online_unrestricted"]
             + [
                 prediction_col + "_" + scope
                 for scope in prediction_scopes_visualization
@@ -78,7 +78,7 @@ def hypothesis_one_analysis_prediction_quality(experiment_data: DataFrame, outpu
 
 
 def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame, output_folder: str = None):
-    for axis_of_interest, axis_of_interest_suffix in {"experiment_id": "", "solver_statistics_times_total_full_after_malfunction": "[s]"}.items():
+    for axis_of_interest, axis_of_interest_suffix in {"experiment_id": "", "solver_statistics_times_total_online_unrestricted": "[s]"}.items():
         for speed_up_col_pattern, y_axis_title in [
             ("speed_up_{}", "Speed-up full solver time [-]"),
             ("speed_up_solve_time_{}", "Speed-up solver time solving only [-]"),
@@ -95,7 +95,7 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame, outpu
 
 
 def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame, output_folder: str = None):
-    for axis_of_interest, axis_of_interest_suffix in {"infra_id_schedule_id": "", "solver_statistics_times_total_full_after_malfunction": "[s]"}.items():
+    for axis_of_interest, axis_of_interest_suffix in {"infra_id_schedule_id": "", "solver_statistics_times_total_online_unrestricted": "[s]"}.items():
         for speed_up_col_pattern, y_axis_title in [
             ("changed_agents_{}", "Number of changed agents [-]"),
             ("changed_agents_percentage_{}", "Percentage of changed agents [-]"),
@@ -105,6 +105,6 @@ def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame,
                 axis_of_interest=axis_of_interest,
                 axis_of_interest_suffix=axis_of_interest_suffix,
                 output_folder=output_folder,
-                cols=[speed_up_col_pattern.format(speed_up_series) for speed_up_series in after_malfunction_scopes_visualization],
+                cols=[speed_up_col_pattern.format(speed_up_series) for speed_up_series in rescheduling_scopes_visualization],
                 y_axis_title=y_axis_title,
             )

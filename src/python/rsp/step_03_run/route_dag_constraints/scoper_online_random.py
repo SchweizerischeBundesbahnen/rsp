@@ -10,14 +10,14 @@ from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.route_dag_constraints.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
-from rsp.step_03_run.route_dag_constraints.scoper_zero import _extract_route_section_penalties
+from rsp.step_03_run.route_dag_constraints.scoper_online_unrestricted import _extract_route_section_penalties
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def scoper_random_for_all_agents(
-    full_reschedule_trainrun_dict: TrainrunDict,
-    full_reschedule_problem: ScheduleProblemDescription,
+def scoper_online_random_for_all_agents(
+    online_unrestricted_trainrun_dict: TrainrunDict,
+    online_unrestricted_problem: ScheduleProblemDescription,
     malfunction: ExperimentMalfunction,
     minimum_travel_time_dict: Dict[int, int],
     latest_arrival: int,
@@ -36,8 +36,8 @@ def scoper_random_for_all_agents(
     Parameters
     ----------
 
-    full_reschedule_problem
-    full_reschedule_trainrun_dict: TrainrunDict
+    online_unrestricted_problem
+    online_unrestricted_trainrun_dict: TrainrunDict
         the magic information of the full re-schedule
     malfunction: ExperimentMalfunction
         the malfunction; used to determine the waypoint after the malfunction
@@ -74,7 +74,7 @@ def scoper_random_for_all_agents(
             agent_id=agent_id,
             topo_=delta_random_topo_dict_to_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
-            full_reschedule_problem=full_reschedule_problem,
+            online_unrestricted_problem=online_unrestricted_problem,
             changed=(agent_id in changed_agents),
             # N.B. we do not require malfunction agent to have re-routing flexibility!
             time_flexibility=True,

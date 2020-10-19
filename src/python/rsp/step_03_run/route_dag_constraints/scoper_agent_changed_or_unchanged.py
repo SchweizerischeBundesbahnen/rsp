@@ -2,7 +2,7 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.route_dag_constraints.scoper_zero import scoper_zero
+from rsp.step_03_run.route_dag_constraints.scoper_online_unrestricted import scoper_online_unrestricted
 
 
 def scoper_changed_or_unchanged(
@@ -10,7 +10,7 @@ def scoper_changed_or_unchanged(
     # pytorch convention for in-place operations: postfixed with underscore.
     topo_: nx.DiGraph,
     schedule_trainrun: Trainrun,
-    full_reschedule_problem: ScheduleProblemDescription,
+    online_unrestricted_problem: ScheduleProblemDescription,
     malfunction: ExperimentMalfunction,
     minimum_travel_time: int,
     latest_arrival: int,
@@ -27,8 +27,8 @@ def scoper_changed_or_unchanged(
     """
 
     if changed:
-        route_dag_constraints = full_reschedule_problem.route_dag_constraints_dict[agent_id]
-        return route_dag_constraints.earliest.copy(), route_dag_constraints.latest.copy(), full_reschedule_problem.topo_dict[agent_id].copy()
+        route_dag_constraints = online_unrestricted_problem.route_dag_constraints_dict[agent_id]
+        return route_dag_constraints.earliest.copy(), route_dag_constraints.latest.copy(), online_unrestricted_problem.topo_dict[agent_id].copy()
     elif not time_flexibility:
         schedule = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in set(schedule_trainrun)}
         nodes_to_keep = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
@@ -39,7 +39,7 @@ def scoper_changed_or_unchanged(
         schedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         to_remove = {node for node in topo_.nodes if node not in schedule_waypoints}
         topo_.remove_nodes_from(to_remove)
-        earliest, latest = scoper_zero(
+        earliest, latest = scoper_online_unrestricted(
             agent_id=agent_id,
             topo_=topo_,
             schedule_trainrun=schedule_trainrun,

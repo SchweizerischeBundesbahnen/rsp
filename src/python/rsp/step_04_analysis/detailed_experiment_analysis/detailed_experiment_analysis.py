@@ -28,9 +28,9 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import ScheduleProblemEnum
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.experiment_results_analysis import after_malfunction_scopes
 from rsp.step_03_run.experiment_results_analysis import all_scopes
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
+from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes
 from rsp.step_04_analysis.detailed_experiment_analysis.route_dag_analysis import visualize_route_dag_constraints
 from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import PlottingInformation
 from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import Resource
@@ -57,9 +57,9 @@ def plot_time_window_resource_trajectories(
     schedule_plotting
     """
     for title, problem in {
-        "Schedule": experiment_result.problem_full,
-        "Full Re-Schedule": experiment_result.problem_full_after_malfunction,
-        "scope perfect re-schedule": experiment_result.problem_delta_perfect_after_malfunction,
+        "Schedule": experiment_result.problem_schedule,
+        "Full Re-Schedule": experiment_result.problem_online_unrestricted,
+        "scope perfect re-schedule": experiment_result.problem_offline_delta,
     }.items():
         resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
         trajectories = trajectories_from_resource_occupations_per_agent(
@@ -85,9 +85,9 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     fig = go.Figure(layout=layout)
     plotting_information = schedule_plotting.plotting_information
     for title, result in {
-        "Schedule": experiment_result.results_full,
-        "Full Re-Schedule": experiment_result.results_full_after_malfunction,
-        "scope perfect re-schedule": experiment_result.results_delta_perfect_after_malfunction,
+        "Schedule": experiment_result.results_schedule,
+        "Full Re-Schedule": experiment_result.results_online_unrestricted,
+        "scope perfect re-schedule": experiment_result.results_offline_delta,
     }.items():
         shared = list(filter(lambda s: s.startswith("shared"), result.solver_result))
         shared_per_resource = {}
@@ -151,16 +151,16 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     """
     plotting_information = schedule_plotting.plotting_information
     resource_occupations_schedule = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_full = schedule_plotting.reschedule_full_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_delta_perfect = schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_online_unrestricted = schedule_plotting.online_unrestricted_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_offline_delta = schedule_plotting.offline_delta_as_resource_occupations.sorted_resource_occupations_per_agent
     trajectories_schedule: Trajectories = trajectories_from_resource_occupations_per_agent(
         resource_occupations_schedule=resource_occupations_schedule, plotting_information=plotting_information
     )
-    trajectories_reschedule_full: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_reschedule_full, plotting_information=plotting_information
+    trajectories_online_unrestricted: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=resource_occupations_online_unrestricted, plotting_information=plotting_information
     )
-    trajectories_reschedule_delta_perfect: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_reschedule_delta_perfect, plotting_information=plotting_information
+    trajectories_offline_delta: Trajectories = trajectories_from_resource_occupations_per_agent(
+        resource_occupations_schedule=resource_occupations_offline_delta, plotting_information=plotting_information
     )
 
     # Plot Schedule
@@ -174,7 +174,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
 
     # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
     trajectories_influenced_agents, changed_agents_dict = get_difference_in_time_space_trajectories(
-        target_trajectories=trajectories_schedule, base_trajectories=trajectories_reschedule_full
+        target_trajectories=trajectories_schedule, base_trajectories=trajectories_online_unrestricted
     )
 
     # Printing situation overview
@@ -185,7 +185,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
     nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
     if nb_changed_agents > 0:
         plot_time_resource_trajectories(
-            trajectories=trajectories_reschedule_full,
+            trajectories=trajectories_online_unrestricted,
             title="Full Reschedule",
             plotting_information=schedule_plotting.plotting_information,
             malfunction=schedule_plotting.malfunction,
@@ -197,7 +197,7 @@ def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: 
         title="Delta Perfect Reschedule",
         plotting_information=schedule_plotting.plotting_information,
         malfunction=schedule_plotting.malfunction,
-        trajectories=trajectories_reschedule_delta_perfect,
+        trajectories=trajectories_offline_delta,
         output_folder=output_folder,
     )
 
@@ -218,12 +218,12 @@ def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents
     # Printing situation overview
     malfunction = schedule_plotting.malfunction
     resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_reschedule_delta_perfect = schedule_plotting.reschedule_delta_perfect_as_resource_occupations.sorted_resource_occupations_per_agent
+    resource_occupations_offline_delta = schedule_plotting.offline_delta_as_resource_occupations.sorted_resource_occupations_per_agent
 
     nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
     total_lateness = sum(
-        max(sorted_resource_occupations_reschedule_delta_perfect[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
-        for agent_id, sorted_resource_occupations_reschedule_delta_perfect in resource_occupations_reschedule_delta_perfect.items()
+        max(sorted_resource_occupations_offline_delta[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
+        for agent_id, sorted_resource_occupations_offline_delta in resource_occupations_offline_delta.items()
     )
     print(
         "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
@@ -362,7 +362,7 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
     reschedule compared to the schedule."""
 
     fig = go.Figure()
-    for scope in after_malfunction_scopes:
+    for scope in rescheduling_scopes:
         fig.add_trace(go.Histogram(x=[v for v in experiment_results._asdict()[f"lateness_per_agent_{scope}"].values()], name=f"results_{scope}"))
     fig.update_layout(barmode="group", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
 
@@ -392,7 +392,7 @@ def plot_lateness(experiment_results: ExperimentResultsAnalysis, output_folder: 
 
     """
     fig = go.Figure()
-    for scope in after_malfunction_scopes:
+    for scope in rescheduling_scopes:
         fig.add_trace(go.Bar(x=[f"costs_{scope}"], y=[experiment_results._asdict()[f"costs_{scope}"]], name=f"costs_{scope}"))
         fig.add_trace(go.Bar(x=[f"lateness_{scope}"], y=[experiment_results._asdict()[f"lateness_{scope}"]], name=f"lateness_{scope}"))
         fig.add_trace(
@@ -429,7 +429,7 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis, out
 
     """
     fig = go.Figure()
-    for scope in after_malfunction_scopes:
+    for scope in rescheduling_scopes:
         d = {}
         for dim in ["lateness_per_agent", "costs_from_route_section_penalties_per_agent"]:
             values = list(experiment_results._asdict()[f"{dim}_{scope}"].values())
@@ -457,8 +457,8 @@ def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_fo
     -------
     """
     fig = go.Figure()
-    schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
-    for scope in after_malfunction_scopes:
+    schedule_trainruns_dict = experiment_results.results_schedule.trainruns_dict
+    for scope in rescheduling_scopes:
         reschedule_trainruns_dict = experiment_results._asdict()[f"results_{scope}"].trainruns_dict
         values = [
             1.0 if set(schedule_trainruns_dict[agent_id]) != set(trainrun_reschedule) else 0.0
@@ -479,8 +479,8 @@ def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_fo
         fig.write_image(pdf_file)
 
     fig = go.Figure()
-    schedule_trainruns_dict = experiment_results.results_full.trainruns_dict
-    for scope in after_malfunction_scopes:
+    schedule_trainruns_dict = experiment_results.results_schedule.trainruns_dict
+    for scope in rescheduling_scopes:
         reschedule_trainruns_dict = experiment_results._asdict()[f"results_{scope}"].trainruns_dict
         values = [
             1.0
@@ -513,43 +513,43 @@ def plot_route_dag(
     save: bool = False,
     output_folder: Optional[str] = None,
 ):
-    train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
-    train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
-    train_runs_delta_perfect_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_perfect_after_malfunction
-    train_run_full: Trainrun = train_runs_full[agent_id]
-    train_run_full_after_malfunction: Trainrun = train_runs_full_after_malfunction[agent_id]
-    train_run_delta_perfect_after_malfunction: Trainrun = train_runs_delta_perfect_after_malfunction[agent_id]
-    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
-    problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
-    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results_analysis.problem_delta_perfect_after_malfunction
+    train_runs_schedule: TrainrunDict = experiment_results_analysis.solution_schedule
+    train_runs_online_unrestricted: TrainrunDict = experiment_results_analysis.solution_online_unrestricted
+    train_runs_offline_delta: TrainrunDict = experiment_results_analysis.solution_offline_delta
+    train_run_schedule: Trainrun = train_runs_schedule[agent_id]
+    train_run_online_unrestricted: Trainrun = train_runs_online_unrestricted[agent_id]
+    train_run_offline_delta: Trainrun = train_runs_offline_delta[agent_id]
+    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_schedule
+    problem_rsp_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_online_unrestricted
+    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results_analysis.problem_offline_delta
     # TODO hacky, we should take the topo_dict from infrastructure maybe?
-    topo = experiment_results_analysis.problem_full_after_malfunction.topo_dict[agent_id]
+    topo = experiment_results_analysis.problem_online_unrestricted.topo_dict[agent_id]
 
     config = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: [
             problem_schedule,
             f"Schedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
-            train_run_full,
+            train_run_schedule,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_FULL_AFTER_MALFUNCTION: [
-            problem_rsp_full,
+            problem_rsp_schedule,
             f"Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
-            train_run_full_after_malfunction,
+            train_run_online_unrestricted,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
             f"Delta Perfect Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
-            train_run_delta_perfect_after_malfunction,
+            train_run_offline_delta,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_ONLINE_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
             f"Online Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
-            train_run_delta_perfect_after_malfunction,
+            train_run_offline_delta,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_RANDOM_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
             f"Delta Random Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
-            train_run_delta_perfect_after_malfunction,
+            train_run_offline_delta,
         ],
     }
 
@@ -557,9 +557,9 @@ def plot_route_dag(
 
     visualize_route_dag_constraints(
         topo=topo,
-        train_run_full=train_run_full,
-        train_run_full_after_malfunction=train_run_full_after_malfunction,
-        train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
+        train_run_schedule=train_run_schedule,
+        train_run_online_unrestricted=train_run_online_unrestricted,
+        train_run_offline_delta=train_run_offline_delta,
         constraints_to_visualize=problem_to_visualize.route_dag_constraints_dict[agent_id],
         trainrun_to_visualize=trainrun_to_visualize,
         vertex_lateness={},
@@ -590,7 +590,7 @@ def plot_resource_occupation_heat_map(
     fig = go.Figure(layout=layout)
 
     schedule_as_resource_occupations = schedule_plotting.schedule_as_resource_occupations
-    reschedule_as_resource_occupations = schedule_plotting.reschedule_delta_perfect_as_resource_occupations
+    reschedule_as_resource_occupations = schedule_plotting.offline_delta_as_resource_occupations
 
     # Count agents per resource for full episode
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
@@ -981,7 +981,8 @@ def plot_agent_speeds(experiment_results: ExperimentResultsAnalysis, output_fold
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
-            x=list(experiment_results.problem_full.minimum_travel_time_dict.keys()), y=list(experiment_results.problem_full.minimum_travel_time_dict.values()),
+            x=list(experiment_results.problem_schedule.minimum_travel_time_dict.keys()),
+            y=list(experiment_results.problem_schedule.minimum_travel_time_dict.values()),
         )
     )
     fig.update_traces(opacity=0.75)

@@ -234,25 +234,25 @@ def visualize_experiment(
     """
 
     rail_env = create_env_from_experiment_parameters(experiment_parameters.infra_parameters)
-    train_runs_full: TrainrunDict = experiment_results_analysis.solution_full
-    train_runs_full_after_malfunction: TrainrunDict = experiment_results_analysis.solution_full_after_malfunction
-    train_runs_delta_perfect_after_malfunction: TrainrunDict = experiment_results_analysis.solution_delta_perfect_after_malfunction
+    train_runs_schedule: TrainrunDict = experiment_results_analysis.solution_schedule
+    train_runs_online_unrestricted: TrainrunDict = experiment_results_analysis.solution_online_unrestricted
+    train_runs_offline_delta: TrainrunDict = experiment_results_analysis.solution_offline_delta
 
-    problem_rsp_full: ScheduleProblemDescription = experiment_results_analysis.problem_full_after_malfunction
-    costs_full_after_malfunction: ScheduleProblemDescription = experiment_results_analysis.costs_full_after_malfunction
-    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results_analysis.problem_delta_perfect_after_malfunction
-    costs_delta_perfect_after_malfunction: ScheduleProblemDescription = experiment_results_analysis.costs_delta_perfect_after_malfunction
-    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_full
+    problem_online_unrestricted: ScheduleProblemDescription = experiment_results_analysis.problem_online_unrestricted
+    costs_online_unrestricted: ScheduleProblemDescription = experiment_results_analysis.costs_online_unrestricted
+    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results_analysis.problem_offline_delta
+    costs_offline_delta: ScheduleProblemDescription = experiment_results_analysis.costs_offline_delta
+    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_schedule
     malfunction: ExperimentMalfunction = experiment_results_analysis.malfunction
     n_agents: int = experiment_results_analysis.n_agents
-    lateness_full_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_per_agent_full_after_malfunction
-    costs_from_route_section_penalties_per_agent_full_after_malfunction: Dict[
+    lateness_online_unrestricted: Dict[int, int] = experiment_results_analysis.lateness_per_agent_online_unrestricted
+    costs_from_route_section_penalties_per_agent_online_unrestricted: Dict[
         int, int
-    ] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_full_after_malfunction
-    lateness_delta_perfect_after_malfunction: Dict[int, int] = experiment_results_analysis.lateness_per_agent_delta_perfect_after_malfunction
-    costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction: Dict[
+    ] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_online_unrestricted
+    lateness_offline_delta: Dict[int, int] = experiment_results_analysis.lateness_per_agent_offline_delta
+    costs_from_route_section_penalties_per_agent_offline_delta: Dict[
         int, int
-    ] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction
+    ] = experiment_results_analysis.costs_from_route_section_penalties_per_agent_offline_delta
 
     experiment_output_folder = f"{experiment_analysis_directory}/experiment_{experiment_parameters.experiment_id:04d}_analysis"
     route_dag_folder = f"{experiment_output_folder}/route_graphs"
@@ -270,14 +270,14 @@ def visualize_experiment(
             # TODO SIM-650 since the scheduling topo might now only contain one path per agent,
             #  we should visualize with respect to the full route DAG as in infrastructure and visualize removed edges
             topo = problem_schedule.topo_dict[agent_id]
-            train_run_full_after_malfunction = train_runs_full_after_malfunction[agent_id]
-            train_run_delta_perfect_after_malfunction = train_runs_delta_perfect_after_malfunction[agent_id]
-            train_run_full: Trainrun = train_runs_full[agent_id]
+            train_run_online_unrestricted = train_runs_online_unrestricted[agent_id]
+            train_run_offline_delta = train_runs_offline_delta[agent_id]
+            train_run_schedule: Trainrun = train_runs_schedule[agent_id]
 
             # schedule input
             visualize_route_dag_constraints(
                 constraints_to_visualize=problem_schedule.route_dag_constraints_dict[agent_id],
-                trainrun_to_visualize=train_run_full,
+                trainrun_to_visualize=train_run_schedule,
                 vertex_lateness={},
                 costs_from_route_section_penalties_per_agent_and_edge={},
                 route_section_penalties=problem_schedule.route_section_penalties[agent_id],
@@ -290,17 +290,17 @@ def visualize_experiment(
                     else None
                 ),
                 topo=topo,
-                train_run_full=train_run_full,
-                train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
+                train_run_schedule=train_run_schedule,
+                train_run_online_unrestricted=train_run_online_unrestricted,
+                train_run_offline_delta=train_run_offline_delta,
             )
             # delta perfect after malfunction
             visualize_route_dag_constraints(
                 constraints_to_visualize=problem_rsp_reduced_scope_perfect.route_dag_constraints_dict[agent_id],
-                trainrun_to_visualize=train_run_delta_perfect_after_malfunction,
-                vertex_lateness=experiment_results_analysis.vertex_lateness_delta_perfect_after_malfunction[agent_id],
+                trainrun_to_visualize=train_run_offline_delta,
+                vertex_lateness=experiment_results_analysis.vertex_lateness_offline_delta[agent_id],
                 costs_from_route_section_penalties_per_agent_and_edge=(
-                    experiment_results_analysis.costs_from_route_section_penalties_per_agent_and_edge_delta_perfect_after_malfunction[agent_id]
+                    experiment_results_analysis.costs_from_route_section_penalties_per_agent_and_edge_offline_delta[agent_id]
                 ),
                 route_section_penalties=problem_rsp_reduced_scope_perfect.route_section_penalties[agent_id],
                 title=_make_title(
@@ -310,31 +310,29 @@ def visualize_experiment(
                     n_agents,
                     topo,
                     k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent,
-                    costs=costs_delta_perfect_after_malfunction,
-                    eff_lateness_agent=lateness_delta_perfect_after_malfunction[agent_id],
-                    eff_costs_from_route_section_penalties_per_agent_agent=costs_from_route_section_penalties_per_agent_delta_perfect_after_malfunction[
-                        agent_id
-                    ],
+                    costs=costs_offline_delta,
+                    eff_lateness_agent=lateness_offline_delta[agent_id],
+                    eff_costs_from_route_section_penalties_per_agent_agent=costs_from_route_section_penalties_per_agent_offline_delta[agent_id],
                 ),
                 file_name=(
-                    os.path.join(route_dag_folder, f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_delta_perfect.pdf")
+                    os.path.join(route_dag_folder, f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_offline_delta.pdf")
                     if experiment_analysis_directory is not None
                     else None
                 ),
                 topo=topo,
-                train_run_full=train_runs_full[agent_id],
-                train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
+                train_run_schedule=train_runs_schedule[agent_id],
+                train_run_online_unrestricted=train_run_online_unrestricted,
+                train_run_offline_delta=train_run_offline_delta,
             )
             # full rescheduling
             visualize_route_dag_constraints(
-                constraints_to_visualize=problem_rsp_full.route_dag_constraints_dict[agent_id],
-                trainrun_to_visualize=train_run_full_after_malfunction,
-                vertex_lateness=experiment_results_analysis.vertex_lateness_full_after_malfunction[agent_id],
+                constraints_to_visualize=problem_online_unrestricted.route_dag_constraints_dict[agent_id],
+                trainrun_to_visualize=train_run_online_unrestricted,
+                vertex_lateness=experiment_results_analysis.vertex_lateness_online_unrestricted[agent_id],
                 costs_from_route_section_penalties_per_agent_and_edge=(
-                    experiment_results_analysis.costs_from_route_section_penalties_per_agent_and_edge_full_after_malfunction[agent_id]
+                    experiment_results_analysis.costs_from_route_section_penalties_per_agent_and_edge_online_unrestricted[agent_id]
                 ),
-                route_section_penalties=problem_rsp_full.route_section_penalties[agent_id],
+                route_section_penalties=problem_online_unrestricted.route_section_penalties[agent_id],
                 title=_make_title(
                     agent_id,
                     experiment_parameters,
@@ -342,19 +340,19 @@ def visualize_experiment(
                     n_agents,
                     topo,
                     k=experiment_parameters.infra_parameters.number_of_shortest_paths_per_agent,
-                    costs=costs_full_after_malfunction,
-                    eff_lateness_agent=lateness_full_after_malfunction[agent_id],
-                    eff_costs_from_route_section_penalties_per_agent_agent=costs_from_route_section_penalties_per_agent_full_after_malfunction[agent_id],
+                    costs=costs_online_unrestricted,
+                    eff_lateness_agent=lateness_online_unrestricted[agent_id],
+                    eff_costs_from_route_section_penalties_per_agent_agent=costs_from_route_section_penalties_per_agent_online_unrestricted[agent_id],
                 ),
                 file_name=(
-                    os.path.join(route_dag_folder, f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_full.pdf")
+                    os.path.join(route_dag_folder, f"experiment_{experiment_parameters.experiment_id:04d}_agent_{agent_id}_route_graph_rsp_schedule.pdf")
                     if experiment_analysis_directory is not None
                     else None
                 ),
                 topo=topo,
-                train_run_full=train_runs_full[agent_id],
-                train_run_full_after_malfunction=train_run_full_after_malfunction,
-                train_run_delta_perfect_after_malfunction=train_run_delta_perfect_after_malfunction,
+                train_run_schedule=train_runs_schedule[agent_id],
+                train_run_online_unrestricted=train_run_online_unrestricted,
+                train_run_offline_delta=train_run_offline_delta,
             )
 
     # Generate aggregated visualization
@@ -364,7 +362,7 @@ def visualize_experiment(
             experiment_id=experiment_results_analysis.experiment_id,
             malfunction=experiment_results_analysis.malfunction,
             rail_env=rail_env,
-            trainruns=train_runs_full_after_malfunction,
+            trainruns=train_runs_online_unrestricted,
             convert_to_mpeg=convert_to_mpeg,
         )
 
