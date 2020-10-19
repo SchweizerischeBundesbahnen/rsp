@@ -7,11 +7,11 @@ from typing import Tuple
 from flatland.core.grid.grid_utils import coordinate_to_position
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
-from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import ScheduleAsResourceOccupations
-from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-from rsp.utils.data_types_converters_and_validators import verify_schedule_as_resource_occupations
 from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.resource_occupation import extract_resource_occupations
+from rsp.utils.resource_occupation import ResourceOccupation
+from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
+from rsp.utils.resource_occupation import verify_schedule_as_resource_occupations
 
 Resource = NamedTuple("Resource", [("row", int), ("column", int)])
 

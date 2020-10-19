@@ -5,9 +5,9 @@ from typing import Tuple
 
 import numpy as np
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import ScheduleAsResourceOccupations
-from rsp.utils.data_types import SchedulingProblemInTimeWindows
+from rsp.utils.resource_occupation import ResourceOccupation
+from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
+from rsp.utils.resource_occupation import SchedulingProblemInTimeWindows
 from rsp.utils.rsp_logger import rsp_logger
 
 TransmissionLeg = NamedTuple("TransmissionLeg", [("hop_on", ResourceOccupation), ("hop_off", ResourceOccupation), ("delay_time", int)])

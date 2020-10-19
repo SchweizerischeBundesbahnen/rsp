@@ -6,16 +6,16 @@ from typing import Dict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.scheduling.scheduling_problem import _get_topology_from_agents_path_dict
+from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
+from rsp.scheduling.scheduling_problem import experiment_freeze_pretty_print
 from rsp.scheduling.scheduling_problem import route_dag_constraints_dict_from_list_of_train_run_waypoint
+from rsp.scheduling.scheduling_problem import RouteDAGConstraints
+from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import topo_from_agent_paths
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
 from rsp.step_03_run.route_dag_constraints.scoper_zero import scoper_zero_running
-from rsp.utils.data_types import experiment_freeze_dict_pretty_print
-from rsp.utils.data_types import experiment_freeze_pretty_print
-from rsp.utils.data_types import RouteDAGConstraints
-from rsp.utils.data_types import RouteDAGConstraintsDict
 
 _pp = pprint.PrettyPrinter(indent=4)
 

@@ -20,11 +20,11 @@ from rsp.transmission_chains.transmission_chains import distance_matrix_from_tra
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_time_windows
 from rsp.transmission_chains.transmission_chains import TransmissionChain
-from rsp.utils.data_types import LeftClosedInterval
-from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import SchedulingProblemInTimeWindows
-from rsp.utils.data_types_converters_and_validators import extract_time_windows
 from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.resource_occupation import extract_time_windows
+from rsp.utils.resource_occupation import LeftClosedInterval
+from rsp.utils.resource_occupation import ResourceOccupation
+from rsp.utils.resource_occupation import SchedulingProblemInTimeWindows
 from rsp.utils.rsp_logger import rsp_logger
 
 _pp = pprint.PrettyPrinter(indent=4)

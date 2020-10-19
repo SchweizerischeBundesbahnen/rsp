@@ -5,9 +5,9 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
 from rsp.scheduling.asp.asp_solve_problem import solve_problem
 from rsp.scheduling.schedule import SchedulingExperimentResult
+from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
 from rsp.scheduling.scheduling_problem import get_sinks_for_topo
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
-from rsp.utils.data_types import experiment_freeze_dict_pretty_print
 from rsp.utils.rsp_logger import rsp_logger
 
 _pp = pprint.PrettyPrinter(indent=4)

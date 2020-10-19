@@ -7,6 +7,7 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.scheduling.scheduling_problem import RouteDAGConstraints
+from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
@@ -14,9 +15,8 @@ from rsp.step_03_run.route_dag_constraints.scoper_agent_changed_or_unchanged imp
 from rsp.step_03_run.route_dag_constraints.scoper_zero import _extract_route_section_penalties
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import validate_transmission_chains
-from rsp.utils.data_types import RouteDAGConstraintsDict
-from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
 from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.resource_occupation import extract_resource_occupations
 
 _pp = pprint.PrettyPrinter(indent=4)
 

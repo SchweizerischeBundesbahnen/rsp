@@ -11,9 +11,9 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-from rsp.utils.data_types_converters_and_validators import verify_schedule_as_resource_occupations
 from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.resource_occupation import extract_resource_occupations
+from rsp.utils.resource_occupation import verify_schedule_as_resource_occupations
 
 
 def get_sum_running_times_trainruns_dict(trainruns_dict: TrainrunDict):

@@ -41,9 +41,9 @@ from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import Traje
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
 from rsp.step_04_analysis.plot_utils import GREY_BACKGROUND_COLOR
 from rsp.step_04_analysis.plot_utils import PLOTLY_COLORLIST
-from rsp.utils.data_types import ScheduleAsResourceOccupations
-from rsp.utils.data_types import SortedResourceOccupationsPerAgent
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
+from rsp.utils.resource_occupation import SortedResourceOccupationsPerAgent
 
 
 def plot_time_window_resource_trajectories(

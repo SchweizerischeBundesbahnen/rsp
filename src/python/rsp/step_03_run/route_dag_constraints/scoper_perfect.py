@@ -12,11 +12,11 @@ from rsp.scheduling.propagate import verify_consistency_of_route_dag_constraints
 from rsp.scheduling.propagate import verify_trainrun_satisfies_route_dag_constraints
 from rsp.scheduling.scheduling_problem import get_sinks_for_topo
 from rsp.scheduling.scheduling_problem import RouteDAGConstraints
+from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.route_dag_constraints.scoper_zero import _extract_route_section_penalties
-from rsp.utils.data_types import RouteDAGConstraintsDict
 from rsp.utils.rsp_logger import rsp_logger
 
 _pp = pprint.PrettyPrinter(indent=4)

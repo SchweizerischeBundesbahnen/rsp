@@ -9,10 +9,10 @@ from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import PlottingInformation
-from rsp.utils.data_types import LeftClosedInterval
-from rsp.utils.data_types import ResourceOccupation
-from rsp.utils.data_types import SortedResourceOccupationsPerAgent
 from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.resource_occupation import LeftClosedInterval
+from rsp.utils.resource_occupation import ResourceOccupation
+from rsp.utils.resource_occupation import SortedResourceOccupationsPerAgent
 
 Trajectory = List[Tuple[Optional[int], Optional[int]]]  # Time and sorted resource, optional
 Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle

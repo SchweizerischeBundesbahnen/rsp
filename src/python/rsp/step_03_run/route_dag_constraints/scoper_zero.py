@@ -11,11 +11,11 @@ from rsp.scheduling.propagate import propagate
 from rsp.scheduling.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.scheduling.propagate import verify_trainrun_satisfies_route_dag_constraints
 from rsp.scheduling.scheduling_problem import get_sinks_for_topo
+from rsp.scheduling.scheduling_problem import RouteDAGConstraints
 from rsp.scheduling.scheduling_problem import RouteSectionPenaltiesDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.utils.data_types import RouteDAGConstraints
 from rsp.utils.rsp_logger import rsp_logger
 from rsp.utils.rsp_logger import VERBOSE
 

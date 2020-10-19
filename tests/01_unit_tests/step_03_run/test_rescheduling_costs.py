@@ -5,9 +5,9 @@ from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
 from rsp.scheduling.asp.asp_solve_problem import solve_problem
+from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_02_setup.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.utils.data_types import experiment_freeze_dict_pretty_print
 from rsp.utils.global_constants import RELEASE_TIME
 
 _pp = pprint.PrettyPrinter(indent=4)
