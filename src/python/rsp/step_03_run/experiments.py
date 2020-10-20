@@ -936,8 +936,8 @@ def list_infrastructure_and_schedule_params_from_base_directory(
         schedule_dir = f"{base_directory}/infra/{infra_id:03d}/schedule"
         if not os.path.isdir(schedule_dir):
             continue
-        nb_schedules = len(os.listdir(schedule_dir))
-        for schedule_id in range(nb_schedules):
+        schedule_ids = [int(s) for s in os.listdir(schedule_dir)]
+        for schedule_id in schedule_ids:
             if filter_experiment_agenda is not None and not filter_experiment_agenda(infra_id, schedule_id):
                 continue
             schedule, schedule_parameters = load_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_id)

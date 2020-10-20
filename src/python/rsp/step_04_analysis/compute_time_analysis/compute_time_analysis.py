@@ -15,7 +15,14 @@ HYPOTHESIS_ONE_COLUMNS_OF_INTEREST = [f"solver_statistics_times_total_{scope}" f
 def hypothesis_one_analysis_visualize_computational_time_comparison(
     experiment_data: DataFrame, output_folder: str = None, columns_of_interest: List[str] = HYPOTHESIS_ONE_COLUMNS_OF_INTEREST
 ):
-    for axis_of_interest in ["experiment_id", "n_agents", "size", "size_used_online_unrestricted", "solver_statistics_times_total_online_unrestricted"]:
+    for axis_of_interest in [
+        "experiment_id",
+        "n_agents_running",
+        "n_agents",
+        "size",
+        "rescheduling_horizon",
+        "solver_statistics_times_total_online_unrestricted",
+    ]:
         plot_box_plot(experiment_data=experiment_data, axis_of_interest=axis_of_interest, columns_of_interest=columns_of_interest, output_folder=output_folder)
 
 

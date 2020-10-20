@@ -388,6 +388,8 @@ ExperimentResultsAnalysis = NamedTuple(
         ("weight_route_change", int),
         ("weight_lateness_seconds", int),
         ("max_window_size_from_earliest", int),
+        ("n_agents_running", int),
+        ("rescheduling_horizon", int),
         ("factor_resource_conflicts", int),
     ]
     + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(NB_RANDOM)]
@@ -434,9 +436,14 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
     return pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
 
 
-def filter_experiment_results_analysis_data_frame(experiment_data: pd.DataFrame) -> pd.DataFrame:
+def filter_experiment_results_analysis_data_frame(
+    experiment_data: pd.DataFrame, min_time_online_unrestricted: int = 10, max_time_online_unrestricted_q: float = 0.97
+) -> pd.DataFrame:
     time_online_unrestricted = experiment_data["solver_statistics_times_total_online_unrestricted"]
-    return experiment_data[(time_online_unrestricted > 10) & (time_online_unrestricted <= time_online_unrestricted.quantile(0.97))]
+    return experiment_data[
+        (time_online_unrestricted > min_time_online_unrestricted)
+        & (time_online_unrestricted <= time_online_unrestricted.quantile(max_time_online_unrestricted_q))
+    ]
 
 
 def expand_experiment_results_for_analysis(experiment_results: ExperimentResults, nonify_all_structured_fields: bool = False) -> ExperimentResultsAnalysis:
@@ -553,6 +560,16 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
             grid_id=experiment_parameters.grid_id,
             size=experiment_parameters.infra_parameters.width,
             n_agents=experiment_parameters.infra_parameters.number_of_agents,
+            n_agents_running=len(
+                [
+                    agent_id
+                    for agent_id, schedule_trainrun in experiment_results.results_schedule.trainruns_dict.items()
+                    if schedule_trainrun[-1].scheduled_at >= experiment_results.malfunction.time_step
+                ]
+            ),
+            rescheduling_horizon=experiment_results.problem_online_unrestricted.max_episode_steps
+            + experiment_results.malfunction.malfunction_duration
+            - experiment_results.malfunction.time_step,
             max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
             max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
             max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
