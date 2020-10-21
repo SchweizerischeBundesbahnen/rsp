@@ -18,6 +18,7 @@ from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiments import create_env_from_experiment_parameters
@@ -240,12 +241,16 @@ test_parameters = ExperimentParameters(
         number_of_shortest_paths_per_agent=10,
     ),
     schedule_parameters=ScheduleParameters(infra_id=0, schedule_id=0, asp_seed_value=94, number_of_shortest_paths_per_agent_schedule=1),
-    earliest_malfunction=20,
-    malfunction_duration=20,
-    malfunction_agent_id=0,
-    weight_route_change=1,
-    weight_lateness_seconds=1,
-    max_window_size_from_earliest=np.inf,
+    re_schedule_parameters=ReScheduleParameters(
+        earliest_malfunction=20,
+        malfunction_duration=20,
+        malfunction_agent_id=0,
+        weight_route_change=1,
+        weight_lateness_seconds=1,
+        max_window_size_from_earliest=np.inf,
+        number_of_shortest_paths_per_agent=10,
+        asp_seed_value=94,
+    ),
 )
 
 

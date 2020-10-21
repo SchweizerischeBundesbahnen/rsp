@@ -52,7 +52,6 @@ class GlobalConstantsCls(object):
 
     @classmethod
     def set_defaults(cls, constants: GlobalConstants):
-        print(f"set_defaults with constants={constants}")
         cls._constants = constants
         for key, value in cls._constants._asdict().items():
             setattr(cls, key, value)

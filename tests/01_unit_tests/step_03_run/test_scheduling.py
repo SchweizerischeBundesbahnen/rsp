@@ -3,6 +3,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.asp_wrapper import asp_schedule_wrapper
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_03_run.experiments import create_env_from_experiment_parameters
 from rsp.step_03_run.experiments import create_infrastructure_from_rail_env
@@ -31,12 +32,16 @@ test_parameters = ExperimentParameters(
         number_of_shortest_paths_per_agent=10,
     ),
     schedule_parameters=ScheduleParameters(infra_id=0, schedule_id=0, asp_seed_value=94, number_of_shortest_paths_per_agent_schedule=1),
-    earliest_malfunction=20,
-    malfunction_duration=20,
-    malfunction_agent_id=0,
-    weight_route_change=1,
-    weight_lateness_seconds=1,
-    max_window_size_from_earliest=np.inf,
+    re_schedule_parameters=ReScheduleParameters(
+        earliest_malfunction=20,
+        malfunction_duration=20,
+        malfunction_agent_id=0,
+        weight_route_change=1,
+        weight_lateness_seconds=1,
+        max_window_size_from_earliest=np.inf,
+        number_of_shortest_paths_per_agent=10,
+        asp_seed_value=94,
+    ),
 )
 
 

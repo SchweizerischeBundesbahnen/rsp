@@ -8,6 +8,7 @@ from rsp.scheduling.schedule import Schedule
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
+from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_03_run.experiments import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.step_03_run.experiments import run_experiment_agenda
@@ -86,12 +87,14 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                                 infra_parameters=infra_parameters,
                                 grid_id=grid_id,
                                 infra_id_schedule_id=infra_id_schedule_id,
-                                earliest_malfunction=earliest_malfunction,
-                                malfunction_duration=malfunction_duration,
-                                malfunction_agent_id=malfunction_agent_id,
-                                weight_route_change=weight_route_change,
-                                weight_lateness_seconds=weight_lateness_seconds,
-                                max_window_size_from_earliest=max_window_size_from_earliest,
+                                re_schedule_parameters=ReScheduleParameters(
+                                    earliest_malfunction=earliest_malfunction,
+                                    malfunction_duration=malfunction_duration,
+                                    malfunction_agent_id=malfunction_agent_id,
+                                    weight_route_change=weight_route_change,
+                                    weight_lateness_seconds=weight_lateness_seconds,
+                                    max_window_size_from_earliest=max_window_size_from_earliest,
+                                ),
                             )
                         )
                         experiment_id += 1
