@@ -87,7 +87,9 @@ from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
-from rsp.utils.global_constants import NB_RANDOM
+from rsp.utils.global_constants import get_defaults
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
+from rsp.utils.global_constants import GlobalConstants
 from rsp.utils.psutil_helpers import current_process_stats_human_readable
 from rsp.utils.psutil_helpers import virtual_memory_human_readable
 from rsp.utils.rename_unpickler import RenameUnpickler
@@ -238,6 +240,7 @@ def run_experiment_in_memory(
     -------
     ExperimentResults
     """
+    rsp_logger.info(f"run_experiment_in_memory for  {experiment_parameters.experiment_id} with GLOBAL_CONSTANTS={GLOBAL_CONSTANTS._constants}")
     rsp_logger.info(f"1. gen malfunction for  {experiment_parameters.experiment_id}")
     schedule_problem, schedule_result = schedule
     schedule_trainruns: TrainrunDict = schedule_result.trainruns_dict
@@ -427,7 +430,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("6. reschedule delta random naive: upper bound")
     randoms = []
-    for _ in range(NB_RANDOM):
+    for _ in range(GLOBAL_CONSTANTS.NB_RANDOM):
         # clone topos since propagation will modify them
         online_random_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
         problem_online_random, predicted_changed_agents_online_random = scoper_online_random_for_all_agents(
@@ -477,9 +480,9 @@ def run_experiment_in_memory(
         results_online_transmission_chains_route_restricted=results_online_transmission_chains_route_restricted,
         predicted_changed_agents_online_transmission_chains_fully_restricted=predicted_changed_agents_online_transmission_chains_fully_restricted_predicted,
         predicted_changed_agents_online_transmission_chains_route_restricted=predicted_changed_agents_online_transmission_chains_route_restricted_predicted,
-        **{f"problem_online_random_{i}": randoms[i][0] for i in range(NB_RANDOM)},
-        **{f"results_online_random_{i}": randoms[i][1] for i in range(NB_RANDOM)},
-        **{f"predicted_changed_agents_online_random_{i}": randoms[i][2] for i in range(NB_RANDOM)},
+        **{f"problem_online_random_{i}": randoms[i][0] for i in range(GLOBAL_CONSTANTS.NB_RANDOM)},
+        **{f"results_online_random_{i}": randoms[i][1] for i in range(GLOBAL_CONSTANTS.NB_RANDOM)},
+        **{f"predicted_changed_agents_online_random_{i}": randoms[i][2] for i in range(GLOBAL_CONSTANTS.NB_RANDOM)},
     )
     rsp_logger.info(f"done re-schedule full and delta naive/perfect for experiment {experiment_parameters.experiment_id}")
     return current_results
@@ -593,7 +596,12 @@ def _write_sha_txt(folder_name: str):
 
 
 def run_experiment_from_to_file(
-    experiment_parameters: ExperimentParameters, experiment_base_directory: str, experiment_output_directory: str, csv_only: bool = False, debug: bool = False
+    experiment_parameters: ExperimentParameters,
+    experiment_base_directory: str,
+    experiment_output_directory: str,
+    global_constants: GlobalConstants,
+    csv_only: bool = False,
+    debug: bool = False,
 ):
     """A.2 + B. Run and save one experiment from experiment parameters.
     Parameters
@@ -605,6 +613,9 @@ def run_experiment_from_to_file(
     experiment_output_directory
     debug
     """
+    rsp_logger.info(f"run_experiment_from_to_file with {global_constants}")
+    # N.B. this works since we ensure that every experiment runs in its own process!
+    GLOBAL_CONSTANTS.set_defaults(constants=global_constants)
 
     experiment_data_directory = f"{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}"
 
@@ -721,7 +732,10 @@ def run_experiment_agenda(
     -------
     Returns the name of the experiment base and data folders
     """
+
     experiment_data_directory = f"{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}"
+
+    # N.B. we must guarantee that access happens in same thread and that not two agendas are running concurrently
 
     check_create_folder(experiment_data_directory)
 
@@ -736,14 +750,14 @@ def run_experiment_agenda(
     try:
         if filter_experiment_agenda is not None:
             experiments_filtered = filter(filter_experiment_agenda, experiment_agenda.experiments)
-            experiment_agenda = ExperimentAgenda(experiment_name=experiment_agenda.experiment_name, experiments=list(experiments_filtered))
+            experiment_agenda = ExperimentAgenda(
+                experiment_name=experiment_agenda.experiment_name, global_constants=experiment_agenda.global_constants, experiments=list(experiments_filtered)
+            )
 
         rsp_logger.info(f"============================================================================================================")
         rsp_logger.info(f"RUNNING agenda -> {experiment_data_directory} ({len(experiment_agenda.experiments)} experiments)")
         rsp_logger.info(f"============================================================================================================")
-        for file_name in ["src/python/rsp/utils/global_constants.py"]:
-            with open(file_name, "r") as content:
-                rsp_logger.info(f"{file_name}: {content.read()}")
+        rsp_logger.info(f"experiment_agenda.global_constants={experiment_agenda.global_constants}")
         rsp_logger.info(f"============================================================================================================")
 
         # use processes in pool only once because of https://github.com/potassco/clingo/issues/203
@@ -759,6 +773,7 @@ def run_experiment_agenda(
             experiment_base_directory=experiment_base_directory,
             experiment_output_directory=experiment_output_directory,
             csv_only=csv_only,
+            global_constants=experiment_agenda.global_constants,
         )
 
         for pid_done in tqdm.tqdm(
@@ -878,7 +893,7 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
             )
 
             experiment_list.append(current_experiment)
-    experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, experiments=experiment_list)
+    experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, global_constants=get_defaults(), experiments=experiment_list)
     rsp_logger.info("Generated an agenda with {} experiments".format(len(experiment_list)))
     return experiment_agenda
 
@@ -957,6 +972,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
     infra_parameters_list: List[InfrastructureParameters],
     infra_schedule_dict: Dict[InfrastructureParameters, List[Tuple[ScheduleParameters, Schedule]]],
     experiments_per_grid_element: int = 1,
+    global_constants: GlobalConstants = None,
 ):
     list_of_re_schedule_parameters = [ReScheduleParameters(*expanded) for expanded in expand_range_to_parameter_set(reschedule_parameters_range)]
     infra_parameters_dict = {infra_parameters.infra_id: infra_parameters for infra_parameters in infra_parameters_list}
@@ -992,7 +1008,9 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                     experiment_id += 1
                 grid_id += 1
             infra_id_schedule_id += 1
-    return ExperimentAgenda(experiment_name=experiment_name, experiments=experiments)
+    return ExperimentAgenda(
+        experiment_name=experiment_name, global_constants=get_defaults() if global_constants is None else global_constants, experiments=experiments
+    )
 
 
 def expand_range_to_parameter_set(parameter_ranges: List[Tuple[int, int, int]], debug: bool = False) -> List[List[int]]:

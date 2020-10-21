@@ -10,7 +10,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.step_03_run.experiment_results_analysis import all_scopes
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
-from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 
 LeftClosedInterval = NamedTuple("LeftClosedInterval", [("from_incl", int), ("to_excl", int)])
 Resource = NamedTuple("Resource", [("row", int), ("column", int)])
@@ -53,7 +53,7 @@ SchedulingProblemInTimeWindows = NamedTuple(
 
 
 def extract_time_windows(
-    route_dag_constraints_dict: RouteDAGConstraintsDict, minimum_travel_time_dict: Dict[int, int], release_time: int
+    route_dag_constraints_dict: RouteDAGConstraintsDict, minimum_travel_time_dict: Dict[int, int], release_time: int = GLOBAL_CONSTANTS.RELEASE_TIME
 ) -> SchedulingProblemInTimeWindows:
     """Derive time windows from constraints.
 
@@ -90,13 +90,13 @@ def extract_time_windows(
     )
 
 
-def extract_resource_occupations(schedule: TrainrunDict, release_time: int) -> ScheduleAsResourceOccupations:
+def extract_resource_occupations(schedule: TrainrunDict, release_time: int = GLOBAL_CONSTANTS.RELEASE_TIME) -> ScheduleAsResourceOccupations:
     """Extract the resource occuptaions from the (unexpanded) `TrainrunDict`.
 
     Parameters
     ----------
     schedule
-    release_time
+    GLOBAL_CONSTANTS.RELEASE_TIME
 
     Returns
     -------
@@ -126,13 +126,15 @@ def extract_resource_occupations(schedule: TrainrunDict, release_time: int) -> S
     return ScheduleAsResourceOccupations(resource_occupations_per_resource, resource_occupations_per_agent, resource_occupations_per_agent_and_timestep)
 
 
-def verify_schedule_as_resource_occupations(schedule_as_resource_occupations: ScheduleAsResourceOccupations, release_time: int):  # noqa: C901
+def verify_schedule_as_resource_occupations(  # noqa: C901
+    schedule_as_resource_occupations: ScheduleAsResourceOccupations, release_time: int = GLOBAL_CONSTANTS.RELEASE_TIME
+):
     """Check consistency of the two dicts.
 
     Parameters
     ----------
     schedule_as_resource_occupations: ScheduleAsResourceOccupations
-    release_time: int
+    GLOBAL_CONSTANTS.RELEASE_TIME: int
     """
     # 1. resource occupations per resource must be be for the relevant resource
     for resource, occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
@@ -163,10 +165,12 @@ def verify_schedule_as_resource_occupations(schedule_as_resource_occupations: Sc
             assert ro.interval.to_excl > ro.interval.from_incl
 
 
-def extract_resource_occupations_for_all_scopes(experiment_result: ExperimentResultsAnalysis) -> ScheduleAsResourceOccupationsAllScopes:
+def extract_resource_occupations_for_all_scopes(
+    experiment_result: ExperimentResultsAnalysis, release_time: int = GLOBAL_CONSTANTS.RELEASE_TIME
+) -> ScheduleAsResourceOccupationsAllScopes:
     return ScheduleAsResourceOccupationsAllScopes(
         **{
-            scope: extract_resource_occupations(schedule=experiment_result._asdict()[f"results_{scope}"].trainruns_dict, release_time=RELEASE_TIME)
+            scope: extract_resource_occupations(schedule=experiment_result._asdict()[f"results_{scope}"].trainruns_dict, release_time=release_time)
             for scope in all_scopes
         }
     )

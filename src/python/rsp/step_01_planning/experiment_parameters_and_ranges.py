@@ -3,6 +3,8 @@ from typing import Mapping
 from typing import NamedTuple
 from typing import Tuple
 
+from rsp.utils.global_constants import GlobalConstants
+
 SpeedData = Mapping[float, float]
 
 # @deprecated(reason="You should use hiearchy level ranges.")
@@ -141,7 +143,9 @@ ExperimentParameters = NamedTuple(
     ],
 )
 
-ExperimentAgenda = NamedTuple("ExperimentAgenda", [("experiment_name", str), ("experiments", List[ExperimentParameters])])
+ExperimentAgenda = NamedTuple(
+    "ExperimentAgenda", [("experiment_name", str), ("experiments", List[ExperimentParameters]), ("global_constants", GlobalConstants)]
+)
 
 
 def parameter_ranges_and_speed_data_to_hiearchical(
