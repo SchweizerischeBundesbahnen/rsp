@@ -10,7 +10,7 @@ def test_hypothesis_one_all_in_one():
     """Run hypothesis one with qualitative analysis and potassco export and
     check that expected files are present wihout inspecting them."""
 
-    experiment_base_directory = create_experiment_folder_name("test_hypothesis_one_all_in_one")
+    experiment_base_directory = "target/" + create_experiment_folder_name("test_hypothesis_one_all_in_one")
     try:
         hypothesis_one_pipeline_all_in_one(
             parameter_ranges_and_speed_data=ParameterRangesAndSpeedData(
@@ -46,7 +46,7 @@ def test_hypothesis_one_all_in_one():
 
 def test_parallel_experiment_execution():
     """Run a parallel experiment agenda."""
-    experiment_folder_name = create_experiment_folder_name("test_parallel_experiment_execution")
+    experiment_folder_name = "target/" + create_experiment_folder_name("test_parallel_experiment_execution")
     try:
         hypothesis_one_pipeline_all_in_one(
             parameter_ranges_and_speed_data=ParameterRangesAndSpeedData(

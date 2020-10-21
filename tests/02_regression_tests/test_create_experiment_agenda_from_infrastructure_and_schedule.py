@@ -11,7 +11,7 @@ from rsp.utils.file_utils import check_create_folder
 
 def test_create_experiment_agenda_from_infrastructure_and_schedule():
     experiment_name = "test_create_experiment_agenda_from_infrastructure_and_schedule"
-    base_directory = create_experiment_folder_name(experiment_name)
+    base_directory = "target/" + create_experiment_folder_name(experiment_name)
     check_create_folder(base_directory)
     try:
         infrastructure_parameter_range = InfrastructureParametersRange(

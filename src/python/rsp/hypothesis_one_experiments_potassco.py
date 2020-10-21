@@ -52,7 +52,9 @@ def set_defaults():
     enable_propagate_partial(enable=True)
 
 
-def run_potassco_agenda(base_directory: str, experiment_output_base_directory: Optional[str] = None, experiment_filter=None, parallel_compute: int = 5):
+def run_potassco_agenda(
+    base_directory: str, experiment_output_base_directory: Optional[str] = None, experiment_filter=None, parallel_compute: int = 5, csv_only: bool = False
+):
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
@@ -80,6 +82,7 @@ def run_potassco_agenda(base_directory: str, experiment_output_base_directory: O
             parallel_compute=parallel_compute,
             experiments_per_grid_element=experiments_per_grid_element,
             experiment_filter=experiment_filter,
+            csv_only=csv_only,
         )
         # effect of SEQ heuristic (SIM-167)
         set_defaults()
@@ -92,6 +95,7 @@ def run_potassco_agenda(base_directory: str, experiment_output_base_directory: O
             experiment_name=("%swith_SEQ" % experiment_name_prefix),
             parallel_compute=parallel_compute,
             experiments_per_grid_element=experiments_per_grid_element,
+            csv_only=csv_only,
         )
         # effect of delay model resolution (SIM-542)
         set_defaults()
@@ -103,6 +107,7 @@ def run_potassco_agenda(base_directory: str, experiment_output_base_directory: O
             experiment_name=("%swith_delay_model_resolution_2" % experiment_name_prefix),
             parallel_compute=parallel_compute,
             experiments_per_grid_element=experiments_per_grid_element,
+            csv_only=csv_only,
         )
         set_defaults()
         set_delay_model_resolution(5)
@@ -113,6 +118,7 @@ def run_potassco_agenda(base_directory: str, experiment_output_base_directory: O
             experiment_name=("%swith_delay_model_resolution_5" % experiment_name_prefix),
             parallel_compute=parallel_compute,
             experiments_per_grid_element=experiments_per_grid_element,
+            csv_only=csv_only,
         )
         set_defaults()
         set_delay_model_resolution(10)
@@ -123,6 +129,7 @@ def run_potassco_agenda(base_directory: str, experiment_output_base_directory: O
             experiment_name=("%swith_delay_model_resolution_10" % experiment_name_prefix),
             parallel_compute=parallel_compute,
             experiments_per_grid_element=experiments_per_grid_element,
+            csv_only=csv_only,
         )
         # # effect of --propagate (SIM-543)
         set_defaults()
@@ -134,6 +141,7 @@ def run_potassco_agenda(base_directory: str, experiment_output_base_directory: O
             experiment_name=("%swithout_propagate_partial" % experiment_name_prefix),
             parallel_compute=parallel_compute,
             experiments_per_grid_element=experiments_per_grid_element,
+            csv_only=csv_only,
         )
     finally:
         set_defaults()
@@ -185,4 +193,5 @@ if __name__ == "__main__":
         experiment_output_base_directory=BASELINE_DATA_FOLDER,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         parallel_compute=parallel_compute,
+        csv_only=False,
     )

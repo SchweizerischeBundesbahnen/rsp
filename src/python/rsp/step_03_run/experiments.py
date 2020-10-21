@@ -43,10 +43,12 @@ from typing import Optional
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 import tqdm as tqdm
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+from pandas import DataFrame
 from rsp.scheduling.asp.asp_helper import _print_stats
 from rsp.scheduling.asp_wrapper import asp_reschedule_wrapper
 from rsp.scheduling.asp_wrapper import asp_schedule_wrapper
@@ -70,6 +72,7 @@ from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_02_setup.data_types import Infrastructure
 from rsp.step_02_setup.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.step_03_run.experiment_results import ExperimentResults
+from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_03_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
@@ -590,7 +593,7 @@ def _write_sha_txt(folder_name: str):
 
 
 def run_experiment_from_to_file(
-    experiment_parameters: ExperimentParameters, experiment_base_directory: str, experiment_output_directory: str, verbose: bool = False, debug: bool = False,
+    experiment_parameters: ExperimentParameters, experiment_base_directory: str, experiment_output_directory: str, csv_only: bool = False, debug: bool = False
 ):
     """A.2 + B. Run and save one experiment from experiment parameters.
     Parameters
@@ -599,7 +602,6 @@ def run_experiment_from_to_file(
         base for infrastructure and schedules
     experiment_parameters
         contains reference to infrastructure and schedules
-    verbose
     experiment_output_directory
     debug
     """
@@ -616,7 +618,6 @@ def run_experiment_from_to_file(
     try:
 
         check_create_folder(experiment_data_directory)
-        filename = create_experiment_filename(experiment_data_directory, experiment_parameters.experiment_id)
 
         start_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
         rsp_logger.info("Running experiment {} under pid {} at {}".format(experiment_parameters.experiment_id, os.getpid(), start_datetime_str))
@@ -677,11 +678,12 @@ def run_experiment_from_to_file(
         plausibility_check_experiment_results_analysis(
             experiment_results_analysis=expand_experiment_results_for_analysis(experiment_results=experiment_results)
         )
+        filename = create_experiment_filename(experiment_data_directory, experiment_parameters.experiment_id)
+        save_experiment_results_to_file(experiment_results=experiment_results, file_name=filename, csv_only=csv_only)
 
-        save_experiment_results_to_file(experiment_results, filename)
         return os.getpid()
     except Exception as e:
-        rsp_logger.error("XXX failed " + filename + " " + str(e))
+        rsp_logger.error(f"XXX failed {experiment_parameters.experiment_id} {experiment_data_directory} " + str(e))
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:
@@ -697,7 +699,7 @@ def run_experiment_agenda(
     filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
     # take only half of avilable cpus so the machine stays responsive
     run_experiments_parallel: int = AVAILABLE_CPUS // 2,
-    verbose: bool = False,
+    csv_only: bool = False,
 ) -> str:
     """Run A.2 + B.
     Parameters
@@ -755,8 +757,8 @@ def run_experiment_agenda(
         run_and_save_one_experiment_partial = partial(
             run_experiment_from_to_file,
             experiment_base_directory=experiment_base_directory,
-            verbose=verbose,
             experiment_output_directory=experiment_output_directory,
+            csv_only=csv_only,
         )
 
         for pid_done in tqdm.tqdm(
@@ -1205,7 +1207,7 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
 
 def create_experiment_folder_name(experiment_name: str) -> str:
     datetime_string = datetime.datetime.now().strftime("%Y_%m_%dT%H_%M_%S")
-    return "target/{}_{}".format(experiment_name, datetime_string)
+    return "{}_{}".format(experiment_name, datetime_string)
 
 
 def create_experiment_filename(experiment_data_folder_name: str, experiment_id: int) -> str:
@@ -1214,7 +1216,7 @@ def create_experiment_filename(experiment_data_folder_name: str, experiment_id: 
     return os.path.join(experiment_data_folder_name, filename)
 
 
-def save_experiment_results_to_file(experiment_results: ExperimentResults, file_name: str):
+def save_experiment_results_to_file(experiment_results: ExperimentResults, file_name: str, csv_only: bool = False):
     """Save the data frame with all the result from an experiment into a given
     file.
     Parameters
@@ -1223,10 +1225,18 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
        List containing all the experiment results
     file_name: str
         File name containing path and name of file we want to store the experiment results
+    csv_only:bool
+        write only csv or also pkl?
     Returns
     -------
     """
-    _pickle_dump(obj=experiment_results, file_name=file_name)
+    if not csv_only:
+        _pickle_dump(obj=experiment_results, file_name=file_name)
+
+    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
+        [expand_experiment_results_for_analysis(experiment_results, nonify_all_structured_fields=True)]
+    )
+    experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
 
 
 def load_experiments_results(experiment_data_folder_name: str, experiment_id: int) -> Optional[ExperimentResults]:
@@ -1241,7 +1251,7 @@ def load_experiments_results(experiment_data_folder_name: str, experiment_id: in
     -------
     Content if file exists (and is unique). `None` else.
     """
-    file_names = glob.glob(f"{experiment_data_folder_name}/experiment{experiment_id:04d}+_.*.pkl")
+    file_names = glob.glob(f"{experiment_data_folder_name}/experiment_{experiment_id:04d}_*.pkl")
     if len(file_names) != 1:
         return None
     return _pickle_load(file_names[0])
@@ -1291,6 +1301,49 @@ def load_and_expand_experiment_results_from_data_folder(
     rsp_logger.info(f" -> done loading and expanding experiment results from {experiment_data_folder_name} done")
 
     return experiment_results_list
+
+
+def load_data_from_individual_csv_in_data_folder(experiment_data_folder_name: str, experiment_ids: List[int] = None,) -> DataFrame:
+    """Load results as DataFrame to do further analysis.
+    Parameters
+    ----------
+    experiment_data_folder_name: str
+        Folder name of experiment where all experiment files are stored
+    experiment_ids
+        List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
+    nonify_all_structured_fields
+        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
+        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
+    Returns
+    -------
+    DataFrame containing the loaded experiment results
+    """
+
+    list_of_frames = []
+    files = os.listdir(experiment_data_folder_name)
+    rsp_logger.info(f"loading individual csv experiment results from {experiment_data_folder_name}")
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    newline_and_flush_stdout_and_stderr()
+
+    for file in tqdm.tqdm([file for file in files if "agenda" not in file]):
+        file_name = os.path.join(experiment_data_folder_name, file)
+        if not file_name.endswith(".csv"):
+            continue
+
+        # filter experiments according to defined experiment_ids
+        exp_id = get_experiment_id_from_filename(file_name)
+        if experiment_ids is not None and exp_id not in experiment_ids:
+            continue
+        try:
+            list_of_frames.append(pd.read_csv(file_name))
+        except Exception as e:
+            rsp_logger.warn(f"skipping {file} because of {e}")
+
+    # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
+    newline_and_flush_stdout_and_stderr()
+    rsp_logger.info(f" -> done loading individual csv results from {experiment_data_folder_name} done")
+
+    return pd.concat(list_of_frames)
 
 
 def delete_experiment_folder(experiment_folder_name: str):

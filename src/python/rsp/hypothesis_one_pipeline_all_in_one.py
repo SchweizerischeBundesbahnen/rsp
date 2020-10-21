@@ -128,6 +128,7 @@ def list_from_base_directory_and_run_experiment_agenda(
     parallel_compute: int = AVAILABLE_CPUS // 2,
     experiments_per_grid_element: int = 1,
     experiment_filter=None,
+    csv_only: bool = False,
 ):
     """
 
@@ -205,8 +206,8 @@ def list_from_base_directory_and_run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
         filter_experiment_agenda=filter_experiment_agenda,
-        verbose=False,
         experiment_output_directory=experiment_output_directory,
         experiment_base_directory=experiment_base_directory,
+        csv_only=csv_only,
     )
     return experiment_agenda, experiment_output_directory
