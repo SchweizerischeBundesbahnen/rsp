@@ -8,15 +8,20 @@ from typing import Tuple
 from flatland.core.grid.grid_utils import coordinate_to_position
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
-from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import PlottingInformation
+from rsp.step_03_run.experiment_results_analysis import all_scopes
+from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import PlottingInformation
 from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.resource_occupation import LeftClosedInterval
 from rsp.utils.resource_occupation import ResourceOccupation
+from rsp.utils.resource_occupation import ScheduleAsResourceOccupationsAllScopes
 from rsp.utils.resource_occupation import SortedResourceOccupationsPerAgent
 
 Trajectory = List[Tuple[Optional[int], Optional[int]]]  # Time and sorted resource, optional
 Trajectories = Dict[int, Trajectory]  # Int in the dict is the agent handle
+
+# TODO SIM-701 still required?
 SpaceTimeDifference = NamedTuple("Space_Time_Difference", [("changed_agents", Trajectories), ("additional_information", Dict)])
+TrajectoriesForAllScopes = NamedTuple("TrajectoriesForAllScopes", [(scope, Trajectories) for scope in all_scopes])
 
 
 # Information used for plotting time-resource-graphs: Sorting is dict mapping ressource to int value used to sort
@@ -119,6 +124,8 @@ def trajectories_from_resource_occupations_per_agent(
     width = plotting_information.grid_width
     schedule_trajectories: Trajectories = {}
     for agent_handle, resource_ocupations in resource_occupations_schedule.items():
+        if len(resource_ocupations) == 0:
+            continue
         train_time_path = []
         for resource_ocupation in resource_ocupations:
             position = coordinate_to_position(width, [resource_ocupation.resource])[0]
@@ -130,3 +137,17 @@ def trajectories_from_resource_occupations_per_agent(
             train_time_path.append((None, None))
         schedule_trajectories[agent_handle] = train_time_path
     return schedule_trajectories
+
+
+def extract_trajectories_for_all_scopes(
+    schedule_as_resource_occupations_all_scopes: ScheduleAsResourceOccupationsAllScopes, plotting_information: PlottingInformation
+) -> TrajectoriesForAllScopes:
+    return TrajectoriesForAllScopes(
+        **{
+            scope: trajectories_from_resource_occupations_per_agent(
+                resource_occupations_schedule=schedule_as_resource_occupations_all_scopes._asdict()[f"{scope}"].sorted_resource_occupations_per_agent,
+                plotting_information=plotting_information,
+            )
+            for scope in all_scopes
+        }
+    )

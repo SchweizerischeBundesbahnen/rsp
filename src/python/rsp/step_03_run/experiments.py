@@ -1288,7 +1288,7 @@ def load_and_expand_experiment_results_from_data_folder(
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
-    rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
+    rsp_logger.info(f" -> done loading and expanding experiment results from {experiment_data_folder_name} done")
 
     return experiment_results_list
 

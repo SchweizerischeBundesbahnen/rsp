@@ -41,7 +41,7 @@ from_cache = False
 ```
 
 ```{python}
-experiments_of_interest = [2064]
+experiments_of_interest = None
 experiment_base_directory = BASELINE_DATA_FOLDER
 print(experiment_base_directory)
 if from_cache:
@@ -124,6 +124,8 @@ hypothesis_one_analysis_visualize_lateness(experiment_data=experiment_data_filte
 hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data_filtered)
 ```
 
+### Visualize Solver Choices and Conflicts
+
 ```{python}
 # Choices represent the size of the solution space (how many routing alternatives, how many potential resource conflicts?
 # Conflicts represent the number of decisions
@@ -138,5 +140,11 @@ for prefix in ['solver_statistics_conflicts', 'solver_statistics_choices', 'nb_r
 ```
 
 ```{python}
-visualize_hypotheses_asp(experiment_data=experiment_data_filtered)
+visualize_asp_solver_stats(experiment_data=experiment_data_filtered)
+```
+
+### Visualize Problem Reduction
+
+```{python}
+visualize_asp_problem_reduction(experiment_data=experiment_data_filtered)
 ```
