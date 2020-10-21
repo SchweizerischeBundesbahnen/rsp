@@ -16,11 +16,7 @@ from rsp.scheduling.scheduling_problem import get_sinks_for_topo
 from rsp.scheduling.scheduling_problem import get_sources_for_topo
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_02_setup.route_dag_constraints_schedule import RouteDAGConstraints
-from rsp.utils.global_constants import DELAY_MODEL_PENALTY_AFTER_LINEAR
-from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
-from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
-from rsp.utils.global_constants import RESCHEDULE_HEURISTICS
-from rsp.utils.global_constants import SCHEDULE_HEURISTICS
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 
 
 class ASPProblemDescription:
@@ -49,7 +45,7 @@ class ASPProblemDescription:
         asp_problem = ASPProblemDescription(
             schedule_problem_description=schedule_problem_description,
             asp_objective=ASPObjective.MINIMIZE_DELAY_ROUTES_COMBINED,
-            asp_heuristics=RESCHEDULE_HEURISTICS,
+            asp_heuristics=GLOBAL_CONSTANTS.RESCHEDULE_HEURISTICS,
             asp_seed_value=asp_seed_value,
             no_optimize=False,  # Optimize if set to False
         )
@@ -67,7 +63,7 @@ class ASPProblemDescription:
         asp_problem = ASPProblemDescription(
             schedule_problem_description=schedule_problem_description,
             asp_objective=ASPObjective.MINIMIZE_SUM_RUNNING_TIMES,
-            asp_heuristics=SCHEDULE_HEURISTICS,
+            asp_heuristics=GLOBAL_CONSTANTS.SCHEDULE_HEURISTICS,
             asp_seed_value=asp_seed_value,
             no_optimize=no_optimize,
             nb_threads=2,  # not deterministic any more!
@@ -259,9 +255,9 @@ class ASPProblemDescription:
             _new_asp_program.append(f"#const weight_lateness_seconds = {schedule_problem_description.weight_lateness_seconds}.")
 
         # inject delay model parameterization
-        _new_asp_program.append(f"#const upper_bound_linear_penalty = {DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY}.")
-        _new_asp_program.append(f"#const penalty_after_linear = {DELAY_MODEL_PENALTY_AFTER_LINEAR}.")
-        _new_asp_program.append(f"#const resolution = {DELAY_MODEL_RESOLUTION}.")
+        _new_asp_program.append(f"#const upper_bound_linear_penalty = {GLOBAL_CONSTANTS.DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY}.")
+        _new_asp_program.append(f"#const penalty_after_linear = {GLOBAL_CONSTANTS.DELAY_MODEL_PENALTY_AFTER_LINEAR}.")
+        _new_asp_program.append(f"#const resolution = {GLOBAL_CONSTANTS.DELAY_MODEL_RESOLUTION}.")
 
         # cleanup
         return _new_asp_program

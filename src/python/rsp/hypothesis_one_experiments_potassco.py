@@ -1,8 +1,8 @@
 import os
-import re
 from typing import Optional
 
 from rsp.hypothesis_one_pipeline_all_in_one import list_from_base_directory_and_run_experiment_agenda
+from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
@@ -11,45 +11,9 @@ from rsp.step_03_run.experiments import AVAILABLE_CPUS
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import create_infrastructure_and_schedule_from_ranges
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.global_constants import get_defaults
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
-
-
-# TODO SIM-719 pass arguments instead of hacky file editing
-def enable_seq(enable=True):
-    off = "RESCHEDULE_HEURISTICS = []"
-    on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
-    file_name = "src/python/rsp/utils/global_constants.py"
-    with open(file_name, "r") as fh:
-        output_str = fh.read().replace(off if enable else on, on if enable else off)
-    with open(file_name, "w") as output:
-        output.write(output_str)
-
-
-# TODO SIM-719 pass arguments instead of hacky file editing
-def set_delay_model_resolution(resolution=1):
-    file_name = "src/python/rsp/utils/global_constants.py"
-    with open(file_name, "r") as fh:
-        regex = re.compile("DELAY_MODEL_RESOLUTION = .*")
-        output_str = regex.sub(f"DELAY_MODEL_RESOLUTION = {resolution}", fh.read())
-    with open(file_name, "w") as output:
-        output.write(output_str)
-
-
-# TODO SIM-719 pass arguments instead of hacky file editing
-def enable_propagate_partial(enable: bool = True):
-    file_name = "src/python/rsp/utils/global_constants.py"
-    with open(file_name, "r") as fh:
-        regex = re.compile("DL_PROPAGATE_PARTIAL = .*")
-        output_str = regex.sub(f"DL_PROPAGATE_PARTIAL = True" if enable else f"DL_PROPAGATE_PARTIAL = False", fh.read())
-    with open(file_name, "w") as output:
-        output.write(output_str)
-
-
-def set_defaults():
-    enable_seq(False)
-    set_delay_model_resolution(1)
-    enable_propagate_partial(enable=True)
 
 
 def run_potassco_agenda(
@@ -68,83 +32,78 @@ def run_potassco_agenda(
         weight_lateness_seconds=[1, 1, 1],
     )
 
-    try:
-        experiments_per_grid_element = 1
-        experiment_name_prefix = os.path.basename(base_directory) + "_"
-        parallel_compute = parallel_compute
-        # baseline with defaults
-        set_defaults()
-        list_from_base_directory_and_run_experiment_agenda(
-            experiment_base_directory=base_directory,
-            experiment_output_directory=experiment_output_base_directory,
-            reschedule_parameters_range=reschedule_parameters_range,
-            experiment_name=("%sbaseline" % experiment_name_prefix),
-            parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element,
-            experiment_filter=experiment_filter,
-            csv_only=csv_only,
-        )
-        # effect of SEQ heuristic (SIM-167)
-        set_defaults()
-        enable_seq(True)
-
-        list_from_base_directory_and_run_experiment_agenda(
-            experiment_base_directory=base_directory,
-            experiment_output_directory=experiment_output_base_directory,
-            reschedule_parameters_range=reschedule_parameters_range,
-            experiment_name=("%swith_SEQ" % experiment_name_prefix),
-            parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element,
-            csv_only=csv_only,
-        )
-        # effect of delay model resolution (SIM-542)
-        set_defaults()
-        set_delay_model_resolution(2)
-        list_from_base_directory_and_run_experiment_agenda(
-            experiment_base_directory=base_directory,
-            experiment_output_directory=experiment_output_base_directory,
-            reschedule_parameters_range=reschedule_parameters_range,
-            experiment_name=("%swith_delay_model_resolution_2" % experiment_name_prefix),
-            parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element,
-            csv_only=csv_only,
-        )
-        set_defaults()
-        set_delay_model_resolution(5)
-        list_from_base_directory_and_run_experiment_agenda(
-            experiment_base_directory=base_directory,
-            experiment_output_directory=experiment_output_base_directory,
-            reschedule_parameters_range=reschedule_parameters_range,
-            experiment_name=("%swith_delay_model_resolution_5" % experiment_name_prefix),
-            parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element,
-            csv_only=csv_only,
-        )
-        set_defaults()
-        set_delay_model_resolution(10)
-        list_from_base_directory_and_run_experiment_agenda(
-            experiment_base_directory=base_directory,
-            experiment_output_directory=experiment_output_base_directory,
-            reschedule_parameters_range=reschedule_parameters_range,
-            experiment_name=("%swith_delay_model_resolution_10" % experiment_name_prefix),
-            parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element,
-            csv_only=csv_only,
-        )
-        # # effect of --propagate (SIM-543)
-        set_defaults()
-        enable_propagate_partial(enable=False)
-        list_from_base_directory_and_run_experiment_agenda(
-            experiment_base_directory=base_directory,
-            experiment_output_directory=experiment_output_base_directory,
-            reschedule_parameters_range=reschedule_parameters_range,
-            experiment_name=("%swithout_propagate_partial" % experiment_name_prefix),
-            parallel_compute=parallel_compute,
-            experiments_per_grid_element=experiments_per_grid_element,
-            csv_only=csv_only,
-        )
-    finally:
-        set_defaults()
+    experiments_per_grid_element = 1
+    experiment_name_prefix = os.path.basename(base_directory) + "_"
+    # baseline with defaults
+    list_from_base_directory_and_run_experiment_agenda(
+        experiment_base_directory=base_directory,
+        experiment_output_directory=experiment_output_base_directory,
+        reschedule_parameters_range=reschedule_parameters_range,
+        experiment_name=("%sbaseline" % experiment_name_prefix),
+        parallel_compute=parallel_compute,
+        experiments_per_grid_element=experiments_per_grid_element,
+        experiment_filter=experiment_filter,
+        csv_only=csv_only,
+        global_constants=get_defaults(),
+    )
+    # effect of SEQ heuristic (SIM-167)
+    list_from_base_directory_and_run_experiment_agenda(
+        experiment_base_directory=base_directory,
+        experiment_output_directory=experiment_output_base_directory,
+        reschedule_parameters_range=reschedule_parameters_range,
+        experiment_name=("%swith_SEQ" % experiment_name_prefix),
+        parallel_compute=parallel_compute,
+        experiments_per_grid_element=experiments_per_grid_element,
+        experiment_filter=experiment_filter,
+        csv_only=csv_only,
+        global_constants=get_defaults(reschedule_heuristics=[ASPHeuristics.HEURISTIC_SEQ]),
+    )
+    # effect of delay model resolution with 2, 5, 10 (SIM-542)
+    list_from_base_directory_and_run_experiment_agenda(
+        experiment_base_directory=base_directory,
+        experiment_output_directory=experiment_output_base_directory,
+        reschedule_parameters_range=reschedule_parameters_range,
+        experiment_name=("%swith_delay_model_resolution_2" % experiment_name_prefix),
+        parallel_compute=parallel_compute,
+        experiments_per_grid_element=experiments_per_grid_element,
+        experiment_filter=experiment_filter,
+        csv_only=csv_only,
+        global_constants=get_defaults(delay_model_resolution=2),
+    )
+    list_from_base_directory_and_run_experiment_agenda(
+        experiment_base_directory=base_directory,
+        experiment_output_directory=experiment_output_base_directory,
+        reschedule_parameters_range=reschedule_parameters_range,
+        experiment_name=("%swith_delay_model_resolution_5" % experiment_name_prefix),
+        parallel_compute=parallel_compute,
+        experiments_per_grid_element=experiments_per_grid_element,
+        experiment_filter=experiment_filter,
+        csv_only=csv_only,
+        global_constants=get_defaults(delay_model_resolution=5),
+    )
+    list_from_base_directory_and_run_experiment_agenda(
+        experiment_base_directory=base_directory,
+        experiment_output_directory=experiment_output_base_directory,
+        reschedule_parameters_range=reschedule_parameters_range,
+        experiment_name=("%swith_delay_model_resolution_10" % experiment_name_prefix),
+        parallel_compute=parallel_compute,
+        experiments_per_grid_element=experiments_per_grid_element,
+        experiment_filter=experiment_filter,
+        csv_only=csv_only,
+        global_constants=get_defaults(delay_model_resolution=10),
+    )
+    # effect of --propagate (SIM-543)
+    list_from_base_directory_and_run_experiment_agenda(
+        experiment_base_directory=base_directory,
+        experiment_output_directory=experiment_output_base_directory,
+        reschedule_parameters_range=reschedule_parameters_range,
+        experiment_name=("%swithout_propagate_partial" % experiment_name_prefix),
+        parallel_compute=parallel_compute,
+        experiments_per_grid_element=experiments_per_grid_element,
+        experiment_filter=experiment_filter,
+        csv_only=csv_only,
+        global_constants=get_defaults(dl_propagate_partial=False),
+    )
 
 
 def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None, parallel_compute: int = 5):
@@ -181,7 +140,7 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
 
 
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
-    return experiment.malfunction_agent_id < 10 and experiment.experiment_id > 2000
+    return experiment.malfunction_agent_id < 10 and experiment.experiment_id == 0
 
 
 if __name__ == "__main__":

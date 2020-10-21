@@ -13,7 +13,7 @@ from importlib_resources import path
 from rsp.scheduling.asp import theory
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 from rsp.scheduling.asp.asp_data_types import ASPObjective
-from rsp.utils.global_constants import DL_PROPAGATE_PARTIAL
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.rsp_logger import rsp_logger
 from rsp.utils.rsp_logger import VERBOSE
 
@@ -124,7 +124,7 @@ def _asp_helper(  # noqa: C901
     rsp_logger.info(f"no_optimize={no_optimize}")
 
     dl = theory.Theory("clingodl", "clingo-dl")
-    if DL_PROPAGATE_PARTIAL:
+    if GLOBAL_CONSTANTS.DL_PROPAGATE_PARTIAL:
         rsp_logger.info("running with --propagate=partial")
         dl.configure_propagator("propagate", "partial")
     else:

@@ -17,7 +17,7 @@ from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import Traje
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
 from rsp.transmission_chains.transmission_chains import TransmissionChain
 from rsp.transmission_chains.transmission_chains_time_windows import extract_transmission_chains_from_time_windows
-from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.resource_occupation import extract_resource_occupations
 from rsp.utils.resource_occupation import extract_time_windows
 from rsp.utils.resource_occupation import LeftClosedInterval
@@ -97,9 +97,7 @@ def plot_transmission_chains_time_window(
     -------
 
     """
-    online_unrestricted_resource_occupations = extract_resource_occupations(
-        schedule=experiment_result.results_online_unrestricted.trainruns_dict, release_time=RELEASE_TIME
-    )
+    online_unrestricted_resource_occupations = extract_resource_occupations(schedule=experiment_result.results_online_unrestricted.trainruns_dict)
     plotting_information = extract_plotting_information(
         schedule_as_resource_occupations=online_unrestricted_resource_occupations,
         grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
@@ -168,7 +166,7 @@ def plot_transmission_chains_time_window(
 
 
 def extract_trajectories_from_transmission_chains_time_window(
-    num_agents, plotting_information, transmission_chains_time_window, release_time: int = RELEASE_TIME
+    num_agents, plotting_information, transmission_chains_time_window, release_time: int = GLOBAL_CONSTANTS.RELEASE_TIME
 ):
     trajectories_from_transmission_chains_time_window: Trajectories = {agent_id: [] for agent_id in range(num_agents)}
     for transmission_chain in tqdm.tqdm(transmission_chains_time_window):
@@ -202,7 +200,6 @@ def extract_time_windows_and_transmission_chains(experiment_result: ExperimentRe
     online_unrestricted_time_windows: SchedulingProblemInTimeWindows = extract_time_windows(
         route_dag_constraints_dict=experiment_result.problem_online_unrestricted.route_dag_constraints_dict,
         minimum_travel_time_dict=experiment_result.problem_online_unrestricted.minimum_travel_time_dict,
-        release_time=RELEASE_TIME,
     )
     rsp_logger.info("end extract_time_windows")
     rsp_logger.info("start extract_transmission_chains_from_time_windows")

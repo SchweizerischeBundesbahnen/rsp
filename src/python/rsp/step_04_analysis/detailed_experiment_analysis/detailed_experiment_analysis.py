@@ -40,7 +40,7 @@ from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import traje
 from rsp.step_04_analysis.plot_utils import GREY_BACKGROUND_COLOR
 from rsp.step_04_analysis.plot_utils import PLOTLY_COLORLIST
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.resource_occupation import extract_resource_occupations
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
 
@@ -126,7 +126,9 @@ def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, 
 def plot_time_resource_trajectories_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
     for scope in all_scopes:
         results_scope = experiment_results._asdict()[f"results_{scope}"]
-        resource_occupations_schedule = extract_resource_occupations(results_scope.trainruns_dict, RELEASE_TIME).sorted_resource_occupations_per_agent
+        resource_occupations_schedule = extract_resource_occupations(
+            results_scope.trainruns_dict, GLOBAL_CONSTANTS.RELEASE_TIME
+        ).sorted_resource_occupations_per_agent
         trajectories = trajectories_from_resource_occupations_per_agent(
             resource_occupations_schedule=resource_occupations_schedule, plotting_information=plotting_information
         )

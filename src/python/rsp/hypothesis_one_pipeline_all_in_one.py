@@ -22,6 +22,8 @@ from rsp.step_03_run.experiments import run_experiment_agenda
 from rsp.step_03_run.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.global_constants import get_defaults
+from rsp.utils.global_constants import GlobalConstants
 from rsp.utils.rsp_logger import rsp_logger
 
 
@@ -129,6 +131,7 @@ def list_from_base_directory_and_run_experiment_agenda(
     experiments_per_grid_element: int = 1,
     experiment_filter=None,
     csv_only: bool = False,
+    global_constants: GlobalConstants = None,
 ):
     """
 
@@ -148,6 +151,8 @@ def list_from_base_directory_and_run_experiment_agenda(
     -------
 
     """
+    if global_constants is None:
+        global_constants = get_defaults()
     if experiment_output_directory is not None:
         rsp_logger.info(f"============================================================================================================")
         rsp_logger.info(f"loading agenda <- {experiment_output_directory}")
@@ -157,7 +162,9 @@ def list_from_base_directory_and_run_experiment_agenda(
         len_before_filtering = len(experiment_agenda.experiments)
         if experiment_filter is not None:
             experiment_agenda = ExperimentAgenda(
-                experiment_name=experiment_name, experiments=[experiment for experiment in experiment_agenda.experiments if experiment_filter(experiment)]
+                experiment_name=experiment_name,
+                experiments=[experiment for experiment in experiment_agenda.experiments if experiment_filter(experiment)],
+                global_constants=global_constants,
             )
         rsp_logger.info(
             f"after applying filter, there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda)
@@ -170,6 +177,7 @@ def list_from_base_directory_and_run_experiment_agenda(
                 for experiment in experiment_agenda.experiments
                 if load_experiments_results(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment.experiment_id) is None
             ],
+            global_constants=global_constants,
         )
         rsp_logger.info(
             f"after filtering out experiments already run from {experiment_output_directory}, "
@@ -185,6 +193,7 @@ def list_from_base_directory_and_run_experiment_agenda(
             infra_parameters_list=infra_parameters_list,
             infra_schedule_dict=infra_schedule_dict,
             experiments_per_grid_element=experiments_per_grid_element,
+            global_constants=global_constants,
         )
         experiment_output_directory = f"{experiment_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)
         len_before_filtering = len(experiment_agenda.experiments)
@@ -197,7 +206,9 @@ def list_from_base_directory_and_run_experiment_agenda(
 
         if experiment_filter is not None:
             experiment_agenda = ExperimentAgenda(
-                experiment_name=experiment_name, experiments=[experiment for experiment in experiment_agenda.experiments if experiment_filter(experiment)]
+                experiment_name=experiment_name,
+                experiments=[experiment for experiment in experiment_agenda.experiments if experiment_filter(experiment)],
+                global_constants=global_constants,
             )
         rsp_logger.info(
             f"after applying filter, there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda)
