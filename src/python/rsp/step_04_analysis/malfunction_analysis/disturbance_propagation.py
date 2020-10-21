@@ -97,16 +97,15 @@ def plot_transmission_chains_time_window(
     -------
 
     """
-    online_unrestricted_resource_occupations_per_agent = extract_resource_occupations(
-        trainrun_dict=experiment_result.results_online_unrestricted, release_time=RELEASE_TIME
+    online_unrestricted_resource_occupations = extract_resource_occupations(
+        schedule=experiment_result.results_online_unrestricted.trainruns_dict, release_time=RELEASE_TIME
     )
     plotting_information = extract_plotting_information(
-        schedule_as_resource_occupations=online_unrestricted_resource_occupations_per_agent,
+        schedule_as_resource_occupations=online_unrestricted_resource_occupations,
         grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
         sorting_agent_id=experiment_result.malfunction.agent_id,
     )
     num_agents = len(experiment_result.results_schedule.trainruns_dict.keys())
-    plotting_information = plotting_information
 
     prediction = extract_trajectories_from_transmission_chains_time_window(num_agents, plotting_information, transmission_chains_time_window)
     plot_time_resource_trajectories(
@@ -144,7 +143,7 @@ def plot_transmission_chains_time_window(
     )
     # Get trajectories for reschedule full
     trajectories_online_unrestricted: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=online_unrestricted_resource_occupations_per_agent, plotting_information=plotting_information
+        resource_occupations_schedule=online_unrestricted_resource_occupations.sorted_resource_occupations_per_agent, plotting_information=plotting_information
     )
 
     # Plot difference with prediction

@@ -113,7 +113,7 @@ def hypothesis_one_data_analysis(
             agent_of_interest = experiment_result.malfunction.agent_id
             output_folder_of_interest = f"{results_folder}/experiment_{experiment_result.experiment_id:04d}_agent_{agent_of_interest:04d}/"
             _detailed_experiment_results(experiment_result=experiment_result, output_folder_of_interest=output_folder_of_interest)
-            _malfunction_analysis(experiment_result=experiment_result)
+            _malfunction_analysis(experiment_result=experiment_result, output_folder_of_interest=output_folder_of_interest)
 
 
 def _compute_time_analysis(experiment_data: DataFrame, results_folder: str):
@@ -171,7 +171,7 @@ def _detailed_experiment_results(experiment_result: ExperimentResultsAnalysis, o
     return plotting_information, resource_occupations_for_all_scopes, trajectories_for_all_scopes
 
 
-def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis):
+def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis, output_folder_of_interest: str):
     agent_of_interest = experiment_result.malfunction.agent_id
     resource_occupations_for_all_scopes = extract_resource_occupations_for_all_scopes(experiment_result=experiment_result)
     plotting_information: PlottingInformation = extract_plotting_information(
@@ -207,6 +207,7 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis):
         malfunction=experiment_result.malfunction,
         true_positives=true_positives_trajectories,
         false_positives=false_positives_trajectories,
+        output_folder=output_folder_of_interest,
     )
     plot_delay_propagation_2d(
         plotting_information=plotting_information,
@@ -214,8 +215,14 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis):
         schedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
         delay_information=experiment_result.lateness_per_agent_offline_delta,
         depth_dict=minimal_depth,
+        file_name=f"{output_folder_of_interest}/delay_propagation_2d.pdf",
     )
-    plot_delay_propagation_graph(minimal_depth=minimal_depth, distance_matrix=distance_matrix, changed_agents=changed_agents_dict)
+    plot_delay_propagation_graph(
+        minimal_depth=minimal_depth,
+        distance_matrix=distance_matrix,
+        changed_agents=changed_agents_dict,
+        file_name="f{output_folder_of_interest}/delay_propagation_graph.pdf",
+    )
 
 
 def _route_dag_constraints_analysis(
