@@ -104,7 +104,7 @@ def hypothesis_one_data_analysis(
             experiment_data_folder_name=experiment_data_directory, experiment_ids=qualitative_analysis_experiment_ids
         )
         for experiment_result in experiment_results_list:
-            route_dag_constraints_analysis(
+            _route_dag_constraints_analysis(
                 experiment_parameters=experiment_result.experiment_parameters,
                 experiment_results_analysis=experiment_result,
                 experiment_analysis_directory=experiment_analysis_directory,
@@ -112,11 +112,8 @@ def hypothesis_one_data_analysis(
 
             agent_of_interest = experiment_result.malfunction.agent_id
             output_folder_of_interest = f"{results_folder}/experiment_{experiment_result.experiment_id:04d}_agent_{agent_of_interest:04d}/"
-
-            # detailed experiment analysis
-            _detailed_experiment_results(agent_of_interest, experiment_result, output_folder_of_interest)
-
-            _malfunction_analysis(agent_of_interest, experiment_result)
+            _detailed_experiment_results(experiment_result=experiment_result, output_folder_of_interest=output_folder_of_interest)
+            _malfunction_analysis(experiment_result=experiment_result)
 
 
 def _compute_time_analysis(experiment_data: DataFrame, results_folder: str):
@@ -221,7 +218,7 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis):
     plot_delay_propagation_graph(minimal_depth=minimal_depth, distance_matrix=distance_matrix, changed_agents=changed_agents_dict)
 
 
-def route_dag_constraints_analysis(
+def _route_dag_constraints_analysis(
     experiment_parameters: ExperimentParameters, experiment_results_analysis: ExperimentResultsAnalysis, experiment_analysis_directory: str = None,
 ):
     """Render the experiment the DAGs.
