@@ -104,7 +104,7 @@ def plot_shared_heatmap(plotting_information: PlottingInformation, experiment_re
         fig.write_image(pdf_file)
 
 
-def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation):
+def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
     for scope in all_scopes:
         results_scope = experiment_results._asdict()[f"results_{scope}"]
         problem_scope = experiment_results._asdict()[f"problem_{scope}"]
@@ -115,11 +115,15 @@ def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, 
         choices_online_unrestricted = results_scope.solver_statistics["solving"]["solvers"]["choices"]
         print("Number of choices the solver has to make for {} was {}".format(scope, choices_online_unrestricted))
         plot_time_resource_trajectories(
-            trajectories=trajectories, title=f"{scope}", plotting_information=plotting_information, malfunction=experiment_results.malfunction
+            trajectories=trajectories,
+            title=f"{scope}",
+            plotting_information=plotting_information,
+            malfunction=experiment_results.malfunction,
+            output_folder=output_folder,
         )
 
 
-def plot_time_resource_trajectories_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation):
+def plot_time_resource_trajectories_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
     for scope in all_scopes:
         results_scope = experiment_results._asdict()[f"results_{scope}"]
         resource_occupations_schedule = extract_resource_occupations(results_scope.trainruns_dict, RELEASE_TIME).sorted_resource_occupations_per_agent
@@ -127,7 +131,11 @@ def plot_time_resource_trajectories_all_scopes(experiment_results: ExperimentRes
             resource_occupations_schedule=resource_occupations_schedule, plotting_information=plotting_information
         )
         plot_time_resource_trajectories(
-            trajectories=trajectories, title=f"{scope}", plotting_information=plotting_information, malfunction=experiment_results.malfunction
+            trajectories=trajectories,
+            title=f"{scope}",
+            plotting_information=plotting_information,
+            malfunction=experiment_results.malfunction,
+            output_folder=output_folder,
         )
 
 

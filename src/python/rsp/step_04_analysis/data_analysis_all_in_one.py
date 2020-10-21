@@ -137,8 +137,10 @@ def _detailed_experiment_results(experiment_result: ExperimentResultsAnalysis, o
     trajectories_for_all_scopes = extract_trajectories_for_all_scopes(
         schedule_as_resource_occupations_all_scopes=resource_occupations_for_all_scopes, plotting_information=plotting_information
     )
-    plot_time_windows_all_scopes(experiment_results=experiment_result, plotting_information=plotting_information)
-    plot_time_resource_trajectories_all_scopes(experiment_results=experiment_result, plotting_information=plotting_information)
+    plot_time_windows_all_scopes(experiment_results=experiment_result, plotting_information=plotting_information, output_folder=output_folder_of_interest)
+    plot_time_resource_trajectories_all_scopes(
+        experiment_results=experiment_result, plotting_information=plotting_information, output_folder=output_folder_of_interest
+    )
     plot_shared_heatmap(plotting_information=plotting_information, experiment_result=experiment_result, output_folder=output_folder_of_interest)
     plot_histogram_from_delay_data(experiment_results=experiment_result, output_folder=output_folder_of_interest)
     plot_lateness(experiment_results=experiment_result, output_folder=output_folder_of_interest)
@@ -221,7 +223,7 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis, output_f
         minimal_depth=minimal_depth,
         distance_matrix=distance_matrix,
         changed_agents=changed_agents_dict,
-        file_name="f{output_folder_of_interest}/delay_propagation_graph.pdf",
+        file_name=f"{output_folder_of_interest}/delay_propagation_graph.pdf",
     )
 
 
