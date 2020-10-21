@@ -58,7 +58,7 @@ else:
             nonify_all_structured_fields=True
         )
         experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-        
+
     # Filter data depending on full rescheduling time (>10s and within 97% percentile)
     experiment_data_filtered = filter_experiment_results_analysis_data_frame(experiment_data)
     print(f"removed {len(experiment_data)-len(experiment_data_filtered)}/{len(experiment_data)} rows")
