@@ -82,7 +82,7 @@ def run_potassco_agenda(
         set_defaults()
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
-            experiment_output_base_directory=experiment_output_base_directory,
+            experiment_output_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%sbaseline' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -95,7 +95,7 @@ def run_potassco_agenda(
 
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
-            experiment_output_base_directory=experiment_output_base_directory,
+            experiment_output_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_SEQ' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -107,7 +107,7 @@ def run_potassco_agenda(
         set_delay_model_resolution(2)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
-            experiment_output_base_directory=experiment_output_base_directory,
+            experiment_output_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_delay_model_resolution_2' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -117,7 +117,7 @@ def run_potassco_agenda(
         set_delay_model_resolution(5)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
-            experiment_output_base_directory=experiment_output_base_directory,
+            experiment_output_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_delay_model_resolution_5' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -127,7 +127,7 @@ def run_potassco_agenda(
         set_delay_model_resolution(10)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
-            experiment_output_base_directory=experiment_output_base_directory,
+            experiment_output_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swith_delay_model_resolution_10' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -138,7 +138,7 @@ def run_potassco_agenda(
         enable_propagate_partial(enable=False)
         list_from_base_directory_and_run_experiment_agenda(
             experiment_base_directory=base_directory,
-            experiment_output_base_directory=experiment_output_base_directory,
+            experiment_output_directory=experiment_output_base_directory,
             reschedule_parameters_range=reschedule_parameters_range,
             experiment_name=('%swithout_propagate_partial' % experiment_name_prefix),
             parallel_compute=parallel_compute,
@@ -186,7 +186,7 @@ def generate_potassco_infras_and_schedules(
 
 
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
-    return experiment.malfunction_agent_id < 10
+    return experiment.malfunction_agent_id < 10 and experiment.experiment_id > 2000
 
 
 if __name__ == '__main__':

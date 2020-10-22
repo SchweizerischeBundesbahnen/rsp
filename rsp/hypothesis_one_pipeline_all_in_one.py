@@ -21,6 +21,7 @@ from rsp.utils.experiments import list_infrastructure_and_schedule_params_from_b
 from rsp.utils.experiments import load_experiment_agenda_from_file
 from rsp.utils.experiments import load_experiments_results
 from rsp.utils.experiments import run_experiment_agenda
+from rsp.utils.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.rsp_logger import rsp_logger
 
@@ -126,7 +127,7 @@ def list_from_base_directory_and_run_experiment_agenda(
         reschedule_parameters_range: ReScheduleParametersRange,
         experiment_base_directory: str,
         experiment_name: str,
-        experiment_output_base_directory: Optional[str] = None,
+        experiment_output_directory: Optional[str] = None,
         filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
         parallel_compute: int = AVAILABLE_CPUS // 2,
         experiments_per_grid_element: int = 1,
@@ -138,7 +139,7 @@ def list_from_base_directory_and_run_experiment_agenda(
     reschedule_parameters_range
     experiment_base_directory
     experiment_name
-    experiment_output_base_directory
+    experiment_output_directory
         if given, incremental re-run of this agenda; filter is applied to this
     filter_experiment_agenda
     parallel_compute
@@ -149,25 +150,31 @@ def list_from_base_directory_and_run_experiment_agenda(
     -------
 
     """
-    if experiment_output_base_directory is not None:
-        experiment_agenda = load_experiment_agenda_from_file(experiment_folder_name=experiment_output_base_directory)
+    if experiment_output_directory is not None:
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"loading agenda <- {experiment_output_directory}")
+        rsp_logger.info(f"============================================================================================================")
+
+        experiment_agenda = load_experiment_agenda_from_file(experiment_folder_name=experiment_output_directory)
+        len_before_filtering = len(experiment_agenda.experiments)
         if experiment_filter is not None:
             experiment_agenda = ExperimentAgenda(
                 experiment_name=experiment_name,
                 experiments=[experiment for experiment in experiment_agenda.experiments if experiment_filter(experiment)]
             )
-        rsp_logger.info(f"after filtering, there are {len(experiment_agenda.experiments)} experiments: \n" + str(experiment_agenda))
-        experiment_data_directory = f'{experiment_output_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
+        rsp_logger.info(
+            f"after applying filter, there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda))
+        experiment_data_directory = f'{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
         experiment_agenda = ExperimentAgenda(
             experiment_name=experiment_name,
             experiments=[
                 experiment for experiment in experiment_agenda.experiments
-                if load_experiments_results(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment.experiment_id) is not None
+                if load_experiments_results(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment.experiment_id) is None
             ]
         )
         rsp_logger.info(
-            f"after filtering experiments run from {experiment_output_base_directory}, there are {len(experiment_agenda.experiments)} experiments: \n" + str(
-                experiment_agenda))
+            f"after filtering out experiments already run from {experiment_output_directory}, "
+            f"there are {len(experiment_agenda.experiments)} experiments: \n" + str(experiment_agenda))
     else:
 
         infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
@@ -181,18 +188,31 @@ def list_from_base_directory_and_run_experiment_agenda(
             infra_schedule_dict=infra_schedule_dict,
             experiments_per_grid_element=experiments_per_grid_element
         )
+        experiment_output_directory = f"{experiment_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)
+        len_before_filtering = len(experiment_agenda.experiments)
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"saving agenda -> {experiment_output_directory} with {len_before_filtering} experiments")
+        rsp_logger.info(f"============================================================================================================")
+
+        # N.B. save unfiltered agenda! This allows to reload agenda and run a subset of experiments
+        save_experiment_agenda_and_hash_to_file(
+            output_base_folder=experiment_output_directory,
+            experiment_agenda=experiment_agenda
+        )
+
         if experiment_filter is not None:
             experiment_agenda = ExperimentAgenda(
                 experiment_name=experiment_name,
                 experiments=[experiment for experiment in experiment_agenda.experiments if experiment_filter(experiment)]
             )
-        rsp_logger.info(f"after filtering, there are {len(experiment_agenda.experiments)} experiments: \n" + str(experiment_agenda))
+        rsp_logger.info(
+            f"after applying filter, there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda))
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         run_experiments_parallel=parallel_compute,
         filter_experiment_agenda=filter_experiment_agenda,
         verbose=False,
-        experiment_base_directory=experiment_base_directory,
-        experiment_output_base_directory=experiment_output_base_directory
+        experiment_output_directory=experiment_output_directory,
+        experiment_base_directory=experiment_base_directory
     )
     return experiment_agenda, experiment_output_directory

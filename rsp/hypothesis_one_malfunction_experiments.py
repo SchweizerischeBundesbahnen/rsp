@@ -150,7 +150,7 @@ def malfunction_variation_for_one_schedule(
         experiment_agenda=experiment_agenda,
         verbose=False,
         experiment_base_directory=experiment_base_directory,
-        experiment_output_base_directory=experiment_output_base_directory
+        experiment_output_directory=experiment_output_base_directory
     )
 
     return experiment_output_directory

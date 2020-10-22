@@ -7,6 +7,7 @@ from rsp.hypothesis_two_encounter_graph import plot_transmission_chains_time_win
 from rsp.utils.data_types import ExperimentAgenda
 from rsp.utils.data_types import ExperimentResultsAnalysis
 from rsp.utils.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
+from rsp.utils.experiments import create_experiment_folder_name
 from rsp.utils.experiments import delete_experiment_folder
 from rsp.utils.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
@@ -24,7 +25,7 @@ def test_hypothesis_two():
     experiment_output_directory = run_experiment_agenda(
         experiment_agenda=experiment_agenda,
         experiment_base_directory=experiment_base_directory,
-        experiment_output_base_directory="."
+        experiment_output_directory=create_experiment_folder_name(experiment_agenda.experiment_name)
     )
 
     experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
