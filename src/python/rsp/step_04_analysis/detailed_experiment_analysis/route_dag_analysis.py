@@ -122,9 +122,9 @@ def visualize_route_dag_constraints(
     route_section_penalties: RouteSectionPenalties,
     costs_from_route_section_penalties_per_agent_and_edge: RouteSectionPenalties,
     vertex_lateness: WaypointPenalties,
-    train_run_full: Trainrun,
-    train_run_full_after_malfunction: Trainrun,
-    train_run_delta_perfect_after_malfunction: Trainrun,
+    train_run_schedule: Trainrun,
+    train_run_online_unrestricted: Trainrun,
+    train_run_offline_delta: Trainrun,
     file_name: Optional[str] = None,
     title: Optional[str] = None,
     scale: int = 4,
@@ -149,11 +149,11 @@ def visualize_route_dag_constraints(
         route penalty is displayed in edge label
     vertex_lateness
         lateness is displayed in node labels
-    train_run_full
+    train_run_schedule
         used in labels for S0
-    train_run_full_after_malfunction
+    train_run_online_unrestricted
         used in labels for S
-    train_run_delta_perfect_after_malfunction
+    train_run_offline_delta
         used in labels for S'
     """
     # N.B. FLATland uses row-column indexing, plt uses x-y (horizontal,vertical with vertical axis going bottom-top)
@@ -175,11 +175,9 @@ def visualize_route_dag_constraints(
 
     plt_pos = {wp: np.array([p[1], p[0]]) for wp, p in flatland_pos_with_offset.items()}
 
-    tr_input_d: Dict[Waypoint, int] = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in train_run_full}
-    tr_fam_d: Dict[Waypoint, int] = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in train_run_full_after_malfunction}
-    tr_dam_d: Dict[Waypoint, int] = {
-        trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in train_run_delta_perfect_after_malfunction
-    }
+    tr_input_d: Dict[Waypoint, int] = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in train_run_schedule}
+    tr_fam_d: Dict[Waypoint, int] = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in train_run_online_unrestricted}
+    tr_dam_d: Dict[Waypoint, int] = {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in train_run_offline_delta}
 
     plt_color_map = [_get_color_for_node(node, constraints_to_visualize) for node in topo.nodes()]
 
@@ -275,14 +273,14 @@ def _get_color_labels():
 def _get_label_for_schedule_for_waypoint(
     waypoint: Waypoint,
     train_run_input_dict: Dict[Waypoint, int],
-    train_run_full_after_malfunction_dict: Dict[Waypoint, int],
-    train_run_delta_perfect_after_malfunction_dict: Dict[Waypoint, int],
+    train_run_online_unrestricted_dict: Dict[Waypoint, int],
+    train_run_offline_delta_dict: Dict[Waypoint, int],
 ) -> str:
     s = []
     if waypoint in train_run_input_dict:
         s.append(f"S0: {train_run_input_dict[waypoint]}")
-    if waypoint in train_run_full_after_malfunction_dict:
-        s.append(f"S: {train_run_full_after_malfunction_dict[waypoint]}")
-    if waypoint in train_run_delta_perfect_after_malfunction_dict:
-        s.append(f"S': {train_run_delta_perfect_after_malfunction_dict[waypoint]}")
+    if waypoint in train_run_online_unrestricted_dict:
+        s.append(f"S: {train_run_online_unrestricted_dict[waypoint]}")
+    if waypoint in train_run_offline_delta_dict:
+        s.append(f"S': {train_run_offline_delta_dict[waypoint]}")
     return "\n".join(s)

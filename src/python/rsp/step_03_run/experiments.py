@@ -73,12 +73,12 @@ from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
-from rsp.step_03_run.route_dag_constraints.scoper_no_rerouting import scoper_no_rerouting_for_all_agents
-from rsp.step_03_run.route_dag_constraints.scoper_online import scoper_online_for_all_agents
-from rsp.step_03_run.route_dag_constraints.scoper_perfect import scoper_perfect_for_all_agents
-from rsp.step_03_run.route_dag_constraints.scoper_random import scoper_random_for_all_agents
-from rsp.step_03_run.route_dag_constraints.scoper_trivially_perfect import scoper_trivially_perfect_for_all_agents
-from rsp.step_03_run.route_dag_constraints.scoper_zero import delta_zero_for_all_agents
+from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
+from rsp.step_03_run.scopers.scoper_online_fully_restricted import scoper_online_fully_restricted_for_all_agents
+from rsp.step_03_run.scopers.scoper_online_random import scoper_online_random_for_all_agents
+from rsp.step_03_run.scopers.scoper_online_route_restricted import scoper_online_route_restricted_for_all_agents
+from rsp.step_03_run.scopers.scoper_online_transmission_chains import scoper_online_transmission_chains_for_all_agents
+from rsp.step_03_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_for_all_agents
 from rsp.step_04_analysis.detailed_experiment_analysis.route_dag_analysis import visualize_route_dag_constraints_simple_wrapper
 from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.file_utils import check_create_folder
@@ -256,28 +256,28 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
     # clone topos since propagation will modify them
-    full_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    full_reschedule_problem: ScheduleProblemDescription = delta_zero_for_all_agents(
+    online_unrestricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    problem_online_unrestricted: ScheduleProblemDescription = scoper_online_unrestricted_for_all_agents(
         malfunction=experiment_malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        topo_dict_=full_reschedule_topo_dict,
+        topo_dict_=online_unrestricted_topo_dict,
         weight_route_change=experiment_parameters.weight_route_change,
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
     )
 
-    full_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=full_reschedule_problem,
+    results_online_unrestricted = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_online_unrestricted,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
     )
 
-    full_reschedule_trainruns = full_reschedule_result.trainruns_dict
+    online_unrestricted_trainruns = results_online_unrestricted.trainruns_dict
 
-    costs_ = full_reschedule_result.solver_statistics["summary"]["costs"][0]
+    costs_ = results_online_unrestricted.solver_statistics["summary"]["costs"][0]
     rsp_logger.info(f" full re-schedule has costs {costs_}")
 
     # --------------------------------------------------------------------------------------
@@ -285,12 +285,12 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3a. reschedule delta perfect (lower bound)")
     # clone topos since propagation will modify them
-    delta_perfect_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_perfect_reschedule_problem = scoper_perfect_for_all_agents(
-        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+    offline_delta_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    problem_offline_delta = scoper_offline_delta_for_all_agents(
+        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
-        delta_perfect_reschedule_topo_dict_=delta_perfect_reschedule_topo_dict,
+        offline_delta_topo_dict_=offline_delta_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
@@ -298,8 +298,8 @@ def run_experiment_in_memory(
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
     )
 
-    delta_perfect_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_perfect_reschedule_problem,
+    results_offline_delta = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_offline_delta,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
@@ -311,11 +311,11 @@ def run_experiment_in_memory(
     rsp_logger.info("3b. reschedule delta trivially_perfect (lower bound)")
     # clone topos since propagation will modify them
     delta_trivially_perfect_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_trivially_perfect_reschedule_problem = scoper_trivially_perfect_for_all_agents(
-        full_reschedule_trainrun_dict=full_reschedule_trainruns,
+    problem_online_fully_restricted = scoper_online_fully_restricted_for_all_agents(
+        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
-        delta_trivially_perfect_topo_dict_=delta_trivially_perfect_reschedule_topo_dict,
+        online_fully_restricted_topo_dict_=delta_trivially_perfect_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
@@ -323,8 +323,8 @@ def run_experiment_in_memory(
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
     )
 
-    delta_trivially_perfect_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_trivially_perfect_reschedule_problem,
+    results_online_fully_restricted = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_online_fully_restricted,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
@@ -336,9 +336,9 @@ def run_experiment_in_memory(
     rsp_logger.info("4. reschedule no rerouting")
     # clone topos since propagation will modify them
     delta_no_rerouting_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_no_rerouting_reschedule_problem = scoper_no_rerouting_for_all_agents(
-        full_reschedule_trainrun_dict=full_reschedule_trainruns,
-        full_reschedule_problem=full_reschedule_problem,
+    problem_online_route_restricted = scoper_online_route_restricted_for_all_agents(
+        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
+        online_unrestricted_problem=problem_online_unrestricted,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         # pytorch convention for in-place operations: postfixed with underscore.
@@ -350,8 +350,8 @@ def run_experiment_in_memory(
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
     )
 
-    delta_no_rerouting_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_no_rerouting_reschedule_problem,
+    results_online_route_restricted = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_online_route_restricted,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
@@ -361,24 +361,27 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("5a. reschedule delta online transmission chains: upper bound")
     # clone topos since propagation will modify them
-    delta_online_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    delta_online_reschedule_problem, predicted_changed_agents_online_after_malfunction_predicted = scoper_online_for_all_agents(
-        full_reschedule_trainrun_dict=full_reschedule_trainruns,
-        full_reschedule_problem=full_reschedule_problem,
+    online_transmission_chains_fully_restricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    (
+        problem_online_transmission_chains_fully_restricted,
+        predicted_changed_agents_online_transmission_chains_fully_restricted_predicted,
+    ) = scoper_online_transmission_chains_for_all_agents(
+        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
+        online_unrestricted_problem=problem_online_unrestricted,
         malfunction=experiment_malfunction,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         # pytorch convention for in-place operations: postfixed with underscore.
-        delta_online_topo_dict_to_=delta_online_reschedule_topo_dict,
+        delta_online_topo_dict_to_=online_transmission_chains_fully_restricted_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         weight_route_change=experiment_parameters.weight_route_change,
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
-        time_flexibility=True,
+        time_flexibility=False,
     )
 
-    delta_online_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_online_reschedule_problem,
+    results_online_transmission_chains_fully_restricted = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_online_transmission_chains_fully_restricted,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
@@ -389,27 +392,27 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("5b. reschedule delta online_no_time_flexibility transmission chains: upper bound")
     # clone topos since propagation will modify them
-    delta_online_no_time_flexibility_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    online_transmission_chains_route_restricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
     (
-        delta_online_no_time_flexibility_reschedule_problem,
-        predicted_changed_agents_online_no_time_flexibility_after_malfunction_predicted,
-    ) = scoper_online_for_all_agents(
-        full_reschedule_trainrun_dict=full_reschedule_trainruns,
-        full_reschedule_problem=full_reschedule_problem,
+        problem_online_transmission_chains_route_restricted,
+        predicted_changed_agents_online_transmission_chains_route_restricted_predicted,
+    ) = scoper_online_transmission_chains_for_all_agents(
+        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
+        online_unrestricted_problem=problem_online_unrestricted,
         malfunction=experiment_malfunction,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
         # pytorch convention for in-place operations: postfixed with underscore.
-        delta_online_topo_dict_to_=delta_online_no_time_flexibility_reschedule_topo_dict,
+        delta_online_topo_dict_to_=online_transmission_chains_route_restricted_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
         weight_route_change=experiment_parameters.weight_route_change,
         weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
-        time_flexibility=False,
+        time_flexibility=True,
     )
 
-    delta_online_no_time_flexibility_reschedule_result = asp_reschedule_wrapper(
-        reschedule_problem_description=delta_online_no_time_flexibility_reschedule_problem,
+    results_online_transmission_chains_route_restricted = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_online_transmission_chains_route_restricted,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
@@ -423,30 +426,30 @@ def run_experiment_in_memory(
     randoms = []
     for _ in range(NB_RANDOM):
         # clone topos since propagation will modify them
-        delta_random_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-        delta_random_reschedule_problem, predicted_changed_agents_random_after_malfunction_predicted = scoper_random_for_all_agents(
-            full_reschedule_trainrun_dict=full_reschedule_trainruns,
-            full_reschedule_problem=full_reschedule_problem,
+        online_random_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+        problem_online_random, predicted_changed_agents_online_random = scoper_online_random_for_all_agents(
+            online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
+            online_unrestricted_problem=problem_online_unrestricted,
             malfunction=experiment_malfunction,
             # TODO document? will it be visible in ground times?
             latest_arrival=(schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration),
             # pytorch convention for in-place operations: postfixed with underscore.
-            delta_random_topo_dict_to_=delta_random_reschedule_topo_dict,
+            delta_random_topo_dict_to_=online_random_topo_dict,
             schedule_trainrun_dict=schedule_trainruns,
             minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
             # TODO document? will it be visible in ground times?
             max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
             weight_route_change=experiment_parameters.weight_route_change,
             weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
-            changed_running_agents_online=len(predicted_changed_agents_online_after_malfunction_predicted),
+            changed_running_agents_online=len(predicted_changed_agents_online_transmission_chains_fully_restricted_predicted),
         )
-        delta_random_reschedule_result = asp_reschedule_wrapper(
-            reschedule_problem_description=delta_random_reschedule_problem,
+        results_online_random = asp_reschedule_wrapper(
+            reschedule_problem_description=problem_online_random,
             schedule=schedule_trainruns,
             debug=debug,
             asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
         )
-        randoms.append((delta_random_reschedule_problem, delta_random_reschedule_result, predicted_changed_agents_random_after_malfunction_predicted))
+        randoms.append((problem_online_random, results_online_random, predicted_changed_agents_online_random))
 
     # --------------------------------------------------------------------------------------
     # B.3. Result
@@ -455,25 +458,25 @@ def run_experiment_in_memory(
     current_results = ExperimentResults(
         experiment_parameters=experiment_parameters,
         malfunction=experiment_malfunction,
-        problem_full=schedule_problem,
-        problem_full_after_malfunction=full_reschedule_problem,
-        problem_delta_perfect_after_malfunction=delta_perfect_reschedule_problem,
-        problem_delta_trivially_perfect_after_malfunction=delta_trivially_perfect_reschedule_problem,
-        problem_delta_no_rerouting_after_malfunction=delta_no_rerouting_reschedule_problem,
-        problem_delta_online_after_malfunction=delta_online_reschedule_problem,
-        problem_delta_online_no_time_flexibility_after_malfunction=delta_online_no_time_flexibility_reschedule_problem,
-        results_full=schedule_result,
-        results_full_after_malfunction=full_reschedule_result,
-        results_delta_perfect_after_malfunction=delta_perfect_reschedule_result,
-        results_delta_trivially_perfect_after_malfunction=delta_trivially_perfect_reschedule_result,
-        results_delta_no_rerouting_after_malfunction=delta_no_rerouting_reschedule_result,
-        results_delta_online_after_malfunction=delta_online_reschedule_result,
-        results_delta_online_no_time_flexibility_after_malfunction=delta_online_no_time_flexibility_reschedule_result,
-        predicted_changed_agents_online_after_malfunction=predicted_changed_agents_online_after_malfunction_predicted,
-        predicted_changed_agents_online_no_time_flexibility_after_malfunction=predicted_changed_agents_online_no_time_flexibility_after_malfunction_predicted,
-        **{f"problem_delta_random_{i}_after_malfunction": randoms[i][0] for i in range(NB_RANDOM)},
-        **{f"results_delta_random_{i}_after_malfunction": randoms[i][1] for i in range(NB_RANDOM)},
-        **{f"predicted_changed_agents_random_{i}_after_malfunction": randoms[i][2] for i in range(NB_RANDOM)},
+        problem_schedule=schedule_problem,
+        problem_online_unrestricted=problem_online_unrestricted,
+        problem_offline_delta=problem_offline_delta,
+        problem_online_fully_restricted=problem_online_fully_restricted,
+        problem_online_route_restricted=problem_online_route_restricted,
+        problem_online_transmission_chains_fully_restricted=problem_online_transmission_chains_fully_restricted,
+        problem_online_transmission_chains_route_restricted=problem_online_transmission_chains_route_restricted,
+        results_schedule=schedule_result,
+        results_online_unrestricted=results_online_unrestricted,
+        results_offline_delta=results_offline_delta,
+        results_online_fully_restricted=results_online_fully_restricted,
+        results_online_route_restricted=results_online_route_restricted,
+        results_online_transmission_chains_fully_restricted=results_online_transmission_chains_fully_restricted,
+        results_online_transmission_chains_route_restricted=results_online_transmission_chains_route_restricted,
+        predicted_changed_agents_online_transmission_chains_fully_restricted=predicted_changed_agents_online_transmission_chains_fully_restricted_predicted,
+        predicted_changed_agents_online_transmission_chains_route_restricted=predicted_changed_agents_online_transmission_chains_route_restricted_predicted,
+        **{f"problem_online_random_{i}": randoms[i][0] for i in range(NB_RANDOM)},
+        **{f"results_online_random_{i}": randoms[i][1] for i in range(NB_RANDOM)},
+        **{f"predicted_changed_agents_online_random_{i}": randoms[i][2] for i in range(NB_RANDOM)},
     )
     rsp_logger.info(f"done re-schedule full and delta naive/perfect for experiment {experiment_parameters.experiment_id}")
     return current_results
@@ -483,12 +486,12 @@ def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: 
     results_before: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_base_directory + "/data", experiment_ids=[experiment_id]
     )[0]
-    problem_full_after_malfunction: ScheduleProblemDescription = results_before.problem_full_after_malfunction
-    for agent_id in problem_full_after_malfunction.route_dag_constraints_dict:
+    problem_online_unrestricted: ScheduleProblemDescription = results_before.problem_online_unrestricted
+    for agent_id in problem_online_unrestricted.route_dag_constraints_dict:
         visualize_route_dag_constraints_simple_wrapper(
-            schedule_problem_description=problem_full_after_malfunction.schedule_problem_description,
+            schedule_problem_description=problem_online_unrestricted.schedule_problem_description,
             trainrun_dict=None,
-            experiment_malfunction=problem_full_after_malfunction.experiment_malfunction,
+            experiment_malfunction=problem_online_unrestricted.experiment_malfunction,
             agent_id=agent_id,
             file_name=f"reschedule_alt_agent_{agent_id}.pdf",
         )
@@ -656,18 +659,14 @@ def run_experiment_from_to_file(
             elapsed_time,
             start_datetime_str,
             end_datetime_str,
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full.solver_statistics),
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_full_after_malfunction.solver_statistics),
-            _get_asp_solver_details_from_statistics(
-                elapsed_time=elapsed_time, statistics=experiment_results.results_delta_perfect_after_malfunction.solver_statistics
-            ),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_schedule.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_online_unrestricted.solver_statistics),
+            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_offline_delta.solver_statistics),
         )
-        solver_time_full = experiment_results.results_full.solver_statistics["summary"]["times"]["total"]
-        solver_statistics_times_total_full_after_malfunction = experiment_results.results_full_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        solver_time_delta_perfect_after_malfunction = experiment_results.results_delta_perfect_after_malfunction.solver_statistics["summary"]["times"]["total"]
-        elapsed_overhead_time = (
-            elapsed_time - solver_time_full - solver_statistics_times_total_full_after_malfunction - solver_time_delta_perfect_after_malfunction
-        )
+        solver_time_schedule = experiment_results.results_schedule.solver_statistics["summary"]["times"]["total"]
+        solver_statistics_times_total_online_unrestricted = experiment_results.results_online_unrestricted.solver_statistics["summary"]["times"]["total"]
+        solver_time_offline_delta = experiment_results.results_offline_delta.solver_statistics["summary"]["times"]["total"]
+        elapsed_overhead_time = elapsed_time - solver_time_schedule - solver_statistics_times_total_online_unrestricted - solver_time_offline_delta
         s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(elapsed_overhead_time, elapsed_overhead_time / elapsed_time * 100, threading.get_ident())
         rsp_logger.info(s)
 

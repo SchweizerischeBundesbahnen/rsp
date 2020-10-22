@@ -61,45 +61,45 @@ experiment_results_list = experiment_results_list_baseline
 import pandas as pd
 experiment_data = pd.DataFrame(
     [exp._asdict() for exp in experiment_results_list],
-    columns=['experiment_id','malfunction','size', 'size_used_full_after_malfunction',
+    columns=['experiment_id','malfunction','size', 'size_used_online_unrestricted',
             'n_agents', 'max_num_cities', 'max_rail_between_cities',
-            'max_rail_in_city', 'time_full', 'time_full_after_malfunction',
-            'time_delta_perfect_after_malfunction',
+            'max_rail_in_city', 'time_schedule', 'time_online_unrestricted',
+            'time_offline_delta',
             'speed_up_lower_bound',
-            'nb_resource_conflicts_full',
-            'nb_resource_conflicts_full_after_malfunction',
-            'nb_resource_conflicts_delta_perfect_after_malfunction',
-            'costs_full',
-            'solve_total_ratio_full',
-            'solve_time_full',
-            'choice_conflict_ratio_full',
-            'choices_full',
-            'conflicts_full',
-            'user_accu_propagations_full',
-            'user_step_propagations_full',
-            'costs_full_after_malfunction',
-            'solve_total_ratio_full_after_malfunction',
-            'solve_time_full_after_malfunction',
-            'choice_conflict_ratio_full_after_malfunction',
-            'choices_full_after_malfunction',
-            'conflicts_full_after_malfunction',
-            'user_accu_propagations_full_after_malfunction',
-            'user_step_propagations_full_after_malfunction',
-            'costs_delta_perfect_after_malfunction',
-            'solve_total_ratio_delta_perfect_after_malfunction',
-            'solve_time_delta_perfect_after_malfunction',
-            'choice_conflict_ratio_delta_perfect_after_malfunction',
-            'choices_delta_perfect_after_malfunction',
-            'conflicts_delta_perfect_after_malfunction',
-            'user_accu_propagations_delta_perfect_after_malfunction',
-            'user_step_propagations_delta_perfect_after_malfunction'])
+            'nb_resource_conflicts_schedule',
+            'nb_resource_conflicts_online_unrestricted',
+            'nb_resource_conflicts_offline_delta',
+            'costs_schedule',
+            'solve_total_ratio_schedule',
+            'solve_time_schedule',
+            'choice_conflict_ratio_schedule',
+            'choices_schedule',
+            'conflicts_schedule',
+            'user_accu_propagations_schedule',
+            'user_step_propagations_schedule',
+            'costs_online_unrestricted',
+            'solve_total_ratio_online_unrestricted',
+            'solve_time_online_unrestricted',
+            'choice_conflict_ratio_online_unrestricted',
+            'choices_online_unrestricted',
+            'conflicts_online_unrestricted',
+            'user_accu_propagations_online_unrestricted',
+            'user_step_propagations_online_unrestricted',
+            'costs_offline_delta',
+            'solve_total_ratio_offline_delta',
+            'solve_time_offline_delta',
+            'choice_conflict_ratio_offline_delta',
+            'choices_offline_delta',
+            'conflicts_offline_delta',
+            'user_accu_propagations_offline_delta',
+            'user_step_propagations_offline_delta'])
 
 display(experiment_data)
 ```
 
 ```{python}
 axis_of_interest = 'n_agents'
-columns_of_interest = ['time_full','time_full_after_malfunction','time_delta_perfect_after_malfunction']
+columns_of_interest = ['time_schedule','time_online_unrestricted','time_offline_delta']
 ```
 
 # Visualize Compuational time comparison

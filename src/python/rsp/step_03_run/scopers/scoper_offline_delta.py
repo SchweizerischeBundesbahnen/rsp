@@ -16,18 +16,18 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.route_dag_constraints.scoper_zero import _extract_route_section_penalties
+from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_section_penalties
 from rsp.utils.rsp_logger import rsp_logger
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def scoper_perfect(
+def scoper_offline_delta(
     agent_id: int,
     # pytorch convention for in-place operations: postfixed with underscore.
     topo_: nx.DiGraph,
     schedule_trainrun: Trainrun,
-    full_reschedule_trainrun: Trainrun,
+    online_unrestricted_trainrun: Trainrun,
     malfunction: ExperimentMalfunction,
     minimum_travel_time: int,
     latest_arrival: int,
@@ -45,7 +45,7 @@ def scoper_perfect(
     agent_id
     topo_
     schedule_trainrun
-    full_reschedule_trainrun
+    online_unrestricted_trainrun
     malfunction
     minimum_travel_time
     latest_arrival
@@ -54,12 +54,14 @@ def scoper_perfect(
     Returns
     -------
     """
-    waypoints_same_location_and_time = {trainrun_waypoint.waypoint for trainrun_waypoint in set(full_reschedule_trainrun).intersection(set(schedule_trainrun))}
+    waypoints_same_location_and_time = {
+        trainrun_waypoint.waypoint for trainrun_waypoint in set(online_unrestricted_trainrun).intersection(set(schedule_trainrun))
+    }
     if rsp_logger.isEnabledFor(logging.DEBUG):
         rsp_logger.debug(f"waypoints_same_location_and_time={waypoints_same_location_and_time}")
 
     schedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
-    reschedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in full_reschedule_trainrun}
+    reschedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in online_unrestricted_trainrun}
     assert schedule_waypoints.issubset(topo_.nodes), f"{schedule_waypoints} {topo_.nodes} {schedule_waypoints.difference(topo_.nodes)}"
     assert reschedule_waypoints.issubset(topo_.nodes), f"{reschedule_waypoints} {topo_.nodes} {reschedule_waypoints.difference(topo_.nodes)}"
 
@@ -109,12 +111,12 @@ def scoper_perfect(
     return earliest_dict, latest_dict, topo_out
 
 
-def scoper_perfect_for_all_agents(
-    full_reschedule_trainrun_dict: TrainrunDict,
+def scoper_offline_delta_for_all_agents(
+    online_unrestricted_trainrun_dict: TrainrunDict,
     malfunction: ExperimentMalfunction,
     minimum_travel_time_dict: Dict[int, int],
     max_episode_steps: int,
-    delta_perfect_reschedule_topo_dict_: TopoDict,
+    offline_delta_topo_dict_: TopoDict,
     schedule_trainrun_dict: TrainrunDict,
     weight_route_change: int,
     weight_lateness_seconds: int,
@@ -126,7 +128,7 @@ def scoper_perfect_for_all_agents(
     Parameters
     ----------
 
-    full_reschedule_trainrun_dict: TrainrunDict
+    online_unrestricted_trainrun_dict: TrainrunDict
         the magic information of the full re-schedule
     malfunction: ExperimentMalfunction
         the malfunction; used to determine the waypoint after the malfunction
@@ -134,7 +136,7 @@ def scoper_perfect_for_all_agents(
         the minimumum travel times for the agents
     max_episode_steps:
         latest arrival
-    delta_perfect_reschedule_topo_dict_:
+    offline_delta_topo_dict_:
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
@@ -151,11 +153,11 @@ def scoper_perfect_for_all_agents(
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = scoper_perfect(
+        earliest_dict, latest_dict, topo = scoper_offline_delta(
             agent_id=agent_id,
-            topo_=delta_perfect_reschedule_topo_dict_[agent_id],
+            topo_=offline_delta_topo_dict_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
-            full_reschedule_trainrun=full_reschedule_trainrun_dict[agent_id],
+            online_unrestricted_trainrun=online_unrestricted_trainrun_dict[agent_id],
             malfunction=malfunction,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
             latest_arrival=max_episode_steps,
@@ -175,7 +177,7 @@ def scoper_perfect_for_all_agents(
         )
         # re-schedule train run must be open in route dag constraints
         verify_trainrun_satisfies_route_dag_constraints(
-            agent_id=agent_id, route_dag_constraints=freeze_dict[agent_id], scheduled_trainrun=full_reschedule_trainrun_dict[agent_id]
+            agent_id=agent_id, route_dag_constraints=freeze_dict[agent_id], scheduled_trainrun=online_unrestricted_trainrun_dict[agent_id]
         )
 
     return ScheduleProblemDescription(

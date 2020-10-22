@@ -255,7 +255,7 @@ def plot_box_plot_from_traces(
                 name=str(column),
                 pointpos=-1,
                 boxpoints="all",
-                customdata=np.dstack((experiment_data["n_agents"], experiment_data["size"], experiment_data["speed_up_delta_perfect_after_malfunction"]))[0],
+                customdata=np.dstack((experiment_data["n_agents"], experiment_data["size"], experiment_data["speed_up_offline_delta"]))[0],
                 hovertext=experiment_data["experiment_id"],
                 hovertemplate="<b>Time</b>: %{y:.2f}s<br>"
                 + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
@@ -337,10 +337,10 @@ def plot_binned_box_plot(
                     (
                         experiment_data["n_agents"],
                         experiment_data["size"],
-                        experiment_data["solver_statistics_times_total_full"],
-                        experiment_data["solver_statistics_times_total_full_after_malfunction"],
-                        experiment_data["solver_statistics_times_total_delta_perfect_after_malfunction"],
-                        experiment_data["solver_statistics_times_total_delta_no_rerouting_after_malfunction"],
+                        experiment_data["solver_statistics_times_total_schedule"],
+                        experiment_data["solver_statistics_times_total_online_unrestricted"],
+                        experiment_data["solver_statistics_times_total_offline_delta"],
+                        experiment_data["solver_statistics_times_total_online_route_restricted"],
                     )
                 )[0],
                 hovertext=experiment_data["experiment_id"],

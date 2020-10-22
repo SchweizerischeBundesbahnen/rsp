@@ -125,7 +125,7 @@ def hypothesis_one_data_analysis(
             plot_time_density(schedule_as_resource_occupations=schedule_plotting.schedule_as_resource_occupations, output_folder=output_folder_of_interest)
 
             visualize_route_dag_constraints_simple_wrapper(
-                schedule_problem_description=experiment_result.problem_full,
+                schedule_problem_description=experiment_result.problem_schedule,
                 trainrun_dict=None,
                 experiment_malfunction=experiment_result.malfunction,
                 agent_id=agent_of_interest,

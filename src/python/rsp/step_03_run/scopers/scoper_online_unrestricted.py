@@ -35,7 +35,7 @@ def _extract_route_section_penalties(schedule_trainruns: TrainrunDict, topo_dict
     return route_section_penalties
 
 
-def scoper_zero_running(
+def scoper_online_unrestricted_running(
     agent_id: int,
     schedule_trainrun: Trainrun,
     malfunction: ExperimentMalfunction,
@@ -102,7 +102,7 @@ def scoper_zero_running(
     return RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
 
 
-def scoper_zero(
+def scoper_online_unrestricted(
     schedule_trainrun: Trainrun,
     minimum_travel_time: int,
     topo_: nx.DiGraph,
@@ -141,7 +141,7 @@ def scoper_zero(
     """
     if malfunction.time_step >= schedule_trainrun[0].scheduled_at and malfunction.time_step < schedule_trainrun[-2].scheduled_at:  # noqa: W504
         rsp_logger.log(level=VERBOSE, msg=f"_generic_route_dag_contraints_for_rescheduling (1) for {agent_id}: while running")
-        return scoper_zero_running(
+        return scoper_online_unrestricted_running(
             agent_id=agent_id,
             schedule_trainrun=schedule_trainrun,
             malfunction=malfunction,
@@ -188,7 +188,7 @@ def scoper_zero(
         raise Exception(f"Unexepcted state for agent {agent_id} malfunction {malfunction}")
 
 
-def delta_zero_for_all_agents(
+def scoper_online_unrestricted_for_all_agents(
     malfunction: ExperimentMalfunction,
     schedule_trainruns: TrainrunDict,
     minimum_travel_time_dict: Dict[int, int],
@@ -206,7 +206,7 @@ def delta_zero_for_all_agents(
     """
     spd = ScheduleProblemDescription(
         route_dag_constraints_dict={
-            agent_id: scoper_zero(
+            agent_id: scoper_online_unrestricted(
                 schedule_trainrun=schedule_trainruns[agent_id],
                 minimum_travel_time=minimum_travel_time_dict[agent_id],
                 topo_=topo_dict_[agent_id],

@@ -66,7 +66,7 @@ display(experiment_data_filtered)
 
 ```{python}
 axis_of_interest = 'n_agents'
-columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'full_after_malfunction', 'delta_perfect_after_malfunction']]
+columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'online_unrestricted', 'offline_delta']]
 ```
 
 ### Inspect experiment parameters
@@ -129,7 +129,7 @@ hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data_filte
 # Choices represent the size of the solution space (how many routing alternatives, how many potential resource conflicts?
 # Conflicts represent the number of decisions
 for prefix in ['solver_statistics_conflicts', 'solver_statistics_choices', 'nb_resource_conflicts']:
-    columns_of_interest =[ f'{prefix}_{scope}' for scope in after_malfunction_scopes_visualization ]
+    columns_of_interest =[ f'{prefix}_{scope}' for scope in rescheduling_scopes_visualization ]
     plot_box_plot(experiment_data=experiment_data_filtered,
                              axis_of_interest=axis_of_interest,
                              columns_of_interest=columns_of_interest,

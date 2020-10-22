@@ -23,8 +23,8 @@ SchedulePlotting = NamedTuple(
     "SchedulePlotting",
     [
         ("schedule_as_resource_occupations", ScheduleAsResourceOccupations),
-        ("reschedule_full_as_resource_occupations", ScheduleAsResourceOccupations),
-        ("reschedule_delta_perfect_as_resource_occupations", ScheduleAsResourceOccupations),
+        ("online_unrestricted_as_resource_occupations", ScheduleAsResourceOccupations),
+        ("offline_delta_as_resource_occupations", ScheduleAsResourceOccupations),
         ("malfunction", ExperimentMalfunction),
         ("plotting_information", PlottingInformation),
     ],
@@ -43,15 +43,15 @@ def extract_schedule_plotting(experiment_result: ExperimentResultsAnalysis, sort
     Returns
     -------
     """
-    schedule = experiment_result.solution_full
-    reschedule_full = experiment_result.solution_full_after_malfunction
-    reschedule_delta_perfect = experiment_result.solution_delta_perfect_after_malfunction
+    schedule = experiment_result.solution_schedule
+    online_unrestricted = experiment_result.solution_online_unrestricted
+    offline_delta = experiment_result.solution_offline_delta
     schedule_as_resource_occupations: ScheduleAsResourceOccupations = extract_resource_occupations(schedule=schedule, release_time=RELEASE_TIME)
     verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations, release_time=RELEASE_TIME)
-    reschedule_full_as_resource_occupations = extract_resource_occupations(schedule=reschedule_full, release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_full_as_resource_occupations, release_time=RELEASE_TIME)
-    reschedule_delta_perfect_as_resource_occupations = extract_resource_occupations(schedule=reschedule_delta_perfect, release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations, release_time=RELEASE_TIME)
+    online_unrestricted_as_resource_occupations = extract_resource_occupations(schedule=online_unrestricted, release_time=RELEASE_TIME)
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=online_unrestricted_as_resource_occupations, release_time=RELEASE_TIME)
+    offline_delta_as_resource_occupations = extract_resource_occupations(schedule=offline_delta, release_time=RELEASE_TIME)
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=offline_delta_as_resource_occupations, release_time=RELEASE_TIME)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
         grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
@@ -59,8 +59,8 @@ def extract_schedule_plotting(experiment_result: ExperimentResultsAnalysis, sort
     )
     return SchedulePlotting(
         schedule_as_resource_occupations=schedule_as_resource_occupations,
-        reschedule_full_as_resource_occupations=reschedule_full_as_resource_occupations,
-        reschedule_delta_perfect_as_resource_occupations=reschedule_delta_perfect_as_resource_occupations,
+        online_unrestricted_as_resource_occupations=online_unrestricted_as_resource_occupations,
+        offline_delta_as_resource_occupations=offline_delta_as_resource_occupations,
         plotting_information=plotting_information,
         malfunction=experiment_result.malfunction,
     )

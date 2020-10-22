@@ -57,7 +57,7 @@ render_flatland_env
                 experiment_id=experiment_data.experiment_id,
                 title=title,
                 rail_env=rail_env,
-                trainruns=experiment_data.solution_full,
+                trainruns=experiment_data.solution_schedule,
                 convert_to_mpeg=True,
             )
 
@@ -79,7 +79,7 @@ render_flatland_env
                 malfunction=experiment_data.malfunction,
                 title=title,
                 rail_env=rail_env,
-                trainruns=experiment_data.solution_full_after_malfunction,
+                trainruns=experiment_data.solution_online_unrestricted,
                 convert_to_mpeg=True,
             )
 

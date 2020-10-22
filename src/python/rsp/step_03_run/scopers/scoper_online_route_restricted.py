@@ -8,15 +8,15 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.route_dag_constraints.scoper_zero import _extract_route_section_penalties
-from rsp.step_03_run.route_dag_constraints.scoper_zero import scoper_zero
+from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_section_penalties
+from rsp.step_03_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted
 
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def scoper_no_rerouting_for_all_agents(
-    full_reschedule_trainrun_dict: TrainrunDict,
-    full_reschedule_problem: ScheduleProblemDescription,
+def scoper_online_route_restricted_for_all_agents(
+    online_unrestricted_trainrun_dict: TrainrunDict,
+    online_unrestricted_problem: ScheduleProblemDescription,
     malfunction: ExperimentMalfunction,
     minimum_travel_time_dict: Dict[int, int],
     max_episode_steps: int,
@@ -33,8 +33,8 @@ def scoper_no_rerouting_for_all_agents(
     Parameters
     ----------
 
-    full_reschedule_problem
-    full_reschedule_trainrun_dict: TrainrunDict
+    online_unrestricted_problem
+    online_unrestricted_trainrun_dict: TrainrunDict
         the magic information of the full re-schedule
     malfunction: ExperimentMalfunction
         the malfunction; used to determine the waypoint after the malfunction
@@ -62,7 +62,7 @@ def scoper_no_rerouting_for_all_agents(
         schedule_waypoints = {trainrun_waypoint.waypoint for trainrun_waypoint in schedule_trainrun}
         to_remove = {node for node in topo_.nodes if node not in schedule_waypoints}
         topo_.remove_nodes_from(to_remove)
-        freeze_dict[agent_id] = scoper_zero(
+        freeze_dict[agent_id] = scoper_online_unrestricted(
             agent_id=agent_id,
             topo_=topo_,
             schedule_trainrun=schedule_trainrun_dict[agent_id],

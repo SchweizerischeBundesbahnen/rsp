@@ -281,9 +281,9 @@ def test_regression_experiment_agenda():
         result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
         expected_result_dict = {
-            "solver_statistics_costs_delta_perfect_after_malfunction": {0: 20.0},
-            "solver_statistics_costs_full": {0: 0.0},
-            "solver_statistics_costs_full_after_malfunction": {0: 20.0},
+            "solver_statistics_costs_offline_delta": {0: 20.0},
+            "solver_statistics_costs_schedule": {0: 0.0},
+            "solver_statistics_costs_online_unrestricted": {0: 20.0},
             "experiment_id": {0: 0},
             "max_num_cities": {0: 20},
             "max_rail_between_cities": {0: 2},
@@ -291,10 +291,10 @@ def test_regression_experiment_agenda():
             "n_agents": {0: 2},
             "size": {0: 30},
         }
-        print("solution_full_after_malfunction")
-        print(experiment_results_for_analysis[0].solution_full_after_malfunction)
-        print("solution_delta_perfect_after_malfunction")
-        print(experiment_results_for_analysis[0].solution_delta_perfect_after_malfunction)
+        print("solution_online_unrestricted")
+        print(experiment_results_for_analysis[0].solution_online_unrestricted)
+        print("solution_offline_delta")
+        print(experiment_results_for_analysis[0].solution_offline_delta)
 
         for key in expected_result_dict:
             if expected_result_dict[key] != result_dict[key]:
@@ -343,20 +343,20 @@ def test_hypothesis_one_pipeline_all_in_one():
         # since we do not return the results in memory from run_experiment_agenda (SIM-393), do some sanity checks:
         assert len(loaded_results) == 1, len(loaded_results)
         loaded_result: ExperimentResultsAnalysis = loaded_results[0]
-        assert loaded_result.results_full_after_malfunction.solver_statistics is not None
+        assert loaded_result.results_online_unrestricted.solver_statistics is not None
 
         experiment_results = loaded_result
         experiment_parameters: ExperimentParameters = experiment_agenda.experiments[0]
 
         # check that asp seed value is received in solver
-        assert experiment_results.results_full.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, (
-            f"actual={experiment_results.results_full.solver_seed}, " f"expected={experiment_parameters.asp_seed_value}"
+        assert experiment_results.results_schedule.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, (
+            f"actual={experiment_results.results_schedule.solver_seed}, " f"expected={experiment_parameters.asp_seed_value}"
         )
-        assert experiment_results.results_full_after_malfunction.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, (
-            f"actual={experiment_results.results_full_after_malfunction.solver_seed}, " f"expected={experiment_parameters.asp_seed_value}"
+        assert experiment_results.results_online_unrestricted.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, (
+            f"actual={experiment_results.results_online_unrestricted.solver_seed}, " f"expected={experiment_parameters.asp_seed_value}"
         )
-        assert experiment_results.results_delta_perfect_after_malfunction.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, (
-            f"actual={experiment_results.results_delta_perfect_after_malfunction.solver_seed}, " f"expected={experiment_parameters.asp_seed_value}"
+        assert experiment_results.results_offline_delta.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, (
+            f"actual={experiment_results.results_offline_delta.solver_seed}, " f"expected={experiment_parameters.asp_seed_value}"
         )
     finally:
         delete_experiment_folder(experiment_base_directory)
@@ -435,8 +435,8 @@ def test_run_alpha_beta(regen_schedule: bool = False):
     )
 
     # although re-scheduling is not deterministic, it should produce solutions with the same costs
-    costs_full_after_malfunction = experiment_result.results_full_after_malfunction.optimization_costs
-    assert costs_full_after_malfunction > 0
-    costs_full_after_malfunction_scaled = experiment_result_scaled.results_full_after_malfunction.optimization_costs
-    assert costs_full_after_malfunction * scale == costs_full_after_malfunction_scaled
-    assert experiment_result.results_full_after_malfunction.trainruns_dict == experiment_result_scaled.results_full_after_malfunction.trainruns_dict
+    costs_online_unrestricted = experiment_result.results_online_unrestricted.optimization_costs
+    assert costs_online_unrestricted > 0
+    costs_online_unrestricted_scaled = experiment_result_scaled.results_online_unrestricted.optimization_costs
+    assert costs_online_unrestricted * scale == costs_online_unrestricted_scaled
+    assert experiment_result.results_online_unrestricted.trainruns_dict == experiment_result_scaled.results_online_unrestricted.trainruns_dict
