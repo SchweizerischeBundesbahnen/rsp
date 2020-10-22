@@ -249,6 +249,16 @@ after_malfunction_scopes = ['full_after_malfunction', ] + speed_up_scopes
 all_scopes = ['full'] + after_malfunction_scopes
 
 
+def _extract_visulization(l: List[str]):
+    return [scope for scope in l if not scope.startswith('delta_random_')] + ['random_average']
+
+
+all_scopes_visualization = _extract_visulization(all_scopes)
+after_malfunction_scopes_visualization = _extract_visulization(after_malfunction_scopes)
+prediction_scopes_visualization = _extract_visulization(prediction_scopes)
+speed_up_scopes_visualization = _extract_visulization(speed_up_scopes)
+
+
 def solver_statistics_costs_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return results.solver_statistics["summary"]["costs"][0]
 
@@ -458,6 +468,19 @@ def speed_up_from_results(results_full_reschedule: SchedulingExperimentResult,
     return results_full_reschedule.solver_statistics["summary"]["times"]["total"] / results_other_reschedule.solver_statistics["summary"]["times"]["total"]
 
 
+def speed_up_solve_time_from_results(results_full_reschedule: SchedulingExperimentResult,
+                                     results_other_reschedule: SchedulingExperimentResult,
+                                     experiment_results: ExperimentResults) -> float:
+    return results_full_reschedule.solver_statistics["summary"]["times"]["solve"] / results_other_reschedule.solver_statistics["summary"]["times"]["solve"]
+
+
+def speed_up_non_solve_time_from_results(results_full_reschedule: SchedulingExperimentResult,
+                                         results_other_reschedule: SchedulingExperimentResult,
+                                         experiment_results: ExperimentResults) -> float:
+    return (results_full_reschedule.solver_statistics["summary"]["times"]["total"] - results_full_reschedule.solver_statistics["summary"]["times"]["solve"]) / \
+           (results_other_reschedule.solver_statistics["summary"]["times"]["total"] - results_other_reschedule.solver_statistics["summary"]["times"]["solve"])
+
+
 def costs_ratio_from_results(results_full_reschedule: SchedulingExperimentResult,
                              results_other_reschedule: SchedulingExperimentResult,
                              experiment_results: ExperimentResults) -> float:
@@ -521,6 +544,8 @@ experiment_results_analysis_after_malfunction_scopes_fields = {
 speedup_scopes_fields = {
     'speed_up': (float, speed_up_from_results),
     'costs_ratio': (float, costs_ratio_from_results),
+    'speed_up_solve_time': (float, speed_up_solve_time_from_results),
+    'speed_up_non_solve_time': (float, speed_up_non_solve_time_from_results),
 }
 
 prediction_scopes_fields = {
@@ -531,6 +556,17 @@ prediction_scopes_fields = {
     'predicted_changed_agents_false_positives': int,
     'predicted_changed_agents_false_negatives': int,
 }
+
+random_average_fields = [
+    prefix
+    for prefix in (
+            list(speedup_scopes_fields.keys()) +
+            list(experiment_results_analysis_all_scopes_fields.keys()) +
+            list(experiment_results_analysis_after_malfunction_scopes_fields.keys()) +
+            list(prediction_scopes_fields.keys())
+    )
+    if prefix != 'solution' and '_per_' not in prefix and not prefix.startswith('vertex_')
+]
 
 ExperimentResultsAnalysis = NamedTuple(
     'ExperimentResultsAnalysis',
@@ -597,10 +633,7 @@ ExperimentResultsAnalysis = NamedTuple(
         for scope in prediction_scopes
     ] + [
         (f'{prefix}_random_average', float)
-        for prefix in (list(speedup_scopes_fields.keys()) +
-                       list(experiment_results_analysis_all_scopes_fields.keys()) +
-                       list(experiment_results_analysis_after_malfunction_scopes_fields.keys()))
-        if prefix != 'solution' and '_per_' not in prefix and not prefix.startswith('vertex_')
+        for prefix in random_average_fields
     ]
 )
 
@@ -724,15 +757,21 @@ def expand_experiment_results_for_analysis(
                                                                              len(ground_truth_positive_changed_agents))
         }
 
-    online_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction, 'delta_online_after_malfunction')
-    online_no_time_flexibility_predicted_dict = predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction,
-                                                               'delta_online_no_time_flexibility_after_malfunction')
-    random_predicted_dict = {}
+    # retain all fields from experiment results!
+    d = experiment_results._asdict()
+
+    # extract predicted numbers
+    d.update(**predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction,
+                              'delta_online_after_malfunction'))
+    d.update(**predicted_dict(experiment_results.predicted_changed_agents_online_after_malfunction,
+                              'delta_online_no_time_flexibility_after_malfunction'))
+
     for i in range(NB_RANDOM):
-        random_predicted_dict.update(**predicted_dict(
-            experiment_results._asdict()[f'predicted_changed_agents_random_{i}_after_malfunction'], f'delta_random_{i}_after_malfunction'))
-    d = dict(
-        **experiment_results._asdict(),
+        d.update(**predicted_dict(experiment_results._asdict()[f'predicted_changed_agents_random_{i}_after_malfunction'],
+                                  f'delta_random_{i}_after_malfunction'))
+
+    # extract other fields by configuration
+    d.update(
         **{
             f'{prefix}_{scope}': results_extractor(experiment_results._asdict()[f'results_{scope}'], experiment_results._asdict()[f'problem_{scope}'])
             for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
@@ -755,16 +794,14 @@ def expand_experiment_results_for_analysis(
             for prefix, (_, results_extractor) in speedup_scopes_fields.items()
             for scope in speed_up_scopes
         }
-
     )
+
+    # add random_average by averaging over delta_random_{i}_after_malfunction
     d = dict(
         **d,
         **{
             f'{prefix}_random_average': np.mean([d[f'{prefix}_delta_random_{i}_after_malfunction'] for i in range(NB_RANDOM)])
-            for prefix in (list(speedup_scopes_fields.keys()) +
-                           list(experiment_results_analysis_all_scopes_fields.keys()) +
-                           list(experiment_results_analysis_after_malfunction_scopes_fields.keys()))
-            if prefix != 'solution' and '_per_' not in prefix and not prefix.startswith('vertex_')
+            for prefix in random_average_fields
         }
     )
 
@@ -791,9 +828,6 @@ def expand_experiment_results_for_analysis(
             factor_resource_conflicts=factor_resource_conflicts,
 
             **d,
-            **online_predicted_dict,
-            **online_no_time_flexibility_predicted_dict,
-            **random_predicted_dict,
         )
 
     plausibility_check_experiment_results_analysis(experiment_results_analysis=_to_experiment_results_analysis())

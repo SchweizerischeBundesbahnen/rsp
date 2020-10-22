@@ -50,6 +50,7 @@ from_cache = False
 ```{python}
 experiments_of_interest = None
 experiment_base_directory = BASELINE_DATA_FOLDER
+print(experiment_base_directory)
 if from_cache:
     experiment_data_filtered = pd.read_csv(f'{experiment_base_directory}.csv')
 else:
@@ -132,11 +133,11 @@ hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data_filte
 ```
 
 ```{python}
-from rsp.utils.data_types import after_malfunction_scopes
+from rsp.utils.data_types import after_malfunction_scopes_visualization
 # Choices represent the size of the solution space (how many routing alternatives, how many potential resource conflicts?
 # Conflicts represent the number of decisions
 for prefix in ['solver_statistics_conflicts', 'solver_statistics_choices', 'nb_resource_conflicts']:
-    columns_of_interest =[ f'{prefix}_{scope}' for scope in after_malfunction_scopes ]
+    columns_of_interest =[ f'{prefix}_{scope}' for scope in after_malfunction_scopes_visualization ]
     plot_box_plot(experiment_data=experiment_data_filtered,
                              axis_of_interest=axis_of_interest,
                              columns_of_interest=columns_of_interest,

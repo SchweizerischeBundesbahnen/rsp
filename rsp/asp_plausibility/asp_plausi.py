@@ -4,13 +4,13 @@ import pandas as pd
 
 from rsp.analysis.compute_time_analysis import plot_box_plot
 from rsp.analysis.compute_time_analysis import plot_box_plot_from_traces
-from rsp.utils.data_types import all_scopes
+from rsp.utils.data_types import all_scopes_visualization
 
 
 def visualize_hypotheses_asp(
         experiment_data: pd.DataFrame,
         output_folder: Optional[str] = None):
-    suffixes = all_scopes
+    suffixes = all_scopes_visualization
 
     # problem reduction in terms of shared, conflicts, choices
     for column_prefix in ['nb_resource_conflicts', 'solver_statistics_conflicts', 'solver_statistics_choices']:
