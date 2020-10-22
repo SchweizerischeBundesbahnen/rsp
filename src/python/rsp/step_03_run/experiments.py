@@ -78,7 +78,7 @@ from rsp.step_03_run.experiment_results_analysis import expand_experiment_result
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
-from rsp.step_03_run.scopers.scoper_online_fully_restricted import scoper_online_fully_restricted_for_all_agents
+from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_random import scoper_online_random_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_route_restricted import scoper_online_route_restricted_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_transmission_chains import scoper_online_transmission_chains_for_all_agents
@@ -323,11 +323,11 @@ def run_experiment_in_memory(
     rsp_logger.info("3b. reschedule delta trivially_perfect (lower bound)")
     # clone topos since propagation will modify them
     delta_trivially_perfect_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
-    problem_online_fully_restricted = scoper_online_fully_restricted_for_all_agents(
+    problem_offline_fully_restricted = scoper_offline_fully_restricted_for_all_agents(
         online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
-        online_fully_restricted_topo_dict_=delta_trivially_perfect_reschedule_topo_dict,
+        offline_fully_restricted_topo_dict_=delta_trivially_perfect_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
@@ -335,8 +335,8 @@ def run_experiment_in_memory(
         weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
     )
 
-    results_online_fully_restricted = asp_reschedule_wrapper(
-        reschedule_problem_description=problem_online_fully_restricted,
+    results_offline_fully_restricted = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_offline_fully_restricted,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
@@ -473,14 +473,14 @@ def run_experiment_in_memory(
         problem_schedule=schedule_problem,
         problem_online_unrestricted=problem_online_unrestricted,
         problem_offline_delta=problem_offline_delta,
-        problem_online_fully_restricted=problem_online_fully_restricted,
+        problem_offline_fully_restricted=problem_offline_fully_restricted,
         problem_online_route_restricted=problem_online_route_restricted,
         problem_online_transmission_chains_fully_restricted=problem_online_transmission_chains_fully_restricted,
         problem_online_transmission_chains_route_restricted=problem_online_transmission_chains_route_restricted,
         results_schedule=schedule_result,
         results_online_unrestricted=results_online_unrestricted,
         results_offline_delta=results_offline_delta,
-        results_online_fully_restricted=results_online_fully_restricted,
+        results_offline_fully_restricted=results_offline_fully_restricted,
         results_online_route_restricted=results_online_route_restricted,
         results_online_transmission_chains_fully_restricted=results_online_transmission_chains_fully_restricted,
         results_online_transmission_chains_route_restricted=results_online_transmission_chains_route_restricted,

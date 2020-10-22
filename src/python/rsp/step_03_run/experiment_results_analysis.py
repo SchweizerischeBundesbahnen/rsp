@@ -22,7 +22,7 @@ from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.rsp_logger import rsp_logger
 
 speed_up_scopes = [
-    "online_fully_restricted",
+    "offline_fully_restricted",
     "offline_delta",
     "online_route_restricted",
     "online_transmission_chains_fully_restricted",
@@ -360,14 +360,14 @@ ExperimentResultsAnalysis = NamedTuple(
         ("malfunction", ExperimentMalfunction),
         ("problem_schedule", ScheduleProblemDescription),
         ("problem_online_unrestricted", ScheduleProblemDescription),
-        ("problem_online_fully_restricted", ScheduleProblemDescription),
+        ("problem_offline_fully_restricted", ScheduleProblemDescription),
         ("problem_offline_delta", ScheduleProblemDescription),
         ("problem_online_route_restricted", ScheduleProblemDescription),
         ("problem_online_transmission_chains_fully_restricted", ScheduleProblemDescription),
         ("problem_online_transmission_chains_route_restricted", ScheduleProblemDescription),
         ("results_schedule", SchedulingExperimentResult),
         ("results_online_unrestricted", SchedulingExperimentResult),
-        ("results_online_fully_restricted", SchedulingExperimentResult),
+        ("results_offline_fully_restricted", SchedulingExperimentResult),
         ("results_offline_delta", SchedulingExperimentResult),
         ("results_online_route_restricted", SchedulingExperimentResult),
         ("results_online_transmission_chains_fully_restricted", SchedulingExperimentResult),
@@ -424,7 +424,7 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
             )
         except AssertionError as e:
             rsp_logger.warn(str(e))
-    for scope in ["online_fully_restricted", "offline_delta"]:
+    for scope in ["offline_fully_restricted", "offline_delta"]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
         assert costs == experiment_results_analysis.costs_online_unrestricted
     for scope in ["online_route_restricted", "online_transmission_chains_fully_restricted", "online_transmission_chains_fully_restricted"] + [
