@@ -18,9 +18,7 @@ from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results import plausibility_check_experiment_results
 from rsp.utils.general_helpers import catch_zero_division_error_as_minus_one
-from rsp.utils.global_constants import DELAY_MODEL_RESOLUTION
-from rsp.utils.global_constants import DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
-from rsp.utils.global_constants import NB_RANDOM
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.rsp_logger import rsp_logger
 
 speed_up_scopes = [
@@ -29,9 +27,9 @@ speed_up_scopes = [
     "online_route_restricted",
     "online_transmission_chains_fully_restricted",
     "online_transmission_chains_route_restricted",
-] + [f"online_random_{i}" for i in range(NB_RANDOM)]
+] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
 prediction_scopes = ["online_transmission_chains_route_restricted", "online_transmission_chains_fully_restricted"] + [
-    f"online_random_{i}" for i in range(NB_RANDOM)
+    f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)
 ]
 
 rescheduling_scopes = ["online_unrestricted"] + speed_up_scopes
@@ -279,11 +277,15 @@ def lateness_to_effective_cost(weight_lateness_seconds: int, lateness_dict: Dict
     Returns
     -------
     """
-    penalty_leap_at = DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
+    penalty_leap_at = GLOBAL_CONSTANTS.DELAY_MODEL_UPPER_BOUND_LINEAR_PENALTY
     penalty_leap = 5000000 + penalty_leap_at * weight_lateness_seconds
     return sum(
         [
-            (penalty_leap if lateness > penalty_leap_at else (lateness // DELAY_MODEL_RESOLUTION) * DELAY_MODEL_RESOLUTION * weight_lateness_seconds)
+            (
+                penalty_leap
+                if lateness > penalty_leap_at
+                else (lateness // GLOBAL_CONSTANTS.DELAY_MODEL_RESOLUTION) * GLOBAL_CONSTANTS.DELAY_MODEL_RESOLUTION * weight_lateness_seconds
+            )
             for agent_id, lateness in lateness_dict.items()
         ]
     )
@@ -392,9 +394,9 @@ ExperimentResultsAnalysis = NamedTuple(
         ("rescheduling_horizon", int),
         ("factor_resource_conflicts", int),
     ]
-    + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(NB_RANDOM)]
-    + [(f"results_online_random_{i}", SchedulingExperimentResult) for i in range(NB_RANDOM)]
-    + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(NB_RANDOM)]
+    + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
+    + [(f"results_online_random_{i}", SchedulingExperimentResult) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
+    + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_rescheduling_scopes_fields.items() for scope in rescheduling_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in speedup_scopes_fields.items() for scope in speed_up_scopes]
@@ -426,7 +428,7 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
         assert costs == experiment_results_analysis.costs_online_unrestricted
     for scope in ["online_route_restricted", "online_transmission_chains_fully_restricted", "online_transmission_chains_fully_restricted"] + [
-        f"online_random_{i}" for i in range(NB_RANDOM)
+        f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)
     ]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
         assert costs >= experiment_results_analysis.costs_online_unrestricted
@@ -518,7 +520,7 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
         **predicted_dict(experiment_results.predicted_changed_agents_online_transmission_chains_fully_restricted, "online_transmission_chains_route_restricted")
     )
 
-    for i in range(NB_RANDOM):
+    for i in range(GLOBAL_CONSTANTS.NB_RANDOM):
         d.update(**predicted_dict(experiment_results._asdict()[f"predicted_changed_agents_online_random_{i}"], f"online_random_{i}"))
 
     # extract other fields by configuration
@@ -551,7 +553,10 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
     # add online_random_average by averaging over online_random_{i}
     d = dict(
         **d,
-        **{f"{prefix}_online_random_average": np.mean([d[f"{prefix}_online_random_{i}"] for i in range(NB_RANDOM)]) for prefix in online_random_average_fields},
+        **{
+            f"{prefix}_online_random_average": np.mean([d[f"{prefix}_online_random_{i}"] for i in range(GLOBAL_CONSTANTS.NB_RANDOM)])
+            for prefix in online_random_average_fields
+        },
     )
 
     def _to_experiment_results_analysis():
@@ -598,6 +603,6 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
         d.update({f"vertex_lateness_{scope}": None for scope in rescheduling_scopes})
         d.update({f"costs_from_route_section_penalties_per_agent_and_edge_{scope}": None for scope in rescheduling_scopes})
         d.update({"experiment_parameters": None, "malfunction": None, "predicted_changed_agents_online_transmission_chains_fully_restricted": None})
-        d.update({f"predicted_changed_agents_online_random_{i}": None for i in range(NB_RANDOM)})
+        d.update({f"predicted_changed_agents_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)})
 
     return _to_experiment_results_analysis()

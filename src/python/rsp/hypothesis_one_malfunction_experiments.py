@@ -11,6 +11,7 @@ from rsp.step_01_planning.experiment_parameters_and_ranges import Infrastructure
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_03_run.experiments import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.step_03_run.experiments import run_experiment_agenda
+from rsp.utils.global_constants import get_defaults
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
@@ -96,7 +97,7 @@ def create_malfunction_agenda_from_infrastructure_and_schedule_ranges(
                         experiment_id += 1
                     grid_id += 1
             infra_id_schedule_id += 1
-    return ExperimentAgenda(experiment_name=experiment_name, experiments=experiments)
+    return ExperimentAgenda(experiment_name=experiment_name, experiments=experiments, global_constants=get_defaults(),)
 
 
 def get_filter(infra_id: int, schedule_id: int) -> Callable[[int, int], bool]:

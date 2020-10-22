@@ -7,7 +7,7 @@ from rsp.scheduling.schedule import SchedulingExperimentResult
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.utils.global_constants import NB_RANDOM
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 
 ExperimentResults = NamedTuple(
     "ExperimentResults",
@@ -31,9 +31,9 @@ ExperimentResults = NamedTuple(
         ("predicted_changed_agents_online_transmission_chains_fully_restricted", Set[int]),
         ("predicted_changed_agents_online_transmission_chains_route_restricted", Set[int]),
     ]
-    + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(NB_RANDOM)]
-    + [(f"results_online_random_{i}", SchedulingExperimentResult) for i in range(NB_RANDOM)]
-    + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(NB_RANDOM)],
+    + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
+    + [(f"results_online_random_{i}", SchedulingExperimentResult) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
+    + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)],
 )
 
 

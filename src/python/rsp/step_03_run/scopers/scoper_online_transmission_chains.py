@@ -15,7 +15,6 @@ from rsp.step_03_run.scopers.scoper_agent_changed_or_unchanged import scoper_cha
 from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_section_penalties
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import validate_transmission_chains
-from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.resource_occupation import extract_resource_occupations
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -65,7 +64,7 @@ def scoper_online_transmission_chains_for_all_agents(
     ScheduleProblemDesccription
     """
     # 1. compute the forward-only wave of the malfunction
-    schedule_occupations = extract_resource_occupations(schedule=schedule_trainrun_dict, release_time=RELEASE_TIME)
+    schedule_occupations = extract_resource_occupations(schedule=schedule_trainrun_dict)
     transmission_chains = extract_transmission_chains_from_schedule(malfunction=malfunction, occupations=schedule_occupations)
     validate_transmission_chains(transmission_chains=transmission_chains)
 

@@ -26,7 +26,6 @@ from rsp.step_03_run.experiments import create_schedule_problem_description_from
 from rsp.step_03_run.experiments import gen_infrastructure
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_for_all_agents
-from rsp.utils.global_constants import RELEASE_TIME
 from rsp.utils.resource_occupation import extract_resource_occupations
 from rsp.utils.resource_occupation import verify_schedule_as_resource_occupations
 
@@ -187,8 +186,8 @@ def _verify_trainruns_rule_3_source_target(
 
 def _verify_trainruns_rule_2_mutual_exclusion(trainrun_dict: TrainrunDict):
     """Train run consistency rule 2: mutual exclusion."""
-    schedule_as_resource_occupations = extract_resource_occupations(schedule=trainrun_dict, release_time=RELEASE_TIME)
-    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations, release_time=RELEASE_TIME)
+    schedule_as_resource_occupations = extract_resource_occupations(schedule=trainrun_dict)
+    verify_schedule_as_resource_occupations(schedule_as_resource_occupations=schedule_as_resource_occupations)
 
 
 def _verify_trainruns_rule_1_path_consistency(trainrun_dict: TrainrunDict, minimum_runningtime_dict: Dict[int, int]):

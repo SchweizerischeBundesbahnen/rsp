@@ -8,7 +8,7 @@ from rsp.scheduling.asp.asp_solve_problem import solve_problem
 from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_02_setup.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -137,7 +137,7 @@ def test_costs_forced_delay_two_agents():
         for agent_id in [0, 1]:
             assert penalized_edge[1] not in {trainrun_waypoint.waypoint for trainrun_waypoint in solution.trainruns_dict[agent_id]}
         #  the expected costs are only the delay (which is minimum_travel_time + 1 for release time)
-        expected_costs = minimum_travel_time + RELEASE_TIME
+        expected_costs = minimum_travel_time + GLOBAL_CONSTANTS.RELEASE_TIME
         assert solution.optimization_costs == expected_costs, f"actual costs {solution.optimization_costs}, expected {expected_costs}"
         assert len(asp_solution.extract_list_of_lates()) == expected_costs
         assert len(asp_solution.extract_list_of_active_penalty()) == 0

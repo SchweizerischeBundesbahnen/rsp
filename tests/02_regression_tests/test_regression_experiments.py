@@ -27,6 +27,7 @@ from rsp.step_03_run.experiments import run_experiment_agenda
 from rsp.step_03_run.experiments import run_experiment_in_memory
 from rsp.step_03_run.experiments import save_schedule
 from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
+from rsp.utils.global_constants import get_defaults
 from rsp.utils.rsp_logger import rsp_logger
 
 
@@ -233,6 +234,7 @@ def test_regression_experiment_agenda():
     """
     agenda = ExperimentAgenda(
         experiment_name="test_regression_experiment_agenda",
+        global_constants=get_defaults(),
         experiments=[
             ExperimentParameters(
                 experiment_id=0,

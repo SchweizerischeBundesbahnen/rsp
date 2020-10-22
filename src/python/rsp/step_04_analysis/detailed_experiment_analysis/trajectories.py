@@ -10,7 +10,7 @@ from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.step_03_run.experiment_results_analysis import all_scopes
 from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import PlottingInformation
-from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.resource_occupation import LeftClosedInterval
 from rsp.utils.resource_occupation import ResourceOccupation
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupationsAllScopes
@@ -39,7 +39,10 @@ def time_windows_as_resource_occupations_per_agent(problem: ScheduleProblemDescr
             latest = route_dag_constraints.latest[waypoint]
             time_windows_per_agent[agent_id].append(
                 ResourceOccupation(
-                    interval=LeftClosedInterval(earliest, latest + RELEASE_TIME), resource=resource, agent_id=agent_id, direction=waypoint.direction
+                    interval=LeftClosedInterval(earliest, latest + GLOBAL_CONSTANTS.RELEASE_TIME),
+                    resource=resource,
+                    agent_id=agent_id,
+                    direction=waypoint.direction,
                 )
             )
     return time_windows_per_agent
