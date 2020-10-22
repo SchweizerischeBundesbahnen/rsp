@@ -39,7 +39,7 @@ def test_expand_infrastructure_ranges():
 
 
 def test_expand_infrastructure_parameter_range_and_save():
-    folder_name = create_experiment_folder_name("test_expand_infrastructure_parameter_range_and_save")
+    folder_name = "target/" + create_experiment_folder_name("test_expand_infrastructure_parameter_range_and_save")
     check_create_folder(folder_name)
 
     try:

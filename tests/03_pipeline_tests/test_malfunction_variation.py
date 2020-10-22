@@ -11,7 +11,7 @@ from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 # TODO skip this test since rsp-data not available here - bad design smell
 @pytest.mark.skip
 def test_malfunction_variation():
-    experiment_output_base_directory = create_experiment_folder_name("test_malfunction_variation")
+    experiment_output_base_directory = "target/" + create_experiment_folder_name("test_malfunction_variation")
     # TODO skip this test since rsp-data not available here - bad design smell
     from sys import platform
 

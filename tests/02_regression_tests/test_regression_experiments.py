@@ -19,6 +19,8 @@ from rsp.step_03_run.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
 from rsp.step_03_run.experiments import gen_infrastructure
 from rsp.step_03_run.experiments import gen_schedule
 from rsp.step_03_run.experiments import load_and_expand_experiment_results_from_data_folder
+from rsp.step_03_run.experiments import load_data_from_individual_csv_in_data_folder
+from rsp.step_03_run.experiments import load_experiments_results
 from rsp.step_03_run.experiments import load_infrastructure
 from rsp.step_03_run.experiments import load_schedule
 from rsp.step_03_run.experiments import run_experiment_agenda
@@ -261,14 +263,13 @@ def test_regression_experiment_agenda():
     )
 
     # Import the solver for the experiments
-    experiment_output_directory = create_experiment_folder_name(agenda.experiment_name)
+    experiment_output_directory = "target/" + create_experiment_folder_name(agenda.experiment_name)
     try:
         experiment_folder_name = run_experiment_agenda(
             experiment_agenda=agenda,
             # do not clutter folder
             experiment_output_directory=experiment_output_directory,
             run_experiments_parallel=1,
-            verbose=True,
             experiment_base_directory="tests/02_regression_tests/data/regression_experiment_agenda",
         )
 
@@ -309,7 +310,7 @@ def test_hypothesis_one_pipeline_all_in_one():
 
     Check that loading gives the same result.
     """
-    experiment_base_directory = create_experiment_folder_name("test_hypothesis_one_pipeline_all_in_one")
+    experiment_base_directory = "target/" + create_experiment_folder_name("test_hypothesis_one_pipeline_all_in_one")
     try:
         experiment_folder_name, experiment_agenda = hypothesis_one_pipeline_all_in_one(
             experiment_base_directory=experiment_base_directory,
@@ -358,6 +359,11 @@ def test_hypothesis_one_pipeline_all_in_one():
         assert experiment_results.results_offline_delta.solver_seed == experiment_parameters.schedule_parameters.asp_seed_value, (
             f"actual={experiment_results.results_offline_delta.solver_seed}, " f"expected={experiment_parameters.asp_seed_value}"
         )
+
+        loaded_df = load_data_from_individual_csv_in_data_folder(experiment_data_folder_name=experiment_data_folder)
+        assert len(loaded_df) == 1, len(loaded_df)
+
+        assert load_experiments_results(experiment_data_folder_name=experiment_data_folder, experiment_id=0) is not None, None
     finally:
         delete_experiment_folder(experiment_base_directory)
 

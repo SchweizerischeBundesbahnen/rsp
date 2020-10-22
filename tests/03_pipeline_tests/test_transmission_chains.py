@@ -22,7 +22,7 @@ def test_hypothesis_two():
     experiment_agenda: ExperimentAgenda = create_experiment_agenda_from_parameter_ranges_and_speed_data(
         experiment_name="test_hypothesis_two", parameter_ranges_and_speed_data=get_agenda_pipeline_params_001_simple_setting()
     )
-    experiment_folder_name = create_experiment_folder_name(experiment_agenda.experiment_name)
+    experiment_folder_name = "target/" + create_experiment_folder_name(experiment_agenda.experiment_name)
     try:
         experiment_output_directory = run_experiment_agenda(
             experiment_agenda=experiment_agenda, experiment_base_directory=experiment_base_directory, experiment_output_directory=experiment_folder_name
