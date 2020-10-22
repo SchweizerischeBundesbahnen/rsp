@@ -1,6 +1,6 @@
 # Real Time Large Network Re-Scheduling
 
-## Quick Start
+## Quick Start Installation
 You need to have installed `conda` and `git` (temporarily for FLATland). Then,
 
 In order to run the experiments,
@@ -87,6 +87,111 @@ Details:
 In order to have automatic mpeg conversion, we use the python-wrapper [ffmpeg-python](https://github.com/kkroening/ffmpeg-python/blob/master/examples/README.md).
 For this to work, `ffmpeg` must be installed and on the `PATH`.
 
+## Getting Started with Experiments
+You should only two files:
+* `src/python/rsp/hypothesis_one_experiments_potassco.py`: defines parameters of your experiments
+* `src/python/rsp/utils/global_data_configuration.py`: defines data location
+Here, you can define parameters on three levels:
+
+ level         | parameter range data structure  | defined in
+ --------------|---------------------------------|------
+infrastructure | `InfrastructureParametersRange` | `generate_potassco_infras_and_schedules`
+schedule       | `ScheduleParametersRange`       | `generate_potassco_infras_and_schedules`
+re-schedule    | `ScheduleParametersRange`       | `run_potassco_agenda`
+The Cartesian product of parameter settings at all three levels defines an experiment agenda of experiments. The infrastructure level is deterministic, the schedule and re-schedule level are not deterministic;
+examples:
+ * if you choose three sizes and two seeds for infrastructure generation, this will produce 6 infrastructure
+ * if you choose two seeds for schedule generation, this will produce 2 schedules for *each* infrastructure
+ * if you choose two seeds for re-scheduling, this will run two re-scheduling experiments for every pair of infrastructure and schedule
+
+In addition, it is possible to run multiple agendas with different solver settings (these are not part of parameter ranges, since these settings are categorical and not quantitative).
+
+The data layout will look as follows:
+
+    h1_2020_10_08T16_32_00/
+                           infra/
+                                 000/
+                                     infrastructure_parameters.pkl
+                                     infrastructure.pkl
+                                     schedule/
+                                              000/
+                                                 schedule_parameters.pkl
+                                                 schedule.pkl
+                                              ....
+                                 001/
+                                 ....
+                           h1_2020_08_24T21_04_42_baseline_2020_10_12T13_59_59/
+                                                                               sha.txt
+                                                                               experiment_agenda.txt
+                                                                               data/
+                                                                                    log.txt
+                                                                                    err.txt
+                                                                                    experiment_2457_2020_10_13T06_42_13.pkl
+                                                                                    ....
+
+
+
+Here's the main part:
+
+    generate_potassco_infras_and_schedules(base_directory=INFRAS_AND_SCHEDULES_FOLDER, parallel_compute=parallel_compute)
+    run_potassco_agenda(
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        # incremental re-start after interruption
+        experiment_output_base_directory=BASELINE_DATA_FOLDER,
+        experiment_filter=experiment_filter_first_ten_of_each_schedule,
+        parallel_compute=parallel_compute,
+        csv_only=False,
+    )
+
+It consists of infrastructure and schedule generation (`infra` subfolder) and one or more agenda runs  (`h1_2020_08_24T21_04_42_baseline_2020_10_12T13_59_59` subfolder for the run with baseline solver settings).
+
+See the use cases below for details how to use these options.
+
+
+### Use case: run all three levels
+Configure `INFRAS_AND_SCHEDULES_FOLDER` in `src/python/rsp/utils/global_data_configuration.py` to point to the base directory for your data.
+
+    INFRAS_AND_SCHEDULES_FOLDER = "../rsp-data/h1_2020_10_08T16_32_00"
+
+Infrastructures will be generated into a subfolder `infra` under this base folder.
+In addition, if you comment out the argument
+
+    # experiment_output_base_directory=...
+
+the experiment agenda will also get a new timestamped subfolder here; if you uncomment the argument, you will need to define
+
+    BASELINE_DATA_FOLDER = "../rsp-data/h1_2020_10_08T16_32_00/h1_2020_10_08T16_32_00_baseline_2020_10_21T18_16_25"
+
+appropriately.
+
+### Use case: only use baseline solver settings
+Comment out calls to `list_from_base_directory_and_run_experiment_agenda` you don't need.
+
+### Use case: you've aborted scheduling and want to run experiments on the schedules you already have
+Comment out `generate_potassco_infras_and_schedules(...)` in `main`. The agenda will only contain experiments for the existing schedules.
+
+### Use case: you've aborted experiments and want to run a certain subset of experiments into the same data folder
+Configure `BASELINE_DATA_FOLDER` in `src/python/rsp/utils/global_data_configuration.py` to point to the location you want to have your experiments in;
+this will be a subfolder of your base directory for data. In order to apply a filter on the agenda, you will need to give a different filter:
+
+    def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
+        return experiment.re_schedule_parameters.malfunction_agent_id < 10 and experiment.experiment_id >= 2000
+
+    if __name__ == "__main__":
+        ...
+        run_potassco_agenda(
+            ...
+            experiment_filter=experiment_filter_first_ten_of_each_schedule,
+            ...
+        )
+    experiment_filter=experiment_filter_first_ten_of_each_schedule
+
+### Use case: you want to generate more schedules after you've already run experiments
+You will need to tweak:
+* Define an appropriate filter for the missing experiments (they will have larger experiment ids than so far)
+* Run scheduling with the same `INFRAS_AND_SCHEDULES_FOLDER` as before; this will add the missing schedules incrementally;
+* Use a new `BASELINE_DATA_FOLDER` for running the experiments. Be sure you use the same parameters as before.
+* Copy the older experiments to the new location.
 
 
 ## Disclaimer
