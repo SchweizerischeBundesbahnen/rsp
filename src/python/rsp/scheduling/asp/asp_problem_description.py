@@ -28,6 +28,7 @@ class ASPProblemDescription:
         asp_seed_value: Optional[int] = None,
         nb_threads: int = 2,
         no_optimize: bool = False,
+        timeout: int = 10 * 60 * 60,
     ):
         self.schedule_problem_description = schedule_problem_description
         self.asp_seed_value = asp_seed_value
@@ -35,6 +36,7 @@ class ASPProblemDescription:
         self.nb_threads = nb_threads
         self.no_optimize = no_optimize
         self.asp_heuristics: Optional[List[ASPHeuristics]] = asp_heuristics
+        self.timeout = timeout
 
     @staticmethod
     def factory_rescheduling(
@@ -48,6 +50,8 @@ class ASPProblemDescription:
             asp_heuristics=GLOBAL_CONSTANTS.RESCHEDULE_HEURISTICS,
             asp_seed_value=asp_seed_value,
             no_optimize=False,  # Optimize if set to False
+            # we're not interested in times longer than 10 minutes in re-scheduling
+            timeout=10 * 60,
         )
         asp_problem._build_asp_program(
             schedule_problem_description=schedule_problem_description,
@@ -67,6 +71,8 @@ class ASPProblemDescription:
             asp_seed_value=asp_seed_value,
             no_optimize=no_optimize,
             nb_threads=2,  # not deterministic any more!
+            # large timeout for schedules!
+            timeout=10 * 60 * 60,
         )
         asp_problem._build_asp_program(
             schedule_problem_description=schedule_problem_description,
@@ -168,6 +174,7 @@ class ASPProblemDescription:
             nb_threads=self.nb_threads,
             no_optimize=self.no_optimize,
             verbose=verbose,
+            timeout=self.timeout,
         )
         return ASPSolutionDescription(asp_solution=asp_solution, schedule_problem_description=self.schedule_problem_description)
 

@@ -40,6 +40,7 @@ def flux_helper(
     no_optimize: bool = False,
     verbose: bool = False,
     debug: bool = False,
+    timeout: int = 10 * 60 * 60,
 ) -> FluxHelperResult:
     """Includes the necessary encodings and calls `_asp_helper` with them.
 
@@ -91,6 +92,7 @@ def flux_helper(
         debug=debug,
         no_optimize=no_optimize,
         asp_heuristics=asp_heuristics,
+        timeout=timeout,
     )
 
     return flux_result
@@ -106,6 +108,7 @@ def _asp_helper(  # noqa: C901
     no_optimize: bool = False,
     asp_heuristics: List[ASPHeuristics] = None,
     asp_seed_value: Optional[int] = None,
+    timeout: int = 10 * 60 * 60,
 ) -> FluxHelperResult:
     """Runs clingo-dl with in the desired mode.
     Parameters
@@ -160,7 +163,7 @@ def _asp_helper(  # noqa: C901
     if verbose:
         print("Grounding took {}s".format(time.time() - grounding_start_time))
 
-    all_answers = _asp_loop(ctl=ctl, dl=dl, no_optimize=no_optimize, verbose=verbose, debug=debug)
+    all_answers = _asp_loop(ctl=ctl, dl=dl, no_optimize=no_optimize, verbose=verbose, debug=debug, timeout=timeout)
     statistics: Dict = ctl.statistics
 
     if verbose:
