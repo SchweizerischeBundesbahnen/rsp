@@ -19,7 +19,7 @@ from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 def enable_seq(enable=True):
     off = "RESCHEDULE_HEURISTICS = []"
     on = "RESCHEDULE_HEURISTICS = [ASPHeuristics.HEURISTIC_SEQ]"
-    file_name = "src/python.rsp/utils/global_constants.py"
+    file_name = "src/python/rsp/utils/global_constants.py"
     with open(file_name, "r") as fh:
         output_str = fh.read().replace(off if enable else on, on if enable else off)
     with open(file_name, "w") as output:
@@ -28,7 +28,7 @@ def enable_seq(enable=True):
 
 # TODO SIM-719 pass arguments instead of hacky file editing
 def set_delay_model_resolution(resolution=1):
-    file_name = "src/python.rsp/utils/global_constants.py"
+    file_name = "src/python/rsp/utils/global_constants.py"
     with open(file_name, "r") as fh:
         regex = re.compile("DELAY_MODEL_RESOLUTION = .*")
         output_str = regex.sub(f"DELAY_MODEL_RESOLUTION = {resolution}", fh.read())
@@ -38,7 +38,7 @@ def set_delay_model_resolution(resolution=1):
 
 # TODO SIM-719 pass arguments instead of hacky file editing
 def enable_propagate_partial(enable: bool = True):
-    file_name = "src/python.rsp/utils/global_constants.py"
+    file_name = "src/python/rsp/utils/global_constants.py"
     with open(file_name, "r") as fh:
         regex = re.compile("DL_PROPAGATE_PARTIAL = .*")
         output_str = regex.sub(f"DL_PROPAGATE_PARTIAL = True" if enable else f"DL_PROPAGATE_PARTIAL = False", fh.read())

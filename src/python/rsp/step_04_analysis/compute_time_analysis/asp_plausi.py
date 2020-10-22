@@ -3,10 +3,10 @@ from typing import Optional
 import pandas as pd
 from rsp.step_03_run.experiment_results_analysis import all_scopes_visualization
 from rsp.step_04_analysis.plot_utils import plot_box_plot
-from rsp.step_04_analysis.plot_utils import plot_box_plot_from_traces
 
 
-def visualize_hypotheses_asp(experiment_data: pd.DataFrame, output_folder: Optional[str] = None):
+# TODO SIM-701
+def visualize_asp_problem_reduction(experiment_data: pd.DataFrame, output_folder: Optional[str] = None):
     suffixes = all_scopes_visualization
 
     # problem reduction in terms of shared, conflicts, choices
@@ -68,12 +68,15 @@ def visualize_hypotheses_asp(experiment_data: pd.DataFrame, output_folder: Optio
         output_folder=output_folder,
     )
 
+
+def visualize_asp_solver_stats(experiment_data: pd.DataFrame, output_folder: Optional[str] = None):
+    suffixes = all_scopes_visualization
     # 003_ratio_asp_grounding_solving: solver should spend most of the time solving: compare solve and total times
     plot_box_plot(
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
         columns_of_interest=[f"solve_total_ratio_" + item for item in suffixes],
-        title="003_ratio_asp_grounding_solving:\n" "solver should spend most of the time solving: compare solve and total solver time",
+        title="ratio asp grounding solving:\n" "solver should spend most of the time solving: compare solve and total solver time",
         y_axis_title="Ratio[-]",
         file_name_prefix="003",
         output_folder=output_folder,
@@ -87,7 +90,7 @@ def visualize_hypotheses_asp(experiment_data: pd.DataFrame, output_folder: Optio
         + [f"solver_statistics_times_solve_" + item for item in suffixes]
         + [f"solver_statistics_times_unsat_" + item for item in suffixes]
         + [f"solver_statistics_times_sat_" + item for item in suffixes],
-        title=f"002_asp_absolute_total_solver_times:\n" f" solver should spend most of the time solving: comparison total_time time and solve_time ",
+        title=f"asp absolute total solver times:\n" f" solver should spend most of the time solving: comparison total_time time and solve_time ",
         output_folder=output_folder,
         file_name_prefix="002",
     )
@@ -96,7 +99,7 @@ def visualize_hypotheses_asp(experiment_data: pd.DataFrame, output_folder: Optio
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
         columns_of_interest=([f"summed_user_accu_propagations_" + item for item in suffixes] + [f"solver_statistics_times_solve_" + item for item in suffixes]),
-        title=f"004_ratio_asp_solve_propagation:\n"
+        title=f"ratio asp solve propagation:\n"
         "propagation times should be low in comparison to solve times: "
         f"compare solve_time (b) against summed propagation times of user accu",
         y_axis_title="Nb summed_user_accu_propagations[-]",
@@ -107,7 +110,7 @@ def visualize_hypotheses_asp(experiment_data: pd.DataFrame, output_folder: Optio
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
         columns_of_interest=([f"summed_user_step_propagations_" + item for item in suffixes] + [f"solver_statistics_times_solve_" + item for item in suffixes]),
-        title="004_ratio_asp_solve_propagation:\n"
+        title="ratio asp solve propagation:\n"
         "propagation times should be low in comparison to solve times: "
         f"comparison of solve_time (b) against summed propagation times of user step",
         output_folder=output_folder,
@@ -121,67 +124,10 @@ def visualize_hypotheses_asp(experiment_data: pd.DataFrame, output_folder: Optio
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
         columns_of_interest=[f"choice_conflict_ratio_" + item for item in suffixes],
-        title=f"005_ratio_asp_conflict_choice: choice conflict ratio should be small; "
+        title=f"ratio asp conflict choice: choice conflict ratio should be small; "
         f"if the ratio is high, the problem might be large, but not difficult; "
         f"choice conflict ratio",
         y_axis_title="Ratio[-]",
         output_folder=output_folder,
         file_name_prefix="005",
-    )
-
-    # Choices as predictor?
-    plot_box_plot_from_traces(
-        experiment_data=experiment_data,
-        traces=[("solver_statistics_times_total_" + item, "solver_statistics_choices_" + item) for item in suffixes],
-        title=f"XXX_choices_are_good_predictor_of_solution_time: "
-        "Choices represent the size of the solution space (how many routing alternatives, "
-        f"how many potential resource conflicts).\n"
-        f"How much are choices and solution times correlated?",
-        output_folder=output_folder,
-        x_axis_title="choices",
-        pdf_file="XXX_choices_as_predictor.pdf",
-    )
-    # Conflicts as predictor?
-    plot_box_plot_from_traces(
-        experiment_data=experiment_data,
-        traces=[("solver_statistics_times_total_" + item, "solver_statistics_conflicts_" + item) for item in suffixes],
-        title=f"XXX_conflicts_are_good_predictor_of_longer_solution_time_than_expected: "
-        "Conflicts represent the number of routing alternatives and .\n"
-        f"How much are conflicts and solution times correlated?",
-        output_folder=output_folder,
-        pdf_file="XXX_conflicts_as_predictor.pdf",
-        x_axis_title="conflicts",
-    )
-    # Shared as predictor?
-    plot_box_plot_from_traces(
-        experiment_data=experiment_data,
-        traces=[("solver_statistics_times_total_" + item, "nb_resource_conflicts_" + item) for item in suffixes],
-        title=f"XXX_shared_are_good_predictor_of_longer_solution_time_than_expected: "
-        "Shared are resource conflicts of time windows.\n"
-        f"How much does number of resource conflicts predict solution times?",
-        output_folder=output_folder,
-        pdf_file="XXX_shared_as_predictor.pdf",
-        x_axis_title="shared",
-    )
-
-    # Optimization progress
-    # TODO SIM-376 for the time being only plot final costs
-    plot_box_plot(
-        experiment_data=experiment_data,
-        axis_of_interest="experiment_id",
-        columns_of_interest=[f"solver_statistics_costs_" + item for item in suffixes],
-        title=f"XXX_low_cost_optimal_solutions_may_be_harder_to_find:\n" f"final optimization costs per experiment_id",
-        y_axis_title="Costs[??]",
-        output_folder=output_folder,
-        file_name_prefix="XXX_low_cost_optimal_solutions_may_be_harder_to_find",
-    )
-    plot_box_plot_from_traces(
-        experiment_data=experiment_data,
-        traces=[("solver_statistics_times_total_" + item, "solver_statistics_costs_" + item) for item in suffixes],
-        title=f"XXX_low_cost_optimal_solutions_may_be_harder_to_find\n"
-        f"Are solver times and optimization costs correlated? "
-        f"Final optimization costs per total_time",
-        output_folder=output_folder,
-        x_axis_title="costs",
-        pdf_file="XXX_low_cost_optimal_solutions_may_be_harder_to_find.pdf",
     )

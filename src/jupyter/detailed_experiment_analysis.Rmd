@@ -23,19 +23,18 @@ from IPython.display import Video
 import pandas as pd
 
 
-from rsp.utils.data_types import *
-from rsp.utils.experiments import *
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
-
+from rsp.step_03_run.experiments import *
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import *
-from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import *
+from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import *
+from rsp.step_04_analysis.detailed_experiment_analysis.flatland_rendering import *
 
 from rsp.step_04_analysis.plot_utils import *
-
 from rsp.utils.global_data_configuration import *
+from rsp.utils.resource_occupation import *
+from rsp.scheduling.asp.asp_helper import _print_stats
+
+
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
-
-
 ```
 
 ```{python}
@@ -53,7 +52,15 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     nonify_all_structured_fields=False
 )[0]
 agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agent_id
-plotting_data = extract_schedule_plotting(experiment_result=exp_results_of_experiment_of_interest,sorting_agent_id=agent_of_interest)
+```
+
+```{python}
+resource_occupations_for_all_scopes = extract_resource_occupations_for_all_scopes(experiment_result=exp_results_of_experiment_of_interest)
+plotting_information: PlottingInformation = extract_plotting_information(
+    schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
+    grid_depth=exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.width,
+    sorting_agent_id=agent_of_interest
+)
 ```
 
 ```{python}
@@ -66,34 +73,7 @@ print(f"agent_of_interest={agent_of_interest}")
 The figure below shows the initial schedule we use as input to our re-scheduling pipeline. It is taken as given as used as target for optimization (minimal delay to initial schedule)
 
 ```{python}
-from rsp.schedule_problem_description.data_types_and_utils import get_paths_in_route_dag
-
-
-items = {
-    'problem_schedule': exp_results_of_experiment_of_interest.problem_schedule,
-    'problem_online_unrestricted': exp_results_of_experiment_of_interest.problem_online_unrestricted,
-    'problem_offline_delta': exp_results_of_experiment_of_interest.problem_offline_delta
-}
-for item, problem in items.items():
-    for agent_id, topo in problem.topo_dict.items():
-        print(f"    {agent_id} has {len(get_paths_in_route_dag(problem.topo_dict[agent_id]))} paths in {item}")
-
-```
-
-```{python}
-from rsp.utils.data_types import all_scopes
-from rsp.utils.global_constants import RELEASE_TIME
-from rsp.utils.data_types_converters_and_validators import extract_resource_occupations
-
-for scope in all_scopes:
-    resource_occupations_schedule=extract_resource_occupations(exp_results_of_experiment_of_interest._asdict()[f'results_{scope}'].trainruns_dict,RELEASE_TIME).sorted_resource_occupations_per_agent
-    trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_schedule,
-        plotting_information=plotting_data.plotting_information)
-    plot_time_resource_trajectories(trajectories=trajectories,
-                                    title=f"{scope}",
-                                    plotting_information=plotting_data.plotting_information,
-                                    malfunction=plotting_data.malfunction)
+plot_time_resource_trajectories_all_scopes(experiment_results=exp_results_of_experiment_of_interest, plotting_information=plotting_information)
 ```
 
 ```{python}
@@ -103,6 +83,7 @@ plot_changed_agents(exp_results_of_experiment_of_interest)
 ### Visualize Problems
 
 ```{python}
+print_path_stats(experiment_results=exp_results_of_experiment_of_interest)
 plot_nb_route_alternatives(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
@@ -115,65 +96,16 @@ plot_time_window_sizes(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
 ### Visualize Problem instances as time-resource graphs
-This visualization shows the parameter spaced available to the optimizer to find solutions. Initial schedule is not shown as we have a tabularasa approach with no restrictions. Full rescheduling has the following available parameter space
-
-```{python}
-resource_occupations_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_online_unrestricted)
-trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=resource_occupations_reschedule,
-    plotting_information=plotting_data.plotting_information)
-choices_online_unrestricted = exp_results_of_experiment_of_interest.results_online_unrestricted.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_online_unrestricted))
-plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Full Reschedule Problem",
-                                plotting_information=plotting_data.plotting_information,
-                                malfunction=plotting_data.malfunction)
-
-```
-
+This visualization shows the parameter spaced available to the optimizer to find solutions. Initial schedule is not shown as we have a tabularasa approach with no restrictions.
+Full rescheduling has the following available parameter space
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
 
 ```{python}
-resource_occupations_offline_delta = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_offline_delta)
-trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=resource_occupations_offline_delta,
-    plotting_information=plotting_data.plotting_information)
-choices_offline_delta = exp_results_of_experiment_of_interest.results_offline_delta.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_offline_delta))
-plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Delta Perfect Reschedule Problem",
-                                plotting_information=plotting_data.plotting_information,
-                                malfunction=plotting_data.malfunction)
+plot_time_windows_all_scopes(experiment_results=exp_results_of_experiment_of_interest, plotting_information=plotting_information)
 ```
 
 ```{python}
-resource_occupations_delta_naive_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_online_route_restricted)
-trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=resource_occupations_delta_naive_reschedule,
-    plotting_information=plotting_data.plotting_information)
-choices_delta_naive_reschedule = exp_results_of_experiment_of_interest.results_online_route_restricted.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_delta_naive_reschedule))
-plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Delta Naive Reschedule Problem",
-                                plotting_information=plotting_data.plotting_information,
-                                malfunction=plotting_data.malfunction)
-```
-
-```{python}
-resource_occupations_delta_online_reschedule = time_windows_as_resource_occupations_per_agent(problem=exp_results_of_experiment_of_interest.problem_online_transmission_chains_fully_restricted)
-trajectories = trajectories_from_resource_occupations_per_agent(
-    resource_occupations_schedule=resource_occupations_delta_online_reschedule,
-    plotting_information=plotting_data.plotting_information)
-choices_delta_online_reschedule = exp_results_of_experiment_of_interest.results_online_transmission_chains_fully_restricted.solver_statistics["solving"]["solvers"]["choices"]
-print("Number of choices the solver has to make was {}".format(choices_delta_online_reschedule))
-plot_time_resource_trajectories(trajectories=trajectories,
-                                title="Delta online Reschedule Problem",
-                                plotting_information=plotting_data.plotting_information,
-                                malfunction=plotting_data.malfunction)
-```
-
-```{python}
-plot_shared_heatmap(schedule_plotting=plotting_data,experiment_result=exp_results_of_experiment_of_interest)
+plot_shared_heatmap(plotting_information=plotting_information,experiment_result=exp_results_of_experiment_of_interest)
 ```
 
 ### Some metrics about the schedule
@@ -182,15 +114,16 @@ plot_shared_heatmap(schedule_plotting=plotting_data,experiment_result=exp_result
 Number of active agents at each time step for the initial schedule
 
 ```{python}
-plot_time_density(plotting_data.schedule_as_resource_occupations)
+plot_time_density(schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule)
 ```
 
 Below we plot the resource occupation for the schedule and the difference between to the re-schedule as well as an indication of where agents start and where they travel. THe circles represent number of agents that either start or end at the city location.
 
 ```{python}
 plot_resource_occupation_heat_map(
-    schedule_plotting=plotting_data,
-    plotting_information=plotting_data.plotting_information,
+    schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
+    reschedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
+    plotting_information=plotting_information,
     title_suffix='Schedule'
 )
 ```
@@ -199,7 +132,8 @@ Detailed paths of single trains
 
 ```{python}
 plot_train_paths(
-        plotting_data= plotting_data,
+        schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
+    plotting_information=plotting_information,
         agent_ids= [agent_of_interest])
 ```
 
@@ -233,13 +167,14 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 ### solver statistics
 
 ```{python}
-from rsp.scheduling.asp.asp_helper import _print_stats
-print("=================================================================================")
-print(f"= {experiment_base_directory} results_online_unrestricted ")
-print("=================================================================================")
-_print_stats(exp_results_of_experiment_of_interest.results_online_unrestricted.solver_statistics)
-print("=================================================================================")
-print(f"= {experiment_base_directory} results_offline_delta ")
-print("=================================================================================")
-_print_stats(exp_results_of_experiment_of_interest.results_offline_delta.solver_statistics)
+for scope in all_scopes:
+    results_scope = exp_results_of_experiment_of_interest._asdict()[f"results_{scope}"]
+    print("=================================================================================")
+    print("=================================================================================")
+    print(f"= {scope} =")
+    print("=================================================================================")
+    print("=================================================================================")
+    _print_stats(results_scope.solver_statistics)
+    print("\n\n\n\n")
+
 ```

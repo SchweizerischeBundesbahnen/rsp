@@ -936,8 +936,8 @@ def list_infrastructure_and_schedule_params_from_base_directory(
         schedule_dir = f"{base_directory}/infra/{infra_id:03d}/schedule"
         if not os.path.isdir(schedule_dir):
             continue
-        nb_schedules = len(os.listdir(schedule_dir))
-        for schedule_id in range(nb_schedules):
+        schedule_ids = [int(s) for s in os.listdir(schedule_dir)]
+        for schedule_id in schedule_ids:
             if filter_experiment_agenda is not None and not filter_experiment_agenda(infra_id, schedule_id):
                 continue
             schedule, schedule_parameters = load_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_id)
@@ -1288,7 +1288,7 @@ def load_and_expand_experiment_results_from_data_folder(
 
     # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
     newline_and_flush_stdout_and_stderr()
-    rsp_logger.info(f" -> loading and expanding experiment results from {experiment_data_folder_name} done")
+    rsp_logger.info(f" -> done loading and expanding experiment results from {experiment_data_folder_name} done")
 
     return experiment_results_list
 

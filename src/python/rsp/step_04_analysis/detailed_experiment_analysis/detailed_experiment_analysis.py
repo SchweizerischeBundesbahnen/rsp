@@ -31,50 +31,21 @@ from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiment_results_analysis import all_scopes
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes
+from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import PlottingInformation
+from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import Resource
 from rsp.step_04_analysis.detailed_experiment_analysis.route_dag_analysis import visualize_route_dag_constraints
-from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import PlottingInformation
-from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import Resource
-from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import SchedulePlotting
-from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import get_difference_in_time_space_trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import time_windows_as_resource_occupations_per_agent
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import Trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
 from rsp.step_04_analysis.plot_utils import GREY_BACKGROUND_COLOR
 from rsp.step_04_analysis.plot_utils import PLOTLY_COLORLIST
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.resource_occupation import extract_resource_occupations
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
-from rsp.utils.resource_occupation import SortedResourceOccupationsPerAgent
 
 
-def plot_time_window_resource_trajectories(
-    experiment_result: ExperimentResultsAnalysis, schedule_plotting: SchedulePlotting, output_folder: Optional[str] = None
-):
-    """Plot time-window -- resource diagram for all three problems.
-
-    Parameters
-    ----------
-    experiment_result
-    schedule_plotting
-    """
-    for title, problem in {
-        "Schedule": experiment_result.problem_schedule,
-        "Full Re-Schedule": experiment_result.problem_online_unrestricted,
-        "scope perfect re-schedule": experiment_result.problem_offline_delta,
-    }.items():
-        resource_occupations_schedule = time_windows_as_resource_occupations_per_agent(problem=problem)
-        trajectories = trajectories_from_resource_occupations_per_agent(
-            resource_occupations_schedule=resource_occupations_schedule, plotting_information=schedule_plotting.plotting_information
-        )
-        plot_time_resource_trajectories(
-            trajectories=trajectories,
-            title=title,
-            plotting_information=schedule_plotting.plotting_information,
-            malfunction=schedule_plotting.malfunction,
-            output_folder=output_folder,
-        )
-
-
-def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+def plot_shared_heatmap(plotting_information: PlottingInformation, experiment_result: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
@@ -83,12 +54,9 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
     """
     layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
-    plotting_information = schedule_plotting.plotting_information
-    for title, result in {
-        "Schedule": experiment_result.results_schedule,
-        "Full Re-Schedule": experiment_result.results_online_unrestricted,
-        "scope perfect re-schedule": experiment_result.results_offline_delta,
-    }.items():
+    for scope in all_scopes:
+        result = experiment_result._asdict()[f"results_{scope}"]
+        title = scope
         shared = list(filter(lambda s: s.startswith("shared"), result.solver_result))
         shared_per_resource = {}
         for sh in shared:
@@ -136,118 +104,55 @@ def plot_shared_heatmap(schedule_plotting: SchedulePlotting, experiment_result: 
         fig.write_image(pdf_file)
 
 
-def plot_resource_time_diagrams(schedule_plotting: SchedulePlotting, with_diff: bool = True, output_folder: Optional[str] = None) -> Dict[int, bool]:
-    """Method to draw resource-time diagrams in 2d.
-
-    Parameters
-    ----------
-    schedule_plotting
-    with_diff
-        plot difference as well?
-
-    Returns
-    -------
-        List of agent ids that changed between schedule an reschedule full
-    """
-    plotting_information = schedule_plotting.plotting_information
-    resource_occupations_schedule = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_online_unrestricted = schedule_plotting.online_unrestricted_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_offline_delta = schedule_plotting.offline_delta_as_resource_occupations.sorted_resource_occupations_per_agent
-    trajectories_schedule: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_schedule, plotting_information=plotting_information
-    )
-    trajectories_online_unrestricted: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_online_unrestricted, plotting_information=plotting_information
-    )
-    trajectories_offline_delta: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=resource_occupations_offline_delta, plotting_information=plotting_information
-    )
-
-    # Plot Schedule
-    plot_time_resource_trajectories(
-        title="Schedule",
-        plotting_information=schedule_plotting.plotting_information,
-        malfunction=schedule_plotting.malfunction,
-        trajectories=trajectories_schedule,
-        output_folder=output_folder,
-    )
-
-    # Plot Reschedule Full only plot this if there is an actual difference between schedule and reschedule
-    trajectories_influenced_agents, changed_agents_dict = get_difference_in_time_space_trajectories(
-        target_trajectories=trajectories_schedule, base_trajectories=trajectories_online_unrestricted
-    )
-
-    # Printing situation overview
-
-    print_situation_overview(schedule_plotting=schedule_plotting, changed_agents_dict=changed_agents_dict)
-
-    # Plot Reschedule Full only if svomething has changed
-    nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
-    if nb_changed_agents > 0:
+def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
+    for scope in all_scopes:
+        results_scope = experiment_results._asdict()[f"results_{scope}"]
+        problem_scope = experiment_results._asdict()[f"problem_{scope}"]
+        resource_occupations_reschedule = time_windows_as_resource_occupations_per_agent(problem=problem_scope)
+        trajectories = trajectories_from_resource_occupations_per_agent(
+            resource_occupations_schedule=resource_occupations_reschedule, plotting_information=plotting_information
+        )
+        choices_online_unrestricted = results_scope.solver_statistics["solving"]["solvers"]["choices"]
+        print("Number of choices the solver has to make for {} was {}".format(scope, choices_online_unrestricted))
         plot_time_resource_trajectories(
-            trajectories=trajectories_online_unrestricted,
-            title="Full Reschedule",
-            plotting_information=schedule_plotting.plotting_information,
-            malfunction=schedule_plotting.malfunction,
+            trajectories=trajectories,
+            title=f"{scope}",
+            plotting_information=plotting_information,
+            malfunction=experiment_results.malfunction,
             output_folder=output_folder,
         )
 
-    # Plot Reschedule Delta Perfect with additional data
-    plot_time_resource_trajectories(
-        title="Delta Perfect Reschedule",
-        plotting_information=schedule_plotting.plotting_information,
-        malfunction=schedule_plotting.malfunction,
-        trajectories=trajectories_offline_delta,
-        output_folder=output_folder,
-    )
 
-    # Plot difference if asked for
-    if with_diff:
+def plot_time_resource_trajectories_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
+    for scope in all_scopes:
+        results_scope = experiment_results._asdict()[f"results_{scope}"]
+        resource_occupations_schedule = extract_resource_occupations(results_scope.trainruns_dict, RELEASE_TIME).sorted_resource_occupations_per_agent
+        trajectories = trajectories_from_resource_occupations_per_agent(
+            resource_occupations_schedule=resource_occupations_schedule, plotting_information=plotting_information
+        )
         plot_time_resource_trajectories(
-            trajectories=trajectories_influenced_agents,
-            title="Changed Agents",
-            plotting_information=schedule_plotting.plotting_information,
-            malfunction=schedule_plotting.malfunction,
+            trajectories=trajectories,
+            title=f"{scope}",
+            plotting_information=plotting_information,
+            malfunction=experiment_results.malfunction,
             output_folder=output_folder,
         )
 
-    return changed_agents_dict
 
-
-def print_situation_overview(schedule_plotting: SchedulePlotting, changed_agents_dict: Dict):
-    # Printing situation overview
-    malfunction = schedule_plotting.malfunction
-    resource_occupations_schedule: SortedResourceOccupationsPerAgent = schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent
-    resource_occupations_offline_delta = schedule_plotting.offline_delta_as_resource_occupations.sorted_resource_occupations_per_agent
-
-    nb_changed_agents = sum([1 for changed in changed_agents_dict.values() if changed])
-    total_lateness = sum(
-        max(sorted_resource_occupations_offline_delta[-1].interval.to_excl - resource_occupations_schedule[agent_id][-1].interval.to_excl, 0)
-        for agent_id, sorted_resource_occupations_offline_delta in resource_occupations_offline_delta.items()
-    )
-    print(
-        "Agent nr.{} has a malfunction at time {} for {} s and influenced {} other agents. Total delay = {}.".format(
-            malfunction.agent_id, malfunction.time_step, malfunction.malfunction_duration, nb_changed_agents, total_lateness
-        )
-    )
-
-
-def plot_time_resource_trajectories(
+def plot_time_resource_trajectories(  # noqa:C901
     title: str,
     trajectories: Trajectories,
     plotting_information: PlottingInformation,
     malfunction: ExperimentMalfunction,
     additional_data: Dict = None,
-    malfunction_wave: List[Trajectories] = None,
+    true_positives: Trajectories = None,
+    false_positives: Trajectories = None,
     output_folder: Optional[str] = None,
 ):
     """
     Plot the time-resource-diagram with additional data for each train
     Parameters
     ----------
-    malfunction_wave:
-        two-element list containing true and false positives
-        TODO SIM-672 make dict or rename parameter
     title: str
         Title of the plot
     trajectories:
@@ -257,9 +162,9 @@ def plot_time_resource_trajectories(
     output_folder
     malfunction
     plotting_information
+    true_positives
+    false_positives
 
-    Returns
-    -------
 
     """
     layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
@@ -320,25 +225,28 @@ def plot_time_resource_trajectories(
         y = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration]
         fig.add_trace(go.Scattergl(x=x, y=y, name="malfunction end", line=dict(color="red", dash="dash")))
 
-    if malfunction_wave is not None:
-        x, y = zip(*list(malfunction_wave[0].values())[0])
-        fig.add_trace(
-            go.Scattergl(
-                x=x, y=y, mode="lines+markers", marker=dict(size=2, color="red"), line=dict(color="red"), name="True Positives", hovertemplate=hovertemplate
+    if true_positives is not None:
+        for true_positive in true_positives.values():
+            x, y = zip(*list(true_positive))
+            fig.add_trace(
+                go.Scattergl(
+                    x=x, y=y, mode="lines+markers", marker=dict(size=2, color="red"), line=dict(color="red"), name="True Positives", hovertemplate=hovertemplate
+                )
             )
-        )
-        x, y = zip(*list(malfunction_wave[1].values())[0])
-        fig.add_trace(
-            go.Scattergl(
-                x=x,
-                y=y,
-                mode="lines+markers",
-                marker=dict(size=2, color="yellow"),
-                line=dict(color="yellow"),
-                name="False Positives",
-                hovertemplate=hovertemplate,
+    if false_positives is not None:
+        for false_positive in false_positives.values():
+            x, y = zip(*list(false_positive))
+            fig.add_trace(
+                go.Scattergl(
+                    x=x,
+                    y=y,
+                    mode="lines+markers",
+                    marker=dict(size=2, color="yellow"),
+                    line=dict(color="yellow"),
+                    name="False Positives",
+                    hovertemplate=hovertemplate,
+                )
             )
-        )
     fig.update_layout(
         title_text=title,
         xaxis_showgrid=False,
@@ -571,13 +479,18 @@ def plot_route_dag(
 
 
 def plot_resource_occupation_heat_map(
-    schedule_plotting: SchedulePlotting, plotting_information: PlottingInformation, title_suffix: str = "", output_folder: Optional[str] = None
+    schedule_as_resource_occupations: ScheduleAsResourceOccupations,
+    reschedule_as_resource_occupations: ScheduleAsResourceOccupations,
+    plotting_information: PlottingInformation,
+    title_suffix: str = "",
+    output_folder: Optional[str] = None,
 ):
     """Plot agent density over resource.
 
     Parameters
     ----------
-    schedule_plotting
+    schedule_as_resource_occupations: ScheduleAsResourceOccupations
+    reschedule_as_resource_occupations: ScheduleAsResourceOccupations
     plotting_information : PlottingInformation
 
     Returns
@@ -588,9 +501,6 @@ def plot_resource_occupation_heat_map(
     size = []
     layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
     fig = go.Figure(layout=layout)
-
-    schedule_as_resource_occupations = schedule_plotting.schedule_as_resource_occupations
-    reschedule_as_resource_occupations = schedule_plotting.offline_delta_as_resource_occupations
 
     # Count agents per resource for full episode
     for resource, resource_occupations in schedule_as_resource_occupations.sorted_resource_occupations_per_resource.items():
@@ -748,115 +658,12 @@ def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
     return cluster
 
 
-def plot_delay_propagation_2d(
-    plotting_data: SchedulePlotting,
-    delay_information: Dict[int, int],
-    depth_dict: Dict[int, int],
-    changed_agents: Optional[Dict[int, bool]] = None,
+def plot_train_paths(
+    schedule_as_resource_occupations: ScheduleAsResourceOccupations,
+    agent_ids: List[int],
+    plotting_information: PlottingInformation,
     file_name: Optional[str] = None,
 ):
-    """
-    Plot agent delay over ressource, only plot agents that are affected by the malfunction.
-    Parameters
-    ----------
-    schedule_resources
-        Dict containing all the times and agent handles for all resources
-
-    Returns
-    -------
-
-    """
-
-    marker_list = ["triangle-up", "triangle-right", "triangle-down", "triangle-left"]
-    depth_color = ["red", "orange", "yellow", "white", "LightGreen", "green"]
-    layout = go.Layout(plot_bgcolor=GREY_BACKGROUND_COLOR)
-    fig = go.Figure(layout=layout)
-
-    # Sort agents according to influence depth for plotting only plot disturbed agents
-    sorted_agents = []
-    for agent, _depth in sorted(depth_dict.items(), key=lambda item: item[1], reverse=True):
-        if agent in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent:
-            sorted_agents.append(agent)
-    if changed_agents is not None:
-        agents = [agent for agent in sorted_agents if changed_agents[agent]]
-    else:
-        agents = sorted_agents
-
-    # Add the malfunction source agent
-    agents.append(plotting_data.malfunction.agent_id)
-
-    # Plot only after the malfunciton happend
-    malfunction_time = plotting_data.malfunction.time_step
-    # Plot traces of agents
-    for agent_id in agents:
-        x = []
-        y = []
-        size = []
-        marker = []
-        times = []
-        delay = []
-        conflict_depth = []
-        for resource_occupation in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
-            time = resource_occupation.interval.from_incl
-            if time < malfunction_time:
-                continue
-            malfunction_resource = resource_occupation.resource
-            x.append(malfunction_resource[1])
-            y.append(malfunction_resource[0])
-            size.append(max(10, delay_information[agent_id]))
-            marker.append(marker_list[int(np.clip(resource_occupation.direction, 0, 3))])
-            times.append(time)
-            delay.append(delay_information[agent_id])
-            if agent_id in depth_dict:
-                conflict_depth.append(depth_dict[agent_id])
-            else:
-                conflict_depth.append("None")
-        if agent_id in depth_dict:
-            color = depth_color[int(np.clip(depth_dict[agent_id], 0, 5))]
-        else:
-            color = "red"
-        fig.add_trace(
-            go.Scattergl(
-                x=x,
-                y=y,
-                mode="markers",
-                name="Train {}".format(agent_id),
-                marker_symbol=marker,
-                customdata=list(zip(times, delay, conflict_depth)),
-                marker_size=size,
-                marker_opacity=0.2,
-                marker_color=color,
-                marker_line_color=color,
-                hovertemplate="Time:\t%{customdata[0]}<br>" + "Delay:\t%{customdata[1]}<br>" + "Influence depth:\t%{customdata[2]}",
-            )
-        )
-    # Plot malfunction
-    malfunction_resource = plotting_data.schedule_as_resource_occupations.resource_occupations_per_agent_and_time_step[
-        (plotting_data.malfunction.agent_id, plotting_data.malfunction.time_step)
-    ][0].resource
-    fig.add_trace(
-        go.Scattergl(
-            x=[malfunction_resource[1]],
-            y=[malfunction_resource[0]],
-            mode="markers",
-            name="Malfunction",
-            marker_symbol="x",
-            marker_size=25,
-            marker_line_color="black",
-            marker_color="black",
-        )
-    )
-    fig.update_layout(title_text="Malfunction position and effects", autosize=False, width=1000, height=1000)
-
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
-    if file_name is None:
-        fig.show()
-    else:
-        fig.write_image(file_name)
-
-
-def plot_train_paths(plotting_data: SchedulePlotting, agent_ids: List[int], file_name: Optional[str] = None):
     """
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
     Parameters
@@ -881,7 +688,7 @@ def plot_train_paths(plotting_data: SchedulePlotting, agent_ids: List[int], file
         times = []
         delay = []
         conflict_depth = []
-        for resource_occupation in plotting_data.schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
+        for resource_occupation in schedule_as_resource_occupations.sorted_resource_occupations_per_agent[agent_id]:
             time = resource_occupation.interval.from_incl
 
             malfunction_resource = resource_occupation.resource
@@ -908,8 +715,8 @@ def plot_train_paths(plotting_data: SchedulePlotting, agent_ids: List[int], file
         )
     fig.update_layout(title_text="Malfunction position and effects", autosize=False, width=1000, height=1000)
 
-    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_data.plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
-    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_data.plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
+    fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
+    fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
     if file_name is None:
         fig.show()
     else:
@@ -1021,3 +828,17 @@ def plot_time_window_sizes(experiment_results: ExperimentResultsAnalysis, output
         pdf_file = os.path.join(output_folder, f"time_window_sizes.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
+
+
+def print_path_stats(experiment_results: ExperimentResultsAnalysis):
+    for scope in all_scopes:
+        problem: ScheduleProblemDescription = experiment_results._asdict()[f"problem_{scope}"]
+        nb_paths = [len(get_paths_in_route_dag(topo)) for _, topo in problem.topo_dict.items()]
+        print(
+            f"{scope}: min={min(nb_paths)}, "
+            f" max={max(nb_paths)}, "
+            f"avg={np.mean(nb_paths)}, "
+            f"median={np.median(nb_paths)}, "
+            f"q70={np.quantile(nb_paths, 0.7)}, "
+            f"q90={np.quantile(nb_paths, 0.9)}"
+        )

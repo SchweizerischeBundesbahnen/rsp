@@ -8,6 +8,9 @@ from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
+from rsp.step_03_run.experiment_results_analysis import all_scopes
+from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
+from rsp.utils.global_constants import RELEASE_TIME
 
 LeftClosedInterval = NamedTuple("LeftClosedInterval", [("from_incl", int), ("to_excl", int)])
 Resource = NamedTuple("Resource", [("row", int), ("column", int)])
@@ -30,6 +33,8 @@ ScheduleAsResourceOccupations = NamedTuple(
         ("resource_occupations_per_agent_and_time_step", ResourceOccupationPerAgentAndTimeStep),
     ],
 )
+
+ScheduleAsResourceOccupationsAllScopes = NamedTuple("ScheduleAsResourceOccupations", [(scope, ScheduleAsResourceOccupations) for scope in all_scopes])
 
 TimeWindow = ResourceOccupation
 # list of time windows per resource sorted by lower bound; time windows may overlap!
@@ -156,3 +161,12 @@ def verify_schedule_as_resource_occupations(schedule_as_resource_occupations: Sc
     ):
         for ro in occupations:
             assert ro.interval.to_excl > ro.interval.from_incl
+
+
+def extract_resource_occupations_for_all_scopes(experiment_result: ExperimentResultsAnalysis) -> ScheduleAsResourceOccupationsAllScopes:
+    return ScheduleAsResourceOccupationsAllScopes(
+        **{
+            scope: extract_resource_occupations(schedule=experiment_result._asdict()[f"results_{scope}"].trainruns_dict, release_time=RELEASE_TIME)
+            for scope in all_scopes
+        }
+    )

@@ -10,17 +10,15 @@ import tqdm
 from flatland.core.grid.grid_utils import coordinate_to_position
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_time_resource_trajectories
-from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import extract_schedule_plotting
-from rsp.step_04_analysis.detailed_experiment_analysis.schedule_plotting import SchedulePlotting
+from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import extract_plotting_information
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import get_difference_in_time_space_trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import time_windows_as_resource_occupations_per_agent
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import Trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
-from rsp.transmission_chains.transmission_chains import distance_matrix_from_tranmission_chains
-from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
-from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_time_windows
 from rsp.transmission_chains.transmission_chains import TransmissionChain
+from rsp.transmission_chains.transmission_chains_time_windows import extract_transmission_chains_from_time_windows
 from rsp.utils.global_constants import RELEASE_TIME
+from rsp.utils.resource_occupation import extract_resource_occupations
 from rsp.utils.resource_occupation import extract_time_windows
 from rsp.utils.resource_occupation import LeftClosedInterval
 from rsp.utils.resource_occupation import ResourceOccupation
@@ -28,9 +26,13 @@ from rsp.utils.resource_occupation import SchedulingProblemInTimeWindows
 from rsp.utils.rsp_logger import rsp_logger
 
 _pp = pprint.PrettyPrinter(indent=4)
+# hop-on resource-occupations reaching at this depth (int key = depth)
+WAVE_PER_DEPTH = Dict[int, List[ResourceOccupation]]
+# waves reaching per agent (int key = agent_id)
+WAVE_PER_AGENT_AND_DEPTH = Dict[int, WAVE_PER_DEPTH]
 
 
-def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) -> Tuple[List[TransmissionChain], np.ndarray, np.ndarray, Dict[int, int]]:
+def compute_disturbance_propagation_graph(transmission_chains: List[TransmissionChain], number_of_trains: int) -> Tuple[np.ndarray, Dict[int, int]]:
     """Method to Compute the disturbance propagation in the schedule when there
     is no dispatching done. This method will return more changed agents than
     will actually change.
@@ -44,16 +46,10 @@ def compute_disturbance_propagation_graph(schedule_plotting: SchedulePlotting) -
     transmission_chains, distance_matrix, weights_matrix, minimal_depth
     """
 
-    # 1. compute the forward-only wave of the malfunction
-    transmission_chains = extract_transmission_chains_from_schedule(
-        malfunction=schedule_plotting.malfunction, occupations=schedule_plotting.schedule_as_resource_occupations
-    )
-
     # 2. non-symmetric distance matrix of primary, secondary etc. effects
-    number_of_trains = len(schedule_plotting.schedule_as_resource_occupations.sorted_resource_occupations_per_agent)
     distance_matrix, minimal_depth, _ = distance_matrix_from_tranmission_chains(number_of_trains=number_of_trains, transmission_chains=transmission_chains)
 
-    return transmission_chains, distance_matrix, minimal_depth
+    return distance_matrix, minimal_depth
 
 
 # TODO SIM-672 remove noqa
@@ -101,24 +97,29 @@ def plot_transmission_chains_time_window(
     -------
 
     """
-    schedule_plotting = extract_schedule_plotting(experiment_result=experiment_result)
-    online_unrestricted_resource_occupations_per_agent = schedule_plotting.online_unrestricted_as_resource_occupations.sorted_resource_occupations_per_agent
+    online_unrestricted_resource_occupations = extract_resource_occupations(
+        schedule=experiment_result.results_online_unrestricted.trainruns_dict, release_time=RELEASE_TIME
+    )
+    plotting_information = extract_plotting_information(
+        schedule_as_resource_occupations=online_unrestricted_resource_occupations,
+        grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
+        sorting_agent_id=experiment_result.malfunction.agent_id,
+    )
     num_agents = len(experiment_result.results_schedule.trainruns_dict.keys())
-    plotting_information = schedule_plotting.plotting_information
 
     prediction = extract_trajectories_from_transmission_chains_time_window(num_agents, plotting_information, transmission_chains_time_window)
     plot_time_resource_trajectories(
         trajectories=prediction,
         title="Time Window Prediction",
-        plotting_information=schedule_plotting.plotting_information,
-        malfunction=schedule_plotting.malfunction,
+        plotting_information=plotting_information,
+        malfunction=experiment_result.malfunction,
         output_folder=output_folder,
     )
 
     # TODO sanity check:
     trajectories_online_unrestricted_time_windows = trajectories_from_resource_occupations_per_agent(
         resource_occupations_schedule=time_windows_as_resource_occupations_per_agent(problem=experiment_result.problem_online_unrestricted),
-        plotting_information=schedule_plotting.plotting_information,
+        plotting_information=plotting_information,
     )
     sanity_false_positives, _ = get_difference_in_time_space_trajectories(
         base_trajectories=prediction, target_trajectories=trajectories_online_unrestricted_time_windows
@@ -126,8 +127,8 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=sanity_false_positives,
         title="Sanity false positives (in prediction, but not in re-schedule full time windows): should be empty",
-        plotting_information=schedule_plotting.plotting_information,
-        malfunction=schedule_plotting.malfunction,
+        plotting_information=plotting_information,
+        malfunction=experiment_result.malfunction,
         output_folder=output_folder,
     )
     sanity_false_negatives, _ = get_difference_in_time_space_trajectories(
@@ -136,13 +137,13 @@ def plot_transmission_chains_time_window(
     plot_time_resource_trajectories(
         trajectories=sanity_false_negatives,
         title="Sanity false negatives (not in prediction but in re-schedule full time windows): reduction by prediction - any?",
-        plotting_information=schedule_plotting.plotting_information,
-        malfunction=schedule_plotting.malfunction,
+        plotting_information=plotting_information,
+        malfunction=experiment_result.malfunction,
         output_folder=output_folder,
     )
     # Get trajectories for reschedule full
     trajectories_online_unrestricted: Trajectories = trajectories_from_resource_occupations_per_agent(
-        resource_occupations_schedule=online_unrestricted_resource_occupations_per_agent, plotting_information=plotting_information
+        resource_occupations_schedule=online_unrestricted_resource_occupations.sorted_resource_occupations_per_agent, plotting_information=plotting_information
     )
 
     # Plot difference with prediction
@@ -151,16 +152,16 @@ def plot_transmission_chains_time_window(
         trajectories=false_negatives,
         # TODO SIM-549 is there something wrong because release times are not contained in time windows?
         title="False negatives (in re-schedule full but not in prediction)",
-        plotting_information=schedule_plotting.plotting_information,
-        malfunction=schedule_plotting.malfunction,
+        plotting_information=plotting_information,
+        malfunction=experiment_result.malfunction,
         output_folder=output_folder,
     )
     false_positives, _ = get_difference_in_time_space_trajectories(base_trajectories=prediction, target_trajectories=trajectories_online_unrestricted)
     plot_time_resource_trajectories(
         trajectories=false_positives,
         title="False positives (in prediction but not in re-schedule full)",
-        plotting_information=schedule_plotting.plotting_information,
-        malfunction=schedule_plotting.malfunction,
+        plotting_information=plotting_information,
+        malfunction=experiment_result.malfunction,
         output_folder=output_folder,
     )
     # TODO SIM-549 damping: probabilistic delay propagation?
@@ -210,6 +211,56 @@ def extract_time_windows_and_transmission_chains(experiment_result: ExperimentRe
     )
     rsp_logger.info("end extract_transmission_chains_from_time_windows")
     return transmission_chains_time_window
+
+
+def distance_matrix_from_tranmission_chains(
+    number_of_trains: int, transmission_chains: List[TransmissionChain]
+) -> Tuple[np.ndarray, Dict[int, int], Dict[int, Dict[int, List[ResourceOccupation]]]]:
+    """
+
+    Parameters
+    ----------
+    number_of_trains
+    transmission_chains
+
+    Returns
+    -------
+    distance_matrix, minimal_depth, wave_fronts_reaching_other_agent
+
+    """
+
+    # non-symmetric distance_matrix: insert distance between two consecutive trains at a resource; if no direct encounter, distance is inf
+    distance_matrix = np.full(shape=(number_of_trains, number_of_trains), fill_value=np.inf)
+    distance_first_reaching = np.full(shape=(number_of_trains, number_of_trains), fill_value=np.inf)
+    # for each agent, wave_front reaching the other agent from malfunction agent
+    wave_reaching_other_agent: WAVE_PER_AGENT_AND_DEPTH = {agent_id: {} for agent_id in range(number_of_trains)}
+    # for each agent, minimum transmission length reaching the other agent from malfunction agent
+    minimal_depth: Dict[int, int] = {}
+    minimal_depth[transmission_chains[0][0].hop_off.agent_id] = 0
+    for transmission_chain in transmission_chains:
+        if len(transmission_chain) < 2:
+            # skip transmission chains consisting of only one leg (along the malfunction agent's path)
+            continue
+        from_ro = transmission_chain[-2].hop_off
+        to_ro = transmission_chain[-1].hop_on
+        hop_on_depth = len(transmission_chain) - 1
+        wave_reaching_other_agent[to_ro.agent_id].setdefault(hop_on_depth, []).append(to_ro)
+        minimal_depth.setdefault(to_ro.agent_id, hop_on_depth)
+        minimal_depth[to_ro.agent_id] = min(minimal_depth[to_ro.agent_id], hop_on_depth)
+
+        distance = to_ro.interval.from_incl - from_ro.interval.to_excl
+        from_agent_id = from_ro.agent_id
+        to_agent_id = to_ro.agent_id
+
+        distance_before = distance_matrix[from_agent_id, to_agent_id]
+
+        if distance_before > distance:
+            distance_matrix[from_agent_id, to_agent_id] = distance
+            distance_first_reaching[from_agent_id, to_agent_id] = to_ro.interval.from_incl
+        elif distance_before == distance:
+            distance_first_reaching[from_agent_id, to_agent_id] = min(distance_first_reaching[from_agent_id, to_agent_id], to_ro.interval.from_incl)
+
+    return distance_matrix, minimal_depth, wave_reaching_other_agent
 
 
 def plot_delay_propagation_graph(minimal_depth: dict, distance_matrix, changed_agents: dict, file_name: Optional[str] = None):  # noqa: C901
