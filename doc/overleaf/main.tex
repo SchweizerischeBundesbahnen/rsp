@@ -12,8 +12,8 @@
 \usepackage{float}
 \usepackage[framemethod=TikZ]{mdframed}
 \usepackage{footmisc}
-\usepackage{algorithm} 
-\usepackage{algpseudocode} 
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 \renewcommand{\algorithmicensure}{\textbf{Output:}}
 
@@ -46,19 +46,19 @@
 
 \maketitle
 
-\tableofcontents 
+\tableofcontents
 \newpage
-\begin{abstract} 
-In this paper, we describe our novel approach to tackle the Real-Time Re-Scheduling Problem for Large Railway Networks by a combination of techniques from operations research and machine learning. 
+\begin{abstract}
+In this paper, we describe our novel approach to tackle the Real-Time Re-Scheduling Problem for Large Railway Networks by a combination of techniques from operations research and machine learning.
 
-The Industry State of the Art is limited to resolve re-scheduling conflicts fully automatically only at narrowly defined geographical regions due to the exponential growth of computational time for combinatorial problems. Our aim is to improve the scalability of the optimization to larger regions by a new two-step approach: we aim to use the generalization capabilities of machine learning algorithms to reformulate any new problem instance to a smaller equivalent instance, which can be solved in a much shorter time span. 
+The Industry State of the Art is limited to resolve re-scheduling conflicts fully automatically only at narrowly defined geographical regions due to the exponential growth of computational time for combinatorial problems. Our aim is to improve the scalability of the optimization to larger regions by a new two-step approach: we aim to use the generalization capabilities of machine learning algorithms to reformulate any new problem instance to a smaller equivalent instance, which can be solved in a much shorter time span.
 This allows us to keep the rigor of the OR formulation while relying on compressed knowledge in machine learning algorithms to vastly increasing the size of solvable problem instances.
 Early investigations support this assumption by showing that large problem instances can be reduced to much smaller core problems even with the use of domain specific heuristics.
 Instead of decomposing large problems and then iteratively solving the global problem through coupling of subproblems, we aim at re-scoping the problem.
 
 We believe that our approach is even applicable to other transportation and logistic systems outside of railway networks.
 
-The goal of this paper is four-fold: 
+The goal of this paper is four-fold:
 \begin{description}
 \item[G0] report the problem scope reduction formulation in a formal way;
 \item[G1] motivate the approach empirically;
@@ -66,8 +66,8 @@ The goal of this paper is four-fold:
 \item[G3] report our first steps in tackling automated problem scope reduction;
 \item[G4] provide an extensible playground open-source implementation \url{https://github.com/SchweizerischeBundesbahnen/rsp} for further research into automated problem scope reduction.
 \end{description}
- We hope that this will draw the attention of both academic and industrial researchers to find other and better approaches and collaboration across Railway companies and from different research traditions. 
-\end{abstract} 
+ We hope that this will draw the attention of both academic and industrial researchers to find other and better approaches and collaboration across Railway companies and from different research traditions.
+\end{abstract}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -118,7 +118,7 @@ This situation is depicted in a schematic way in Figure~\ref{fig:introduction_co
 
  There are only a few so-called condensation areas \cite{caimi2009} (in bottleneck areas such as merging/approach areas in front of large stations or tunnels) that are operated through automatic systems. Between these dense areas, trains need to be able to compensate for temporal delays: if trains are reordered or rerouted, these decisions must be feasible in the neighboring areas.
 
-The following Figure~\ref{fig:introduction_operations} shows the re-scheduling control loop adapted from \cite{rcsbrochure,rcswhitepaper}. 
+The following Figure~\ref{fig:introduction_operations} shows the re-scheduling control loop adapted from \cite{rcsbrochure,rcswhitepaper}.
 %
 \begin{figure}[hbtp]
 	\centering
@@ -154,7 +154,7 @@ Therefore, in our RSP approach, we consider how not to take space-local decision
 \subsection{Research Approach: Core idea}\label{subec:coreidea}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Physical railway infrastructure is expensive in building and maintenance \cite{sr40programm}. 
+Physical railway infrastructure is expensive in building and maintenance \cite{sr40programm}.
 Therefore, the existing infrastructure capacity should be exploited as best as possible.
 As the number of trains operating increases and condensation areas increase in number and size, it will become increasingly difficult to compensate for decisions taken within condensation zones or to define restrictions that keep the effects on the neighboring compensation zones as predictable as possible.
 
@@ -209,7 +209,7 @@ We now give a short introduction to our playground implementation (G4) and its l
 {\bf TODO Erik} naming (Oracle -> scoper), figures
 \end{mdframed}
 
-We will now detail the general line of argument of Section~\ref{subec:coreidea} by introducing two hypotheses 
+We will now detail the general line of argument of Section~\ref{subec:coreidea} by introducing two hypotheses
 \begin{description}
 \item [H1] offline scoping: if we have access to an offline solution of the re-scheduling problem given unbounded resources, we can design a scope reduction that allows for a large speed-up (see below, Section~\ref{subec:H1}); by this, we achieve goal \textbf{G2}.
 \item [H2] online scoping: it is possible to design a scope reduction, either from the problem structure or from historic data (see below, Section~\ref{subec:H2}); by this, we would over-achieve goal \textbf{G3}.
@@ -235,7 +235,7 @@ We will consider the following scopings:
 \item[full after malfunction] this is the full offline solution where we consider the full situation after the malfunction; this excludes paths not reachable any more after the malfunction.
 \item[delta perfect] this is the almost perfect scoper which opens up only differences between the initial schedule and the full re-scheduling solution
 \begin{itemize}
-    \item only paths from either schedule or full after malfunction are allowed;     
+    \item only paths from either schedule or full after malfunction are allowed;
     \item if location and time is the same in schedule and full-reschedule, then we stay at them
 \end{itemize}
 In this case, the solution from full after malfunction is contained in the solution space, so we expect the same (or an equivalent solution modulo costs) to be found.
@@ -275,12 +275,12 @@ If we compare the initial schedule $S0$ and the re-schedule $S$, we can take the
 We will describe this in more detail below in Section~\ref{subsubsec:Delta0}.
 
 
-Now we want to see whether the OR solver $f$, given the perfect information coming through the red arrows, allows for a speed-up, i.e. whether the time $t\_{S^\prime}$  needed for the solver with the restriction is much smaller than the time $t\_S$ for the full problem without the restriction 
+Now we want to see whether the OR solver $f$, given the perfect information coming through the red arrows, allows for a speed-up, i.e. whether the time $t\_{S^\prime}$  needed for the solver with the restriction is much smaller than the time $t\_S$ for the full problem without the restriction
 
 The rationale of this hypothesis is non-general and asymmetric:
 %
 \begin{itemize}
-    \item 
+    \item
     \emph{non-general}: if we show the speed-up for one particular OR solver, this does not mean that the information can be exploited by every other OR solver for speed-up. However, we conjecture that general setup may be applicable to other OR solvers and models, where the exact content of the Oracle's "hint" passed to the solver might differ. We might strengthen this conjecture by comparing with
 \item
     \emph{asymmetric}: If we cannot show the speed-up for one particular solver, this does not exclude that the approach might work with a different OR solver and its particular shape of "perfect information". We might need to consider a different OR solver for our exposition.
@@ -333,7 +333,7 @@ We now give a more detailed view of the pipeline for hypothesis H1 with respect 
 the pipeline decomposes into five top-level stages:
 \begin{description}
 \item[Infrastructure Generation] This generates railway topologies and places agent start and targets in the infrastructure. We will cover this stage in detail in Section~\ref{subsubsec:infrastructuregeneration}
-\item[Schedule Generation] This generates the exact conflict-free paths and times through the infrastructure for all agents. We will cover this stage in detail in Sections~\ref{subsubsec:schedulegeneration}. 
+\item[Schedule Generation] This generates the exact conflict-free paths and times through the infrastructure for all agents. We will cover this stage in detail in Sections~\ref{subsubsec:schedulegeneration}.
 \item[Malfunction Generation] Which train is delayed when during its run and for how long?
 \item[Experiment Run] Here, the different scopers are run. We will cover these data structures and functional process steps in Sections~\ref{subsubsec:scheduleproblemdescription} and \ref{subec:scopers}.
 \item[Experiment Analysis] This stage produces the plots that help to verify hypothesis H1. We will give more details in Sections~\ref{sec:Results} and \ref{sec:CaseStudies}.
@@ -346,9 +346,9 @@ Since the schedule generation step takes too long to repeat for every experiment
 \subsection{Infrastructure Generation}\label{subsubsec:infrastructuregeneration}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-We now describe our railway infrastructure and how it is generated, mimicking a natural setup. 
+We now describe our railway infrastructure and how it is generated, mimicking a natural setup.
 
-The infrastructure consists of a grid of cells. Each cell consists of a distinct tile type which defines the movement possibilities of the agent through the cell. There are 8 basic tile types, which describe a rail network. As a general fact in railway network when on navigation choice must be taken at maximum two options are available. 
+The infrastructure consists of a grid of cells. Each cell consists of a distinct tile type which defines the movement possibilities of the agent through the cell. There are 8 basic tile types, which describe a rail network. As a general fact in railway network when on navigation choice must be taken at maximum two options are available.
 %
 Figure~\ref{fig:H1_railway_elements} (top) gives an overview of the eight basic types. These can be rotated in steps of $45^\circ$ and mirrored along the North--South of East--West axis. The bottom row shows the corresponding translation into a graph structure: squares represent cells, black dots represent an entry to pin to the depicted cell and a grey dot represents the pin in the opposite direction into the neighboring cell.
 %
@@ -375,7 +375,7 @@ furthermore, we require $(\mathcal{V},\mathcal{E})$ to be an acyclic graph.
 \end{mdframed}
 
 
-            
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{General Train Scheduling Problem}\label{subsubsec:scheduleproblemdescription}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -402,7 +402,7 @@ According to \cite{DBLP:journals/corr/abs-2003-08598},  the \emph{(general) trai
             \item $(S, L)$ is an acyclic subgraph of $(V, E)$,
             \item $e:S \to \mathbb{N}$ gives the earliest time a train may arrive at a node,
             \item $l:S\to \mathbb{N} \cup \left\{\infty\right\}$ gives the latest time a train may arrive at a node, and
-            \item $w:L\to \mathbb{N}$ is the time a train has to wait on an edge. 
+            \item $w:L\to \mathbb{N}$ is the time a train has to wait on an edge.
         \end{itemize}
         Note that all functions are total unless specified otherwise.
         \item $C$ contains connections requiring that a certain train line $a^\prime$ must not arrive at node $n^\prime$ before another train line $a $ has arrived at node $n$ for at least $\alpha$ and at most $\omega$ discrete time steps. More precisely, each connection in $C$ is of form $(t,(v, v^\prime), t^\prime,(u, u^\prime), \alpha, \omega, n, n^\prime)$ such that $a= (S, L, e, l, w)\in \mathcal{A}$ and $a^\prime= (S^\prime, L^\prime, e^\prime, l^\prime, w^\prime)\in \mathcal{A}$, $a\not=a^\prime$,$(v, v^\prime)\in L$,$(u, u^\prime)\in L^\prime$,$\left\{\alpha,\omega\right\} \subseteq \mathbb{Z} \cup \left\{\infty,-\infty\right\}$, and either $n=v$ or $n=v^\prime$, as well as, either $n^\prime=u$ or $n^\prime=u^\prime$.
@@ -415,7 +415,7 @@ In this setting, edges can be interpreted as time slices of a train run referrin
 
 
 We now define solutions:
-As above, the \emph{solution to a train scheduling problem} $(N, \mathcal{A}, C, F)$ is a pair $(P,A)$ consisting of 
+As above, the \emph{solution to a train scheduling problem} $(N, \mathcal{A}, C, F)$ is a pair $(P,A)$ consisting of
 \begin{enumerate}
     \item a function $P$ assigning to each train line the path it takes through the network, and
     \item an assignment $A$ of arrival times to each train line at each node on their path.
@@ -427,14 +427,14 @@ A path $P(a) = (v_1, . . . , v_n)$ for $a= (S, L, e, l, w)\in \mathcal{A}$ has t
 v_i \in S \textrm{ for }1\leq i \leq n \label{eq:ASP_1},
 \end{equation}
 \begin{equation}
-(v_j, v_{j+1})\in L \textrm{ for } 1\leq j \leq n-1 \label{eq:ASP_2} 
+(v_j, v_{j+1})\in L \textrm{ for } 1\leq j \leq n-1 \label{eq:ASP_2}
 \end{equation}
 \begin{equation}
-in(v_1) = 0 \textrm{ and } out(v_n) = 0,\label{eq:ASP_3} 
+in(v_1) = 0 \textrm{ and } out(v_n) = 0,\label{eq:ASP_3}
 \end{equation}
 where $in$ and $out$ give the in- and out-degree of a node in graph $(S, L)$, respectively.
 We will write $\tau(a,P)=v_n$ for the target node used by agent $a$ in the schedule $(P,A)$, and, similarly $\sigma(a,P)=v_1$ for the source node of agent $a$ in the schedule $(P,A)$.
-Intuitively, conditions (\ref{eq:ASP_1}) and (\ref{eq:ASP_2}) enforce paths to be connected and feasible for the train line in question and Condition (\ref{eq:ASP_3}) ensures that each path is between a possible start and end node.  
+Intuitively, conditions (\ref{eq:ASP_1}) and (\ref{eq:ASP_2}) enforce paths to be connected and feasible for the train line in question and Condition (\ref{eq:ASP_3}) ensures that each path is between a possible start and end node.
 An assignment $A$ is a partial function $\mathcal{A}\times V\to \mathbf{N}$, where $A(a, v)$ is undefined whenever$v\not\in P(a)$. In addition, given path function $P$, an assignment $A$ has to satisfy the conditions in (\ref{eq:ASP_4}) to (\ref{eq:ASP_8}):
 \begin{equation}
 A(a, v_i)\geq e(v_i)\label{eq:ASP_4}
@@ -474,11 +474,11 @@ A \emph{railway service intention} defines the commercial contract between railw
 We now show how a general train scheduling problem can be derived from such a railway service intention. Let $(\mathcal{A},\sigma,\tau,v,r)$ be a service intention in a railway infrastructure $(\mathcal{C}, \mathcal{V}, \mathpzc{c}, \mathcal{E})$.
 Then, $(N,\tilde{\mathcal{A}},C,F)$ with
 \begin{itemize}
-    \item $\tilde{\mathcal{A}}$ consists of a tuple $(S,L,e,l,w)$ for each $a \in \mathcal{A}$ where 
+    \item $\tilde{\mathcal{A}}$ consists of a tuple $(S,L,e,l,w)$ for each $a \in \mathcal{A}$ where
         \begin{itemize}
             \item $S=\left\{ v: v \in P_a\right\}$
             \item $L=\left\{ (v_1,v_2): (v_1,v_2) \in P_a\right\}$
-            \item $e(v)=\min_{p: \sigma(a)\textrm{--}v\textrm{ path}} \left|p\right| \cdot {v(a)}^{-1}$ 
+            \item $e(v)=\min_{p: \sigma(a)\textrm{--}v\textrm{ path}} \left|p\right| \cdot {v(a)}^{-1}$
             \item $l(v)=\max_{p: v\textrm{--}\tau(a)\textrm{ path}} U-\left|p\right| \cdot {v(a)}^{-1}$
             \item $w(e)={v(a)}^{-1}$\mbox{  }\footnote{This does not respect the intended semantics of the general model. Therefore, it would be better to use $S=\left\{ (v,a): v \in P_a\right\}$, $L=\left\{ ((v_1,a),(v_2,a)): (v_1,v_2) \in P_a\right\}$, $w(e)=0$ and $m(((v_1,a),(v_2,a)))={v(a)}^{-1}$.}.
         \end{itemize}
@@ -498,12 +498,12 @@ Then, $(N,\tilde{\mathcal{A}},C,F)$ with
 is a train scheduling problem. Some remarks on this transformation:
 \begin{itemize}
     \item We only have one resource per edge, i.e. we only reserve the train's own track, per cell.
-    \item The earliest and latest windows are designed such that they represent the earliest possible time the train can reach the vertex, respectively, the latest possible time the train must pass in order to be able to reach the target within the time limit. 
+    \item The earliest and latest windows are designed such that they represent the earliest possible time the train can reach the vertex, respectively, the latest possible time the train must pass in order to be able to reach the target within the time limit.
 \end{itemize}
 
 The time windows given by $e$ and $l$ can be computed by Algorithm~\ref{algo:propagate_earliest} and \ref{algo:propagate_latest}, respectively. They propagate the minimum running forward from an initial set of earliest and backwards from an initial set of latest constraints. An illustration can be found in Figures~\ref{fig:propagate_earliest} and \ref{fig:propagate_latest}, respectively.
 The time windows are thus given by
-$$e\leftarrow propagate\_earliest(\Set*{e(\sigma(a))=0}, (S,L), \Set*{\sigma(a)}, {v(a)}^{-1})$$ and $$l\leftarrow propagate\_latest(\Set*{e(\tau)=U: \tau \in S, out(\tau)=0}, (S,L), \Set*{\tau \in S: out(\tau)=0},{v(a)}^{-1}).$$ 
+$$e\leftarrow propagate\_earliest(\Set*{e(\sigma(a))=0}, (S,L), \Set*{\sigma(a)}, {v(a)}^{-1})$$ and $$l\leftarrow propagate\_latest(\Set*{e(\tau)=U: \tau \in S, out(\tau)=0}, (S,L), \Set*{\tau \in S: out(\tau)=0},{v(a)}^{-1}).$$
 Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 
 
@@ -526,7 +526,7 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
     		\EndFor
 			\State $Open \leftarrow Open - \Set*{v}$
 		\EndFor
-	\end{algorithmic} 
+	\end{algorithmic}
 \end{algorithm}
 
 \begin{figure}[hbtp]
@@ -553,7 +553,7 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
     		\EndFor
 			\State $Open \leftarrow Open - \Set*{v}$
 		\EndFor
-	\end{algorithmic} 
+	\end{algorithmic}
 \end{algorithm}
 
 
@@ -570,7 +570,7 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 
 For schedule generation, we use a different objective function than for re-scheduling, namely minimizing
 \begin{equation}
-\sum_{a \in \mathcal{A}, v,v^\prime \in P(a), in(v)=0, out(v^\prime)=0} A(a,v^\prime) - A(a,v)    
+\sum_{a \in \mathcal{A}, v,v^\prime \in P(a), in(v)=0, out(v^\prime)=0} A(a,v^\prime) - A(a,v)
 \end{equation}
 and restricting
 \begin{equation}
@@ -660,8 +660,8 @@ In order to keep the exposition simple and since this is also in the spirit of a
 
 
 We now describe the transformations $\Delta_0$ for a single train in Algorithm~\ref{algo:Delta0}:
-If the train is already done at the malfunction time step, it can be removed from the problem; 
-if the train has not started yet at the malfunction time step, we keep its start node fixed from $S0$ and do not start earlier than in $S0$ and use $propagate$ (described below) to derive the constraints. 
+If the train is already done at the malfunction time step, it can be removed from the problem;
+if the train has not started yet at the malfunction time step, we keep its start node fixed from $S0$ and do not start earlier than in $S0$ and use $propagate$ (described below) to derive the constraints.
 
 
 
@@ -684,7 +684,7 @@ if the train has not started yet at the malfunction time step, we keep its start
             \State $v_1 \leftarrow \argmin_{v\in S} A(v)$
             \State $e(v_1) \leftarrow A(v_1)$
             \For{$\tau \in S: out(\tau)=0$}
-                \State $l(\tau)=U$ 
+                \State $l(\tau)=U$
             \EndFor
             \State $F_v \leftarrow F_e \leftarrow \Set*{v_1}$
             \State $F_l \leftarrow \Set*{\tau \in S: out(\tau)=0}$
@@ -692,7 +692,7 @@ if the train has not started yet at the malfunction time step, we keep its start
         \Else
             \State $e,l,(S,L) \leftarrow Delta\_0\_running((S,L), (P,A), M, mrt, U, c)$
         \EndIf
-\end{algorithmic} 
+\end{algorithmic}
 \end{algorithm}
 
 
@@ -701,7 +701,7 @@ Before describing the third case of the malfunction happening while the train is
 \begin{algorithm}
 	\caption{$propagate$} \label{algo:propagate}
 	\begin{algorithmic}[1]
-	    \Require $e,l,(S,L),F_e,F_l,F_v,mrt,U,c$ 
+	    \Require $e,l,(S,L),F_e,F_l,F_v,mrt,U,c$
 	    \Ensure $e,l,(S,L)$
         \For{$v \in F_v$}
 		    \State $S \leftarrow \Set{v^\prime \in S: \textrm{there is a }v\textrm{--}v^\prime\textrm{ path or a }v^\prime\textrm{--}v\textrm{ path in }L}$
@@ -717,7 +717,7 @@ Before describing the third case of the malfunction happening while the train is
 	    \EndIf
 		\State $S \leftarrow \Set{v \in S: e(v) \leq l(v)}$, $L \leftarrow \Set*{(v,v^\prime) \in L: v,v^\prime \in S}$
 
-	\end{algorithmic} 
+	\end{algorithmic}
 \end{algorithm}
 
 
@@ -731,26 +731,26 @@ We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when t
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
 	    \Ensure $e,l,(S,L)$
 	    \State $(v_1,v_2) \leftarrow (v_1,v_2) \in L$ s.t. $A(v_1)\leq m_{time\_step}$ and $A(v_2)>m_{time\_step}$
-		\State $e(v_1)\leftarrow A(v_1)$, $l(v_1) \leftarrow A(v_1)$ 
+		\State $e(v_1)\leftarrow A(v_1)$, $l(v_1) \leftarrow A(v_1)$
         \If{$a$ corresponds to $m_{agent}$}
             \State $e_1(v_2) \leftarrow A(v_1)+mrt+m_{duration}$
         \Else
             \State $e_1(v_2) \leftarrow A(v_1)+mrt$
         \EndIf
         \State $F_e \leftarrow \Set*{v_1,v_2}$, $F_l \leftarrow \Set*{v_1} \cup \Set*{\tau \in S: out(\tau)=0}$
-	
+
 	    \For{$\tau \in S-\Set*{v_1}: out(\tau)=0$}
 	        \State $l(\tau) \leftarrow U$
 	    \EndFor
 		\State $e,l,(S,L) \leftarrow propagate(e,l,(S,L),F_e,F_l, \Set*{v_1,v_2}, mrt, U, c)$
-	\end{algorithmic} 
+	\end{algorithmic}
 \end{algorithm}
 
 
 
 
 
-        
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Re-scheduling (delta perfect after malfunction)}\label{subsubsec:Deltaperfect}
@@ -797,12 +797,12 @@ and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{
         \EndIf
         \EndIf
 	    \State $e,l,(S_1,L_1) \leftarrow propagate(e,l,(S_1,L_1),\Delta_A \cup \Set*{v_2}, \Delta_A, \Delta_P, mrt, U, c)$
-	\end{algorithmic} 
+	\end{algorithmic}
 \end{algorithm}
 
 \begin{mdframed}
 {\bf TODO Christian}
-Formalize Delta\_0/Delta\_perfect of the whole problem for all agents. 
+Formalize Delta\_0/Delta\_perfect of the whole problem for all agents.
 Proposition: "Delta\_perfect <= Delta\_0", i.e. every solution to Delta\_perfect is a solution to Delta\_0
 \end{mdframed}
 
@@ -841,7 +841,7 @@ Proposition: "Delta\_perfect <= Delta\_0", i.e. every solution to Delta\_perfect
 	        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
 	        \State $w \leftarrow w \vert_{L}$
 	    \EndFor
-	\end{algorithmic} 
+	\end{algorithmic}
 \end{algorithm}
 
 
@@ -861,7 +861,7 @@ Reduce the strictness of the oracle by freeing up all the variables of changed t
 	        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
 	        \State $w \leftarrow w \vert_{L}$
 	    \EndFor
-	\end{algorithmic} 
+	\end{algorithmic}
 \end{algorithm}
 
 
@@ -869,7 +869,7 @@ Reduce the strictness of the oracle by freeing up all the variables of changed t
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Random Online Re-scheduling (delta random after malfunction)}\label{subsubsec:Deltarandom}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
+
 \begin{mdframed}
 {\bf TODO Christian} a bit of introduction after all...
 
@@ -882,7 +882,7 @@ Reduce the strictness of the oracle by freeing up all the variables of changed t
 %     total_changed = wieviele Agenten haben im Online geändert?
 \end{mdframed}
 
-        
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Computational Results}\label{sec:Results}
@@ -916,7 +916,7 @@ This gives an agenda of 8640 experiments.
 The data is available in a dedicated git repository \url{https://github.com/SchweizerischeBundesbahnen/rsp-data}.
 %
 Infrastructure, schedule and the experiment results shown in this section are in
-\textrm{h1\_2020\_08\_24T21\_04\_42/h1\_2020\_08\_24T21\_04\_42\_baseline\_2020\_09\_17T17\_08\_13}; in these provisional results, only the first 803 experiments have been run. 
+\textrm{h1\_2020\_08\_24T21\_04\_42/h1\_2020\_08\_24T21\_04\_42\_baseline\_2020\_09\_17T17\_08\_13}; in these provisional results, only the first 803 experiments have been run.
 
 \begin{mdframed}
 {\bf TODO Christian} Run and upload full agenda, finalize
@@ -932,7 +932,7 @@ This filters out 25 experiments and leaves us with data from 778 experiments.
 
 
 \begin{figure}[hbtp]
-	
+
     \includegraphics[width=\textwidth]{Figures/agenda.PNG}
 	\caption{Hierarchical Agenda Structure.}
 	\label{fig:agenda}
@@ -961,7 +961,7 @@ With these preliminary results, do not see a clear separation between the scopes
 
 
 \begin{figure}[hbtp]
-	
+
     \includegraphics[width=\textwidth]{Figures/computation_times_per_times_total_full_after_malfunction.PNG}
         \includegraphics[width=\textwidth]{Figures/speedup.PNG}
 	\caption{Re-scheduling times and speed-up against full re-scheduling time. The speed-ups are grouped in 10 bins of equal size on the horizontal axis between min and max value.}
@@ -969,7 +969,7 @@ With these preliminary results, do not see a clear separation between the scopes
 \end{figure}
 
 \begin{mdframed}
-{\bf TODO Christian} visualize effective costs and ratio: delta perfect and delta naive should reach same costs 
+{\bf TODO Christian} visualize effective costs and ratio: delta perfect and delta naive should reach same costs
 \end{mdframed}
 
 \begin{figure}[hbtp]
@@ -1020,8 +1020,8 @@ With these preliminary results, do not see a clear separation between the scopes
         OR / heuristics (job insertion)
         decomposition approaches
         real-time rescheduling
-        
-\end{mdframed}        
+
+\end{mdframed}
 
 \bibliographystyle{unsrt}
 \bibliography{biblio}
@@ -1042,7 +1042,7 @@ Research Approach
 To tackle this problem, our approach is to combine Operations Research and Machine Learning to get the best of both worlds: a Graph Neural Network acts as an Oracle for Operations Research by learning a heuristic that predicts the "impact" of a delay; we hope the Oracle could predict which trains and which departures are or could be affected by the delay based on past decisions. This piece of information from the oracle then helps the (MILP or CP) solver to constrain the search space or at least drive its search more efficiently (driving the branching process). We hope that Graph Neural Networks are a natural way to represent the graph structure of railway networks.
 
 Our considerations are based on the Re-Scheduling Effects Model of Figure~\ref{fig:EffectsModel}:
-the Operational Schedule is based on being informed about delays and the schedule communicated to customers. Interventions may be redefine the allowed speeds per location or per train, the available routes, the connections to be kept or dropped and trains to be added or dropped. Interventions may be directly based on events happening in reality or based on the current network status aggregated from past events. 
+the Operational Schedule is based on being informed about delays and the schedule communicated to customers. Interventions may be redefine the allowed speeds per location or per train, the available routes, the connections to be kept or dropped and trains to be added or dropped. Interventions may be directly based on events happening in reality or based on the current network status aggregated from past events.
 %
 Events from reality are interpreted when lead to a difference to the Operational Schedule.
 %
@@ -1105,7 +1105,7 @@ Gridworld and Semantics. I'd like to formalize this. I think it would be worth t
 Our formulation is based on \cite{DBLP:conf/lpnmr/AbelsJOSTW19}, but we slightly modify it in order to make the equivalence of microscopic halting sections explicit in the mathematical formulation. We will need this explicit property in the definition the Re-Scheduling Problem.\footnote{TODO: consistency of connections is not enforced - do we need it?} The naming is based on \cite{crowdAISBB}.
 
 
-A \emph{Scheduling Problem} is a triple $(N,T,C)$ consisting of 
+A \emph{Scheduling Problem} is a triple $(N,T,C)$ consisting of
 \begin{itemize}
     \item a \emph{Railway Network} $N=(V,E,R,m,a,b)$ where
     \begin{itemize}
@@ -1114,13 +1114,13 @@ A \emph{Scheduling Problem} is a triple $(N,T,C)$ consisting of
         \item \emph{minimum travel times} per route section $m: E \to \NNN$
         \item \emph{resource allocations} on route sections $a: R \to 2^E$
         \item \emph{blocking or release times} per resource $R\to \NNN$
-        
+
     \end{itemize}
     \item \emph{trains} T of the form $T\ni t = (V^t,E^t,e^t, l^t,w^t)$ where
     \begin{itemize}
         \item \emph{route graph} $(V^t,E^t)$ is an acyclic sub-graph of $(V,E)$
         \item \emph{earliest passing time} of train $t$ at a vertex: $e^t: V^t \to \NNN$
-        \item \emph{latest passing time} of train $t$ at a vertex $l^t: V^t \to \NNN$ 
+        \item \emph{latest passing time} of train $t$ at a vertex $l^t: V^t \to \NNN$
         \item \emph{waiting times} of train $t$ on edge $w^t: E^t \to \NNN$
         \item a partition $W^t=\{W_1^t,\ldots,W_n^t\} \subseteq 2^{E^t}$ of equivalent microscopic edges such that every path  $p=(v_0,\ldots,v_k) \subseteq V^t$ for $(v_i,v_{i+1})\in E^t$ for $i=1,\ldots,n-1$ \footnote{We use the following notation: $(v_0,\ldots,v_n)\subseteq V^t$ denotes an ordered subset of elements of $V^t$. TODO: Should we formally introduced the set of paths in $V^t$, relating to $E^t$ to simplify notation?} such that $in(v_0)=0$ and $out(v_n)=0$ contains exactly one element of each partitioning element $W_i$, $i=1,...,n$ (i.e. there is exactly one edge $w(W_i^t)=(v_j,v_{j+1})\in E^t$ for $W_i^t \in W$ and  $v_j,v_{j+1}\in p$ and such that all $w(W_i^t)$ are different (i.e. $w$ is injective)).
     \end{itemize}
@@ -1129,7 +1129,7 @@ A \emph{Scheduling Problem} is a triple $(N,T,C)$ consisting of
 Note that $(V,E)$ needs not be connected, i.e. each train may have its own (disjoint) route sub-graph, which is linked to other trains' route graph only through shared resources in $R$, and the union of of all train-specific route graphs needs not cover $(V,E)$.
 Notice that the some consistency conditions of the real-world problem are not part of this formal definition, for instance we would have to ensure that every path can produce the commercial stops on different platform tracks.
 
-A solution $(P,A)$ of the Scheduling Problem consists of the 
+A solution $(P,A)$ of the Scheduling Problem consists of the
 \begin{itemize}
     \item the selected paths $P: T \to 2^V$ where $p(t)=(t_1,\ldots,t_n)\subseteq V^t$ (we use $\ell(p(t))=n$ for the length of the path) is an ordered set satisfying
         \begin{equation}
@@ -1172,14 +1172,14 @@ What we publish to customers needs not be as details and may not even be conflic
 Formally, given an Operational Schedule $(P,A)$,
 a \emph{Commercial or Published Schedule} captures the elements published to consumers\footnote{TODO: Should the connections be part of the Commercial Schedule as well?}. Formally,
 \begin{itemize}
-    \item $S(t,v)$ is the published schedule, partially defined for $v_{i+1} \in P(t)=(v_1,\ldots,v_n)$ where $w^t(v_i)>0$ and satisfying $S(t,v)\leq A(t,v)$ and $S(t,v_j) \leq S(t,v_k)$ for $j<k$ and $v_j,v_k \in P(t)$  
+    \item $S(t,v)$ is the published schedule, partially defined for $v_{i+1} \in P(t)=(v_1,\ldots,v_n)$ where $w^t(v_i)>0$ and satisfying $S(t,v)\leq A(t,v)$ and $S(t,v_j) \leq S(t,v_k)$ for $j<k$ and $v_j,v_k \in P(t)$
 \end{itemize}
 i.e. we allow for conflicts in the commercial schedule, but guarantee that we never depart earlier than published in $S$.
 
 
 
 \subsection{Re-Scheduling Problem}
-Given a 
+Given a
 \begin{itemize}
     \item Operational Schedule $(P,A)$,
     \item Commercial Schedule $S$
@@ -1187,7 +1187,7 @@ Given a
     \item operational interventions in the form of a scheduling problem $(N^*,T^*, C^*)$
     \item an event $A^\lightning(t^\lightning,v^\lightning)\geq H$, $A^\lightning(t,v)\not=A^(t,v)$, $A(t,v) \geq H$
 \end{itemize}
-The interpretation of $H$ is that we have received all information up to $H$, i.e. all times  $A(v,t) \leq H$ are fixed, i.e. they are already included included in our current operational schedule (either because they worked according to our initial plan or because we have already updated our current operational schedule). We require $A^\lightning(t,v) \geq H$; the interpretation is that $A^\lightning(t^t\lightning,v^\lightning)$ is a prognosis when train $t$ will pass at $v$ for $A(t,v)\geq H$. 
+The interpretation of $H$ is that we have received all information up to $H$, i.e. all times  $A(v,t) \leq H$ are fixed, i.e. they are already included included in our current operational schedule (either because they worked according to our initial plan or because we have already updated our current operational schedule). We require $A^\lightning(t,v) \geq H$; the interpretation is that $A^\lightning(t^t\lightning,v^\lightning)$ is a prognosis when train $t$ will pass at $v$ for $A(t,v)\geq H$.
 Examples:
 \begin{itemize}
     \item If $A^\lightning(t^\lightning,v^\lightning)=H$ and we know that we will be ready only later on at $A^\lightning(t^\lightning,v^\lightning)\not=A^(t^\lightning,v^\lightning)$, $A(t,v) \geq H$.
@@ -1195,7 +1195,7 @@ Examples:
 \end{itemize}
 A \emph{Re-Scheduling Oracle} is a pair $(F_1,F_2)$
 \begin{itemize}
-    \item $F_1\subseteq T^*$ and $\GG(t)=(\bar{V}^t,\bar{E}^t)$ is an acyclic connected sub-graph of $(V,E)$ for $t \in F_1$ 
+    \item $F_1\subseteq T^*$ and $\GG(t)=(\bar{V}^t,\bar{E}^t)$ is an acyclic connected sub-graph of $(V,E)$ for $t \in F_1$
     \item $F_2\subseteq T^*\times V$ where $(t,v)\in F_2 \implies A(t,v)\geq H, v\in P(t), t\not\in F_1$.
     \item  $T(F_2)\cap F_1 = \emptyset$ where $T(F_2) = \{ t: (t,v) \in F_2)$
 \end{itemize}
@@ -1221,9 +1221,9 @@ A Solution $(\bar{P},\bar{A})$ of the Re-Scheduling Problem is a solution to the
     \bar{A}(t,v^\prime) \geq S(t,v) \textrm { for all } S(t,v) \textrm{ and some } v^\prime \in W(_,v) \label{eq:respect_commercial_schedule}
 \end{equation}
 as well as equations (\ref{eq:path_consistency}),
-(\ref{eq:start_and_target_node}), 
-(\ref{eq:minimum_running_time_requirement}), 
-(\ref{eq:mutual_resource_allocation_requirement}), 
+(\ref{eq:start_and_target_node}),
+(\ref{eq:minimum_running_time_requirement}),
+(\ref{eq:mutual_resource_allocation_requirement}),
 (\ref{eq:connection_requirement}) above and minimizing
 \begin{equation}
     \sum_{(t,v) \in \dom(S)} \bar{A}(t,v) -S(t,v).
