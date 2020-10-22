@@ -3,7 +3,7 @@ import os
 from setuptools import find_packages
 from setuptools import setup
 
-with open('README.md') as readme_file:
+with open("README.md") as readme_file:
     readme = readme_file.read()
 
 
@@ -16,19 +16,19 @@ def get_all_files_in_directory(directory: str):
 
 
 setup(
-    name='rsp',
-    version='0.0.1',
-    url='git@github.com:SchweizerischeBundesbahnen/rsp.git',
-    author='Erik Nygren, Christian Eichenberger, Adrian Egli, Christian Baumberger',
-    author_email='author@gmail.com',
-    description='Description of my package',
+    name="rsp",
+    version="0.0.1",
+    url="git@github.com:SchweizerischeBundesbahnen/rsp.git",
+    author="Erik Nygren, Christian Eichenberger, Adrian Egli, Christian Baumberger",
+    author_email="author@gmail.com",
+    description="Description of my package",
     long_description=readme,
     long_description_content_type="text/markdown",
-    packages=find_packages(),
+    packages=find_packages(where="src/python"),
+    package_dir={"rsp": "src/python/rsp"},
     # TODO requirements see tox.ini
     install_requires=[],
     include_package_data=True,
-    data_files=[('res', get_all_files_in_directory('res')),
-                ('tests', get_all_files_in_directory('tests'))],
+    data_files=[("asp", get_all_files_in_directory("src/asp")), ("tests", get_all_files_in_directory("tests"))],
     zip_safe=False,
 )

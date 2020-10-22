@@ -73,7 +73,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
         # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
         conda env create --file rsp_environment.yml --force
         conda activate rsp
-        export PYTHONPATH=\$PWD:\$PWD/flatland_ckua:\$PYTHONPATH
+        export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
         echo PYTHONPATH=\$PYTHONPATH
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
         pre-commit install
@@ -81,9 +81,9 @@ curl --insecure -v --request POST -H "Authorization: token ${
         # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
         python -m pytest tests/01_unit_tests
         python -m pytest tests/02_regression_tests
-        python -m pytest tests/03_integration_tests
-        python -m pydeps rsp  --show-cycles -o rsp_cycles.png -T png --noshow
-        python -m pydeps rsp --cluster -o rsp_pydeps.png -T png --noshow
+        python -m pytest tests/03_pipeline_tests
+        python -m pydeps src/python/rsp  --show-cycles -o rsp_cycles.png -T png --noshow
+        python -m pydeps src/python/rsp --cluster -o rsp_pydeps.png -T png --noshow
     """
                         }
                 )

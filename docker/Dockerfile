@@ -1,6 +1,6 @@
 FROM docker.bin.sbb.ch/dskit/jupyter-base:0.24.0
 LABEL author="Christian Eichenberger <u214892@sbb.ch>"
-LABEL description="rsp impage for integration test and jupyter workspace"
+LABEL description="src.python.rsp impage for integration test and jupyter workspace"
 
 USER root
 
@@ -12,7 +12,7 @@ RUN set -e && \
     apt-get -y upgrade && \
     # install dependencies for FLATland visualization: https://gitlab.aicrowd.com/flatland/flatland/blob/master/.gitlab-ci.yml
     apt-get -y install  libgl1-mesa-glx xvfb xdg-utils libcairo2-dev libjpeg-dev libgif-dev && \
-    # install ffmpeg for rsp conversion
+    # install ffmpeg for src.python.rsp conversion
     apt-get -y install ffmpeg && \
     # install requirements for plotly/orca, see https://github.com/plotly/orca/blob/3.3-release/deployment/Dockerfile
     apt-get -y install libgtk-3-0 libgconf-2-4 libnss3 && \
