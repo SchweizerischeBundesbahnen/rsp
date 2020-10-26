@@ -16,7 +16,7 @@ conda activate rsp
 export PYTHONPATH=$PWD/src/python:$PWD/src/asp:$PYTHONPATH
 
 # run pipeline
-python src/python/rsp/hypothesis_one_experiments.py
+python src/python/rsp/hypothesis_one_experiments_potassco.py
 
 # ..... do some development....
 
