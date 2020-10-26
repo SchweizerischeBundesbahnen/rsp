@@ -24,6 +24,7 @@ from flatland.core.grid.grid_utils import position_to_coordinate
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
+from rsp.scheduling.scheduling_problem import path_stats
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import ScheduleProblemEnum
@@ -836,11 +837,4 @@ def print_path_stats(experiment_results: ExperimentResultsAnalysis):
     for scope in all_scopes:
         problem: ScheduleProblemDescription = experiment_results._asdict()[f"problem_{scope}"]
         nb_paths = [len(get_paths_in_route_dag(topo)) for _, topo in problem.topo_dict.items()]
-        print(
-            f"{scope}: min={min(nb_paths)}, "
-            f" max={max(nb_paths)}, "
-            f"avg={np.mean(nb_paths)}, "
-            f"median={np.median(nb_paths)}, "
-            f"q70={np.quantile(nb_paths, 0.7)}, "
-            f"q90={np.quantile(nb_paths, 0.9)}"
-        )
+        print(f"{scope}: " + path_stats(nb_paths))
