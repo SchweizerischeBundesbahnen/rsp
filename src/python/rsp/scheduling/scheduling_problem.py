@@ -8,6 +8,7 @@ from typing import NamedTuple
 from typing import Tuple
 
 import networkx as nx
+import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.utils.rsp_logger import rsp_logger
@@ -108,6 +109,17 @@ def get_sinks_for_topo(topo: nx.DiGraph) -> Iterator[Waypoint]:
 def get_sources_for_topo(topo: nx.DiGraph) -> Iterator[Waypoint]:
     sources = (node for node, in_degree in topo.in_degree if in_degree == 0)
     return sources
+
+
+def path_stats(nb_paths: List[int]) -> str:
+    return (
+        f"min={min(nb_paths)}, "
+        f"max={max(nb_paths)}, "
+        f"avg={np.mean(nb_paths)}, "
+        f"median={np.median(nb_paths)}, "
+        f"q70={np.quantile(nb_paths, 0.7)}, "
+        f"q90={np.quantile(nb_paths, 0.9)}"
+    )
 
 
 def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:

@@ -56,6 +56,7 @@ from rsp.scheduling.schedule import Schedule
 from rsp.scheduling.scheduling_problem import _get_topology_from_agents_path_dict
 from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
 from rsp.scheduling.scheduling_problem import get_sources_for_topo
+from rsp.scheduling.scheduling_problem import path_stats
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
@@ -77,7 +78,7 @@ from rsp.step_03_run.experiment_results_analysis import expand_experiment_result
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
-from rsp.step_03_run.scopers.scoper_online_fully_restricted import scoper_online_fully_restricted_for_all_agents
+from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_random import scoper_online_random_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_route_restricted import scoper_online_route_restricted_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_transmission_chains import scoper_online_transmission_chains_for_all_agents
@@ -249,29 +250,34 @@ def run_experiment_in_memory(
     # A.2 Determine malfunction (deterministically from experiment parameters)
     # --------------------------------------------------------------------------------------
     experiment_malfunction = gen_malfunction(
-        earliest_malfunction=experiment_parameters.earliest_malfunction,
-        malfunction_duration=experiment_parameters.malfunction_duration,
-        malfunction_agent_id=experiment_parameters.malfunction_agent_id,
+        earliest_malfunction=experiment_parameters.re_schedule_parameters.earliest_malfunction,
+        malfunction_duration=experiment_parameters.re_schedule_parameters.malfunction_duration,
+        malfunction_agent_id=experiment_parameters.re_schedule_parameters.malfunction_agent_id,
         schedule_trainruns=schedule.schedule_experiment_result.trainruns_dict,
     )
     malfunction_agent_trainrun = schedule_trainruns[experiment_malfunction.agent_id]
     rsp_logger.info(f"{experiment_malfunction} for scheduled start {malfunction_agent_trainrun[0]} and arrival {malfunction_agent_trainrun[-1]}")
+
+    rescheduling_topo_dict = _make_restricted_topo(
+        infrastructure_topo_dict=infrastructure_topo_dict,
+        number_of_shortest_paths=experiment_parameters.re_schedule_parameters.number_of_shortest_paths_per_agent,
+    )
 
     # --------------------------------------------------------------------------------------
     # B.1. Re-schedule Full
     # --------------------------------------------------------------------------------------
     rsp_logger.info("2. reschedule full")
     # clone topos since propagation will modify them
-    online_unrestricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    online_unrestricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
     problem_online_unrestricted: ScheduleProblemDescription = scoper_online_unrestricted_for_all_agents(
         malfunction=experiment_malfunction,
         schedule_trainruns=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
         topo_dict_=online_unrestricted_topo_dict,
-        weight_route_change=experiment_parameters.weight_route_change,
-        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
     )
 
     results_online_unrestricted = asp_reschedule_wrapper(
@@ -291,7 +297,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3a. reschedule delta perfect (lower bound)")
     # clone topos since propagation will modify them
-    offline_delta_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    offline_delta_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
     problem_offline_delta = scoper_offline_delta_for_all_agents(
         online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         malfunction=experiment_malfunction,
@@ -299,9 +305,9 @@ def run_experiment_in_memory(
         offline_delta_topo_dict_=offline_delta_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        weight_route_change=experiment_parameters.weight_route_change,
-        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
     )
 
     results_offline_delta = asp_reschedule_wrapper(
@@ -316,21 +322,21 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3b. reschedule delta trivially_perfect (lower bound)")
     # clone topos since propagation will modify them
-    delta_trivially_perfect_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
-    problem_online_fully_restricted = scoper_online_fully_restricted_for_all_agents(
+    delta_trivially_perfect_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
+    problem_offline_fully_restricted = scoper_offline_fully_restricted_for_all_agents(
         online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         malfunction=experiment_malfunction,
         max_episode_steps=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
-        online_fully_restricted_topo_dict_=delta_trivially_perfect_reschedule_topo_dict,
+        offline_fully_restricted_topo_dict_=delta_trivially_perfect_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        weight_route_change=experiment_parameters.weight_route_change,
-        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
     )
 
-    results_online_fully_restricted = asp_reschedule_wrapper(
-        reschedule_problem_description=problem_online_fully_restricted,
+    results_offline_fully_restricted = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_offline_fully_restricted,
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
@@ -341,7 +347,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("4. reschedule no rerouting")
     # clone topos since propagation will modify them
-    delta_no_rerouting_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    delta_no_rerouting_reschedule_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
     problem_online_route_restricted = scoper_online_route_restricted_for_all_agents(
         online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         online_unrestricted_problem=problem_online_unrestricted,
@@ -351,9 +357,9 @@ def run_experiment_in_memory(
         topo_dict_=delta_no_rerouting_reschedule_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        weight_route_change=experiment_parameters.weight_route_change,
-        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
     )
 
     results_online_route_restricted = asp_reschedule_wrapper(
@@ -367,7 +373,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("5a. reschedule delta online transmission chains: upper bound")
     # clone topos since propagation will modify them
-    online_transmission_chains_fully_restricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    online_transmission_chains_fully_restricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
     (
         problem_online_transmission_chains_fully_restricted,
         predicted_changed_agents_online_transmission_chains_fully_restricted_predicted,
@@ -380,9 +386,9 @@ def run_experiment_in_memory(
         delta_online_topo_dict_to_=online_transmission_chains_fully_restricted_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        weight_route_change=experiment_parameters.weight_route_change,
-        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
         time_flexibility=False,
     )
 
@@ -398,7 +404,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("5b. reschedule delta online_no_time_flexibility transmission chains: upper bound")
     # clone topos since propagation will modify them
-    online_transmission_chains_route_restricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    online_transmission_chains_route_restricted_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
     (
         problem_online_transmission_chains_route_restricted,
         predicted_changed_agents_online_transmission_chains_route_restricted_predicted,
@@ -411,9 +417,9 @@ def run_experiment_in_memory(
         delta_online_topo_dict_to_=online_transmission_chains_route_restricted_topo_dict,
         schedule_trainrun_dict=schedule_trainruns,
         minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
-        max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-        weight_route_change=experiment_parameters.weight_route_change,
-        weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
         time_flexibility=True,
     )
 
@@ -432,7 +438,7 @@ def run_experiment_in_memory(
     randoms = []
     for _ in range(GLOBAL_CONSTANTS.NB_RANDOM):
         # clone topos since propagation will modify them
-        online_random_topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+        online_random_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
         problem_online_random, predicted_changed_agents_online_random = scoper_online_random_for_all_agents(
             online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
             online_unrestricted_problem=problem_online_unrestricted,
@@ -444,9 +450,9 @@ def run_experiment_in_memory(
             schedule_trainrun_dict=schedule_trainruns,
             minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
             # TODO document? will it be visible in ground times?
-            max_window_size_from_earliest=experiment_parameters.max_window_size_from_earliest,
-            weight_route_change=experiment_parameters.weight_route_change,
-            weight_lateness_seconds=experiment_parameters.weight_lateness_seconds,
+            max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+            weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+            weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
             changed_running_agents_online=len(predicted_changed_agents_online_transmission_chains_fully_restricted_predicted),
         )
         results_online_random = asp_reschedule_wrapper(
@@ -467,14 +473,14 @@ def run_experiment_in_memory(
         problem_schedule=schedule_problem,
         problem_online_unrestricted=problem_online_unrestricted,
         problem_offline_delta=problem_offline_delta,
-        problem_online_fully_restricted=problem_online_fully_restricted,
+        problem_offline_fully_restricted=problem_offline_fully_restricted,
         problem_online_route_restricted=problem_online_route_restricted,
         problem_online_transmission_chains_fully_restricted=problem_online_transmission_chains_fully_restricted,
         problem_online_transmission_chains_route_restricted=problem_online_transmission_chains_route_restricted,
         results_schedule=schedule_result,
         results_online_unrestricted=results_online_unrestricted,
         results_offline_delta=results_offline_delta,
-        results_online_fully_restricted=results_online_fully_restricted,
+        results_offline_fully_restricted=results_offline_fully_restricted,
         results_online_route_restricted=results_online_route_restricted,
         results_online_transmission_chains_fully_restricted=results_online_transmission_chains_fully_restricted,
         results_online_transmission_chains_route_restricted=results_online_transmission_chains_route_restricted,
@@ -486,6 +492,24 @@ def run_experiment_in_memory(
     )
     rsp_logger.info(f"done re-schedule full and delta naive/perfect for experiment {experiment_parameters.experiment_id}")
     return current_results
+
+
+def _make_restricted_topo(infrastructure_topo_dict: TopoDict, number_of_shortest_paths: int):
+    topo_dict = {agent_id: topo.copy() for agent_id, topo in infrastructure_topo_dict.items()}
+    nb_paths_before = []
+    nb_paths_after = []
+    for _, topo in topo_dict.items():
+        paths = get_paths_in_route_dag(topo)
+        nodes_to_keep = [node for path in paths[:number_of_shortest_paths] for node in path]
+        nodes_to_remove = {node for node in topo.nodes if node not in nodes_to_keep}
+        topo.remove_nodes_from(nodes_to_remove)
+        nb_paths_before.append(len(paths))
+        nb_paths_after.append(len(get_paths_in_route_dag(topo)))
+    rsp_logger.info(
+        f"make restricted topo for re-scheduling with number_of_shortest_paths{number_of_shortest_paths}: "
+        f"{path_stats(nb_paths_before)} -> {path_stats(nb_paths_after)}"
+    )
+    return topo_dict
 
 
 def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: int):
@@ -884,12 +908,16 @@ def create_experiment_agenda_from_parameter_ranges_and_speed_data(
                 schedule_parameters=ScheduleParameters(
                     infra_id=grid_id, schedule_id=grid_id, asp_seed_value=parameter_set[9], number_of_shortest_paths_per_agent_schedule=1
                 ),
-                earliest_malfunction=parameter_set[5],
-                malfunction_duration=parameter_set[6],
-                malfunction_agent_id=0,
-                weight_route_change=parameter_set[10],
-                weight_lateness_seconds=parameter_set[11],
-                max_window_size_from_earliest=parameter_set[8],
+                re_schedule_parameters=ReScheduleParameters(
+                    earliest_malfunction=parameter_set[5],
+                    malfunction_duration=parameter_set[6],
+                    malfunction_agent_id=0,
+                    weight_route_change=parameter_set[10],
+                    weight_lateness_seconds=parameter_set[11],
+                    max_window_size_from_earliest=parameter_set[8],
+                    number_of_shortest_paths_per_agent=10,
+                    asp_seed_value=94,
+                ),
             )
 
             experiment_list.append(current_experiment)
@@ -997,12 +1025,7 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
                             infra_parameters=infra_parameters,
                             grid_id=grid_id,
                             infra_id_schedule_id=infra_id_schedule_id,
-                            earliest_malfunction=re_schedule_parameters.earliest_malfunction,
-                            malfunction_duration=re_schedule_parameters.malfunction_duration,
-                            malfunction_agent_id=re_schedule_parameters.malfunction_agent_id,
-                            weight_route_change=re_schedule_parameters.weight_route_change,
-                            weight_lateness_seconds=re_schedule_parameters.weight_lateness_seconds,
-                            max_window_size_from_earliest=re_schedule_parameters.max_window_size_from_earliest,
+                            re_schedule_parameters=re_schedule_parameters,
                         )
                     )
                     experiment_id += 1

@@ -87,7 +87,7 @@ ReScheduleParametersRange = NamedTuple(
         ("earliest_malfunction", List[int]),
         # 6: malfunction_duration
         ("malfunction_duration", List[int]),
-        #
+        # 7:
         ("malfunction_agent_id", List[int]),
         # rescheduling
         # 7: number_of_shortest_paths_per_agent
@@ -134,12 +134,7 @@ ExperimentParameters = NamedTuple(
         ("infra_id_schedule_id", int),
         ("infra_parameters", InfrastructureParameters),
         ("schedule_parameters", ScheduleParameters),
-        ("earliest_malfunction", int),
-        ("malfunction_duration", int),
-        ("malfunction_agent_id", int),
-        ("weight_route_change", int),
-        ("weight_lateness_seconds", int),
-        ("max_window_size_from_earliest", int),
+        ("re_schedule_parameters", ReScheduleParameters),
     ],
 )
 

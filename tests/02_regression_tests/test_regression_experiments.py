@@ -8,6 +8,7 @@ from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentPara
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRanges
 from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
+from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
@@ -208,12 +209,16 @@ def test_created_env_tuple():
             number_of_shortest_paths_per_agent=10,
         ),
         schedule_parameters=ScheduleParameters(infra_id=0, schedule_id=0, asp_seed_value=94, number_of_shortest_paths_per_agent_schedule=1),
-        earliest_malfunction=10,
-        malfunction_duration=20,
-        malfunction_agent_id=0,
-        weight_route_change=1,
-        weight_lateness_seconds=1,
-        max_window_size_from_earliest=np.inf,
+        re_schedule_parameters=ReScheduleParameters(
+            earliest_malfunction=10,
+            malfunction_duration=20,
+            malfunction_agent_id=0,
+            weight_route_change=1,
+            weight_lateness_seconds=1,
+            max_window_size_from_earliest=np.inf,
+            number_of_shortest_paths_per_agent=10,
+            asp_seed_value=94,
+        ),
     )
 
     # Generate the tuple of environments
@@ -254,12 +259,16 @@ def test_regression_experiment_agenda():
                     number_of_shortest_paths_per_agent=10,
                 ),
                 schedule_parameters=ScheduleParameters(infra_id=0, schedule_id=0, asp_seed_value=94, number_of_shortest_paths_per_agent_schedule=1),
-                earliest_malfunction=20,
-                malfunction_duration=20,
-                malfunction_agent_id=0,
-                weight_route_change=1,
-                weight_lateness_seconds=1,
-                max_window_size_from_earliest=np.inf,
+                re_schedule_parameters=ReScheduleParameters(
+                    earliest_malfunction=20,
+                    malfunction_duration=20,
+                    malfunction_agent_id=0,
+                    weight_route_change=1,
+                    weight_lateness_seconds=1,
+                    max_window_size_from_earliest=np.inf,
+                    number_of_shortest_paths_per_agent=10,
+                    asp_seed_value=94,
+                ),
             )
         ],
     )
@@ -392,20 +401,31 @@ def test_run_alpha_beta(regen_schedule: bool = False):
             number_of_shortest_paths_per_agent=10,
         ),
         schedule_parameters=ScheduleParameters(infra_id=0, schedule_id=0, asp_seed_value=94, number_of_shortest_paths_per_agent_schedule=1),
-        earliest_malfunction=20,
-        malfunction_duration=20,
-        malfunction_agent_id=0,
-        weight_route_change=20,
-        weight_lateness_seconds=1,
-        max_window_size_from_earliest=np.inf,
+        re_schedule_parameters=ReScheduleParameters(
+            earliest_malfunction=20,
+            malfunction_duration=20,
+            malfunction_agent_id=0,
+            weight_route_change=20,
+            weight_lateness_seconds=1,
+            max_window_size_from_earliest=np.inf,
+            number_of_shortest_paths_per_agent=10,
+            asp_seed_value=94,
+        ),
     )
     scale = 5
     experiment_parameters_scaled = ExperimentParameters(
         **dict(
             experiment_parameters._asdict(),
             **{
-                "weight_route_change": experiment_parameters.weight_route_change * scale,
-                "weight_lateness_seconds": experiment_parameters.weight_lateness_seconds * scale,
+                "re_schedule_parameters": ReScheduleParameters(
+                    **dict(
+                        experiment_parameters.re_schedule_parameters._asdict(),
+                        **{
+                            "weight_route_change": experiment_parameters.re_schedule_parameters.weight_route_change * scale,
+                            "weight_lateness_seconds": experiment_parameters.re_schedule_parameters.weight_lateness_seconds * scale,
+                        },
+                    )
+                )
             },
         )
     )

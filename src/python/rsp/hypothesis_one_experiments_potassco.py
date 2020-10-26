@@ -24,7 +24,7 @@ def run_potassco_agenda(
         malfunction_duration=[50, 50, 1],
         # take all agents (200 is larger than largest number of agents)
         malfunction_agent_id=[0, 200, 200],
-        number_of_shortest_paths_per_agent=[10, 10, 1],
+        number_of_shortest_paths_per_agent=[3, 3, 1],
         max_window_size_from_earliest=[60, 60, 1],
         asp_seed_value=[99, 99, 1],
         # route change is penalized the same as 30 seconds delay
@@ -140,7 +140,7 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
 
 
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
-    return experiment.malfunction_agent_id < 10 and experiment.experiment_id == 0
+    return experiment.re_schedule_parameters.malfunction_agent_id < 10 and experiment.experiment_id >= 2000
 
 
 if __name__ == "__main__":
