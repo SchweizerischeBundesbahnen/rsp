@@ -260,7 +260,7 @@ def costs_ratio_from_results(
     # TODO SIM-324 pull out verification
     assert costs_other_reschedule >= experiment_results.malfunction.malfunction_duration
     try:
-        return (costs_online_unrestricted / costs_other_reschedule,)
+        return costs_online_unrestricted / costs_other_reschedule
     except ZeroDivisionError as e:
         rsp_logger.error(f"{costs_online_unrestricted} / {costs_other_reschedule}")
         raise e
@@ -439,11 +439,15 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
 
 
 def filter_experiment_results_analysis_data_frame(
-    experiment_data: pd.DataFrame, min_time_online_unrestricted: int = 10, max_time_online_unrestricted_q: float = 0.97
+    experiment_data: pd.DataFrame,
+    min_time_online_unrestricted: int = 20,
+    max_time_online_unrestricted_q: float = 0.97,
+    max_time_online_unrestricted: int = np.inf,
 ) -> pd.DataFrame:
     time_online_unrestricted = experiment_data["solver_statistics_times_total_online_unrestricted"]
     return experiment_data[
-        (time_online_unrestricted > min_time_online_unrestricted)
+        (time_online_unrestricted >= min_time_online_unrestricted)
+        & (time_online_unrestricted <= max_time_online_unrestricted)
         & (time_online_unrestricted <= time_online_unrestricted.quantile(max_time_online_unrestricted_q))
     ]
 

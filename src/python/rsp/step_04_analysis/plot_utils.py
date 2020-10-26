@@ -310,9 +310,10 @@ def plot_binned_box_plot(
 
     """
     fig = go.Figure()
-
-    min_value = experiment_data[axis_of_interest].min()
-    max_value = experiment_data[axis_of_interest].max()
+    # epsilon ensures that first/last bin not only contains min_value/max_value
+    epsilon = 0.00001
+    min_value = experiment_data[axis_of_interest].min() - epsilon
+    max_value = experiment_data[axis_of_interest].max() + epsilon
     inc = (max_value - min_value) / nb_bins
     axis_of_interest_binned = axis_of_interest + "_binned"
     experiment_data.sort_values(by=axis_of_interest, inplace=True)
@@ -322,7 +323,7 @@ def plot_binned_box_plot(
         experiment_data[axis_of_interest_binned] = (
             experiment_data[axis_of_interest]
             .astype(float)
-            .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(((fl - min_value) // inc) + 1) * inc + min_value :.2f}]")
+            .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
         )
 
     for col_index, col in enumerate(cols):
@@ -356,6 +357,13 @@ def plot_binned_box_plot(
                 marker_color=Plotly[(col_index + 2) % len(Plotly)],
             )
         )
+    if binned:
+        fig.add_trace(
+            go.Histogram(
+                x=experiment_data[axis_of_interest_binned if binned else axis_of_interest].values,
+                name=f"counts({axis_of_interest_binned if binned else axis_of_interest})",
+            )
+        )
 
     fig.update_layout(title_text=f"{y_axis_title} per {axis_of_interest}")
     fig.update_layout(boxmode="group")
@@ -368,3 +376,5 @@ def plot_binned_box_plot(
         pdf_file = os.path.join(output_folder, f"{axis_of_interest}__speed_up.pdf")
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file)
+    if binned:
+        del experiment_data[axis_of_interest_binned]
