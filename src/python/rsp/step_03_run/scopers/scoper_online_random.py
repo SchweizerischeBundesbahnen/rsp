@@ -67,7 +67,7 @@ def scoper_online_random_for_all_agents(
     ]
     assert malfunction.agent_id in agents_running_after_malfunction
 
-    changed_agents = np.random.choice(agents_running_after_malfunction, changed_running_agents_online)
+    changed_agents = np.random.choice(agents_running_after_malfunction, changed_running_agents_online, replace=False)
 
     for agent_id in schedule_trainrun_dict.keys():
         earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
