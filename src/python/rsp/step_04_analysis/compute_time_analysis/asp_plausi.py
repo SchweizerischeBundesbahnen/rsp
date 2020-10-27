@@ -94,6 +94,18 @@ def visualize_asp_solver_stats(experiment_data: pd.DataFrame, output_folder: Opt
         output_folder=output_folder,
         file_name_prefix="002",
     )
+    plot_box_plot(
+        experiment_data=experiment_data,
+        axis_of_interest="solver_statistics_times_total_online_unrestricted",
+        columns_of_interest=[f"solver_statistics_times_total_" + item for item in suffixes]
+        + [f"solver_statistics_times_total_without_solve_" + item for item in suffixes]
+        + [f"solver_statistics_times_solve_" + item for item in suffixes]
+        + [f"solver_statistics_times_unsat_" + item for item in suffixes]
+        + [f"solver_statistics_times_sat_" + item for item in suffixes],
+        title=f"asp absolute total solver times:\n" f" solver should spend most of the time solving: comparison total_time time and solve_time ",
+        output_folder=output_folder,
+        file_name_prefix="002",
+    )
     # 004_ratio_asp_solve_propagation: propagation times should be low in comparison to solve times
     plot_box_plot(
         experiment_data=experiment_data,

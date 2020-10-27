@@ -16,7 +16,7 @@
 \usepackage{algpseudocode}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
 \renewcommand{\algorithmicensure}{\textbf{Output:}}
-
+\usepackage{subcaption}
 
 \DeclareFontFamily{OT1}{pzc}{}
 \DeclareFontShape{OT1}{pzc}{m}{it}{<-> s * [1.10] pzcmi7t}{}
@@ -87,36 +87,7 @@ The operational schedule has to be continually re-computed due to many smaller a
 \begin{mdframed}
 {\bf TODO Erik} needs citation?
 \end{mdframed}
-can be fully resolved by the rail control system, some larger disturbances require human or more advanced algorithmic interception. To limit the spread of disturbances and minimize the delay within the dynamic railway system, decisions on re-ordering or re-routing trains have to be taken to derive a new feasible operational plan. The industry state of the art systems efficiently re-compute a traffic forecast for the next two hours without resolving the conflicts. The predicted conflicts, mostly have to be resolved by humans by explicitly deciding on re-ordering or re-routing based on their experience. The massive combinatorial complexity of these microscopic re-scheduling problems currently limits the application of Operations Research models to very restricted geographic areas with a limited number of trains in the given forecast horizon.
-
-State-of-the-art industrial IT systems for dispatchers offer a common view of the current situation within system boundaries; the whole system is decomposed into disjoint geographic cells of responsibility as depicted in Figure \ref{fig:geographical_decomposition}. Most of them are handled by humans: human dispatchers have a view of the full system and can communicate through structured (e.g. IT system of incident messages) or informal ways (e.g. direct talks with fellow dispatchers (face to face or via phone) or phone call with station managers or locomotive drivers to get further information).
-
-%
-\begin{figure}[hbtp]
-	\centering
-  \includegraphics[width=\textwidth]{Figures/disposition_areas.pdf}
-	\caption{\textit{Due to the vast complexity of a railway network the re-scheduling task is decomposed into smaller geographical areas (A-E), withiwin which human dispatchers optimize traffic flow. Inter-region coordination is mostly done by informal means of communication such as telephone.} }
-	\label{fig:geographical_decomposition}
-\end{figure}
-%
-
-This situation is depicted in a schematic way in Figure~\ref{fig:introduction_compensation}:
-%
-\begin{figure}[hbtp]
-	\centering
-  \includegraphics[width=\textwidth]{Figures/rsp_rescheduling_heute.pdf}
-	\caption{\textit{Real-time rescheduling has so far been applied to restricted geographic areas only. This means that human intervention or buffer times are necessary outside of the optimization scope to guarantee conflict free traffic in the whole network. The limited geographical scope leads to a cost-function that can only locally be minimized and might have negative effects on the whole network scale.} }
-	\label{fig:introduction_compensation}
-\end{figure}
-%
-
-
-%
-\begin{quote}
-    [...], a network separation approach is applied to divide the railway network into zones of manageable size by taking account of the network properties, distinguishing condensation and compensation zones. Condensation zones are usually situated near main stations, where the track topology is complex and many different routes exist. As such an area is expected to have a high traffic density, it is also a capacity bottleneck and trains are required to travel through with maximum allowed speed and thus without time reserves. Collisions are avoided by exploiting the various routing possibilities in the station area. Conversely, a compensation zone connects two or more condensation zones and consists of a simpler topology and less traffic density. Here, time reserves should be introduced to improve timetable stability. The choice of an appropriate speed profile is the most important degree of freedom to exploit in these compensation zones. \cite{caimi2009}
-\end{quote}
-
- There are only a few so-called condensation areas \cite{caimi2009} (in bottleneck areas such as merging/approach areas in front of large stations or tunnels) that are operated through automatic systems. Between these dense areas, trains need to be able to compensate for temporal delays: if trains are reordered or rerouted, these decisions must be feasible in the neighboring areas.
+can be fully resolved by the rail control system, some larger disturbances require human or more advanced algorithmic interception. To limit the spread of disturbances and minimize the delay within the dynamic railway system, decisions on re-ordering or re-routing trains have to be taken to derive a new feasible operational plan.
 
 The following Figure~\ref{fig:introduction_operations} shows the re-scheduling control loop adapted from \cite{rcsbrochure,rcswhitepaper}.
 %
@@ -129,19 +100,40 @@ The following Figure~\ref{fig:introduction_operations} shows the re-scheduling c
 \end{figure}
 %
 
-Our playground implementation is a simplification (see Section~\ref{subsec:playground} below), shown in Figure~\ref{fig:introduction_operations}: we only consider an operational plan and a single delay and try to re-schedule such that we have a conflict-free plan again that stays close to the (published) planned schedule. We hint at a fully automatic re-scheduling loop as follows: information from the current situation needs to be included into the operational plan by passing it to the optimizer; as time moves on, new trains from the planned schedule need to be included into the operational schedule.
 
-In reality, a distinction is made between
-\begin{itemize}
-    \item operational schedule containing train routes and train ordering
-    \item forecast containing passing times within a time horizon
-\end{itemize}
-%
-The forecast outside the optimization areas needs only be conflict-free for the imminent decisions; conflicts in the future are continually resolved by human dispatchers.
+The industry state of the art systems efficiently re-compute a traffic forecast for the next two hours, allowing dispatchers to detect potential conflicts ahead of time. The predicted conflicts, mostly have to be resolved by humans by explicitly deciding on re-ordering or re-routing based on their experience.
 
-As these areas handled by automatic train operation are expected to grow, we think that the locality of decision-making might become a problem since it will be increasingly difficult to define the interfacing conditions that allow to treat the area as an independent optimization problem.
+Today, the whole railway system is decomposed into disjoint geographic cells of responsibility as depicted in Figure \ref{fig:geographical_decomposition}. This vastly reduces the complexity within each region and allows human dispatchers to resolve conflicts locally with support of different IT systems. Using structured (e.g. IT system of incident messages) or informal ways (e.g. direct talks with fellow dispatchers) to communicate, different regions can coordinate their dispatching strategies to achieve system wide stability.
+
 %
-Therefore, in our RSP approach, we consider how not to take space-local decisions; also we think of operational schedule and forecast as the same, being conflict-free.
+\begin{figure}[hbtp]
+	\centering
+  \includegraphics[width=\textwidth]{Figures/disposition_areas.pdf}
+	\caption{\textit{Due to the vast complexity of a railway network the re-scheduling task is decomposed into smaller geographical areas (A-E), withiwin which human dispatchers optimize traffic flow. Inter-region coordination is mostly done by informal means of communication such as telephone.} }
+	\label{fig:geographical_decomposition}
+\end{figure}
+%
+
+Each region is in itself decomposed according to network properties:
+
+%
+\begin{quote}
+    [...], a network separation approach is applied to divide the railway network into zones of manageable size by taking account of the network properties, distinguishing condensation and compensation zones. Condensation zones are usually situated near main stations, where the track topology is complex and many different routes exist. As such an area is expected to have a high traffic density, it is also a capacity bottleneck and trains are required to travel through with maximum allowed speed and thus without time reserves. Collisions are avoided by exploiting the various routing possibilities in the station area. Conversely, a compensation zone connects two or more condensation zones and consists of a simpler topology and less traffic density. Here, time reserves should be introduced to improve timetable stability. The choice of an appropriate speed profile is the most important degree of freedom to exploit in these compensation zones. \cite{caimi2009}
+\end{quote}
+
+ The complexity of the combinatorial problem of re-scheduling grows exponentially with the number of involved trains. Hence, there are only a few small so-called condensation areas \cite{caimi2009} that can be operated through automatic systems. For larger areas, we can't currently find feasible re-scheduling solutions in real-time.
+
+
+This situation is depicted in a schematic way in Figure~\ref{fig:introduction_compensation}:
+%
+\begin{figure}[hbtp]
+	\centering
+  \includegraphics[width=\textwidth]{Figures/rsp_rescheduling_heute.pdf}
+	\caption{\textit{Real-time rescheduling has so far been applied to restricted geographic areas only. This means that human intervention or buffer times are necessary outside of the optimization scope to guarantee conflict free traffic in the whole network. The limited geographical scope leads to a cost-function that can only locally be minimized and might have negative effects on the whole network scale.} }
+	\label{fig:introduction_compensation}
+\end{figure}
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -149,103 +141,124 @@ Therefore, in our RSP approach, we consider how not to take space-local decision
 \section{Research Approach}\label{sec:researchapproach}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Research Approach: Core idea}\label{subec:coreidea}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-Physical railway infrastructure is expensive in building and maintenance \cite{sr40programm}.
-Therefore, the existing infrastructure capacity should be exploited as best as possible.
-As the number of trains operating increases and condensation areas increase in number and size, it will become increasingly difficult to compensate for decisions taken within condensation zones or to define restrictions that keep the effects on the neighboring compensation zones as predictable as possible.
+In this work we propose a novel solution approach to overcome the limited spatial restrictions of automated algorithmic re-scheduling by extracting the core problem variables from the original full problem formulation. We propose to utilize the strength of state-of-the-art machine learning algorithms to extract the core problem, which in turn is solved by any known optimizer such as Simplex or ASP. We test our novel research approach through experiments on a simplified railway simulation.
 
 
-The general line of argument will be as follows
+Our playground implementation is an abstraction of real railway traffic (see Section~\ref{subsec:playground} below), shown in Figure~\ref{fig:introduction_operations}: we only consider an operational plan and a single incident (malfunction) and try to re-schedule such that we have a conflict-free plan again that stays close to the (published) planned schedule. We hint at a fully automatic re-scheduling loop as follows:
+
 \begin{enumerate}
-\item it is possible to predict the affected time-space, either from the problem structure or from historic data
-\item such a prediction allows for a speed-up of the OR model
+    \item operational plan is updated according to real time data
+    \item core problem scope is extracted from operational plan
+    \item optimizer solves core problem and generate new operational plan
+    \item repeat.
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Core idea}\label{subsec:coreidea}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We assume that any re-scheduling problem that arises within the global railway system can be reduced to a much smaller re-scheduling problem consisting only of a subset of active trains at any given time, we refer to this as the \textbf{core problem}. In contrast to current models we don't follow a spatial decomposition according to network properties but rather investigate the possibility of predicting the relevant core problem given a schedule and a malfunction.
+
+In other words, we assume that it is possible to predict the scope of influence from a given disturbance and that a feasible solution can be found within that scope while keeping the operational schedule fixed outside. The scope consists of:
+\begin{itemize}
+    \item Departure times of trains
+    \item Routes of trains
+\end{itemize}
+and hence spans both space and time, in contrast to spatial decomposition.
+
+
+The fundamental assumptions that we want to prove with this research project are:
+
+\begin{enumerate}
+\item it is possible to predict the affected time-space area, either from the problem structure or from historic data
+\item solutions within the restricted problem scope can be found much faster than the full railway system
+\item feasible solutions within the restricted problem scope show a similar quality to full network solutions.
 \end{enumerate}
 
 
-To tackle this problem, our approach is to combine Operations Research and Domain-specific Learning to get the best of both worlds: an ``Oracle'' is able to predict the ``impact'' of a delay, with or without a knowledge base learnt by training; we hope the Oracle could predict which trains and which departures are or could be affected by the delay based on past decisions. This piece of information from the Oracle then helps the solver to constrain the search space or at least drive its search more efficiently (driving the branching process).
-
-
-\begin{mdframed}
-{\bf TODO Erik}  Add information about what we mean by automated problem scope reduction: Heuristic, historical, structures, .....
-
-\end{mdframed}
+Our approach combines Operations Research and Domain-specific Learning to get the best of both worlds: a ``Scope predictor'' is able to predict the ``impact'' of a disturbance, with or without a knowledge base learnt by training; we hope the scope-predictor could predict which trains and which departures are or could be affected by the disturbance based on past decisions. This piece of information from the scope-predictor then constrains the search space for the solver or at least drive its search more efficiently (driving the branching process).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Research Approach: a Synthetic Playground}\label{subsec:playground}
+\subsection{Synthetic Playground}\label{subsec:playground}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 We now give a short introduction to our playground implementation (G4) and its limitation with respect to real-world features.
 \begin{description}
-\item[Synthetic Infrastructure and Simplified Resource Model] We use the FLATland toolbox \cite{aicrowdFLATland} to generate a grid world infrastructure consisting of 2D square cells; the infrastructure defines the possible movements to the 4 neighbor cells mirroring railway infrastructure (switches etc.)
-\item[Synthetic Timetable and Train Dynamics]
+\item[Synthetic Infrastructure and Simplified Resource Model] \hfill \\
+We use the FLATland toolbox \cite{aicrowdFLATland} to generate a grid world infrastructure consisting of railway elements in 2D grid. Each railway element occupies a square cell in this grid. The railway element defines the orientation depended possible transitions of a train to the four direct neighbouring cells (e.g. switches allow for different transitions depending on the orientation of a train on the switch). Infrastructure details can be found in section \ref{subsubsec:infrastructuregeneration}
+\item[Synthetic Timetable and Train Dynamics] \hfill \\
+Given a specific infrastructure we generate a simplified synthetic schedule with the following constraints:
 \begin{itemize}
     \item Every train has one single source and target, no intermediate stops, as provided by the FLATland toolbox \cite{aicrowdFLATland}.
     \item Every train has a constant speed (which may be different from train to train), as provided by the FLATland toolbox \cite{aicrowdFLATland}.
-    \item The schedule (departure and passing times at all cells) is generated such that the sum of travel times of all trains is minimized within a chosen upper bound; this the generated timetable might not have a realistic structure.
-    \item There are no time reserves in the schedule, trains cannot catch up.
+    \item The schedule (departure and passing times at all cells) is generated such that the sum of travel times of all trains is minimized within a chosen upper bound.
+    \item There are no time reserves in the schedule, which means that trains cannot reduce delay during their journey.
     \item There is no distinction between published timetable and operational schedule, we only have an operational timetable; in reality, trains must not depart earlier than published.
-    \item There are no connections or vehicle tours (turnrounds).
+    \item There are no scheduled connections between trains or vehicle tours (turnrounds).
 \end{itemize}
-\item[Synthetic route alternatives] We use shortest paths (in reality, in particular in the case of disturbances affecting a whole area, we might need a different scheme knowing the parts that cannot be taken); path cycles are not allowed.
-\item[Simple Disturbance Model] We simulate one train $a$ being stopped for $d$ discrete time steps at some time $t$ and call this a malfunction $M=(t,d, a)$; in reality, the delay might not be known or only probabilities can be assumed. In reality, update information also comes in batches and we would need to consider multiple delays in the same update interval. This setup is shown in Figure~\ref{fig:introduction_no_loop}.
+\item[Synthetic route alternatives] \hfill \\
+We use k-shortest paths from source to target as list of route alternatives; path cycles are not allowed.
+\item[Simple Disturbance Model] \hfill \\
+We simulate one train $a$ being stopped for $d$ discrete time steps at some time $t$ and call this a malfunction $M=(t,d, a)$;  This setup is shown in Figure~\ref{fig:introduction_no_loop}. In reality, the delay might not be known or only probabilities can be assumed and multiple disturbances can occur independently.
 \end{description}
 %
 \begin{figure}[hbtp]
 	\centering
-  \includegraphics[width=0.4\textwidth]{introduction_no_loop.png}
-	\caption{Simple non-iterative re-scheduling with single delay.}
+  \includegraphics[width=\textwidth]{Figures/malfunction_generation.pdf}
+	\caption{This figure illustrates a simple operations plan with 6 trains on a small infrastructure. A single malfunction $M(t,d,a)$ occurs for agent $a$ at time $t$ with a total duration of $d$ time steps. In reality of course there exists many different disturbances in the network which we will discuss further in \textbf{Reference to malfunction discussion}}
 	\label{fig:introduction_no_loop}
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Research Approach: Decomposition in Space and Time}\label{subec:scopers}
+\subsection{Reduction in Space and Time}\label{subec:scopers}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{mdframed}
-{\bf TODO Erik} naming (Oracle -> scoper), figures
+{\bf TODO Erik} naming (Oracle -> scoper), figures, also our approach is not a space-time decomposition but rather reduction as we remove huge parts of the problem to be solved.
 \end{mdframed}
 
-We will now detail the general line of argument of Section~\ref{subec:coreidea} by introducing two hypotheses
+We will now detail the general line of argument of Section~\ref{subsec:coreidea} by introducing two hypotheses
 \begin{description}
-\item [H1] offline scoping: if we have access to an offline solution of the re-scheduling problem given unbounded resources, we can design a scope reduction that allows for a large speed-up (see below, Section~\ref{subec:H1}); by this, we achieve goal \textbf{G2}.
-\item [H2] online scoping: it is possible to design a scope reduction, either from the problem structure or from historic data (see below, Section~\ref{subec:H2}); by this, we would over-achieve goal \textbf{G3}.
+\item [Hypothesis 1 (H1)] offline scoping: if we have access to an offline solution of the re-scheduling problem given unbounded resources, we can design a scope reduction that allows for a large speed-up (see below, Section~\ref{subec:H1}); by this, we achieve goal \textbf{G2}.
+\item [Hypothesis 2 (H2)] online scoping: it is possible to design a scope reduction, either from the problem structure or from historic data (see below, Section~\ref{subec:H2}); by this, we would over-achieve goal \textbf{G3}.
 \end{description}
 
-This approach is shown in Figure~\ref{fig:introduction_time_space}:
+The main idea of the offline or online scoping is shown in Figure~\ref{fig:introduction_time_space}, where the scoper predicts what parameters in time and space are relevant to solve the core problem caused by the malfunction.
+
 %
 \begin{figure}[hbtp]
 	\centering
   \includegraphics[width=\textwidth]{Figures/rsp_rescheduling_rsp.pdf}
-	\caption{The Oracle gives degrees of freedom in time and space.}
+	\caption{The scope reducer condenses the initial full problem description to the core problem in the time-space parameters. This vastly reduces the search space of an optimizing algorithm.}
 	\label{fig:introduction_time_space}
 \end{figure}
-the Oracle predicts restrictions in time and space, which are passed to the solver.
-
 
 \begin{mdframed}
 {\bf TODO Christian} finalize naming? do we need delta naive?
 \end{mdframed}
 
 We will consider the following scopings:
+We consider the following scopings:
 \begin{description}
-\item[full after malfunction] this is the full offline solution where we consider the full situation after the malfunction; this excludes paths not reachable any more after the malfunction.
-\item[delta perfect] this is the almost perfect scoper which opens up only differences between the initial schedule and the full re-scheduling solution
+\item[online\_unrestricted] this scoper does not restrict the re-scheduling problem, it is the ``full'' re-scheduling problem with empty scoping, supposed to give a trivial lower bound on speed-up with respect to the solver; this excludes paths not reachable any more after the malfunction
+\item[offline\_fully\_restricted] this scoper takes the re-scheduling solution from online\_unrestricted, supposed to give a trivial upper bound on speed-up with respect to the solver
+\item[offline\_delta]  this is the almost perfect scoper which opens up only differences between the  the ``delta'' between the schedule and online\_unrestricted,
 \begin{itemize}
     \item only paths from either schedule or full after malfunction are allowed;
     \item if location and time is the same in schedule and full-reschedule, then we stay at them
 \end{itemize}
-In this case, the solution from full after malfunction is contained in the solution space, so we expect the same (or an equivalent solution modulo costs) to be found.
-\item[delta naive] offline scoping, a bit less perfect: for each agent,
-\begin{itemize}
-    \item if change between schedule and full after malfunction, no restriction after malfunction;    \item if no change between schedule and full after malfunction, we do not open up any freedom for these agents
-\end{itemize}
-Again, the solution from full after malfunction is contained in the solution space, so we expect the same (or an equivalent solution modulo costs) to be found.
-\item[delta online] online scoping: we propagate the delay from one train to the next along paths and times in schedule and open up agents that are predicted affected by the heuristic; we expect the solution quality to deterioriate if there are false negatives.
-\item[delta random] this is a sanity check online scoping: if we predict affected trains randomly, we expect solutions to be worse than the ones found by the other scopes or that no solution can be found at all; for example if a train is scheduled to pass through the malfunction train during its malfunction and is not opened, there is no solution even if we enlarge time windows.
+supposed to give a non-trivial but unrealistic baseline on speed-up (upper-bound for non-trivial scopers); in this case, the solution from online\_unrestricted is contained in the solution space, so we expect the same (or an equivalent solution modulo costs) to be found.
+\item[online\_route\_restricted] this scoper restricts the re-scheduling problem to the routes chosen in the schedule, but giving time flexibility, suppposed to show the influence of re-routing on computation times and solution quality
+\item[online\_transmission\_chains\_fully\_restricted] this scoper uses a simple delay propagation algorithm along the scheduled paths to predict which trains will be affected by the malfunction, keeping unaffected trains exactly at their path and times, supposed to show a baseline speed-up (lower bound for non-trivial scopers); we expect the solution quality to deterioriate if there are false negatives.
+\item[online\_transmission\_chains\_route\_restricted] this scoper uses a simple delay propagation algorithm along the scheduled paths to predict which trains will be affected by the malfunction, keeping unaffected trains exactly at their path and times, supposed to show a baseline speed-up (lower bound for non-trivial scopers); we expect the solution quality to deterioriate if there are false negatives.
+\item[online\_random] this scoper randomly chooses affected agents, giving no re-routing flexibility to the unaffected trains, supposed to show that the problem of predicting which agents will be affected is not trivial: this is a sanity check online scoping: if we predict affected trains randomly, we expect solutions to be worse than the ones found by the other scopes or that no solution can be found at all; for example if a train is scheduled to pass through the malfunction train during its malfunction and is not opened, there is no solution even if we enlarge time windows.
+\end{description}
+
+\begin{description}
+
+
+\item[delta online] online scoping: we propagate the delay from one train to the next along paths and times in schedule and open up agents that are predicted affected by the heuristic;
+\item[delta random]
 \end{description}
 These scopers will be introduced formally with pseudo-code below in Section~\ref{subec:scopers}.
 
@@ -264,15 +277,15 @@ Consider Figure~\ref{fig:introduction_H1}:
 	\label{fig:introduction_H1}
 \end{figure}
 %
-The initial schedule $S0$ and a malfunction $M$ are passed to an OR solver which is given unbounded time to solve the model to optimality; the resulting re-schedule is $S$.
+The initial schedule $S_0$ and a malfunction $M$ are passed to an OR solver which is given unbounded time to solve the model to optimality; the resulting re-schedule is $S$.
 
-If we compare the initial schedule $S0$ and the re-schedule $S$, we can take the differences ($Delta\_perfect$):
+If we compare the initial schedule $S_0$ and the re-schedule $S$, we can take the differences ($Delta\_perfect$):
 
 \begin{itemize}
     \item     every time difference at the same node opens up timing flexibility: the nodes are kept fixed, but time is flexible
     \item every node difference opens up routing flexibility: both nodes and times are kept flexible
 \end{itemize}
-We will describe this in more detail below in Section~\ref{subsubsec:Delta0}.
+We will describe this in more detail below in Section~\ref{subsubsec:scope_online_unrestricted}.
 
 
 Now we want to see whether the OR solver $f$, given the perfect information coming through the red arrows, allows for a speed-up, i.e. whether the time $t\_{S^\prime}$  needed for the solver with the restriction is much smaller than the time $t\_S$ for the full problem without the restriction
@@ -397,7 +410,7 @@ According to \cite{DBLP:journals/corr/abs-2003-08598},  the \emph{(general) trai
             \item $a: \mathbb{R}\to 2^E$ associates resources with edges in the railway network, and
             \item $b:R\to \mathbb{N}$ gives the time a resource is blocked after it was accessed by a train line.
         \end{itemize}
-    \item $\mathcal{A}$ is a set of train lines to be scheduled on network $N$. Each train in $\mathcal{A}$ is represented as a tuple $(S, L, e, l, w)$, where
+    \item $\mathcal{A}$ is an indexed set of train lines to be scheduled on network $N$. Each train in $\mathcal{A}(a)$ for agent id $a\in \dom(\mathcal{A})$ is represented as a tuple $(S, L, e, l, w)$, where
         \begin{itemize}
             \item $(S, L)$ is an acyclic subgraph of $(V, E)$,
             \item $e:S \to \mathbb{N}$ gives the earliest time a train may arrive at a node,
@@ -614,11 +627,11 @@ which ensures that the agent malfunction happens while the train is running.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Objective for Re-Scheduling}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-We chose to to minimize a linear combination of delay with respect to the initial schedule $S0$ and penalizing diverging route segments (only the first edge of each such segment). This reflects the idea of not re-routing trains without the need of avoiding delay; if re-scheduling is applied in an iterative loop, this should help to avoid ``flickering'' of decisions.
+We chose to to minimize a linear combination of delay with respect to the initial schedule $S_0$ and penalizing diverging route segments (only the first edge of each such segment). This reflects the idea of not re-routing trains without the need of avoiding delay; if re-scheduling is applied in an iterative loop, this should help to avoid ``flickering'' of decisions.
 %
 Formally, the objective is to minimize over solutions $S=(P_S,A_S)$  the sum
 \begin{equation}
-\sum_{a \in \mathcal{A}} \delta\left(S(a,\tau(a,S)) - S0(a,\tau(a, S0))\right) + \rho \cdot \left|\left\{v \in \mathcal{V}(S,a)-\mathcal{V}(S0,a): (v^\prime,v) \in P_{S0}(a) \right\}\right| \label{eq:objectiveresched}
+\sum_{a \in \mathcal{A}} \delta\left(S(a,\tau(a,S)) - S_0(a,\tau(a, S_0))\right) + \rho \cdot \left|\left\{v \in \mathcal{V}(S,a)-\mathcal{V}(S_0,a): (v^\prime,v) \in P_{S_0}(a) \right\}\right| \label{eq:objectiveresched}
 \end{equation}
 where the \emph{delay model} is step-wise linear,
 \begin{equation}
@@ -629,21 +642,17 @@ where the \emph{delay model} is step-wise linear,
 \end{cases}
 \end{equation}
 for hyper-parameters $\delta_{step}$, $\delta_{cutoff}, \delta_{penalty}$
-and the second term of (\ref{eq:objectiveresched}) penalizes re-routing with respect to the initial schedule S0 by weight $\rho$ for every first edge deviating from the original schedule $S0$ .
+and the second term of (\ref{eq:objectiveresched}) penalizes re-routing with respect to the initial schedule $S_0$ by weight $\rho$ for every first edge deviating from the original schedule $S_0$ .
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Re-Scheduling Scopes}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{(Empty) Scoping Re-scheduling (full after malfunction)}\label{subsubsec:Delta0}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-We first describe full the re-scheduling problem as a general train scheduling problem. Let $N=(V,E,R,m,a,b)$ be the network of train scheduling problem, $(P,A)$ be a solution to it and let $M=(m_{time\_step},m_{duration},m_{agent})$ be a malfunction.
+\begin{mdframed}
+\textbf{TODO Christian} Streamline notation: use agents set as indexed set in pseudo-code\\
+\textbf{TODO Christian} Streamline notation: harmonize interfaces of scopers!\\
+\end{mdframed}
 
 Informally, the \emph{re-scheduling problem} is the train scheduling problem such that
 \begin{itemize}
@@ -655,26 +664,46 @@ We here have two options:
     \item we can constrain the original scheduling up to the malfunction
     \item we can remove everything up to the malfunction and constrain only the last decision before the malfunction
 \end{enumerate}
-In order to keep the exposition simple and since this is also in the spirit of a re-scheduling loop with moving time horizon, we adopt the second option in the following exposition.\footnote{The implementation follows option 1. Should we adapt the implementation?}
+In order to keep the exposition simple and since this is also in the spirit of a re-scheduling loop with moving time horizon, we adopt the second option in the following exposition.\footnote{The implementation follows option 1. Should we adapt the implementation? We suspect that the overhead is negligible.}
+
+We distinguish between two classes of scopes:
+\begin{description}
+\item[online] the scoper does not have access to a full re-schedule solution
+\item[offline] the scoper has access to a full re-schedule solution
+\end{description}
+
+We now define different scopings that further restrict the problem to different degrees. All these scopers have the same interface, i.e. take the same parameters:
+\begin{itemize}
+    \item initial schedule $S_0=(P,A)$
+    \item agents $\mathcal{A}$ whose elements have the form $(S,L,v)$ where $(S,L)$ are the possible routes for the agent and $v$ is the agent's speed, resp. $v^{-1}$ is the minimum running time per edge;
+    \item malfunction $M=(m_{time\_step},m_{duration},m_{agent})$;
+    \item maximum time window size $c$: this is the maximum time window in the re-scheduling problem
+    \item upper bound $U$: we will increase the upper bound from scheduling by $m_{duration}$, which in most cases will ensure feasibility of the re-scheduling problem, as we will discuss below.
+\end{itemize}
+
+In our setting, each edge has exactly one resource; therefore, each vertex points at exactly one resource. Hence, the following definition is well-defined:
+\begin{equation}
+    R(v) = r \textrm{ s.t. } (v,v^\prime) in a(r)
+\end{equation}
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{(Empty) Scoping Re-scheduling (online\_unrestricted)} \label{subsubsec:scope_online_unrestricted}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-We now describe the transformations $\Delta_0$ for a single train in Algorithm~\ref{algo:Delta0}:
-If the train is already done at the malfunction time step, it can be removed from the problem;
-if the train has not started yet at the malfunction time step, we keep its start node fixed from $S0$ and do not start earlier than in $S0$ and use $propagate$ (described below) to derive the constraints.
+We first describe the online\_unrestricted scope, which does not restrict the scope, as a general train scheduling problem. Let $N=(V,E,R,m,a,b)$ be the network of train scheduling problem, $S_0=(P,A)$ be a solution to it and let $M=(m_{time\_step},m_{duration},m_{agent})$ be a malfunction.
+
+We now describe the transformations $scoper\_online\_unrestricted$ for a single train in Algorithm~\ref{algo:Delta0}:
+If the train is already done at the malfunction time step (line 1), it can be removed from the problem (line 2);
+if the train has not started yet at the malfunction time step (line 3), we keep its start node fixed from $S_0$ and do not start earlier than in $S_0$ and use $propagate$ (described below) to derive the constraints (lines 4--11); in this case, the malfunction has no direct impact on the train and we do not allow the train to start earlier than scheduled.
 
 
-
-
-\begin{mdframed}
-{\bf TODO Christian} in case 2 (not started yet), we should respect the malfunction delay? Problem here and in source code!
-\end{mdframed}
 
 
 
 
 \begin{algorithm}
-	\caption{$Delta_0$ for train $a$} \label{algo:Delta0}
+	\caption{$scoper\_online\_unrestricted$ for train $a$} \label{algo:Delta0}
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
 	    \Ensure $(S,L),e,l$
@@ -690,13 +719,13 @@ if the train has not started yet at the malfunction time step, we keep its start
             \State $F_l \leftarrow \Set*{\tau \in S: out(\tau)=0}$
             \State $e,l,(S,L) \leftarrow propagate(e,l,(S,L),F_e,F_l,F_v, mrt, U, c)$
         \Else
-            \State $e,l,(S,L) \leftarrow Delta\_0\_running((S,L), (P,A), M, mrt, U, c)$
+            \State $e,l,(S,L) \leftarrow scoper\_offline\_delta\_running((S,L), (P,A), M, mrt, U, c)$
         \EndIf
 \end{algorithmic}
 \end{algorithm}
 
 
-Before describing the third case of the malfunction happening while the train is running, we describe \emph{propagate} (Algorithm~\ref{algo:propagate}): We first propagate earliest and latest, then truncate time windows to $c$; we need to propagate latest again since truncation might spoil the semantics of $l(v)$ being the latest possible passing time to reach the target in time. Finally, we remove nodes that are not reachable in time (because of an empty time window) or cannot be reached from one of the nodes $F_v$ that must be visited.
+Before describing the third case of the malfunction happening while the train is running (lines 12--13), we describe \emph{propagate} (Algorithm~\ref{algo:propagate}): we pass in an initial, incomplete set of earliest and latest constraints which we want to propagate in the graph $(S,L)$ with the given minimum running time $mrt$ and such that $e$ in the output reflects the earliest possible time an agent can reach the vertex and that  $l$ reflects the last possible time the agent must reach the vertex to be able to still find a path to the target. Furthermore, we want some initial values not to be modifiable ($F_e$ and $F_l$) and we want to ``force'' some vertices that need be visited ($F_v$). In \emph{propagate}, we first remove the nodes that cannot be reached given $F_v$ (lines 1--4); then, we propagate earliest and latest (lines 5--6) and truncate time windows to $c$ (lines 7--10); we need to propagate latest again since truncation might spoil the semantics of $l(v)$ being the latest possible passing time to reach the target in time (line 11). Finally, we remove nodes that are not reachable in time because of an empty time window (line 13). Notice that different vertices at the same resource may have different time windows $e,l$.
 
 \begin{algorithm}
 	\caption{$propagate$} \label{algo:propagate}
@@ -722,11 +751,11 @@ Before describing the third case of the malfunction happening while the train is
 
 
 
-We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when the malfunction happens while the train is running. We refer to Algorithm~\ref{algo:Delta0running}: we first determine the edge $(v_1,v_2)$ the train is on when the malfunction happens; we then fix the time for $v_1$ as in $S0$ and set the earliest for $v_2$, possibly delayed. Then, we use $propagate$ to tighten the search space. Notice that $propagate$ will here remove the nodes on the scheduled path before $v_1$ (since the forward propagation will not reach these nodes, they will be removed as the time window will be empty).
+We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when the malfunction happens while the train is running. We refer to Algorithm~\ref{algo:scoper_offline_delta_running} for $scoper\_offline\_delta\_running$: we first determine the edge $(v_1,v_2)$ the train is on when the malfunction happens; we then fix the time for $v_1$ as in $S_0$ and set the earliest for $v_2$, possibly delayed. Then, we use $propagate$ to tighten the search space. Notice that $propagate$ will here remove the nodes on the scheduled path before $v_1$ (since the forward propagation will not reach these nodes, they will be removed as the time window will be empty in the spirit of option 1 described above).
 
 
 \begin{algorithm}
-	\caption{$Delta\_0\_running$ for running train $a$} \label{algo:Delta0running}
+	\caption{$scoper\_offline\_delta\_running$ for running train $a$} \label{algo:scoper_offline_delta_running}
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
 	    \Ensure $e,l,(S,L)$
@@ -747,39 +776,51 @@ We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when t
 \end{algorithm}
 
 
-
-
-
+Notice that this problem always has a trivial feasible solution where all agents stop and restart in synchronicity with the malfunction agent (as said above, we extend the upper bound from scheduling by the malfunction duration).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Re-scheduling (delta perfect after malfunction)}\label{subsubsec:Deltaperfect}
+\subsubsection{Trivial upper-bound scoping (offline\_fully\_restricted)}
+\label{subsubsec:scope_fully_restricted}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Now we define the perfect oracle as outlined above.
-Let $(P_{S0},A_{S0})$ be the solution to the original train scheduling problem
-and let $N_S=(V_S,E_S,R_S,m_S,a_S,b_S)$ be the network of the re-scheduling problem for an agent
-and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{algo:Deltaperfect} defines the perfect oracle: we keep fixed all times and nodes that are common to $S_0$ and $S$, respectively. Everything that is not reachable in path ($F=\Delta_P$) or time ($F_e=F_l=\Delta_A)$) will be removed by $propagate$. Notice that we have $v_1 \in\subseteq \Delta_A \subseteq \Delta_P$ and $v_2 \in \Delta_P$
+The scoper offline\_fully\_restricted of Algorithm~\ref{algo:scoper_offline_fully_restricted} takes a schedule as input and yields a scheduling problem which has exactly the same schedule as only solution. This allows to determine the solver overhead as a lower bound of re-scheduling computation time.
 
-
-
-
-
-
-
-
-\begin{mdframed}
-{\bf TODO Christian} does $Delta_{perfect}$ work if the agent has already terminated or has not started at malfunction time?
-\end{mdframed}
 
 
 \begin{algorithm}
-	\caption{$Delta_{perfect}$} \label{algo:Deltaperfect}
+	\caption{$scoper\_offline\_fully\_restricted$ for running train $a$} \label{algo:scoper_offline_fully_restricted}
+	\begin{algorithmic}[1]
+		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, $mrt$, $U$, $c$
+	    \Ensure $e,l,(S,L)$
+        \State $S \leftarrow \Set*{v: v\in P_{S}}$
+        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S}$
+        \State $e \leftarrow \Set*{(v,P_S(v): v\in S}$
+        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
+	\end{algorithmic}
+\end{algorithm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{``Perfect'' delta scoping (offline\_delta)}
+\label{subsubsec:scope_offline_delta}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The idea of the ``perfect'' scoping is to have a baseline where we extract as much information as possible from a pre-computed offline solution without giving the solution right away.
+%
+Formally, let $(P_{S_0},A_{S_0})$ be the solution to the original train scheduling problem
+and let $N_S=(V_S,E_S,R_S,m_S,a_S,b_S)$ be the network of the re-scheduling problem for an agent
+and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{algo:scoper_offline_delta} defines the perfect oracle for a running agent: we keep fixed all times and nodes that are common to $S_0$ and $S$, respectively (lines 1--10).
+We delay the vertex after the malfunction by the malfunction duration (lines 11--18).
+Everything that is not reachable in path ($F=\Delta_P$) or time ($F_e=F_l=\Delta_A$) will be removed by $propagate$ (line 19). Notice that we have $v_1 \in \Delta_A \subseteq \Delta_P$ and $v_2 \in \Delta_P$
+
+
+\begin{algorithm}
+	\caption{$scoper\_offline\_delta$ for running train $a$} \label{algo:scoper_offline_delta}
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P_{S_0},A_{S_0})$, $(P_S,A_S)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
 	    \Ensure $e,l,(S_1,L_1)$
-	    \State $\Delta_A \leftarrow \Set*{v: A_S(v)=A_{S_0}(v)}$
-	    \State $\Delta_P \leftarrow \Set*{v: v\in P_S, v\in P_{S_0}}$
+	    \State $\Delta_A \leftarrow \Set*{v: A_S(v)=A_{S_0}(v), v\in P_{S_0}, v \in P_S}$
+	    \State $\Delta_P \leftarrow \Set*{v: v\in P_S, v\in P_{S_0}, v\in P_{S_0}, v \in P_S}$
 	    \State $S_1 \leftarrow \Set*{v: v\in P_{S_0}} \cup \Set*{v: v\in P_{S}}$
 	    \State $L_1 \leftarrow \Set*{(v,v^\prime) \in P_S \textrm{ or } (v,v^\prime) \in P_{S_0}: v,v^\prime \in S_1}$
 	    \For {$v \in \Delta_A$}
@@ -799,88 +840,181 @@ and  let $(P_S,A_S)$ be a solution to the re-scheduling problem. Algorithm~\ref{
 	    \State $e,l,(S_1,L_1) \leftarrow propagate(e,l,(S_1,L_1),\Delta_A \cup \Set*{v_2}, \Delta_A, \Delta_P, mrt, U, c)$
 	\end{algorithmic}
 \end{algorithm}
+Notice that the solution space of this scoping contains the full re-scheduling solution if $c >= malfunction duration$, so we will find the same solution up to equivalence modulo cost.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Route-restricted Re-scheduling (online\_route\_restricted)}
+\label{subsubsec:scope_online_route_restricted}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+Algorithm~\ref{algo:scoper_online_route_restricted} scopes the re-scheduling problem to the routes of the schedule $S_0$: after discarding all vertices and edges not on scheduled path (lines 1--2), \emph{propagate} makes the constraints consistent. If $c\geq m_{duration}$, the resulting re-scheduling problem is clearly feasible; however, we expect solution quality to deterioriate.
+
+\begin{algorithm}
+	\caption{$scoper\_online\_route\_restricted$ for running train $a$} \label{algo:scoper_online_route_restricted}
+	\begin{algorithmic}[1]
+		\Require $(S,L)$, $S_0(P_{S_0},A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$, $mrt$, $U$, $c$
+	    \Ensure $e,l,(S,L)$
+        \State $S \leftarrow \Set*{v: v\in P_{S}}$
+        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S}$
+        \State $e,l,(S,L) \leftarrow propagate(e,l,(S,L),\emptyset, \emptyset, \emptyset, mrt, U, c)$
+	\end{algorithmic}
+\end{algorithm}
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsubsection{Naive Re-scheduling (delta naive after malfunction)}\label{subsubsec:Deltanaive}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%We now give a slightly coarser version of the perfect scoping, where we still look at the full offline solution but open up everything for agents whose schedule has changed as described in Algorithm~\ref{algo:Deltanaive}. We reduce the strictness of the oracle by freeing up all the variables of changed trains. I.e. if a train has some change somewhere, all the parameters of the train are available or change such as alternative routes and different times.
+%
+%\begin{algorithm}
+%	\caption{$Delta_{naive\_after\_malfunction}$} \label{algo:Deltanaive}
+%	\begin{algorithmic}[1]
+%		\Require $\mathcal{A}$, $S_0=(P_0,A_0)$, $S=(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, U, c
+%	    \Ensure $\mathcal{A}^*$
+%	    \State $\mathcal{A}^* = \emptyset$
+%	    \For{$a=(S,L,v) \in \mathcal{A}$}
+%	        \If{$P(a)=P_0(a)$ and $A(a,v)=A_0(a,v)$ for all $v \in P_0(a)$}
+%                \State $S=\Set{v: v\in P_0(a)}$
+%                \State $L = \Set{(v,v^\prime): v,v^\prime \in S}$
+%                \For{$v \in P_0(a)$}
+%        	        \State $e(v)\leftarrow l(v) \leftarrow A_0(a,v)$
+%        	    \EndFor
+%            \Else
+%                \State $e,l,S,L \leftarrow scoper\_online\_unrestricted((S,L), (P,A), M, v^{-1}, U, c)$
+%            \EndIf
+%            \For{$e \in L$}
+%    	        \State $w(e) \leftarrow v^{-1}$
+%    	    \EndFor
+%            \State $\mathcal{A}^* \leftarrow \mathcal{A}^*\cup \Set{(S,L,e,l,w)}$
+%	    \EndFor
+%	\end{algorithmic}
+%\end{algorithm}
+%Again, the solution space of this scoping contains the full re-scheduling solution, so we will find the same or a cost-equivalent solution.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Re-Scheduling with Transmission Chains\\ (online\_transmission\_chains\_fully\_restricted,\\online\_transmission\_chains\_route\_restricted)}
+\label{subsubsec:scope_online_tranmission_chains}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+If we do not consider routing alternatives, we can find an easy way to predict the trains affected by a malfunction by recursively propagating the delay along the scheduled paths of the reached agents.
+%
+Let $S_0=(P,A)$ be a schedule and let $P(a) = (v_1,\ldots,v_n)$ the scheduled path for an agent $a$, then  the exit time of the edge after an entry vertex is
+\begin{equation}
+E(a,v_i) = A(a,v_{i+1}) + r
+\end{equation}
+for $i=1,\ldots,n-1$ and $E(a,v_n) = A(a,v_n)+r$.
+
+Now we can have a look at Algorithm~\ref{algo:transmission_chains}: we have a queue $q$ where we store which agents are reached, at which vertex and how much of the delay is propagated (line 1). In order to prevent loops, we store the elements of the queue already dealt with (line 2).  The output will be a set of agents reached, initialized with the malfunction agent which we know will be delayed since the schedule is constructed such that agents always run at maximum speed (line 3).
+We initialize the queue and the changed agents with the malfunction agent with pushing all vertices that are passed in the schedule after the malfunction; since the schedule is constructed such that the agents never stop, the delay is not reduced (lines 4--6).
+Then, we look at the next agent after the queued element (lines 8--13). If the delay cannot be absorbed by the time difference between the queued element's departure and the next agent entry (lines 14--15), then we mark the next agent as reached (line 16) and push all vertices of the next agent after the delay propagation (lines 17--20); here, we do not only consider the delay to be propagated to all resources after $v$, but also allow $a^\prime$ to wait for $a$ on resources it is on in the range of the delay that could be transmitted through the common resource of the edge entered at $v$.
 
 \begin{mdframed}
-{\bf TODO Christian}
-Formalize Delta\_0/Delta\_perfect of the whole problem for all agents.
-Proposition: "Delta\_perfect <= Delta\_0", i.e. every solution to Delta\_perfect is a solution to Delta\_0
+\textbf{TODO Christian} Compare with algo in Handbook of Railway Optimization
 \end{mdframed}
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Naive Re-scheduling (delta naive after malfunction)}\label{subsubsec:Deltanaive}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{mdframed}
-{\bf TODO Christian} pseudo-code naive prediction
-\end{mdframed}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Online Re-scheduling (delta online after malfunction)}\label{subsubsec:Deltaonline}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The output of this prediction can then be passed to Algorithm~\ref{algo:scoper_changed} with or without time flexibility: all agents predicted as changed will have full re-scheduling degrees of freedom (lines 2--3), all others will be ``freezed'' to the original schedule (lines 6--10) or only forced to re-use the same route (lines 4--5).
 
 
 
 
-\begin{mdframed}
-{\bf TODO Christian} a bit of introduction after all...
-\end{mdframed}
 
 
 \begin{algorithm}
-	\caption{$transmissionchains$} \label{algo:naive}
+	\caption{$changed\_transmission\_chains$} \label{algo:transmission_chains}
 	\begin{algorithmic}[1]
-		\Require $\mathcal{A}$, $(P_S,A_S)$, $\mathcal{A}^*\subseteq\mathcal{A}$
-	    \Ensure $\mathcal{A}$
-	    % not-changed agents
-	    \For {$(S,L,e,l,w) \in \mathcal{A}-\mathcal{A}^*$}
-	        \State $S \leftarrow \Set*{v: v\in P_{S}}$
-	        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S_1}$
-	        \State $e \leftarrow \Set*{(v,P_S(v): v\in S}$
-	        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
-	        \State $w \leftarrow w \vert_{L}$
+		\Require $\mathcal{A}$, $(P_{S_0},A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$
+	    \Ensure $\mathcal{A}^* \subseteq \mathcal{A}$
+	    \State $q = queue()$
+	    \State $done = \emptyset$
+	    \State $\mathcal{A}^* \leftarrow \Set{m_{agent}}$
+	    \For {$v \in P_{S_0}(m_{agent}): A_{S_0}(m_{agent},v) \geq m_{time\_step}$}
+	        \State $q.push((m_{agent},R(v),m_{duration}))$
 	    \EndFor
+        \While{$q \not= \emptyset$}
+            \State $(a,r,d) \leftarrow q.pop()$
+            \If{$(a,r,d)\in done$}
+                \State \textbf{continue}
+            \EndIf
+            \State $done \leftarrow done \cup \Set{(a,r,d)}$
+            \State $a^\prime \leftarrow \argmin_{a^\prime \in \mathcal{A}, v \in P_{S_0}(a^\prime), R(v)=r} A_{S_0}(a^\prime,v)$
+            \State $\delta \leftarrow A_{S_0}(a^\prime,v) - D_{S_0}(a,v)$
+            \If{$\delta < d$}
+                \State $\mathcal{A}^* \leftarrow \mathcal{A}^* \cup \Set{a^\prime}$
+                \State $d^\prime \leftarrow d-\delta$
+    	        \For {$v^\prime \in P_{S_0}(a^\prime): A_{S_0}(a^\prime,v^\prime) \geq D_{S_0}(a,v) + d^\prime$}
+    	            \State $q.push((a^\prime,R(v^\prime),d^\prime))$
+    	        \EndFor
+            \EndIf{}
+
+	    \EndWhile
+
 	\end{algorithmic}
 \end{algorithm}
 
 
-Reduce the strictness of the oracle by freeing up all the variables of changed trains. I.e. if a train has some change somewhere, all the parameters of the train are available or change such as alternative routes and different times. This is detailled in Algorithm~\ref{algo:DeltaNotperfect}, where $\mathcal{A}^*$ denotes the set of changed trains and $\mathcal{A}$ are the trains as of the full re-scheduling problem.
+
 
 
 \begin{algorithm}
-	\caption{$Delta_{notsoperfect}$} \label{algo:DeltaNotperfect}
+	\caption{$scoper\_changed$} \label{algo:scoper_changed}
 	\begin{algorithmic}[1]
-		\Require $\mathcal{A}$, $(P_S,A_S)$, $\mathcal{A}^*\subseteq\mathcal{A}$
-	    \Ensure $\mathcal{A}$
-	    % not-changed agents
-	    \For {$(S,L,e,l,w) \in \mathcal{A}-\mathcal{A}^*$}
-	        \State $S \leftarrow \Set*{v: v\in P_{S}}$
-	        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S_1}$
-	        \State $e \leftarrow \Set*{(v,P_S(v): v\in S}$
-	        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
-	        \State $w \leftarrow w \vert_{L}$
+		\Require $\mathcal{A}$, $(P_S,A_S)$, $\mathcal{A}^*\subseteq\mathcal{A}$, $time\_flexibility$
+	    \Ensure $\mathcal{A}^{**}$
+	    \For{$a=(S,L,v) \in \mathcal{A}$}
+    	    \If {$a \in \mathcal{A}^*$}
+    	        \State $e,l,S,L \leftarrow scoper\_online\_unrestricted((S,L), (P,A), M, v^{-1}, U, c)$
+    	    \ElsIf{$time\_flexibility$}
+    	        \State $e,l,S,L \leftarrow scoper\_online\_path\_restricted((S,L), (P,A), M, v^{-1}, U, c)$
+    	    \Else
+    	        \State $e,l,S,L \leftarrow scoper\_online\_fully\_restricted((S,L), (P,A), M, v^{-1}, U, c$
+    	    \EndIf
+    	    \For{$e \in L$}
+    	        \State $w(e) \leftarrow v^{-1}$
+    	    \EndFor
+    	    \State $\mathcal{A}^{**} \leftarrow \mathcal{A}^{**} \cup \Set{(S,L,e,l,w)}$
 	    \EndFor
 	\end{algorithmic}
 \end{algorithm}
 
+Again, we conjecture that this algorithms produces a feasible scope if $c >= malfunction duration$, in both cases with or without time flexibility.
+%
+A simple example shows why we need time flexibility: if another agent is scheduled to go through the malfunctioning agent as it stands still but the other agent is not opened up and is forced to keep its schedule, then the problem is infeasible; there may be many more such situations by transitivity.
+%
+However, since false positives and false negatives with respect to the full offline solution are possible in particular in the case of no time flexibility, we expect lower solution quality (i.e. higher costs).
+
+We expect false negatives and false positives in our prediction: the delay may open up the opportunity for a second train to depart earlier (false positive), causing a third train to be only slightly delayed (false negative).
+
+
+We call our delay propagation transmission chains because in the full implementation we not only store the delayed effect but the full chains. This makes debugging easier and allows to easily compute various statistics such as the level the source delay has first reached another agent.
+
+Our approach is similar to delay propagation in \cite{handbookofoptimizationinrailwayindustry} where delay propagation is illustrated in the setting of event activity graphs with given decisions.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Random Online Re-scheduling (delta random after malfunction)}\label{subsubsec:Deltarandom}
+\subsubsection{Random Online Re-scheduling (online\_random)}
+\label{subsubsec:scope_online_random}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{mdframed}
-{\bf TODO Christian} a bit of introduction after all...
+As a sanity check, to show that our scoping is not trivial, we use Algorithm~\ref{algo:scoper_changed} with random prediction of Algorithm~\ref{algo:scoper_random}: we determine the fraction of changed agents among those running at or after the malfunction (lines 1--2) and choose randomly with the same fraction among those running after the malfunction, ensuring that the malfunction agent is contained (lines 3--7).
 
-% random as a naive baseline from those running after the malfunction → if that also reduces solution time, our problem is not hard enough, showing the problem is not trivia
 
-%     total_changed = wieviele Agenten haben wirklich geändert?
-%         free up malfunction agent + total_changed - 1 random agenten (active or future active)
-%         (Warnung) Achtung time window muss gross sein
-%         Nur für ausgewählte Experimente?
-%     total_changed = wieviele Agenten haben im Online geändert?
-\end{mdframed}
+\begin{algorithm}
+	\caption{$changed\_random$} \label{algo:scoper_random}
+	\begin{algorithmic}[1]
+		\Require $\mathcal{A}$, $(P_{S_0},A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$, $(P,A)$
+	    \Ensure $\mathcal{A}^* \subseteq \mathcal{A}$
+	    \State $\mathcal{A}_{running}=\Set{a \in \mathcal{A}: \max_{v \in P_{S_0}} A_{S_0}(a,v) \geq m_{time\_step}}$
+	    \State $n_{changed} = \left| \Set{a\in \mathcal{A}_{running}:  P_{S_0} \not=P_{S} \textrm { or } A_{S_0}(a,\cdot) \not= A_{S}(a,\cdot)} \right|$
+	    \State $\mathcal{A}^* \leftarrow$ choose $n_{changed}$ from $\mathcal{A}_{running}$
+	    \State $\mathcal{A}^* \leftarrow \mathcal{A}^* \cup \Set{m_{agent}}$
+	\end{algorithmic}
+\end{algorithm}
+The output of this prediction can then be passed to Algorithm~\ref{algo:scoper_changed} with time flexibility to determine the re-scheduling problem.
+Again, we conjecture that this algorithms produces a feasible scope if $c >= malfunction duration$ (without time flexibility, there is clearly no guarantee of feasibility).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -905,35 +1039,33 @@ In light of the findings of the previous paragraphs, we design our experiments i
 \end{enumerate}
 where at each level we generate multiple instances for a fixed instance of the previous levels (i.e. we generate multiple infrastructures for the same parameters, we generate multiple schedules for the same infrastructure etc.). The lowest level is a sanity level to investigate the variance of the solver for the same problem.
 
-The agenda for the results of this section is shown in Figure~\ref{fig:agenda}: We have
+In order to show the speed-up, we want our problems not to be just as large as possible, but as ``dense'' as possible; that's where we expect our scoping approach to be most needed and where we hope our re-scheduling baseline (online unrestricted) is a robust measure of the hardness of our problems.
+These considerations lead us  to the following agenda for this section, as shown in Figure~\ref{fig:agenda}: We have
 \begin{itemize}
-    \item 8 infrastructures with 80 to 150 agents (i.e. the first infrastructure has 80 agents, the second has 88 agents)
-    \item 10 schedules per infrastructure
+    \item 1 infrastructures with 64 agents in a $40\times 40$ grid, with 4 stations (\texttt{max\_num\_cities}), 3 rails per station (\texttt{max\_rail\_in\_city}) and only one track between stations (\texttt{max\_rail\_between\_cities})
+    \item 31 schedules per infrastructure
     \item for every agent a malfunction 30 time steps after its scheduled start for 50 time steps
     \item 1 solver run
 \end{itemize}
-This gives an agenda of 8640 experiments.
-The data is available in a dedicated git repository \url{https://github.com/SchweizerischeBundesbahnen/rsp-data}.
+This gives an agenda of 1981 experiments of which we disturbed the first 10 agents, resulting in a total of 380 data points (the agenda was aborted).
+The data is available in a dedicated git repository \url{https://github.com/SchweizerischeBundesbahnen/rsp-data/tree/master/ONE_INFRA_MANY_SCHEDULES_64_AGENTS}.
 %
-Infrastructure, schedule and the experiment results shown in this section are in
-\textrm{h1\_2020\_08\_24T21\_04\_42/h1\_2020\_08\_24T21\_04\_42\_baseline\_2020\_09\_17T17\_08\_13}; in these provisional results, only the first 803 experiments have been run.
 
 \begin{mdframed}
-{\bf TODO Christian} Run and upload full agenda, finalize
+{\bf TODO Erik} Run and upload full agenda with infrastructure variation, finalize; do we need also multiple runs per experiment and take only the median over runs per scope? Do we want to this for all experiments or for a subset and filter out extreme values?
 \end{mdframed}
 
 
-We filter out  experiments with small absolute and large relative run times:
-\begin{itemize}
-    \item time full after malfunction $< 10$s
-    \item time full after malfunction $> 97\%$-percentile of time full after malfunction
-\end{itemize}
-This filters out 25 experiments and leaves us with data from 778 experiments.
-
+%We filter out  experiments with small absolute and large relative run times:
+%\begin{itemize}
+%    \item time full after malfunction $< 10$s
+%    \item time full after malfunction $> 97\%$-percentile of time full after malfunction
+%\end{itemize}
+%This filters out 68 experiments and leaves us with data from 312 experiments.
+We filter out experiments with small and large run times (if the solver took less than $20s$ or more than $200s$ for the online unrestricted scope; this leaves us with 125 data points.
 
 \begin{figure}[hbtp]
-
-    \includegraphics[width=\textwidth]{Figures/agenda.PNG}
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/agenda.PNG}
 	\caption{Hierarchical Agenda Structure.}
 	\label{fig:agenda}
 \end{figure}
@@ -946,55 +1078,180 @@ This filters out 25 experiments and leaves us with data from 778 experiments.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure}[hbtp]
-    \includegraphics[width=\textwidth]{Figures/computation_times_per_experiment_id.PNG}
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_experiment_id.PNG}
 	\caption{Computation times per experiment.}
 	\label{fig:computationtimesexperimentid}
 \end{figure}
-In Figure~\ref{fig:computationtimesexperimentid}, we do no recognize any block structure of running times as we could expect from Figure~\ref{fig:agenda}. In other words, grid size and number of against is not a good measure of the difficulty of the re-scheduling problem (we conjecture that it may be even hard to determine beforehand whether a problem is hard); furthermore, the difficulty varies greatly for the same schedule when taking different agents (notice that this implies different time steps as well since the malfunction is performed 30 time steps after the malfunction agent's departure). We will come back to this in Section~\ref{sec:CaseStudies}, where we give some illustrations.
+In Figure~\ref{fig:computationtimesexperimentid}, we do not recognize any block structure of running times as we could expect from Figure~\ref{fig:agenda}. In other words, grid size and number of agents are not a good measure of the difficulty of the re-scheduling problem (we conjecture that it may be even hard to determine beforehand whether a problem is hard); furthermore, the difficulty varies greatly for the same schedule when taking different agents (notice that this implies different time steps as well since the malfunction is performed 30 time steps after the malfunction agent's departure); also other indicators as the number of agents running after the malfunction or the time horizon remaining after the malfunction did not give any hint on re-scheduling time (online unrestricted). We will come back to this in Section~\ref{sec:CaseStudies}, where we give some illustrations.
 
-Therefore, we trivially take the full re-scheduling time as measure of problem complexity and plot the rescheduling times and speed-up for the different scopes against the full re-scheduling time in Figure~\ref{fig:computationtimes}
-We see a clear speed-up for almost all experiments except for the random scoper, which is reflected by the random scope has runtimes staying along the diagonal (full rescheduling time) and speed-up being around $1.0$.
-Furthermore, the re-scheduling times for more difficult problems in the reduced scopes (delta perfect, delta naive, delta online) seem to stay in an almost constant range; this is reflected by an increasing speed-up with respect to the full re-scheduling time.
+Therefore, we for lack of a better take the full re-scheduling time (online unrestricted) as measure of problem complexity and plot the rescheduling times and speed-up for the different scopes against the full re-scheduling time in Figures~\ref{fig:computationtimes}, \ref{fig:speed_up} and \ref{fig:solve_non_solve}.
+We see a clear separation and increase of speed-up for larger online unrestricted in the following order:
+\begin{enumerate}
+    \item online fully restricted
+    \item offline delta
+    \item online route restricted
+\end{enumerate}
+We see a small speed-up for random and none for our transmission chains approach. We believe the small speed-up for random comes from randomly choosing agents whose paths are restricted.
 
-With these preliminary results, do not see a clear separation between the scopes, only a slight tendency for the speed-up being greatest in delta perfect.
+
 
 
 
 \begin{figure}[hbtp]
+	\begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_times_total_online_unrestricted_1.PNG}
+        \caption{Total solver runtimes for online unrestricted, online full restricted, offline delta and online route restricted}
+        \label{fig:computationtimes_absolute_1}
+    \end{subfigure}
 
-    \includegraphics[width=\textwidth]{Figures/computation_times_per_times_total_full_after_malfunction.PNG}
-        \includegraphics[width=\textwidth]{Figures/speedup.PNG}
-	\caption{Re-scheduling times and speed-up against full re-scheduling time. The speed-ups are grouped in 10 bins of equal size on the horizontal axis between min and max value.}
+    \begin{subfigure}{\textwidth}
+          \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_times_total_online_unrestricted_2.PNG}
+          \label{fig:computationtimes_absolute_2}
+          \caption{Total solver runtimes for online transmissions chains and online random against online unrestricted.}
+     \end{subfigure}
+     \begin{subfigure}{\textwidth}
+          \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_solve_non_solve_per_experiment_id.PNG}
+          \label{fig:computationtimes_absolute_total_solve_non_solve}
+          \caption{Total solver time composed of solve time and non-solve time.}
+     \end{subfigure}
+	\caption{Re-scheduling times against full re-scheduling time.}
 	\label{fig:computationtimes}
 \end{figure}
 
-\begin{mdframed}
-{\bf TODO Christian} visualize effective costs and ratio: delta perfect and delta naive should reach same costs
-\end{mdframed}
+\begin{figure}[hbtp]
+
+     \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_times_total_per_times_total_online_unrestricted.PNG}
+        \caption{Speed-up for total solver time}
+         \label{fig:computationtimes_speed_up_total}
+    \end{subfigure}
+     \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_solve_time_per_times_total_online_unrestricted.PNG}
+        \caption{Speed-up for solver time spent solving}
+         \label{fig:computationtimes_speed_up_solve_time}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_non_solve_time_per_times_total_online_unrestricted.PNG}
+        \caption{Speed-up for total solver time spent non-solving}
+         \label{fig:computationtimes_speed_up_non_solve_time}
+    \end{subfigure}
+	\caption{Speed-up of total solver time, solve time and non-solve time of the ASP solver. The speed-ups are grouped in 10 bins of equal size on the horizontal axis between min and max value.}
+	\label{fig:speed_up}
+\end{figure}
+
 
 \begin{figure}[hbtp]
-    \includegraphics[width=\textwidth]{Figures/total_delay.PNG}
-	\caption{.}
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_unrestricted.PNG}
+        \caption{Total solver time, solve time and non-solve time for online unrestricted}
+         \label{fig:computationtimes_solve_non_solve_time_online_unrestricted}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_fully_restricted.PNG}
+        \caption{Total solver time, solve time and non-solve time for online fully restricted}
+         \label{fig:computationtimes_solve_non_solve_time_online_fully_restricted}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_delta.PNG}
+        \caption{Total solver time, solve time and non-solve time for offline delta}
+         \label{fig:computationtimes_solve_non_solve_time_online_delta}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_route_restricted.PNG}
+        \caption{Total solver time, solve time and non-solve time for online route restricted}
+         \label{fig:computationtimes_solve_non_solve_time_online_route_restricted}
+    \end{subfigure}
+\end{figure}
+
+\begin{figure}
+  \ContinuedFloat
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_random.PNG}
+        \caption{Total solver time, solve time and non-solve time for online random}
+         \label{fig:computationtimes_solve_non_solve_time_online_random}
+    \end{subfigure}
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_transmission_chains_fully_restricted.PNG}
+                \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_transmission_chains_route_restricted.PNG}
+        \caption{Total solver time, solve time and non-solve time for online transmission chains fully and route restricted}
+        \label{fig:computationtimes_solve_non_solve_time_online_tranmission_chains}
+    \end{subfigure}
+	\caption{Absolute total solver time, solve time and non-solve time of the ASP solver per experiment id.}
+	\label{fig:solve_non_solve}
+\end{figure}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Solution Quality}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Figure~\ref{fig:delay} shows that, as expected, online fully restricted, offline delta yield a solution of the same costs; our transmission chains route restricted also yields the same quality solutions in our experiments\footnote{we do not know whether this is provably so}, only when give the predicted agents no time flexibility (transmission chains fully restricted) does the solution quality slightly deterioriate. Online route restricted incurs additional costs, although it cannot have any routing penalties; the same applies to online random, which randomly chooses the agents having no routing flexibility; our transmission chains scopers seem to lead to good solutions (no additional costs for route restricted, almost no additional costs for fully restricted). There seems to be almost no tradeoff between routing penalties and lateness -- we will come back to this in Section~\ref{sec:CaseStudies}.
+
+\begin{figure}[hbtp]
+        \begin{subfigure}{\textwidth}
+            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_costs.PNG}
+            \caption{Additional costs}
+             \label{fig:additional_costs}
+        \end{subfigure}
+        \begin{subfigure}{\textwidth}
+            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_lateness.PNG}
+            \caption{Additional lateness}
+             \label{fig:additional_lateness}
+        \end{subfigure}
+        \begin{subfigure}{\textwidth}
+            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_route_section_penalties.PNG}
+            \caption{Additional weighted route section penalties}
+             \label{fig:additional_route_section_penalties}
+        \end{subfigure}
+	\caption{Costs per scope.}
 	\label{fig:delay}
 \end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Prediction Quality of Online Scopes}
+\subsection{Prediction Quality}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{mdframed}
-{\bf TODO Christian} false positives, false negatives etc.
-\end{mdframed}
+Figure~\ref{fig:prediction_quality} shows prediction quality for transmission chains and random: our transmission chains scoper has often many false positives, but almost no false negatives
+
+Figure~\ref{fig:additional_changed_agents} shows that online route restricted compensates route restriction by changing more agents than all other scopes, however some experiments seem not to allow for such compensation and less agents are changed at still higher costs as we saw above. It is interesting to see that offline delta changes fewer agents, at the same cost as we saw above -- we will come back to this below in Section~\ref{subsec:cost_equivalence}.
+
+\begin{figure}[hbtp]
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/prediction_quality.PNG}
+	\caption{Prediction quality: false positives and false negatives rate. Online transmission chains fully restricted is not shown as it is almost completely identical to online transmission chains route restricted.}
+	\label{fig:prediction_quality}
+\end{figure}
+
+\begin{figure}[hbtp]
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_changed_agents.PNG}
+	\caption{Additional changed agents.}
+	\label{fig:additional_changed_agents}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Model Calibration}
+\subsection{Model Calibration}\label{subsec:model_calibration}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{mdframed}
 {\bf TODO Christian} ASP: preprocessing vs. solving; different parameters (delay model?): which parameters make the problem harder, what do we measure?
 \end{mdframed}
 
+\subsubsection{effect of SEQ heuristic (SIM-167)}
+
+\subsubsection{effect of delay model resolution with 2, 5, 10 (SIM-542)}
+
+\subsubsection{effect of --propagate (SIM-543)}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Discussion}\label{subsec:results_discussion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+On the one hand, the results are good news for our approach since it supports our hypothesis that a huge speed-up is possible, especially if we ignore the non-solve part (we haven't invested in optimizing this part of the model and guess what it could be improved with the ASP solver and that it behaves completely differently with other solvers).
+
+On the other hand, the results must make as also cautious as we compare our  transmission chains approach with online route restricted: our better prediction seems to make it harder for the solver to find solutions in some cases, resulting in much more variance in re-scheduling times than offline delta.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1002,9 +1259,17 @@ With these preliminary results, do not see a clear separation between the scopes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\subsection{Cost Equivalence}\label{subsec:cost_equivalence}
+
+\subsection{False Positives and False Negatives}\label{subsec:false_positives_false_negatives}
+
+\subsection{Malfunction Variation}\label{subsec:malfunction_variation}
+
 \begin{mdframed}
 {\bf TODO Christian} example of cost-equivalent solutions; example of false negative, false positive; malfunction variation
 \end{mdframed}
+
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
