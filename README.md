@@ -88,6 +88,8 @@ In order to have automatic mpeg conversion, we use the python-wrapper [ffmpeg-py
 For this to work, `ffmpeg` must be installed and on the `PATH`.
 
 
+## Coding Guidelines
+See [CODING.md](CODING.md).
 
 ## Disclaimer
 ### Authors:
