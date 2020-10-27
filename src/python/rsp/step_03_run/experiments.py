@@ -78,6 +78,7 @@ from rsp.step_03_run.experiment_results_analysis import expand_experiment_result
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
+from rsp.step_03_run.scopers.scoper_offline_delta_weak import scoper_offline_delta_weak_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_random import scoper_online_random_for_all_agents
 from rsp.step_03_run.scopers.scoper_online_route_restricted import scoper_online_route_restricted_for_all_agents
@@ -318,6 +319,33 @@ def run_experiment_in_memory(
     )
 
     # --------------------------------------------------------------------------------------
+    # B.2.a Above Lower bound: Re-Schedule Delta Weak
+    # --------------------------------------------------------------------------------------
+
+    rsp_logger.info("3a. reschedule delta Weak (above lower bound)")
+    # clone topos since propagation will modify them
+    offline_delta_weak_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
+    problem_offline_delta_weak = scoper_offline_delta_weak_for_all_agents(
+        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
+        online_unrestricted_problem=problem_online_unrestricted,
+        malfunction=experiment_malfunction,
+        latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
+        topo_dict_=offline_delta_weak_topo_dict,
+        schedule_trainrun_dict=schedule_trainruns,
+        minimum_travel_time_dict=schedule_problem.minimum_travel_time_dict,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
+    )
+
+    results_offline_delta_weak = asp_reschedule_wrapper(
+        reschedule_problem_description=problem_offline_delta_weak,
+        schedule=schedule_trainruns,
+        debug=debug,
+        asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
+    )
+
+    # --------------------------------------------------------------------------------------
     # B.2.b Lower bound: Re-Schedule Delta trivially_perfect
     # --------------------------------------------------------------------------------------
     rsp_logger.info("3b. reschedule delta trivially_perfect (lower bound)")
@@ -473,6 +501,7 @@ def run_experiment_in_memory(
         problem_schedule=schedule_problem,
         problem_online_unrestricted=problem_online_unrestricted,
         problem_offline_delta=problem_offline_delta,
+        problem_offline_delta_weak=problem_offline_delta,
         problem_offline_fully_restricted=problem_offline_fully_restricted,
         problem_online_route_restricted=problem_online_route_restricted,
         problem_online_transmission_chains_fully_restricted=problem_online_transmission_chains_fully_restricted,
@@ -480,6 +509,7 @@ def run_experiment_in_memory(
         results_schedule=schedule_result,
         results_online_unrestricted=results_online_unrestricted,
         results_offline_delta=results_offline_delta,
+        results_offline_delta_weak=results_offline_delta_weak,
         results_offline_fully_restricted=results_offline_fully_restricted,
         results_online_route_restricted=results_online_route_restricted,
         results_online_transmission_chains_fully_restricted=results_online_transmission_chains_fully_restricted,
