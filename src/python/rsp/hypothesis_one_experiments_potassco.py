@@ -19,7 +19,6 @@ from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 def run_potassco_agenda(
     base_directory: str, experiment_output_base_directory: Optional[str] = None, experiment_filter=None, parallel_compute: int = 5, csv_only: bool = False
 ):
-
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[30, 30, 1],
         malfunction_duration=[50, 50, 1],
@@ -113,16 +112,16 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
         check_create_folder(base_directory)
 
     infra_parameters_range = InfrastructureParametersRange(
-        number_of_agents=[60, 60, 1],
+        number_of_agents=[64, 64, 1],
         width=[40, 40, 1],
         height=[40, 40, 1],
-        flatland_seed_value=[12, 12, 1],
+        flatland_seed_value=[10, 10, 1],
         max_num_cities=[4, 4, 1],
         max_rail_in_city=[3, 3, 1],
         max_rail_between_cities=[1, 1, 1],
         number_of_shortest_paths_per_agent=[10, 10, 1],
     )
-    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[1, 100, 20], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
+    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[1, 104, 30], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
 
     create_infrastructure_and_schedule_from_ranges(
         base_directory=base_directory,
