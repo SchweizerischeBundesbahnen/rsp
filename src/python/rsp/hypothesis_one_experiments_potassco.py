@@ -149,7 +149,6 @@ if __name__ == "__main__":
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         # incremental re-start after interruption
-        experiment_output_base_directory=BASELINE_DATA_FOLDER,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         parallel_compute=parallel_compute,
         csv_only=False,
