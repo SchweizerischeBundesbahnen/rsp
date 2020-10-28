@@ -140,7 +140,7 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
 
 
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
-    return experiment.re_schedule_parameters.malfunction_agent_id < 10 and experiment.experiment_id >= 2000
+    return experiment.re_schedule_parameters.malfunction_agent_id < 10
 
 
 if __name__ == "__main__":

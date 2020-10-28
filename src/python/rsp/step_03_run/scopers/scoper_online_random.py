@@ -9,7 +9,8 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.scopers.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
+from rsp.step_03_run.scopers.scoper_agent_wise import AgentWiseChange
+from rsp.step_03_run.scopers.scoper_agent_wise import scoper_agent_wise
 from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_section_penalties
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -70,14 +71,13 @@ def scoper_online_random_for_all_agents(
     changed_agents = np.random.choice(agents_running_after_malfunction, changed_running_agents_online, replace=False)
 
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
+        earliest_dict, latest_dict, topo = scoper_agent_wise(
             agent_id=agent_id,
             topo_=delta_random_topo_dict_to_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
             online_unrestricted_problem=online_unrestricted_problem,
-            changed=(agent_id in changed_agents),
             # N.B. we do not require malfunction agent to have re-routing flexibility!
-            time_flexibility=True,
+            agent_wise_change=AgentWiseChange.unrestricted if agent_id in changed_agents else AgentWiseChange.route_restricted,
             malfunction=malfunction,
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,

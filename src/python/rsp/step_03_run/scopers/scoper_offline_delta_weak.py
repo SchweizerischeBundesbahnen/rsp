@@ -10,7 +10,8 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.scopers.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
+from rsp.step_03_run.scopers.scoper_agent_wise import AgentWiseChange
+from rsp.step_03_run.scopers.scoper_agent_wise import scoper_agent_wise
 from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_section_penalties
 
 _pp = pprint.PrettyPrinter(indent=4)
@@ -66,7 +67,7 @@ def scoper_offline_delta_weak_for_all_agents(
     # TODO SIM-324 pull out verification
     assert malfunction.agent_id in changed_dict
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
+        earliest_dict, latest_dict, topo = scoper_agent_wise(
             agent_id=agent_id,
             topo_=topo_dict_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
@@ -75,9 +76,8 @@ def scoper_offline_delta_weak_for_all_agents(
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
-            changed=changed_dict[agent_id],
             # freeze all unchanged agents - we know this is feasible!
-            time_flexibility=False,
+            agent_wise_change=AgentWiseChange.unrestricted if changed_dict[agent_id] else AgentWiseChange.fully_restricted,
         )
         freeze_dict[agent_id] = RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
         topo_dict[agent_id] = topo
