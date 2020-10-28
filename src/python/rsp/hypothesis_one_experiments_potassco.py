@@ -115,13 +115,13 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
         number_of_agents=[64, 64, 1],
         width=[40, 40, 1],
         height=[40, 40, 1],
-        flatland_seed_value=[10, 10, 1],
+        flatland_seed_value=[10, 1012, 2],
         max_num_cities=[4, 4, 1],
         max_rail_in_city=[3, 3, 1],
         max_rail_between_cities=[1, 1, 1],
         number_of_shortest_paths_per_agent=[10, 10, 1],
     )
-    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[1, 104, 30], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
+    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[1, 104, 2], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
 
     create_infrastructure_and_schedule_from_ranges(
         base_directory=base_directory,
@@ -142,6 +142,7 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
     return experiment.re_schedule_parameters.malfunction_agent_id < 20
 
+INFRAS_ANDSCHEDULES_FOLDER = 'TESTING_WEAK_SCOPE'
 
 if __name__ == "__main__":
     parallel_compute = AVAILABLE_CPUS // 2
@@ -149,7 +150,7 @@ if __name__ == "__main__":
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         # incremental re-start after interruption
-        experiment_output_base_directory=BASELINE_DATA_FOLDER,
+        # experiment_output_base_directory=BASELINE_DATA_FOLDER,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         parallel_compute=parallel_compute,
         csv_only=False,
