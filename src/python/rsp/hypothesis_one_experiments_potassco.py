@@ -17,7 +17,7 @@ from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
 def run_potassco_agenda(
-    base_directory: str, experiment_output_base_directory: Optional[str] = None, experiment_filter=None, parallel_compute: int = 5, csv_only: bool = False
+        base_directory: str, experiment_output_base_directory: Optional[str] = None, experiment_filter=None, parallel_compute: int = 5, csv_only: bool = False
 ):
     reschedule_parameters_range = ReScheduleParametersRange(
         earliest_malfunction=[30, 30, 1],
@@ -121,7 +121,7 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
         max_rail_between_cities=[1, 1, 1],
         number_of_shortest_paths_per_agent=[10, 10, 1],
     )
-    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[1, 104, 30], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
+    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[1, 104, 30], number_of_shortest_paths_per_agent_schedule=[1, 1, 1], )
 
     create_infrastructure_and_schedule_from_ranges(
         base_directory=base_directory,
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     run_potassco_agenda(
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         # incremental re-start after interruption
-         experiment_filter=experiment_filter_first_ten_of_each_schedule,
+        experiment_filter=experiment_filter_first_ten_of_each_schedule,
         parallel_compute=parallel_compute,
         csv_only=False,
     )
