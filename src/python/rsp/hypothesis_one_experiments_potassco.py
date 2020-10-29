@@ -142,16 +142,19 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
     return experiment.re_schedule_parameters.malfunction_agent_id < 20
 
-INFRAS_ANDSCHEDULES_FOLDER = 'TESTING_WEAK_SCOPE'
 
-if __name__ == "__main__":
+def main(base_directory=INFRAS_AND_SCHEDULES_FOLDER, experiment_output_base_directory=BASELINE_DATA_FOLDER):
     parallel_compute = AVAILABLE_CPUS // 2
-    generate_potassco_infras_and_schedules(base_directory=INFRAS_AND_SCHEDULES_FOLDER, parallel_compute=parallel_compute)
+    generate_potassco_infras_and_schedules(base_directory=base_directory, parallel_compute=parallel_compute)
     run_potassco_agenda(
-        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        base_directory=base_directory,
         # incremental re-start after interruption
-        # experiment_output_base_directory=BASELINE_DATA_FOLDER,
+        experiment_output_base_directory=experiment_output_base_directory,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         parallel_compute=parallel_compute,
         csv_only=False,
     )
+
+
+if __name__ == "__main__":
+    main(base_directory="TESTING_WEAK_SCOPE", experiment_output_base_directory=None)
