@@ -59,8 +59,14 @@ else:
         )
         experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
 
-    # Filter data depending on full rescheduling time (>10s and within 97% percentile)
-    experiment_data_filtered = filter_experiment_results_analysis_data_frame(experiment_data)
+    # Filter data depending on full rescheduling time (>=20s and <= 200s)
+    local_filter_experiment_results_analysis_data_frame = partial(
+        filter_experiment_results_analysis_data_frame,
+        min_time_online_unrestricted=20,
+        max_time_online_unrestricted=200,
+        max_time_online_unrestricted_q=1.0
+    )
+    experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
     print(f"removed {len(experiment_data)-len(experiment_data_filtered)}/{len(experiment_data)} rows")
     experiment_data_filtered.to_csv(f'{experiment_base_directory}.csv')
 
@@ -104,7 +110,7 @@ hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=
 ### Visualize Speed Up factors for experiments
 
 ```{python}
-hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_filtered)
+hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data_filtered, nb_bins=10)
 
 # for exploration, use:
 # plot_speed_up(experiment_data=experiment_data,
@@ -137,7 +143,7 @@ hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data_filte
 for prefix in ['solver_statistics_conflicts', 'solver_statistics_choices', 'nb_resource_conflicts']:
     columns_of_interest =[ f'{prefix}_{scope}' for scope in rescheduling_scopes_visualization ]
     plot_box_plot(experiment_data=experiment_data_filtered,
-                             axis_of_interest=axis_of_interest,
+                             axis_of_interest='experiment_id',
                              columns_of_interest=columns_of_interest,
                              title=f'{prefix} per',
                              y_axis_title=f'{prefix} [-]'
