@@ -11,7 +11,8 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.scopers.scoper_agent_changed_or_unchanged import scoper_changed_or_unchanged
+from rsp.step_03_run.scopers.scoper_agent_wise import AgentWiseChange
+from rsp.step_03_run.scopers.scoper_agent_wise import scoper_agent_wise
 from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_section_penalties
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.transmission_chains.transmission_chains import validate_transmission_chains
@@ -71,12 +72,14 @@ def scoper_online_transmission_chains_for_all_agents(
     # 2. compute reached agents
     online_reached_agents = {transmission_chain[-1].hop_off.agent_id for transmission_chain in transmission_chains}
 
+    agent_wise_change_if_unchanged = AgentWiseChange.route_restricted if time_flexibility else AgentWiseChange.fully_restricted
+
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
     # TODO SIM-324 pull out verification
     assert malfunction.agent_id in online_reached_agents
     for agent_id in schedule_trainrun_dict.keys():
-        earliest_dict, latest_dict, topo = scoper_changed_or_unchanged(
+        earliest_dict, latest_dict, topo = scoper_agent_wise(
             agent_id=agent_id,
             topo_=delta_online_topo_dict_to_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
@@ -85,8 +88,8 @@ def scoper_online_transmission_chains_for_all_agents(
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
-            changed=(agent_id in online_reached_agents),
-            time_flexibility=time_flexibility,
+            # N.B. we do not require malfunction agent to have re-routing flexibility!
+            agent_wise_change=AgentWiseChange.unrestricted if agent_id in online_reached_agents else agent_wise_change_if_unchanged,
         )
         freeze_dict[agent_id] = RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
         topo_dict[agent_id] = topo
@@ -100,7 +103,7 @@ def scoper_online_transmission_chains_for_all_agents(
             malfunction=malfunction,
             max_window_size_from_earliest=max_window_size_from_earliest,
         )
-    # N.B. re-schedule train run must not necessarily be open in route dag constraints!
+        # N.B. re-schedule train run must not necessarily be open in route dag constraints!
 
     return (
         ScheduleProblemDescription(

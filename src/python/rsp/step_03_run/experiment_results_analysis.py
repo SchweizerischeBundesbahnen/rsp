@@ -24,6 +24,7 @@ from rsp.utils.rsp_logger import rsp_logger
 speed_up_scopes = [
     "offline_fully_restricted",
     "offline_delta",
+    "offline_delta_weak",
     "online_route_restricted",
     "online_transmission_chains_fully_restricted",
     "online_transmission_chains_route_restricted",
@@ -362,6 +363,7 @@ ExperimentResultsAnalysis = NamedTuple(
         ("problem_online_unrestricted", ScheduleProblemDescription),
         ("problem_offline_fully_restricted", ScheduleProblemDescription),
         ("problem_offline_delta", ScheduleProblemDescription),
+        ("problem_offline_delta_weak", ScheduleProblemDescription),
         ("problem_online_route_restricted", ScheduleProblemDescription),
         ("problem_online_transmission_chains_fully_restricted", ScheduleProblemDescription),
         ("problem_online_transmission_chains_route_restricted", ScheduleProblemDescription),
@@ -369,6 +371,7 @@ ExperimentResultsAnalysis = NamedTuple(
         ("results_online_unrestricted", SchedulingExperimentResult),
         ("results_offline_fully_restricted", SchedulingExperimentResult),
         ("results_offline_delta", SchedulingExperimentResult),
+        ("results_offline_delta_weak", SchedulingExperimentResult),
         ("results_online_route_restricted", SchedulingExperimentResult),
         ("results_online_transmission_chains_fully_restricted", SchedulingExperimentResult),
         ("results_online_transmission_chains_route_restricted", SchedulingExperimentResult),

@@ -4,6 +4,7 @@ from typing import Dict
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.propagate import verify_consistency_of_route_dag_constraints_for_agent
+from rsp.scheduling.propagate import verify_trainrun_satisfies_route_dag_constraints
 from rsp.scheduling.scheduling_problem import RouteDAGConstraints
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
@@ -16,23 +17,21 @@ from rsp.step_03_run.scopers.scoper_online_unrestricted import _extract_route_se
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def scoper_online_random_for_all_agents(
+def scoper_offline_delta_weak_for_all_agents(
     online_unrestricted_trainrun_dict: TrainrunDict,
     online_unrestricted_problem: ScheduleProblemDescription,
     malfunction: ExperimentMalfunction,
     minimum_travel_time_dict: Dict[int, int],
     latest_arrival: int,
     # pytorch convention for in-place operations: postfixed with underscore.
-    delta_random_topo_dict_to_: TopoDict,
+    topo_dict_: TopoDict,
     schedule_trainrun_dict: TrainrunDict,
     weight_route_change: int,
     weight_lateness_seconds: int,
-    max_window_size_from_earliest: int,
-    changed_running_agents_online: int,
+    max_window_size_from_earliest: int = np.inf,
 ) -> ScheduleProblemDescription:
-    """The scoper random only opens up the malfunction agent and the same
-    amount of agents as were changed in the full re-schedule, but chosen
-    randomly.
+    """The scoper online only opens up the differences between the schedule and
+    the imaginary re-schedule. It gives no additional routing flexibility!
 
     Parameters
     ----------
@@ -46,7 +45,7 @@ def scoper_online_random_for_all_agents(
         the minimumum travel times for the agents
     latest_arrival:
         latest arrival
-    delta_random_topo_dict_to_:
+    topo_dict_:
         the topologies used for scheduling
     schedule_trainrun_dict: TrainrunDict
         the schedule S0
@@ -60,28 +59,25 @@ def scoper_online_random_for_all_agents(
     -------
     ScheduleProblemDesccription
     """
+
     freeze_dict: RouteDAGConstraintsDict = {}
     topo_dict: TopoDict = {}
+    changed_dict = {agent_id: online_unrestricted_trainrun_dict[agent_id] != schedule_trainrun_dict[agent_id] for agent_id in schedule_trainrun_dict}
 
-    agents_running_after_malfunction = [
-        agent_id for agent_id, schedule_trainrun in schedule_trainrun_dict.items() if schedule_trainrun[-1].scheduled_at >= malfunction.time_step
-    ]
-    assert malfunction.agent_id in agents_running_after_malfunction
-
-    changed_agents = np.random.choice(agents_running_after_malfunction, changed_running_agents_online, replace=False)
-
+    # TODO SIM-324 pull out verification
+    assert malfunction.agent_id in changed_dict
     for agent_id in schedule_trainrun_dict.keys():
         earliest_dict, latest_dict, topo = scoper_agent_wise(
             agent_id=agent_id,
-            topo_=delta_random_topo_dict_to_[agent_id],
+            topo_=topo_dict_[agent_id],
             schedule_trainrun=schedule_trainrun_dict[agent_id],
             online_unrestricted_problem=online_unrestricted_problem,
-            # N.B. we do not require malfunction agent to have re-routing flexibility!
-            agent_wise_change=AgentWiseChange.unrestricted if agent_id in changed_agents else AgentWiseChange.route_restricted,
             malfunction=malfunction,
             latest_arrival=latest_arrival,
             max_window_size_from_earliest=max_window_size_from_earliest,
             minimum_travel_time=minimum_travel_time_dict[agent_id],
+            # freeze all unchanged agents - we know this is feasible!
+            agent_wise_change=AgentWiseChange.unrestricted if changed_dict[agent_id] else AgentWiseChange.fully_restricted,
         )
         freeze_dict[agent_id] = RouteDAGConstraints(earliest=earliest_dict, latest=latest_dict)
         topo_dict[agent_id] = topo
@@ -95,18 +91,18 @@ def scoper_online_random_for_all_agents(
             malfunction=malfunction,
             max_window_size_from_earliest=max_window_size_from_earliest,
         )
-        # N.B. re-schedule train run must not necessarily be open in route dag constraints!
+        # re-schedule train run must be open in route dag constraints
+        verify_trainrun_satisfies_route_dag_constraints(
+            agent_id=agent_id, route_dag_constraints=freeze_dict[agent_id], scheduled_trainrun=online_unrestricted_trainrun_dict[agent_id]
+        )
 
-    return (
-        ScheduleProblemDescription(
-            route_dag_constraints_dict=freeze_dict,
-            minimum_travel_time_dict=minimum_travel_time_dict,
-            topo_dict=topo_dict,
-            max_episode_steps=latest_arrival,
-            route_section_penalties=_extract_route_section_penalties(
-                schedule_trainruns=schedule_trainrun_dict, topo_dict=topo_dict, weight_route_change=weight_route_change
-            ),
-            weight_lateness_seconds=weight_lateness_seconds,
+    return ScheduleProblemDescription(
+        route_dag_constraints_dict=freeze_dict,
+        minimum_travel_time_dict=minimum_travel_time_dict,
+        topo_dict=topo_dict,
+        max_episode_steps=latest_arrival,
+        route_section_penalties=_extract_route_section_penalties(
+            schedule_trainruns=schedule_trainrun_dict, topo_dict=topo_dict, weight_route_change=weight_route_change
         ),
-        set(changed_agents),
+        weight_lateness_seconds=weight_lateness_seconds,
     )

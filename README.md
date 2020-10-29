@@ -193,6 +193,8 @@ You will need to tweak:
 * Use a new `BASELINE_DATA_FOLDER` for running the experiments. Be sure you use the same parameters as before.
 * Copy the older experiments to the new location.
 
+## Coding Guidelines
+See [CODING.md](CODING.md).
 
 ## Disclaimer
 ### Authors:

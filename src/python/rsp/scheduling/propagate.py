@@ -313,7 +313,7 @@ def verify_consistency_of_route_dag_constraints_for_agent(  # noqa: C901
             if earliest <= malfunction.time_step:
                 assert route_dag_constraints.latest[waypoint] == earliest
                 assert waypoint in vertices_of_all_paths
-            # everything after malfunction must be respect malfunction duration (at least) for malfunction agent
+            # everything after malfunction must respect malfunction duration (at least) for malfunction agent
             elif agent_id == malfunction.agent_id:
                 assert (
                     earliest >= malfunction.time_step + malfunction.malfunction_duration
