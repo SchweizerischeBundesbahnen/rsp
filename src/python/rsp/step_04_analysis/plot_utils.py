@@ -9,6 +9,9 @@ from _plotly_utils.colors.qualitative import Plotly
 from pandas import DataFrame
 from rsp.utils.file_utils import check_create_folder
 
+PDF_WIDTH = 1200
+PDF_HEIGHT = 600
+
 PLOTLY_COLORLIST = [
     "aliceblue",
     "antiquewhite",
@@ -170,6 +173,7 @@ def plot_box_plot(
     y_axis_title: str = "Time[s]",
     title: str = "Computational Times per",
     file_name_prefix: str = "",
+    file_name: str = None,
     color_offset: int = 0,
 ):
     """Plot the computational times of experiments.
@@ -198,7 +202,10 @@ def plot_box_plot(
     """
     traces = [(axis_of_interest, column) for column in columns_of_interest]
     # prevent too long file names
-    pdf_file = f"{file_name_prefix}_{axis_of_interest}__" + ("_".join(columns_of_interest))[0:15] + ".pdf"
+    if file_name is not None:
+        pdf_file = file_name
+    else:
+        pdf_file = f"{file_name_prefix}_{axis_of_interest}__" + ("_".join(columns_of_interest))[0:15] + ".pdf"
     plot_box_plot_from_traces(
         experiment_data=experiment_data,
         traces=traces,
@@ -270,13 +277,14 @@ def plot_box_plot_from_traces(
     fig.update_layout(title_text=f"{title}")
     fig.update_xaxes(title=x_axis_title)
     fig.update_yaxes(title=y_axis_title)
+    fig.update_layout(legend=dict(yanchor="top", y=-0.1, x=0.1))
     if output_folder is None or pdf_file is None:
         fig.show()
     else:
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, pdf_file)
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_binned_box_plot(
@@ -284,9 +292,11 @@ def plot_binned_box_plot(
     axis_of_interest: str,
     cols: List[str],
     output_folder: Optional[str] = None,
+    file_name: Optional[str] = None,
     y_axis_title: str = "Speed Up Factor",
     axis_of_interest_suffix: str = "",
     nb_bins: Optional[int] = 10,
+    show_bin_counts: Optional[bool] = True,
 ):
     """
 
@@ -357,7 +367,7 @@ def plot_binned_box_plot(
                 marker_color=Plotly[(col_index + 2) % len(Plotly)],
             )
         )
-    if binned:
+    if binned and show_bin_counts:
         fig.add_trace(
             go.Histogram(
                 x=experiment_data[axis_of_interest_binned if binned else axis_of_interest].values,
@@ -369,12 +379,17 @@ def plot_binned_box_plot(
     fig.update_layout(boxmode="group")
     fig.update_xaxes(title=f"{axis_of_interest} {axis_of_interest_suffix}")
     fig.update_yaxes(title=y_axis_title)
-    if output_folder is None:
+    fig.update_layout(legend=dict(yanchor="top", y=-0.1, x=0.1))
+    if output_folder is None and file_name is None:
         fig.show()
     else:
+        if output_folder is None:
+            output_folder = "."
+        if file_name is None:
+            file_name = f"{axis_of_interest}__speed_up.pdf"
         check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f"{axis_of_interest}__speed_up.pdf")
+        pdf_file = os.path.join(output_folder, file_name)
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
     if binned:
         del experiment_data[axis_of_interest_binned]

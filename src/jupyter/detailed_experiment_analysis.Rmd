@@ -40,7 +40,7 @@ BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 2064
+experiment_of_interest = 0
 ```
 
 ```{python}
@@ -51,7 +51,7 @@ exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_
     experiment_ids=[experiment_of_interest],
     nonify_all_structured_fields=False
 )[0]
-agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agent_id
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.malfunction_agent_id
 ```
 
 ```{python}

@@ -39,6 +39,8 @@ from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import time_
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import Trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
 from rsp.step_04_analysis.plot_utils import GREY_BACKGROUND_COLOR
+from rsp.step_04_analysis.plot_utils import PDF_HEIGHT
+from rsp.step_04_analysis.plot_utils import PDF_WIDTH
 from rsp.step_04_analysis.plot_utils import PLOTLY_COLORLIST
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.global_constants import GLOBAL_CONSTANTS
@@ -102,7 +104,7 @@ def plot_shared_heatmap(plotting_information: PlottingInformation, experiment_re
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"shared_heatmap.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
@@ -265,7 +267,7 @@ def plot_time_resource_trajectories(  # noqa:C901
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f'time_resource_trajectories_{title.replace(" ", "_")}.pdf')
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
@@ -287,7 +289,7 @@ def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"delay_histogram.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_lateness(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
@@ -324,7 +326,7 @@ def plot_lateness(experiment_results: ExperimentResultsAnalysis, output_folder: 
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"lateness.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
@@ -357,7 +359,7 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis, out
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"agen_specific_delay.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
@@ -387,7 +389,7 @@ def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_fo
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"changed_per_train.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
     fig = go.Figure()
     schedule_trainruns_dict = experiment_results.results_schedule.trainruns_dict
@@ -414,7 +416,7 @@ def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_fo
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"changed_routes_per_train.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_route_dag(
@@ -626,7 +628,7 @@ def plot_resource_occupation_heat_map(
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"resource_occupation_heat_map.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def _condense_to_cities(positions: Dict[Resource, int]) -> Dict[Resource, int]:
@@ -665,7 +667,7 @@ def plot_train_paths(
     schedule_as_resource_occupations: ScheduleAsResourceOccupations,
     agent_ids: List[int],
     plotting_information: PlottingInformation,
-    file_name: Optional[str] = None,
+    pdf_file: Optional[str] = None,
 ):
     """
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
@@ -720,10 +722,10 @@ def plot_train_paths(
 
     fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
-    if file_name is None:
+    if pdf_file is None:
         fig.show()
     else:
-        fig.write_image(file_name)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupations, output_folder: Optional[str] = None):
@@ -758,7 +760,7 @@ def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupa
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"time_density.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_nb_route_alternatives(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
@@ -784,7 +786,7 @@ def plot_nb_route_alternatives(experiment_results: ExperimentResultsAnalysis, ou
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"nb_route_alternatives.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_agent_speeds(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
@@ -805,7 +807,7 @@ def plot_agent_speeds(experiment_results: ExperimentResultsAnalysis, output_fold
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"speeds.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def plot_time_window_sizes(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
@@ -830,7 +832,7 @@ def plot_time_window_sizes(experiment_results: ExperimentResultsAnalysis, output
         check_create_folder(output_folder)
         pdf_file = os.path.join(output_folder, f"time_window_sizes.pdf")
         # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def print_path_stats(experiment_results: ExperimentResultsAnalysis):

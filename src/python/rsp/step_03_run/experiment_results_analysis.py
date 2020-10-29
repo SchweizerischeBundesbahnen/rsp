@@ -170,6 +170,15 @@ def changed_percentage_from_results(
     ) / len(results_reschedule.trainruns_dict)
 
 
+def additional_changed_agents_from_results(
+    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
+):
+    # TODO SIM-672 runs twice, optimize
+    return changed_from_results(
+        results_schedule=experiment_results.results_schedule, results_reschedule=results_online_unrestricted, problem_reschedule=None
+    ) - changed_from_results(results_schedule=experiment_results.results_schedule, results_reschedule=results_other_reschedule, problem_reschedule=None)
+
+
 def vertex_lateness_from_results(
     results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> Dict[int, Dict[Waypoint, float]]:
@@ -332,6 +341,7 @@ speedup_scopes_fields = {
     "costs_ratio": (float, costs_ratio_from_results),
     "speed_up_solve_time": (float, speed_up_solve_time_from_results),
     "speed_up_non_solve_time": (float, speed_up_non_solve_time_from_results),
+    "additional_changed_agents": (float, additional_changed_agents_from_results),
 }
 
 prediction_scopes_fields = {
@@ -353,6 +363,7 @@ online_random_average_fields = [
     )
     if prefix != "solution" and "_per_" not in prefix and not prefix.startswith("vertex_")
 ]
+
 
 ExperimentResultsAnalysis = NamedTuple(
     "ExperimentResultsAnalysis",

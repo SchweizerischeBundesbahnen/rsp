@@ -6,6 +6,8 @@ import plotly.graph_objects as go
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import PlottingInformation
 from rsp.step_04_analysis.plot_utils import GREY_BACKGROUND_COLOR
+from rsp.step_04_analysis.plot_utils import PDF_HEIGHT
+from rsp.step_04_analysis.plot_utils import PDF_WIDTH
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupationsAllScopes
 from rsp.utils.resource_occupation import SortedResourceOccupationsPerAgent
@@ -18,7 +20,7 @@ def plot_delay_propagation_2d(
     delay_information: Dict[int, int],
     depth_dict: Dict[int, int],
     changed_agents: Optional[Dict[int, bool]] = None,
-    file_name: Optional[str] = None,
+    pdf_file: Optional[str] = None,
 ):
     """
     Plot agent delay over ressource, only plot agents that are affected by the malfunction.
@@ -115,10 +117,10 @@ def plot_delay_propagation_2d(
 
     fig.update_yaxes(zeroline=False, showgrid=True, range=[plotting_information.grid_width, 0], tick0=-0.5, dtick=1, gridcolor="Grey")
     fig.update_xaxes(zeroline=False, showgrid=True, range=[0, plotting_information.grid_width], tick0=-0.5, dtick=1, gridcolor="Grey")
-    if file_name is None:
+    if pdf_file is None:
         fig.show()
     else:
-        fig.write_image(file_name)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
 def print_situation_overview(malfunction: ExperimentMalfunction, resource_occupations_for_all_scopes: ScheduleAsResourceOccupationsAllScopes):
