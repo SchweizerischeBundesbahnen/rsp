@@ -43,7 +43,7 @@ def hypothesis_one_analysis_visualize_lateness(experiment_data: DataFrame, outpu
                 axis_of_interest=axis_of_interest,
                 axis_of_interest_suffix=axis_of_interest_suffix,
                 output_folder=output_folder,
-                cols=[speed_up_col_pattern.format(scope) for scope in rescheduling_scopes_visualization],
+                cols=[speed_up_col_pattern.format(scope) for scope in speed_up_scopes_visualization],
                 y_axis_title=y_axis_title,
             )
 

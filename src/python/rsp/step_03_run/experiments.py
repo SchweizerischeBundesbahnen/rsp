@@ -77,8 +77,7 @@ from rsp.step_03_run.experiment_results_analysis import convert_list_of_experime
 from rsp.step_03_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
-from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes_visualization
-from rsp.step_03_run.experiment_results_analysis import speed_up_scopes_visualization
+from rsp.step_03_run.experiment_results_analysis import temporary_sim_750
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_delta_weak import scoper_offline_delta_weak_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
@@ -1423,27 +1422,6 @@ def load_data_from_individual_csv_in_data_folder(experiment_data_folder_name: st
 
     temporary_sim_750(experiment_data)
     return experiment_data
-
-
-# TODO SIM-750 temporary code
-def temporary_sim_750(experiment_data):
-    for col in experiment_data.columns:
-        if "online_fully_restricted" in col:
-            experiment_data[col.replace("online_fully_restricted", "offline_fully_restricted")] = experiment_data[col]
-    rescheduling_scopes_visualization.remove("offline_delta_weak")
-    speed_up_scopes_visualization.remove("offline_delta_weak")
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_changed_agents_{scope}"] = (
-            experiment_data[f"changed_agents_{scope}"] - experiment_data["changed_agents_online_unrestricted"]
-        )
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_costs_{scope}"] = experiment_data[f"costs_{scope}"] - experiment_data["costs_online_unrestricted"]
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_lateness_{scope}"] = experiment_data[f"lateness_{scope}"] - experiment_data["lateness_online_unrestricted"]
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_costs_from_route_section_penalties_{scope}"] = (
-            experiment_data[f"costs_from_route_section_penalties_{scope}"] - experiment_data["costs_from_route_section_penalties_online_unrestricted"]
-        )
 
 
 def delete_experiment_folder(experiment_folder_name: str):

@@ -449,7 +449,9 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
 
 
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
-    return pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
+    experiment_data = pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
+    temporary_sim_750(experiment_data)
+    return experiment_data
 
 
 def filter_experiment_results_analysis_data_frame(
@@ -624,3 +626,24 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
         d.update({f"predicted_changed_agents_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)})
 
     return _to_experiment_results_analysis()
+
+
+# TODO SIM-750 temporary code
+def temporary_sim_750(experiment_data):
+    for col in experiment_data.columns:
+        if "online_fully_restricted" in col:
+            experiment_data[col.replace("online_fully_restricted", "offline_fully_restricted")] = experiment_data[col]
+    rescheduling_scopes_visualization.remove("offline_delta_weak")
+    speed_up_scopes_visualization.remove("offline_delta_weak")
+    for scope in rescheduling_scopes_visualization:
+        experiment_data[f"additional_changed_agents_{scope}"] = (
+            experiment_data[f"changed_agents_{scope}"] - experiment_data["changed_agents_online_unrestricted"]
+        )
+    for scope in rescheduling_scopes_visualization:
+        experiment_data[f"additional_costs_{scope}"] = experiment_data[f"costs_{scope}"] - experiment_data["costs_online_unrestricted"]
+    for scope in rescheduling_scopes_visualization:
+        experiment_data[f"additional_lateness_{scope}"] = experiment_data[f"lateness_{scope}"] - experiment_data["lateness_online_unrestricted"]
+    for scope in rescheduling_scopes_visualization:
+        experiment_data[f"additional_costs_from_route_section_penalties_{scope}"] = (
+            experiment_data[f"costs_from_route_section_penalties_{scope}"] - experiment_data["costs_from_route_section_penalties_online_unrestricted"]
+        )
