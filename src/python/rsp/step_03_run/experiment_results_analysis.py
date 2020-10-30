@@ -633,8 +633,10 @@ def temporary_sim_750(experiment_data):
     for col in experiment_data.columns:
         if "online_fully_restricted" in col:
             experiment_data[col.replace("online_fully_restricted", "offline_fully_restricted")] = experiment_data[col]
-    rescheduling_scopes_visualization.remove("offline_delta_weak")
-    speed_up_scopes_visualization.remove("offline_delta_weak")
+    if "offline_delta_weak" in rescheduling_scopes_visualization:
+        rescheduling_scopes_visualization.remove("offline_delta_weak")
+    if "offline_delta_weak" in speed_up_scopes_visualization:
+        speed_up_scopes_visualization.remove("offline_delta_weak")
     for scope in rescheduling_scopes_visualization:
         experiment_data[f"additional_changed_agents_{scope}"] = (
             experiment_data[f"changed_agents_{scope}"] - experiment_data["changed_agents_online_unrestricted"]
