@@ -75,7 +75,7 @@ def trainrun_dict_from_results(results: SchedulingExperimentResult, p: ScheduleP
     return results.trainruns_dict
 
 
-# TODO SIM-672 duplicate with solver_statistics
+# TODO duplicate with solver_statistics_costs
 def costs_from_results(
     results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> float:
@@ -133,7 +133,7 @@ def lateness_per_agent_from_results(
 def costs_from_lateness_from_results(
     results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ):
-    # TODO SIM-672 runs twice, optimize
+    # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     lateness_dict = lateness_per_agent_from_results(
         results_schedule=results_schedule, results_reschedule=results_reschedule, problem_reschedule=problem_reschedule
     )
@@ -143,7 +143,7 @@ def costs_from_lateness_from_results(
 def lateness_from_results(
     results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> float:
-    # TODO SIM-672 runs twice, optimize
+    # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     return sum(lateness_per_agent_from_results(results_schedule, results_reschedule, problem_reschedule).values())
 
 
@@ -168,15 +168,6 @@ def changed_percentage_from_results(
             for agent_id in results_reschedule.trainruns_dict.keys()
         ]
     ) / len(results_reschedule.trainruns_dict)
-
-
-def additional_changed_agents_from_results(
-    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
-):
-    # TODO SIM-672 runs twice, optimize
-    return changed_from_results(
-        results_schedule=experiment_results.results_schedule, results_reschedule=results_online_unrestricted, problem_reschedule=None
-    ) - changed_from_results(results_schedule=experiment_results.results_schedule, results_reschedule=results_other_reschedule, problem_reschedule=None)
 
 
 def vertex_lateness_from_results(
@@ -212,7 +203,7 @@ def costs_from_route_section_penalties_per_agent_and_edge_from_results(
 def costs_from_route_section_penalties_per_agent_from_results(
     results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> Dict[int, float]:
-    # TODO we should avoid redundant computations?
+    # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     edge_penalties = costs_from_route_section_penalties_per_agent_and_edge_from_results(
         results_schedule=results_schedule, results_reschedule=results_reschedule, problem_reschedule=problem_reschedule
     )
@@ -222,58 +213,11 @@ def costs_from_route_section_penalties_per_agent_from_results(
 def costs_from_route_section_penalties(
     results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> float:
-    # TODO we should avoid redundant computations?
+    # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     edge_penalties = costs_from_route_section_penalties_per_agent_and_edge_from_results(
         results_schedule=results_schedule, results_reschedule=results_reschedule, problem_reschedule=problem_reschedule
     )
     return sum([sum(edge_penalties.values()) for agent_id, edge_penalties in edge_penalties.items()])
-
-
-def speed_up_from_results(
-    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
-) -> float:
-    return results_online_unrestricted.solver_statistics["summary"]["times"]["total"] / results_other_reschedule.solver_statistics["summary"]["times"]["total"]
-
-
-def speed_up_solve_time_from_results(
-    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
-) -> float:
-    return results_online_unrestricted.solver_statistics["summary"]["times"]["solve"] / results_other_reschedule.solver_statistics["summary"]["times"]["solve"]
-
-
-def speed_up_non_solve_time_from_results(
-    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
-) -> float:
-    return (
-        results_online_unrestricted.solver_statistics["summary"]["times"]["total"] - results_online_unrestricted.solver_statistics["summary"]["times"]["solve"]
-    ) / (results_other_reschedule.solver_statistics["summary"]["times"]["total"] - results_other_reschedule.solver_statistics["summary"]["times"]["solve"])
-
-
-def costs_ratio_from_results(
-    results_online_unrestricted: SchedulingExperimentResult, results_other_reschedule: SchedulingExperimentResult, experiment_results: ExperimentResults
-) -> float:
-    costs_online_unrestricted = costs_from_results(
-        results_schedule=experiment_results.results_schedule,
-        results_reschedule=results_online_unrestricted,
-        problem_reschedule=experiment_results.problem_online_unrestricted,
-    )
-    # TODO SIM-324 pull out verification
-    assert costs_online_unrestricted >= experiment_results.malfunction.malfunction_duration, (
-        f"costs_online_unrestricted {costs_online_unrestricted} should be greater than malfunction duration, "
-        f"{experiment_results.malfunction} {experiment_results.experiment_parameters}"
-    )
-    costs_other_reschedule = costs_from_results(
-        results_schedule=experiment_results.results_schedule,
-        results_reschedule=results_other_reschedule,
-        problem_reschedule=experiment_results.problem_online_unrestricted,
-    )
-    # TODO SIM-324 pull out verification
-    assert costs_other_reschedule >= experiment_results.malfunction.malfunction_duration
-    try:
-        return costs_online_unrestricted / costs_other_reschedule
-    except ZeroDivisionError as e:
-        rsp_logger.error(f"{costs_online_unrestricted} / {costs_other_reschedule}")
-        raise e
 
 
 def lateness_to_effective_cost(weight_lateness_seconds: int, lateness_dict: Dict[int, int]) -> Dict[int, int]:
@@ -336,13 +280,16 @@ experiment_results_analysis_rescheduling_scopes_fields = {
     "changed_agents_percentage": (float, changed_percentage_from_results),
 }
 
-speedup_scopes_fields = {
-    "speed_up": (float, speed_up_from_results),
-    "costs_ratio": (float, costs_ratio_from_results),
-    "speed_up_solve_time": (float, speed_up_solve_time_from_results),
-    "speed_up_non_solve_time": (float, speed_up_non_solve_time_from_results),
-    "additional_changed_agents": (float, additional_changed_agents_from_results),
+# TODO we could make this more systematic by calling fields ratio_XXX
+# ratio to online_unrestricted
+speedup_scopes_ratio_fields = {
+    "speed_up": "solver_statistics_times_total",
+    "costs_ratio": "solver_statistics_costs",
+    "speed_up_solve_time": "solver_statistics_times_solve",
+    "speed_up_non_solve_time": "solver_statistics_times_total_without_solve",
 }
+# difference to online_unrestricted
+speedup_scopes_additional_fields = ["changed_agents", "costs", "lateness", "costs_from_route_section_penalties"]
 
 prediction_scopes_fields = {
     "predicted_changed_agents_number": int,
@@ -356,14 +303,14 @@ prediction_scopes_fields = {
 online_random_average_fields = [
     prefix
     for prefix in (
-        list(speedup_scopes_fields.keys())
+        list(speedup_scopes_ratio_fields.keys())
+        + [f"additional_{f}" for f in speedup_scopes_additional_fields]
         + list(experiment_results_analysis_all_scopes_fields.keys())
         + list(experiment_results_analysis_rescheduling_scopes_fields.keys())
         + list(prediction_scopes_fields.keys())
     )
     if prefix != "solution" and "_per_" not in prefix and not prefix.startswith("vertex_")
 ]
-
 
 ExperimentResultsAnalysis = NamedTuple(
     "ExperimentResultsAnalysis",
@@ -413,7 +360,8 @@ ExperimentResultsAnalysis = NamedTuple(
     + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_rescheduling_scopes_fields.items() for scope in rescheduling_scopes]
-    + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in speedup_scopes_fields.items() for scope in speed_up_scopes]
+    + [(f"{prefix}_{scope}", float) for prefix in speedup_scopes_ratio_fields for scope in speed_up_scopes]
+    + [(f"additional_{prefix}_{scope}", float) for prefix in speedup_scopes_additional_fields for scope in speed_up_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, type_ in prediction_scopes_fields.items() for scope in prediction_scopes]
     + [(f"{prefix}_online_random_average", float) for prefix in online_random_average_fields],
 )
@@ -438,6 +386,9 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
             )
         except AssertionError as e:
             rsp_logger.warn(str(e))
+        assert costs >= experiment_results_analysis.costs_online_unrestricted
+        assert costs >= experiment_results_analysis.malfunction.malfunction_duration
+
     for scope in ["offline_fully_restricted", "offline_delta"]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
         assert costs == experiment_results_analysis.costs_online_unrestricted
@@ -445,12 +396,16 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
         f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)
     ]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
-        assert costs >= experiment_results_analysis.costs_online_unrestricted
+
+    assert experiment_results_analysis.costs_online_unrestricted >= experiment_results_analysis.malfunction.malfunction_duration, (
+        f"costs_online_unrestricted {experiment_results_analysis.costs_online_unrestricted} should be greater than malfunction duration, "
+        f"{experiment_results_analysis.malfunction} {experiment_results_analysis.experiment_parameters}"
+    )
 
 
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
     experiment_data = pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
-    temporary_sim_750(experiment_data)
+    temporary_backwards_compatibility_scope(experiment_data)
     return experiment_data
 
 
@@ -468,7 +423,9 @@ def filter_experiment_results_analysis_data_frame(
     ]
 
 
-def expand_experiment_results_for_analysis(experiment_results: ExperimentResults, nonify_all_structured_fields: bool = False) -> ExperimentResultsAnalysis:
+def expand_experiment_results_for_analysis(  # noqa: C901
+    experiment_results: ExperimentResults, nonify_all_structured_fields: bool = False
+) -> ExperimentResultsAnalysis:
     """
 
     Parameters
@@ -476,7 +433,6 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
     experiment_results:
         experiment_results to expand into to experiment_results_analysis
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
-    debug: bool
     nonify_all_structured_fields: bool
         in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
         TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
@@ -559,16 +515,13 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
             for prefix, (_, results_extractor) in experiment_results_analysis_rescheduling_scopes_fields.items()
             for scope in rescheduling_scopes
         },
-        **{
-            f"{prefix}_{scope}": results_extractor(
-                results_online_unrestricted=experiment_results._asdict()[f"results_online_unrestricted"],
-                results_other_reschedule=experiment_results._asdict()[f"results_{scope}"],
-                experiment_results=experiment_results,
-            )
-            for prefix, (_, results_extractor) in speedup_scopes_fields.items()
-            for scope in speed_up_scopes
-        },
     )
+    for ratio_field, from_field in speedup_scopes_ratio_fields.items():
+        for speed_up_scope in speed_up_scopes:
+            d[f"{ratio_field}_{speed_up_scope}"] = d[f"{from_field}_online_unrestricted"] / d[f"{from_field}_{speed_up_scope}"]
+    for additional_field in speedup_scopes_additional_fields:
+        for speed_up_scope in speed_up_scopes:
+            d[f"additional_{additional_field}_{speed_up_scope}"] = d[f"{additional_field}_{speed_up_scope}"] - d[f"{additional_field}_online_unrestricted"]
 
     # add online_random_average by averaging over online_random_{i}
     d = dict(
@@ -629,7 +582,7 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
 
 
 # TODO SIM-750 temporary code
-def temporary_sim_750(experiment_data):
+def temporary_backwards_compatibility_scope(experiment_data):  # noqa: C901
     for col in experiment_data.columns:
         if "online_fully_restricted" in col:
             experiment_data[col.replace("online_fully_restricted", "offline_fully_restricted")] = experiment_data[col]
@@ -638,14 +591,18 @@ def temporary_sim_750(experiment_data):
     if "offline_delta_weak" in speed_up_scopes_visualization:
         speed_up_scopes_visualization.remove("offline_delta_weak")
     for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_changed_agents_{scope}"] = (
-            experiment_data[f"changed_agents_{scope}"] - experiment_data["changed_agents_online_unrestricted"]
-        )
+        if f"additional_changed_agents_{scope}" not in experiment_data.columns:
+            experiment_data[f"additional_changed_agents_{scope}"] = (
+                experiment_data[f"changed_agents_{scope}"] - experiment_data["changed_agents_online_unrestricted"]
+            )
     for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_costs_{scope}"] = experiment_data[f"costs_{scope}"] - experiment_data["costs_online_unrestricted"]
+        if f"additional_costs_{scope}" not in experiment_data.columns:
+            experiment_data[f"additional_costs_{scope}"] = experiment_data[f"costs_{scope}"] - experiment_data["costs_online_unrestricted"]
     for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_lateness_{scope}"] = experiment_data[f"lateness_{scope}"] - experiment_data["lateness_online_unrestricted"]
+        if f"additional_lateness_{scope}" not in experiment_data.columns:
+            experiment_data[f"additional_lateness_{scope}"] = experiment_data[f"lateness_{scope}"] - experiment_data["lateness_online_unrestricted"]
     for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_costs_from_route_section_penalties_{scope}"] = (
-            experiment_data[f"costs_from_route_section_penalties_{scope}"] - experiment_data["costs_from_route_section_penalties_online_unrestricted"]
-        )
+        if f"additional_costs_from_route_section_penalties_{scope}" not in experiment_data.columns:
+            experiment_data[f"additional_costs_from_route_section_penalties_{scope}"] = (
+                experiment_data[f"costs_from_route_section_penalties_{scope}"] - experiment_data["costs_from_route_section_penalties_online_unrestricted"]
+            )

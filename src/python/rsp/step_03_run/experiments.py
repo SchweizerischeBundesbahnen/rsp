@@ -77,7 +77,7 @@ from rsp.step_03_run.experiment_results_analysis import convert_list_of_experime
 from rsp.step_03_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
-from rsp.step_03_run.experiment_results_analysis import temporary_sim_750
+from rsp.step_03_run.experiment_results_analysis import temporary_backwards_compatibility_scope
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_delta_weak import scoper_offline_delta_weak_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
@@ -1420,7 +1420,7 @@ def load_data_from_individual_csv_in_data_folder(experiment_data_folder_name: st
 
     experiment_data = pd.concat(list_of_frames)
 
-    temporary_sim_750(experiment_data)
+    temporary_backwards_compatibility_scope(experiment_data)
     return experiment_data
 
 
