@@ -77,6 +77,7 @@ from rsp.step_03_run.experiment_results_analysis import convert_list_of_experime
 from rsp.step_03_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
+from rsp.step_03_run.experiment_results_analysis import temporary_backwards_compatibility_scope
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_delta_weak import scoper_offline_delta_weak_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
@@ -1329,7 +1330,7 @@ def load_experiments_results(experiment_data_folder_name: str, experiment_id: in
 
 
 def load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name: str, experiment_ids: List[int] = None, nonify_all_structured_fields: bool = False,
+    experiment_data_folder_name: str, experiment_ids: List[int] = None, nonify_all_structured_fields: bool = False, re_save_csv_after_expansion: bool = False
 ) -> List[ExperimentResultsAnalysis]:
     """Load results as DataFrame to do further analysis.
     Parameters
@@ -1363,7 +1364,13 @@ def load_and_expand_experiment_results_from_data_folder(
             continue
         try:
             file_data: ExperimentResults = _pickle_load(file_name=file_name)
-            experiment_results_list.append(expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields))
+            results_for_analysis = expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields)
+            experiment_results_list.append(results_for_analysis)
+            if re_save_csv_after_expansion:
+                experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
+                    [expand_experiment_results_for_analysis(results_for_analysis, nonify_all_structured_fields=True)]
+                )
+                experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
         except Exception as e:
             rsp_logger.warn(f"skipping {file} because of {e}")
 
@@ -1382,9 +1389,6 @@ def load_data_from_individual_csv_in_data_folder(experiment_data_folder_name: st
         Folder name of experiment where all experiment files are stored
     experiment_ids
         List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
-    nonify_all_structured_fields
-        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
-        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     Returns
     -------
     DataFrame containing the loaded experiment results
@@ -1414,7 +1418,10 @@ def load_data_from_individual_csv_in_data_folder(experiment_data_folder_name: st
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> done loading individual csv results from {experiment_data_folder_name} done")
 
-    return pd.concat(list_of_frames)
+    experiment_data = pd.concat(list_of_frames)
+
+    temporary_backwards_compatibility_scope(experiment_data)
+    return experiment_data
 
 
 def delete_experiment_folder(experiment_folder_name: str):

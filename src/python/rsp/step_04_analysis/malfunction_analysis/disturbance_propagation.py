@@ -15,6 +15,8 @@ from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import get_d
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import time_windows_as_resource_occupations_per_agent
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import Trajectories
 from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import trajectories_from_resource_occupations_per_agent
+from rsp.step_04_analysis.plot_utils import PDF_HEIGHT
+from rsp.step_04_analysis.plot_utils import PDF_WIDTH
 from rsp.transmission_chains.transmission_chains import TransmissionChain
 from rsp.transmission_chains.transmission_chains_time_windows import extract_transmission_chains_from_time_windows
 from rsp.utils.global_constants import GLOBAL_CONSTANTS
@@ -260,7 +262,7 @@ def distance_matrix_from_tranmission_chains(
     return distance_matrix, minimal_depth, wave_reaching_other_agent
 
 
-def plot_delay_propagation_graph(minimal_depth: dict, distance_matrix, changed_agents: dict, file_name: Optional[str] = None):  # noqa: C901
+def plot_delay_propagation_graph(minimal_depth: dict, distance_matrix, changed_agents: dict, pdf_file: Optional[str] = None):  # noqa: C901
     """
 
     Parameters
@@ -328,7 +330,7 @@ def plot_delay_propagation_graph(minimal_depth: dict, distance_matrix, changed_a
 
     fig.update_yaxes(zeroline=False, showgrid=True, range=[max_depth, 0], tick0=0, dtick=1, gridcolor="Grey", title="Influence Depth")
     fig.update_xaxes(zeroline=False, showgrid=False, ticks=None, visible=False)
-    if file_name is None:
+    if pdf_file is None:
         fig.show()
     else:
-        fig.write_image(file_name)
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)

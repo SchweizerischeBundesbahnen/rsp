@@ -28,17 +28,6 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
 
 
 def hypothesis_one_analysis_visualize_lateness(experiment_data: DataFrame, output_folder: str = None):
-    # TODO: why does this not seem to work in expansion?
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"costs_ratio_{scope}"] = experiment_data["costs_online_unrestricted"] / experiment_data[f"costs_{scope}"]
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_costs_{scope}"] = experiment_data[f"costs_{scope}"] - experiment_data["costs_online_unrestricted"]
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_lateness_{scope}"] = experiment_data[f"lateness_{scope}"] - experiment_data["lateness_online_unrestricted"]
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_costs_from_route_section_penalties_{scope}"] = (
-            experiment_data[f"costs_from_route_section_penalties_{scope}"] - experiment_data["costs_from_route_section_penalties_online_unrestricted"]
-        )
     for axis_of_interest, axis_of_interest_suffix in {"infra_id_schedule_id": "", "experiment_id": ""}.items():
         for speed_up_col_pattern, y_axis_title in [
             ("costs_{}", "Costs [-]"),
@@ -54,7 +43,7 @@ def hypothesis_one_analysis_visualize_lateness(experiment_data: DataFrame, outpu
                 axis_of_interest=axis_of_interest,
                 axis_of_interest_suffix=axis_of_interest_suffix,
                 output_folder=output_folder,
-                cols=[speed_up_col_pattern.format(scope) for scope in rescheduling_scopes_visualization],
+                cols=[speed_up_col_pattern.format(scope) for scope in speed_up_scopes_visualization],
                 y_axis_title=y_axis_title,
             )
 
@@ -118,10 +107,6 @@ def hypothesis_one_analysis_visualize_speed_up(experiment_data: DataFrame, outpu
 
 
 def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame, output_folder: str = None):
-    for scope in rescheduling_scopes_visualization:
-        experiment_data[f"additional_changed_agents_{scope}"] = (
-            experiment_data[f"changed_agents_{scope}"] - experiment_data["changed_agents_online_unrestricted"]
-        )
     for axis_of_interest, axis_of_interest_suffix in {"infra_id_schedule_id": "", "solver_statistics_times_total_online_unrestricted": "[s]"}.items():
         for speed_up_col_pattern, y_axis_title in [
             ("changed_agents_{}", "Number of changed agents [-]"),
