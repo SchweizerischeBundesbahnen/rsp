@@ -443,9 +443,9 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
 
 def filter_experiment_results_analysis_data_frame(
     experiment_data: pd.DataFrame,
-    min_time_online_unrestricted: int = 20,
+    min_time_online_unrestricted: int = 60,
     max_time_online_unrestricted_q: float = 0.97,
-    max_time_online_unrestricted: int = np.inf,
+    max_time_online_unrestricted: int = 2000,
 ) -> pd.DataFrame:
     time_online_unrestricted = experiment_data["solver_statistics_times_total_online_unrestricted"]
     return experiment_data[
