@@ -11,7 +11,7 @@ Caveats:
 - We refrained from using `mypy` for static type checking, as it is rather picky and ideosyncratic at times, which may impede non-developers too much.
 
 ### Linting
-We use `pre-commit` git hook for as a wrapper for static code analysis tools (`flake8`, `black` etc.) and formatting, see `.pre-commit-config.yaml` for the configuration.
+We use `pre-commit` git hook as a wrapper for static code analysis tools (`flake8`, `black` etc.) and formatting, see `.pre-commit-config.yaml` for the configuration.
 This allows to check conformity before commiting and enforcing it in continuous integration (see below).
 
 
@@ -21,6 +21,7 @@ We use a three-level approach:
 - pkl with `ExperimentResult`
 - `load_and_expand_experiment_results_from_data_folder` loads this pkl and expands into `ExperimentResultsAnalysis`.
 - `float` fields
+
 We use pickle in order not to lose information as with JSON export/import.
 We use `Pandas` csv export and import for floating data only in order to save space and in order to speed up import in Jupyter notebooks.
 
@@ -79,7 +80,8 @@ We do not have free infrastructure on github or gitlab.
 
 ### Testing
 
-Naming
+There are two types of assertions we want to test:
+
 - functional: is the output as expected, complete or partial (e.g. does the solution have the expected costs without checking the full solution? Is the expected number of files generated?)
 - non-functional: Does the code run through without error? Does it not run longer than expected?
 
@@ -102,11 +104,11 @@ Overleaf sources should be manually synced into this repository. See description
 ## Wishlist
 
 
-### Cleanup apidoc (SIM-723)
+### Cleanup apidoc (https://issues.sbb.ch/browse/SIM-723)
 Apidoc is not consistently maintained (missing or empty parameter descriptions, outdated descriptions).
 Furthermore, the generated apidoc should be inspected, not only in the source code, without too many redundancies to overleaf.
 
-### Extract verifications (SIM-324)
+### Extract verifications (https://issues.sbb.ch/browse/SIM-324)
 We often use Betrand-Meyer style  preconditions, postconditions and validators for data structure invariants:
 - Applying "Design by Contract", Bertrand Meyer, IEEE Computer 1992. <http://se.ethz.ch/~meyer/publications/computer/contract.pdf>
 - <https://docs.oracle.com/javase/7/docs/technotes/guides/language/assert.html>
@@ -118,25 +120,25 @@ Recommendations:
 - is it good practice to use plain `asserts` for this purpose or should we use specific exceptions? See <https://confluence.sbb.ch/pages/viewpage.action?pageId=1177719206#BestPracticesfor%22JavaCodeConventionsSBBv4%22-Don'tuseAsserts> in the context of JAVA
 - discuss whether we should completely get rid of this coding style? While developing algoriths, it often proved invaluable!
 
-### Cleanup unit tests (SIM-323)
+### Cleanup unit tests (https://issues.sbb.ch/browse/SIM-323)
 - During bugfixing, too large data was checked in into unit tests. This requires much scrolling and is not refactoring safe!
-- There is not enough enough testing at the unit test level. This violates the testing pyramid!
+- There is not enough testing at the unit test level. This violates the testing pyramid!
 
-### Consistent naming (SIM-348)
+### Consistent naming (https://issues.sbb.ch/browse/SIM-348)
 - Many different data structure containing schedule, give more descriptive name
 - Agent vs. train?
 - Source vs. start and target vs. sink?
 
 
-### Better abstraction and naming for `ScheduleProblemDescription` (SIM-746)
+### Better abstraction and naming for `ScheduleProblemDescription` (https://issues.sbb.ch/browse/SIM-746)
 - Make `ScheduleProblemDescription` closer to the description in the text
 - Better name for `RouteDAGConstraints`?
 - Better name for `SchedulingExperimentResult` (it's not an experiment in the agenda sense!)
 
-### Encapsulate solver model (SIM-121)
+### Encapsulate solver model (https://issues.sbb.ch/browse/SIM-121)
 We currently use sets of strings for the ASP predicates and parse these strings. When coming from the solver, the answer sets have structure we throw away.
 
-### Data structures (SIM-748)
+### Data structures (https://issues.sbb.ch/browse/SIM-748)
 A cleaner approach would be to use data structure only within a top-level package:
 Data structures are either
 * internal to top-level package
