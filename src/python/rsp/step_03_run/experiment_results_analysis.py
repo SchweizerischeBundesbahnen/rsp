@@ -280,13 +280,17 @@ experiment_results_analysis_rescheduling_scopes_fields = {
     "changed_agents_percentage": (float, changed_percentage_from_results),
 }
 
-# TODO we could make this more systematic by calling fields ratio_XXX
+# TODO we could make this more systematic by calling fields ratio_XXX (e.g."speed_up" should become "ratio_solver_statistics_times_total")
+# TODO streamline "non_solve_time" and "times_total_without_solve"!
 # ratio to online_unrestricted
 speedup_scopes_ratio_fields = {
     "speed_up": "solver_statistics_times_total",
     "costs_ratio": "solver_statistics_costs",
     "speed_up_solve_time": "solver_statistics_times_solve",
     "speed_up_non_solve_time": "solver_statistics_times_total_without_solve",
+    "nb_resource_conflicts_ratio": "nb_resource_conflicts",
+    "solver_statistics_conflicts_ratio": "solver_statistics_conflicts",
+    "solver_statistics_choices_ratio": "solver_statistics_choices",
 }
 # difference to online_unrestricted
 speedup_scopes_additional_fields = ["changed_agents", "costs", "lateness", "costs_from_route_section_penalties"]
@@ -518,7 +522,13 @@ def expand_experiment_results_for_analysis(  # noqa: C901
     )
     for ratio_field, from_field in speedup_scopes_ratio_fields.items():
         for speed_up_scope in speed_up_scopes:
-            d[f"{ratio_field}_{speed_up_scope}"] = d[f"{from_field}_online_unrestricted"] / d[f"{from_field}_{speed_up_scope}"]
+            try:
+                d[f"{ratio_field}_{speed_up_scope}"] = d[f"{from_field}_online_unrestricted"] / d[f"{from_field}_{speed_up_scope}"]
+            except ZeroDivisionError:
+                if d[f"{from_field}_online_unrestricted"] == d[f"{from_field}_{speed_up_scope}"]:
+                    d[f"{ratio_field}_{speed_up_scope}"] = 1.0
+                else:
+                    d[f"{ratio_field}_{speed_up_scope}"] = None
     for additional_field in speedup_scopes_additional_fields:
         for speed_up_scope in speed_up_scopes:
             d[f"additional_{additional_field}_{speed_up_scope}"] = d[f"{additional_field}_{speed_up_scope}"] - d[f"{additional_field}_online_unrestricted"]
@@ -583,26 +593,40 @@ def expand_experiment_results_for_analysis(  # noqa: C901
 
 # TODO SIM-750 temporary code
 def temporary_backwards_compatibility_scope(experiment_data):  # noqa: C901
+    # tweak if delta_weak missing
+    delta_weak_found_in_data = False
+    for col in experiment_data.columns:
+        if "delta_weak" in col:
+            delta_weak_found_in_data = True
+    if not delta_weak_found_in_data:
+        all_scopes_visualization.remove("offline_delta_weak")
+        rescheduling_scopes_visualization.remove("offline_delta_weak")
+        speed_up_scopes_visualization.remove("offline_delta_weak")
+
+    # tweak renaming offline_full_restricted <- online_full_restricted
     for col in experiment_data.columns:
         if "online_fully_restricted" in col:
             experiment_data[col.replace("online_fully_restricted", "offline_fully_restricted")] = experiment_data[col]
-    if "offline_delta_weak" in rescheduling_scopes_visualization:
-        rescheduling_scopes_visualization.remove("offline_delta_weak")
-    if "offline_delta_weak" in speed_up_scopes_visualization:
-        speed_up_scopes_visualization.remove("offline_delta_weak")
-    for scope in rescheduling_scopes_visualization:
-        if f"additional_changed_agents_{scope}" not in experiment_data.columns:
-            experiment_data[f"additional_changed_agents_{scope}"] = (
-                experiment_data[f"changed_agents_{scope}"] - experiment_data["changed_agents_online_unrestricted"]
-            )
-    for scope in rescheduling_scopes_visualization:
-        if f"additional_costs_{scope}" not in experiment_data.columns:
-            experiment_data[f"additional_costs_{scope}"] = experiment_data[f"costs_{scope}"] - experiment_data["costs_online_unrestricted"]
-    for scope in rescheduling_scopes_visualization:
-        if f"additional_lateness_{scope}" not in experiment_data.columns:
-            experiment_data[f"additional_lateness_{scope}"] = experiment_data[f"lateness_{scope}"] - experiment_data["lateness_online_unrestricted"]
-    for scope in rescheduling_scopes_visualization:
-        if f"additional_costs_from_route_section_penalties_{scope}" not in experiment_data.columns:
-            experiment_data[f"additional_costs_from_route_section_penalties_{scope}"] = (
-                experiment_data[f"costs_from_route_section_penalties_{scope}"] - experiment_data["costs_from_route_section_penalties_online_unrestricted"]
-            )
+
+    # tweak missing "additional" fields from expansion
+    for field in ["changed_agents", "costs", "lateness", "costs_from_route_section_penalties"]:
+        for scope in rescheduling_scopes_visualization:
+            if f"additional_{field}_{scope}" not in experiment_data.columns:
+                experiment_data[f"additional_{field}_{scope}"] = experiment_data[f"{field}_{scope}"] - experiment_data[f"{field}_online_unrestricted"]
+
+    # tweak missing "ratio" fields from expansion
+    for field in ["solver_statistics_conflicts", "solver_statistics_choices", "nb_resource_conflicts"]:
+        for scope in all_scopes_visualization:
+            if f"{field}_ratio_{scope}" not in experiment_data.columns:
+                experiment_data[f"{field}_ratio_{scope}"] = experiment_data[f"{field}_online_unrestricted"] / experiment_data[f"{field}_{scope}"]
+
+    # tweak costs_ratio as string "(1.0,)" in csvs
+    for scope in speed_up_scopes_visualization:
+        f = f"costs_ratio_{scope}"
+        if str(experiment_data.dtypes[f]) == "object":
+            experiment_data[f] = experiment_data[f].map(lambda t: eval(t)[0]).astype(float)
+
+    if "solve_total_ratio_schedule" not in experiment_data.columns:
+        experiment_data["solve_total_ratio_schedule"] = (
+            experiment_data["solver_statistics_times_solve_schedule"] / experiment_data["solver_statistics_times_total_schedule"]
+        )
