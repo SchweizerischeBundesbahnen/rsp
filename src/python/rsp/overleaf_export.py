@@ -1,7 +1,6 @@
 from functools import partial
 
 from pandas import DataFrame
-
 from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_03_run.experiment_results_analysis import filter_experiment_results_analysis_data_frame
 from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes_visualization
@@ -14,7 +13,6 @@ from rsp.step_04_analysis.plot_utils import ColumnSpec
 from rsp.step_04_analysis.plot_utils import marker_color_scope
 from rsp.step_04_analysis.plot_utils import plot_binned_box_plot
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
-from rsp.utils.rsp_logger import rsp_logger, VERBOSE
 
 
 def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_csv: bool = True, experiments_of_interest=None):
@@ -102,11 +100,11 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
         output_folder=output_folder,
         file_name="prediction_quality.pdf",
         cols=[ColumnSpec(prefix="changed_agents_percentage", scope="online_unrestricted")]
-             + [
-                 ColumnSpec(prefix=prediction_col, scope=scope)
-                 for scope in ["online_transmission_chains_route_restricted", "online_random_average"]
-                 for prediction_col in ["predicted_changed_agents_false_positives_percentage", "predicted_changed_agents_false_negatives_percentage"]
-             ],
+        + [
+            ColumnSpec(prefix=prediction_col, scope=scope)
+            for scope in ["online_transmission_chains_route_restricted", "online_random_average"]
+            for prediction_col in ["predicted_changed_agents_false_positives_percentage", "predicted_changed_agents_false_negatives_percentage"]
+        ],
         title_text="Prediction Quality Percentage",
         marker_color=marker_color_scope,
         marker_symbol=marker_symbol_positive_negative,
@@ -155,7 +153,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             file_name="times_total_per_experiment_id.pdf",
             marker_color=marker_color_scope,
             one_field_many_scopes=True,
-            binned=False
+            binned=False,
         )
 
         plot_binned_box_plot(
@@ -165,7 +163,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             output_folder=output_folder,
             title_text="Computational times bin histogram",
             file_name="times_total_histogram.pdf",
-            show_bin_counts=True
+            show_bin_counts=True,
         )
 
         plot_binned_box_plot(
