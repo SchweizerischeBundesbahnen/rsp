@@ -8,7 +8,9 @@ import numpy as np
 import plotly.graph_objects as go
 from _plotly_utils.colors.qualitative import Plotly
 from pandas import DataFrame
+
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.rsp_logger import rsp_logger, VERBOSE
 
 PDF_WIDTH = 1200
 PDF_HEIGHT = 800
@@ -191,21 +193,21 @@ class ColumnSpec(NamedTuple):
 
 
 def plot_binned_box_plot(  # noqa: C901
-    experiment_data: DataFrame,
-    axis_of_interest: str,
-    cols: List[ColumnSpec],
-    title_text: str,
-    axis_of_interest_dimension: Optional[str] = None,
-    output_folder: Optional[str] = None,
-    file_name: Optional[str] = None,
-    nb_bins: Optional[int] = 10,
-    show_bin_counts: Optional[bool] = False,
-    marker_color: Callable[[int, str], str] = None,
-    marker_symbol: Callable[[int, str], str] = None,
-    one_field_many_scopes: bool = False,
-    width: int = PDF_WIDTH,
-    height: int = PDF_HEIGHT,
-    binned: bool = True,
+        experiment_data: DataFrame,
+        axis_of_interest: str,
+        cols: List[ColumnSpec],
+        title_text: str,
+        axis_of_interest_dimension: Optional[str] = None,
+        output_folder: Optional[str] = None,
+        file_name: Optional[str] = None,
+        nb_bins: Optional[int] = 10,
+        show_bin_counts: Optional[bool] = False,
+        marker_color: Callable[[int, str], str] = None,
+        marker_symbol: Callable[[int, str], str] = None,
+        one_field_many_scopes: bool = False,
+        width: int = PDF_WIDTH,
+        height: int = PDF_HEIGHT,
+        binned: bool = True,
 ):
     """
 
@@ -235,13 +237,13 @@ def plot_binned_box_plot(  # noqa: C901
     max_value = experiment_data[axis_of_interest].max() + epsilon
     inc = (max_value - min_value) / nb_bins
     axis_of_interest_binned = axis_of_interest + "_binned"
-    experiment_data.sort_values(by=axis_of_interest, inplace=True)
+    experiment_data = experiment_data.sort_values(by=axis_of_interest)
 
     if binned:
         experiment_data[axis_of_interest_binned] = (
             experiment_data[axis_of_interest]
-            .astype(float)
-            .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
+                .astype(float)
+                .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
         )
 
     for col_index, col_spec in enumerate(cols):
@@ -272,13 +274,13 @@ def plot_binned_box_plot(  # noqa: C901
                 )[0],
                 hovertext=experiment_data["experiment_id"],
                 hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
-                + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
-                + "<b>Grid Size:</b> %{customdata[1]}<br>"
-                + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
-                + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
-                + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
-                + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
-                + "<b>Experiment id:</b>%{hovertext}",
+                              + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
+                              + "<b>Grid Size:</b> %{customdata[1]}<br>"
+                              + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
+                              + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
+                              + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
+                              + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
+                              + "<b>Experiment id:</b>%{hovertext}",
                 marker=dict(
                     color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
                     symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
@@ -319,3 +321,4 @@ def plot_binned_box_plot(  # noqa: C901
         pdf_file = os.path.join(output_folder, file_name)
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file, width=width, height=height)
+        rsp_logger.info(msg=f"wrote {pdf_file}")
