@@ -167,7 +167,7 @@ def _detailed_experiment_results(experiment_result: ExperimentResultsAnalysis, o
         schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
         plotting_information=plotting_information,
         agent_ids=[agent_of_interest],
-        file_name=f"{output_folder_of_interest}/train_paths.pdf" if output_folder_of_interest is not None else None,
+        pdf_file=f"{output_folder_of_interest}/train_paths.pdf" if output_folder_of_interest is not None else None,
     )
     plot_time_density(schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule, output_folder=output_folder_of_interest)
     return plotting_information, resource_occupations_for_all_scopes, trajectories_for_all_scopes
@@ -217,13 +217,13 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis, output_f
         schedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
         delay_information=experiment_result.lateness_per_agent_offline_delta,
         depth_dict=minimal_depth,
-        file_name=f"{output_folder_of_interest}/delay_propagation_2d.pdf",
+        pdf_file=f"{output_folder_of_interest}/delay_propagation_2d.pdf",
     )
     plot_delay_propagation_graph(
         minimal_depth=minimal_depth,
         distance_matrix=distance_matrix,
         changed_agents=changed_agents_dict,
-        file_name=f"{output_folder_of_interest}/delay_propagation_graph.pdf",
+        pdf_file=f"{output_folder_of_interest}/delay_propagation_graph.pdf",
     )
 
 
