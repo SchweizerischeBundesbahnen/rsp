@@ -196,6 +196,7 @@ def plot_binned_box_plot(  # noqa: C901
     axis_of_interest: str,
     cols: List[ColumnSpec],
     title_text: str,
+    experiment_data_comparison: DataFrame = None,
     axis_of_interest_dimension: Optional[str] = None,
     output_folder: Optional[str] = None,
     file_name: Optional[str] = None,
@@ -207,6 +208,8 @@ def plot_binned_box_plot(  # noqa: C901
     width: int = PDF_WIDTH,
     height: int = PDF_HEIGHT,
     binned: bool = True,
+    experiment_data_suffix: str = None,
+    experiment_data_comparison_suffix: str = None,
 ):
     """
 
@@ -253,39 +256,49 @@ def plot_binned_box_plot(  # noqa: C901
             col_name = col
         if not one_field_many_scopes:
             col_name += " [-]" if col_spec.dimension is None else f" [{col_spec.dimension}]"
-        fig.add_trace(
-            go.Box(
-                x=experiment_data[axis_of_interest_binned if binned else axis_of_interest],
-                y=experiment_data[col],
-                pointpos=-1,
-                boxpoints="all",
-                name=col_name,
-                # TODO is this correct if we bin?
-                customdata=np.dstack(
-                    (
-                        experiment_data["n_agents"],
-                        experiment_data["size"],
-                        experiment_data["solver_statistics_times_total_schedule"],
-                        experiment_data["solver_statistics_times_total_online_unrestricted"],
-                        experiment_data["solver_statistics_times_total_offline_delta"],
-                        experiment_data["solver_statistics_times_total_online_route_restricted"],
-                    )
-                )[0],
-                hovertext=experiment_data["experiment_id"],
-                hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
-                + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
-                + "<b>Grid Size:</b> %{customdata[1]}<br>"
-                + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
-                + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
-                + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
-                + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
-                + "<b>Experiment id:</b>%{hovertext}",
-                marker=dict(
-                    color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
-                    symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
+        data = {col_name + (experiment_data_suffix if experiment_data_suffix is not None else ""): experiment_data}
+        if experiment_data_comparison is not None:
+            data[
+                col_name + (experiment_data_comparison_suffix if experiment_data_comparison_suffix is not None else "_comparison")
+            ] = experiment_data_comparison
+        for col_name, d in data.items():
+            fig.add_trace(
+                go.Box(
+                    x=d[axis_of_interest_binned if binned else axis_of_interest],
+                    y=d[col],
+                    pointpos=-1,
+                    boxpoints="all",
+                    name=col_name,
+                    # TODO is this correct if we bin?
+                    customdata=np.dstack(
+                        (
+                            d["n_agents"],
+                            d["size"],
+                            d["solver_statistics_times_total_schedule"] if "solver_statistics_times_total_schedule" in d.columns else None,
+                            d["solver_statistics_times_total_online_unrestricted"]
+                            if "solver_statistics_times_total_online_unrestricted" in d.columns
+                            else None,
+                            d["solver_statistics_times_total_offline_delta"] if "solver_statistics_times_total_offline_delta" in d.columns else None,
+                            d["solver_statistics_times_total_online_route_restricted"]
+                            if "solver_statistics_times_total_online_route_restricted" in d.columns
+                            else None,
+                        )
+                    )[0],
+                    hovertext=d["experiment_id"],
+                    hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
+                    + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
+                    + "<b>Grid Size:</b> %{customdata[1]}<br>"
+                    + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
+                    + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
+                    + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
+                    + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
+                    + "<b>Experiment id:</b>%{hovertext}",
+                    marker=dict(
+                        color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
+                        symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
+                    ),
                 ),
-            ),
-        )
+            )
     if binned and show_bin_counts:
         fig.add_trace(
             go.Histogram(

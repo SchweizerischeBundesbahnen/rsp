@@ -505,20 +505,8 @@ def expand_experiment_results_for_analysis(  # noqa: C901
 
     # extract other fields by configuration
     d.update(
-        **{
-            f"{prefix}_{scope}": results_extractor(experiment_results._asdict()[f"results_{scope}"], experiment_results._asdict()[f"problem_{scope}"])
-            for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
-            for scope in all_scopes
-        },
-        **{
-            f"{prefix}_{scope}": results_extractor(
-                results_schedule=experiment_results._asdict()[f"results_schedule"],
-                results_reschedule=experiment_results._asdict()[f"results_{scope}"],
-                problem_reschedule=experiment_results._asdict()[f"problem_{scope}"],
-            )
-            for prefix, (_, results_extractor) in experiment_results_analysis_rescheduling_scopes_fields.items()
-            for scope in rescheduling_scopes
-        },
+        **extract_all_scopes_fields(experiment_results=experiment_results, all_scopes=all_scopes),
+        **extract_rescheduling_scopes_fields(experiment_results=experiment_results, rescheduling_scopes=rescheduling_scopes),
     )
     for ratio_field, from_field in speedup_scopes_ratio_fields.items():
         for speed_up_scope in speed_up_scopes:
@@ -542,39 +530,17 @@ def expand_experiment_results_for_analysis(  # noqa: C901
         },
     )
 
-    def _to_experiment_results_analysis():
-        return ExperimentResultsAnalysis(
-            experiment_id=experiment_parameters.experiment_id,
-            grid_id=experiment_parameters.grid_id,
-            size=experiment_parameters.infra_parameters.width,
-            n_agents=experiment_parameters.infra_parameters.number_of_agents,
-            n_agents_running=len(
-                [
-                    agent_id
-                    for agent_id, schedule_trainrun in experiment_results.results_schedule.trainruns_dict.items()
-                    if schedule_trainrun[-1].scheduled_at >= experiment_results.malfunction.time_step
-                ]
-            ),
-            rescheduling_horizon=experiment_results.problem_online_unrestricted.max_episode_steps
-            + experiment_results.malfunction.malfunction_duration
-            - experiment_results.malfunction.time_step,
-            max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
-            max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
-            max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
-            infra_id=experiment_parameters.infra_parameters.infra_id,
-            schedule_id=experiment_parameters.schedule_parameters.schedule_id,
-            infra_id_schedule_id=experiment_parameters.infra_id_schedule_id,
-            earliest_malfunction=experiment_parameters.re_schedule_parameters.earliest_malfunction,
-            malfunction_duration=experiment_parameters.re_schedule_parameters.malfunction_duration,
-            malfunction_agent_id=experiment_parameters.re_schedule_parameters.malfunction_agent_id,
-            weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
-            weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
-            max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+    # plausibility check with fields not nonified
+    plausibility_check_experiment_results_analysis(
+        experiment_results_analysis=_to_experiment_results_analysis(
+            d=d,
+            experiment_parameters=experiment_results.experiment_parameters,
+            problem_online_unrestricted=experiment_results.problem_online_unrestricted,
+            malfunction=experiment_results.malfunction,
+            results_schedule=experiment_results.results_schedule,
             factor_resource_conflicts=factor_resource_conflicts,
-            **d,
         )
-
-    plausibility_check_experiment_results_analysis(experiment_results_analysis=_to_experiment_results_analysis())
+    )
 
     # nonify all non-float fields
     if nonify_all_structured_fields:
@@ -588,7 +554,84 @@ def expand_experiment_results_for_analysis(  # noqa: C901
         d.update({"experiment_parameters": None, "malfunction": None, "predicted_changed_agents_online_transmission_chains_fully_restricted": None})
         d.update({f"predicted_changed_agents_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)})
 
-    return _to_experiment_results_analysis()
+    return _to_experiment_results_analysis(
+        d=d,
+        experiment_parameters=experiment_results.experiment_parameters,
+        problem_online_unrestricted=experiment_results.problem_online_unrestricted,
+        malfunction=experiment_results.malfunction,
+        results_schedule=experiment_results.results_schedule,
+        factor_resource_conflicts=factor_resource_conflicts,
+    )
+
+
+def extract_rescheduling_scopes_fields(experiment_results: ExperimentResults, rescheduling_scopes: List[str]):
+    return {
+        f"{prefix}_{scope}": results_extractor(
+            results_schedule=experiment_results._asdict()[f"results_schedule"],
+            results_reschedule=experiment_results._asdict()[f"results_{scope}"],
+            problem_reschedule=experiment_results._asdict()[f"problem_{scope}"],
+        )
+        for prefix, (_, results_extractor) in experiment_results_analysis_rescheduling_scopes_fields.items()
+        for scope in rescheduling_scopes
+    }
+
+
+def extract_all_scopes_fields(experiment_results: ExperimentResults, all_scopes: List[str]):
+    return {
+        f"{prefix}_{scope}": results_extractor(experiment_results._asdict()[f"results_{scope}"], experiment_results._asdict()[f"problem_{scope}"])
+        for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
+        for scope in all_scopes
+    }
+
+
+def _to_experiment_results_analysis(
+    d: dict,
+    experiment_parameters: ExperimentParameters,
+    results_schedule: ExperimentResults,
+    malfunction: ExperimentMalfunction,
+    problem_online_unrestricted: ScheduleProblemDescription,
+    factor_resource_conflicts: int,
+):
+    return ExperimentResultsAnalysis(
+        **extract_base_fields(
+            experiment_parameters=experiment_parameters,
+            results_schedule=results_schedule,
+            malfunction=malfunction,
+            problem_online_unrestricted=problem_online_unrestricted,
+        ),
+        **d,
+        factor_resource_conflicts=factor_resource_conflicts,
+    )
+
+
+def extract_base_fields(
+    experiment_parameters: ExperimentParameters,
+    results_schedule: ExperimentResults,
+    malfunction: ExperimentMalfunction,
+    problem_online_unrestricted: ScheduleProblemDescription,
+):
+    return dict(
+        experiment_id=experiment_parameters.experiment_id,
+        grid_id=experiment_parameters.grid_id,
+        size=experiment_parameters.infra_parameters.width,
+        n_agents=experiment_parameters.infra_parameters.number_of_agents,
+        n_agents_running=len(
+            [agent_id for agent_id, schedule_trainrun in results_schedule.trainruns_dict.items() if schedule_trainrun[-1].scheduled_at >= malfunction.time_step]
+        ),
+        rescheduling_horizon=problem_online_unrestricted.max_episode_steps + malfunction.malfunction_duration - malfunction.time_step,
+        max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
+        max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
+        max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
+        infra_id=experiment_parameters.infra_parameters.infra_id,
+        schedule_id=experiment_parameters.schedule_parameters.schedule_id,
+        infra_id_schedule_id=experiment_parameters.infra_id_schedule_id,
+        earliest_malfunction=experiment_parameters.re_schedule_parameters.earliest_malfunction,
+        malfunction_duration=experiment_parameters.re_schedule_parameters.malfunction_duration,
+        malfunction_agent_id=experiment_parameters.re_schedule_parameters.malfunction_agent_id,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+    )
 
 
 # TODO SIM-750 temporary code

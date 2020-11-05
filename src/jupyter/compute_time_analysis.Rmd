@@ -40,37 +40,20 @@ from_individual_csv = True
 ```
 
 ```{python}
-experiments_of_interest = None
-experiment_base_directory = BASELINE_DATA_FOLDER
-print(experiment_base_directory)
-if from_cache:
-    experiment_data_filtered = pd.read_csv(f'{experiment_base_directory}.csv')
-else:
-    if from_individual_csv:
-        experiment_data: pd.DataFrame = load_data_from_individual_csv_in_data_folder(
-            experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
-            experiment_ids=experiments_of_interest
-        )
-    else:
-        experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-            experiment_data_folder_name=f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}',
-            experiment_ids=experiments_of_interest,
-            nonify_all_structured_fields=True
-        )
-        experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
-
-    # Filter data depending on full rescheduling time (>=20s and <= 200s)
-    local_filter_experiment_results_analysis_data_frame = partial(
-        filter_experiment_results_analysis_data_frame,
-        min_time_online_unrestricted=20,
-        max_time_online_unrestricted=200,
-        max_time_online_unrestricted_q=1.0
-    )
-    experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
-    print(f"removed {len(experiment_data)-len(experiment_data_filtered)}/{len(experiment_data)} rows")
-    experiment_data_filtered.to_csv(f'{experiment_base_directory}.csv')
-
-
+# Filter data depending on full rescheduling time (>=20s and <= 200s)
+local_filter_experiment_results_analysis_data_frame = partial(
+    filter_experiment_results_analysis_data_frame,
+    min_time_online_unrestricted=0,
+    max_time_online_unrestricted=200,
+    max_time_online_unrestricted_q=1.0
+)
+experiment_data_filtered = load_and_filter_experiment_results_analysis(
+    experiments_of_interest = None,
+    experiment_base_directory = BASELINE_DATA_FOLDER,
+    from_cache=from_cache,
+    from_individual_csv=from_individual_csv,
+    local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame
+)
 display(experiment_data_filtered)
 ```
 

@@ -34,9 +34,13 @@ def hypothesis_one_analysis_visualize_agenda(experiment_data: DataFrame, output_
 
 
 def hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data: DataFrame, output_folder: str = None, columns_of_interest: List[ColumnSpec] = None
+    experiment_data: DataFrame,
+    output_folder: str = None,
+    columns_of_interest: List[ColumnSpec] = None,
+    experiment_data_comparison: DataFrame = None,
+    experiment_data_suffix: str = None,
+    experiment_data_comparison_suffix: str = None,
 ):
-    print(all_scopes_visualization)
     if columns_of_interest is None:
         columns_of_interest = [ColumnSpec(prefix="solver_statistics_times_total", scope=scope) for scope in all_scopes_visualization]
     for axis_of_interest in [
@@ -49,6 +53,7 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
     ]:
         plot_binned_box_plot(
             experiment_data=experiment_data,
+            experiment_data_comparison=experiment_data_comparison,
             axis_of_interest=axis_of_interest,
             cols=columns_of_interest,
             output_folder=output_folder,
@@ -57,6 +62,8 @@ def hypothesis_one_analysis_visualize_computational_time_comparison(
             height=1000,
             width=1200,
             binned=False,
+            experiment_data_suffix=experiment_data_suffix,
+            experiment_data_comparison_suffix=experiment_data_comparison_suffix,
         )
 
 

@@ -35,7 +35,7 @@ def scoper_offline_delta(
 ):
     """"Scoper perfect":
 
-    - allow only paths either in schedule or re-schedule
+    - allow only edges either in schedule or re-schedule
     - if the same in location and time in schedule and re-schedule -> stay (implicitly includes everything up to malfunction)
 
     Caveat: In contrast to other methods, the topo is not modified.
