@@ -1081,7 +1081,9 @@ def expand_range_to_parameter_set(parameter_ranges: List[Tuple[int, int, int]], 
     # Setup experiment parameters
     for dim_idx, dimensions in enumerate(parameter_ranges):
         if dimensions[-1] > 1:
-            parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1], np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
+            step = np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]
+            assert step > 0, "You should defined a number of items in the interval that makes the step < 1.0, check your parameters"
+            parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1], step, dtype=int)
         else:
             parameter_values[dim_idx] = [dimensions[0]]
     full_param_set = span_n_grid([], parameter_values)
