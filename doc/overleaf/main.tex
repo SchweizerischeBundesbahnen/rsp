@@ -210,7 +210,7 @@ We simulate one train $a$ being stopped for $d$ discrete time steps at some time
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Reduction in Space and Time}\label{subec:scopers}
+\subsection{Reduction in Space and Time}\label{subec:slicing}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{mdframed}
@@ -233,10 +233,6 @@ The main idea of the offline or online scoping is shown in Figure~\ref{fig:intro
 	\label{fig:introduction_time_space}
 \end{figure}
 
-\begin{mdframed}
-{\bf TODO Christian} finalize naming? do we need delta naive?
-\end{mdframed}
-
 We will consider the following scopings:
 We consider the following scopings:
 \begin{description}
@@ -248,19 +244,14 @@ We consider the following scopings:
     \item if location and time is the same in schedule and full-reschedule, then we stay at them
 \end{itemize}
 supposed to give a non-trivial but unrealistic baseline on speed-up (upper-bound for non-trivial scopers); in this case, the solution from online\_unrestricted is contained in the solution space, so we expect the same (or an equivalent solution modulo costs) to be found.
+\item[offline\_delta\_weak] this scoper gives a lose delta by opening up the same as online\_unrestricted for changed agents. This gives a first impression how much speed-up we gain by scoping on a train-by-train basis. We expect this to work reasonably well in sparse infrastructures / schedules, but less so in denser infrastructure/schedules, which does not separate well the effect of a malfunction. This might give us hints as to how well a scoper needs to work (with respect to a solver) in order to achieved desired speed-ups.
 \item[online\_route\_restricted] this scoper restricts the re-scheduling problem to the routes chosen in the schedule, but giving time flexibility, suppposed to show the influence of re-routing on computation times and solution quality
 \item[online\_transmission\_chains\_fully\_restricted] this scoper uses a simple delay propagation algorithm along the scheduled paths to predict which trains will be affected by the malfunction, keeping unaffected trains exactly at their path and times, supposed to show a baseline speed-up (lower bound for non-trivial scopers); we expect the solution quality to deterioriate if there are false negatives.
 \item[online\_transmission\_chains\_route\_restricted] this scoper uses a simple delay propagation algorithm along the scheduled paths to predict which trains will be affected by the malfunction, keeping unaffected trains exactly at their path and times, supposed to show a baseline speed-up (lower bound for non-trivial scopers); we expect the solution quality to deterioriate if there are false negatives.
 \item[online\_random] this scoper randomly chooses affected agents, giving no re-routing flexibility to the unaffected trains, supposed to show that the problem of predicting which agents will be affected is not trivial: this is a sanity check online scoping: if we predict affected trains randomly, we expect solutions to be worse than the ones found by the other scopes or that no solution can be found at all; for example if a train is scheduled to pass through the malfunction train during its malfunction and is not opened, there is no solution even if we enlarge time windows.
 \end{description}
 
-\begin{description}
-
-
-\item[delta online] online scoping: we propagate the delay from one train to the next along paths and times in schedule and open up agents that are predicted affected by the heuristic;
-\item[delta random]
-\end{description}
-These scopers will be introduced formally with pseudo-code below in Section~\ref{subec:scopers}.
+These scopers will be introduced formally with pseudo-code below in Section~\ref{subsec:scopers}.
 
 
 
@@ -333,12 +324,9 @@ In this section, we will formalize the ideas of our research approach as outline
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 We now give a more detailed view of the pipeline for hypothesis H1 with respect to Section~\ref{subec:H1}. We refer to Figure~\ref{fig:H1_overview}:
 %
-\begin{mdframed}
-{\bf TODO Christian} update diagram
-\end{mdframed}
 \begin{figure}[hbtp]
 	\centering
-  \includegraphics[width=0.8\textwidth]{H1_overview.png}
+  \includegraphics[width=0.8\textwidth]{Figures/03_pipeline/H1_overview.png}
 	\caption{Pipeline for hypothesis H1 as functional diagram with intermediate data structures at two levels. The top level consists of four stages.}
 	\label{fig:H1_overview}
 \end{figure}
@@ -346,12 +334,12 @@ We now give a more detailed view of the pipeline for hypothesis H1 with respect 
 the pipeline decomposes into five top-level stages:
 \begin{description}
 \item[Infrastructure Generation] This generates railway topologies and places agent start and targets in the infrastructure. We will cover this stage in detail in Section~\ref{subsubsec:infrastructuregeneration}
-\item[Schedule Generation] This generates the exact conflict-free paths and times through the infrastructure for all agents. We will cover this stage in detail in Sections~\ref{subsubsec:schedulegeneration}.
-\item[Malfunction Generation] Which train is delayed when during its run and for how long?
-\item[Experiment Run] Here, the different scopers are run. We will cover these data structures and functional process steps in Sections~\ref{subsubsec:scheduleproblemdescription} and \ref{subec:scopers}.
+\item[Schedule Generation] This generates the exact conflict-free paths and times through the infrastructure for all agents. We will cover this stage in detail in Section~\ref{subsubsec:schedulegeneration}.
+\item[Malfunction Generation] Which train is delayed when during its run and for how long? See Section~\ref{subsubsec:malfunctiongeneration}.
+\item[Experiment Run] Here, the different scopers are run. We will cover these data structures and functional process steps in Sections~\ref{subsubsec:scheduleproblemdescription} and \ref{subsec:scopers}.
 \item[Experiment Analysis] This stage produces the plots that help to verify hypothesis H1. We will give more details in Sections~\ref{sec:Results} and \ref{sec:CaseStudies}.
 \end{description}
-Since the schedule generation step takes too long to repeat for every experiment, we will use the same infrastructure and schedule for many malfunctions. In fact, we can pre-generate infrastructures and schedules and then work on variations of the re-scheduling part of the pipeline more efficiently.
+Since the schedule generation step takes too long to repeat for every experiment, we will use the same infrastructure and schedule for many malfunctions. In fact, we can pre-generate infrastructures and schedules and then work on variations of the re-scheduling part of the pipeline more efficiently. We refer to \url{https://github.com/SchweizerischeBundesbahnen/rsp/blob/master/README.md} for practical getting started.
 
 
 
@@ -363,11 +351,11 @@ We now describe our railway infrastructure and how it is generated, mimicking a 
 
 The infrastructure consists of a grid of cells. Each cell consists of a distinct tile type which defines the movement possibilities of the agent through the cell. There are 8 basic tile types, which describe a rail network. As a general fact in railway network when on navigation choice must be taken at maximum two options are available.
 %
-Figure~\ref{fig:H1_railway_elements} (top) gives an overview of the eight basic types. These can be rotated in steps of $45^\circ$ and mirrored along the North--South of East--West axis. The bottom row shows the corresponding translation into a graph structure: squares represent cells, black dots represent an entry to pin to the depicted cell and a grey dot represents the pin in the opposite direction into the neighboring cell.
+Figure~\ref{fig:H1_railway_elements} (top) gives an overview of the eight basic types. These can be rotated in steps of $45^\circ$ and mirrored along the North--South or East--West axis. The bottom row shows the corresponding translation into a graph structure: squares represent cells, black dots represent an entry pin into the depicted cell and a grey dot represents the pin in the opposite direction into the neighboring cell.
 %
 \begin{figure}[hbtp]
 	\centering
-  \includegraphics[width=0.8\textwidth]{H1_railway_elements.png}
+  \includegraphics[width=0.8\textwidth]{Figures/03_pipeline/H1_railway_elements.png}
 	\caption{Eight basic cell types of a FLATland grid (top) and their translation into a directed graph (bottom).}
 	\label{fig:H1_railway_elements}
 \end{figure}
@@ -395,7 +383,7 @@ furthermore, we require $(\mathcal{V},\mathcal{E})$ to be an acyclic graph.
 
 
 
-We will introduce the abstract model from \cite{DBLP:journals/corr/abs-2003-08598}, which we will use both for schedule generation and for re-scheduling; we could use any schedule as input, but we use the same solver model for practical reasons; the difference between these two applications is only in the optimization objective used as detailled in Sections~\ref{subsubsec:schedulegeneration} and \ref{eq:objectiveresched}, respectively.
+We will introduce the abstract model from \cite{DBLP:journals/corr/abs-2003-08598}, which we will use both for schedule generation and for re-scheduling; we could use any schedule as input, but we use the same solver model for practical reasons; the difference between these two applications is only in the optimization objective used as detailled in Sections~\ref{subsubsec:schedulegeneration} and \ref{eq:objectiveresched}, respectively, as well as different search heuristics in the solver.
 Furthermore, the model introduced in this section is more general than we actually need for our pipeline for H1; this will allow us to review the synthetic assumptions of Section~\ref{subsec:playground} in a more formal setting.
 
 
@@ -407,10 +395,10 @@ According to \cite{DBLP:journals/corr/abs-2003-08598},  the \emph{(general) trai
             \item $(V, E)$ is a directed graph,
             \item $R$ is a set of resources,
             \item $m:E\to\mathbb{N}$ assigns the minimum travel time of an edge,
-            \item $a: \mathbb{R}\to 2^E$ associates resources with edges in the railway network, and
+            \item $a: R\to 2^E$ associates resources with edges in the railway network, and
             \item $b:R\to \mathbb{N}$ gives the time a resource is blocked after it was accessed by a train line.
         \end{itemize}
-    \item $\mathcal{A}$ is an indexed set of train lines to be scheduled on network $N$. Each train in $\mathcal{A}(a)$ for agent id $a\in \dom(\mathcal{A})$ is represented as a tuple $(S, L, e, l, w)$, where
+    \item $\mathcal{A}$ is an indexed set of train lines to be scheduled on network $N$. Each train $\mathcal{A}(a)$ for agent id $a\in \dom(\mathcal{A})$ is represented as a tuple $\mathcal{A}(a)=(S, L, e, l, w)$, where
         \begin{itemize}
             \item $(S, L)$ is an acyclic subgraph of $(V, E)$,
             \item $e:S \to \mathbb{N}$ gives the earliest time a train may arrive at a node,
@@ -421,7 +409,7 @@ According to \cite{DBLP:journals/corr/abs-2003-08598},  the \emph{(general) trai
         \item $C$ contains connections requiring that a certain train line $a^\prime$ must not arrive at node $n^\prime$ before another train line $a $ has arrived at node $n$ for at least $\alpha$ and at most $\omega$ discrete time steps. More precisely, each connection in $C$ is of form $(t,(v, v^\prime), t^\prime,(u, u^\prime), \alpha, \omega, n, n^\prime)$ such that $a= (S, L, e, l, w)\in \mathcal{A}$ and $a^\prime= (S^\prime, L^\prime, e^\prime, l^\prime, w^\prime)\in \mathcal{A}$, $a\not=a^\prime$,$(v, v^\prime)\in L$,$(u, u^\prime)\in L^\prime$,$\left\{\alpha,\omega\right\} \subseteq \mathbb{Z} \cup \left\{\infty,-\infty\right\}$, and either $n=v$ or $n=v^\prime$, as well as, either $n^\prime=u$ or $n^\prime=u^\prime$.
     \item Finally, $F$ contains collision-free resource points for each connection in $C$. We represent it as a family $(F_c)_{c\in C}$. Connections removing collision detection are used to model splitting (or merging) of trains, as well as reusing the whole physical train between two train lines. More importantly, this allows us to alleviate the restriction that subgraphs for train lines are acyclic, as we can use two train lines forming a cycle that are connected via such connections. Refer to \cite{DBLP:journals/corr/abs-2003-08598} for more details.
 \end{itemize}
-In this setting, edges can be interpreted as time slices of a train run referring to a certain a speed profile since the resources to be reserved ahead may depend on the speed profile; however, the model has no reference to the underlying geography (coordinates etc.); also, resources have no location -- they can be interpreted as track sections that need to be reserved, but they may also be gates or sideway tracks that need to be reserved while travelling the edge. Notice that different trains may have the same edges in their route DAG, which means that they can drive with the same speed profile at the same place.
+In this setting, edges can be interpreted as time slices of a train run referring to a certain speed profile since the resources to be reserved ahead may depend on the speed profile; however, the model has no reference to the underlying geography (coordinates etc.); also, resources have no location -- they can be interpreted as track sections that need to be reserved, but they may also be gates or sideway tracks or signals that need to be reserved while travelling the edge. Notice that different trains may have the same edges in their route DAG, which means that they can drive with the same speed profile at the same place.
 
 
 
@@ -447,7 +435,7 @@ in(v_1) = 0 \textrm{ and } out(v_n) = 0,\label{eq:ASP_3}
 \end{equation}
 where $in$ and $out$ give the in- and out-degree of a node in graph $(S, L)$, respectively.
 We will write $\tau(a,P)=v_n$ for the target node used by agent $a$ in the schedule $(P,A)$, and, similarly $\sigma(a,P)=v_1$ for the source node of agent $a$ in the schedule $(P,A)$.
-Intuitively, conditions (\ref{eq:ASP_1}) and (\ref{eq:ASP_2}) enforce paths to be connected and feasible for the train line in question and Condition (\ref{eq:ASP_3}) ensures that each path is between a possible start and end node.
+Intuitively, Conditions (\ref{eq:ASP_1}) and (\ref{eq:ASP_2}) enforce paths to be connected and feasible for the train line in question and Condition (\ref{eq:ASP_3}) ensures that each path is between a possible start and end node.
 An assignment $A$ is a partial function $\mathcal{A}\times V\to \mathbf{N}$, where $A(a, v)$ is undefined whenever$v\not\in P(a)$. In addition, given path function $P$, an assignment $A$ has to satisfy the conditions in (\ref{eq:ASP_4}) to (\ref{eq:ASP_8}):
 \begin{equation}
 A(a, v_i)\geq e(v_i)\label{eq:ASP_4}
@@ -493,7 +481,7 @@ Then, $(N,\tilde{\mathcal{A}},C,F)$ with
             \item $L=\left\{ (v_1,v_2): (v_1,v_2) \in P_a\right\}$
             \item $e(v)=\min_{p: \sigma(a)\textrm{--}v\textrm{ path}} \left|p\right| \cdot {v(a)}^{-1}$
             \item $l(v)=\max_{p: v\textrm{--}\tau(a)\textrm{ path}} U-\left|p\right| \cdot {v(a)}^{-1}$
-            \item $w(e)={v(a)}^{-1}$\mbox{  }\footnote{This does not respect the intended semantics of the general model. Therefore, it would be better to use $S=\left\{ (v,a): v \in P_a\right\}$, $L=\left\{ ((v_1,a),(v_2,a)): (v_1,v_2) \in P_a\right\}$, $w(e)=0$ and $m(((v_1,a),(v_2,a)))={v(a)}^{-1}$.}.
+            \item $w(e)={v(a)}^{-1}$\mbox{  }\footnote{This does not respect the intended semantics of the general model. Therefore, it would be better to use $S=\{ (v,{v(a)}^{-1}): v \in P_a\}$, $L=\{ ((v_1,{v(a)}^{-1}),(v_2,{v(a)}^{-1})): (v_1,v_2) \in P_a\}$, $w(e)=0$ and $m(((v_1,{v(a)}^{-1}),(v_2,{v(a)}^{-1})))={v(a)}^{-1}$, reflecting the idea that the routing graph represents speed profiles.}.
         \end{itemize}
         for a set $P_a$ of $\sigma(a)$--$\tau(a)$ paths in $\mathcal{E}$.
         \item $N=(V,E,R,m,a,b)$ where
@@ -501,20 +489,24 @@ Then, $(N,\tilde{\mathcal{A}},C,F)$ with
             \item $V=\bigcup_{a \in \mathcal{A}} V_a$
             \item $E=\bigcup_{a \in \mathcal{A}} E_a$
             \item $R=\mathcal{C}$
-            \item $m((v_1,v_2,a))=0$
-            \item $a(c) = \left\{ e=(v_1,v_2,a): \mathpzc{c}(v_1)=c \right\}$
-            \item $b(c)=r$
+            \item $m(e)=0$, $e \in E$
+            \item $a(c) = \left\{ e=(v_1,v_2): \mathpzc{c}(v_1)=c \right\}$, $c\in R$
+            \item $b(c)=r$, $c\in R$
         \end{itemize}
     \item $C=\emptyset$
     \item $F=\emptyset$
 \end{itemize}
 is a train scheduling problem. Some remarks on this transformation:
 \begin{itemize}
-    \item We only have one resource per edge, i.e. we only reserve the train's own track, per cell.
+    \item In our setting, we only have one resource per edge, i.e. we only reserve the train's own track, per cell. There is a $1:n$ correspondence between edges and resources. In general, the correspondence can be $m:n$ (a train may reserve path ahead or signals along its position depending on its speed)
     \item The earliest and latest windows are designed such that they represent the earliest possible time the train can reach the vertex, respectively, the latest possible time the train must pass in order to be able to reach the target within the time limit.
+    \item In our setting, $b$ is the same for all resources.
+    \item In our setting, the minimum running per cell (by abuse, $w(e)= {v(a)}^{-1}$  for all $e \in L$ for all agents $a \in \dom(\mathcal{A})$)
+    \item In our setting, we do not have intermediate stops (by abuse, $m(e)=0$ for all $e \in E$)
+    \item In our setting, there are no connections nor collision-free resources.
 \end{itemize}
 
-The time windows given by $e$ and $l$ can be computed by Algorithm~\ref{algo:propagate_earliest} and \ref{algo:propagate_latest}, respectively. They propagate the minimum running forward from an initial set of earliest and backwards from an initial set of latest constraints. An illustration can be found in Figures~\ref{fig:propagate_earliest} and \ref{fig:propagate_latest}, respectively.
+The time windows given by $e$ and $l$ can be computed by Algorithm~\ref{algo:propagate_earliest} and \ref{algo:propagate_latest}, respectively. They propagate the minimum running time forward from an initial set of earliest and backwards from an initial set of latest constraints. An illustration can be found in Figures~\ref{fig:propagate_earliest} and \ref{fig:propagate_latest}, respectively.
 The time windows are thus given by
 $$e\leftarrow propagate\_earliest(\Set*{e(\sigma(a))=0}, (S,L), \Set*{\sigma(a)}, {v(a)}^{-1})$$ and $$l\leftarrow propagate\_latest(\Set*{e(\tau)=U: \tau \in S, out(\tau)=0}, (S,L), \Set*{\tau \in S: out(\tau)=0},{v(a)}^{-1}).$$
 Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
@@ -544,7 +536,7 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 
 \begin{figure}[hbtp]
 	\centering
-  \includegraphics[width=0.8\textwidth]{H1_propagate_earliest.png}
+  \includegraphics[width=0.8\textwidth]{Figures/03_pipeline/H1_propagate_earliest.png}
 	\caption{Illustration of $propagate\_earliest$ for an agent $a$ with speed $v(a)=\frac{1}{2}$ (i.e. $mrt=2$).}
 	\label{fig:propagate_earliest}
 \end{figure}
@@ -572,7 +564,7 @@ Finally, we can remove nodes $v$ with empty time window $e(v)>l(v)$.
 
 \begin{figure}[hbtp]
 	\centering
-  \includegraphics[width=0.8\textwidth]{H1_propagate_latest.png}
+  \includegraphics[width=0.8\textwidth]{Figures/03_pipeline/H1_propagate_latest.png}
 	\caption{Illustration of $propagate\_latest$ for an agent $a$ with speed $v(a)=\frac{1}{2}$ (i.e. $mrt=2$) and for upper bound $U=56$.}
 	\label{fig:propagate_latest}
 \end{figure}
@@ -591,15 +583,18 @@ and restricting
 \end{equation}
 where we use the following heuristic for the upper bound,
 \begin{equation}
-U=\delta \cdot  \left(w + h + \frac{\left|\mathcal{A}\right|}{\left| S \right|} \right)
+U=\alpha \cdot \delta \cdot  \left(w + h + \frac{\left|\mathcal{A}\right|}{\left| S \right|} \right)
 \end{equation}
-and $\delta=8$,
+and $\alpha=2$ and $\delta=4$,
 to find a schedule $S$ for a given service intention. This objective function is intended to mimick a green wave behaviour of real-world train scheduling (schedules are constructed such that there are only planned stops for passenger boarding and alighting); however, this also keeps us from introducing time reserves in the schedule and trains will not be able to catch up in our synthetic world.
+The choice of $U$ represents a worst case:
+$w+h$ represents the longest path, $\frac{\left|\mathcal{A}\right|}{\left| S \right|}$ is the expected number of agents per station, hence the sum represents the time required for the last agent at the station if they all start one after the other and have constant speed; $\delta$ represents the minimum time required per cell for an agent running at minimum speed level $\frac{1}{4}$ (we use 4 levels $\frac{1}{i}$, $i=1,\ldots,4$) and $\alpha$ is a tolerance term that should allow for feasibility (there is no guarantee though).
+
 
 Furthermore, we only use the shortest path for each agent for scheduling in order to speed-up schedule generation; if the upper bound $U$ is chosen liberal enough, then a solution is found where no train stops during its run.
 
 
-Notice that trains have no length in the model: an edge is exited when the next edge is entered, but remains blocked for $r$ time steps after exit. Train extension can be introduced into this model by requiring consecutive edges to require the same resource; this again highlights that edges in the general train scheduling problem do not represent physical track sections; physical track sections have to be represented by resources.
+Notice that trains have no length in the model: an edge is exited when the next edge is entered, but remains blocked for $r$ time steps after exit. Train extension can be introduced into this model by requiring consecutive edges to require the same resource; this again highlights that edges in the general train scheduling problem do not represent physical track sections; physical track sections have to be represented by abstract resources.
 
 
 
@@ -612,7 +607,7 @@ Our experiment parameters contain the following parameters for malfunction gener
 \begin{itemize}
     \item $m_{earliest} \in \mathbb{N}$: the earliest time step the malfunction can happen after the scheduled departure;
     \item $m_{duration} \in \mathbb{N}$: how much the train will be delayed;
-    \item $m_{agent} \in \mathcal{A}$: the train that is concerned.
+    \item $m_{agent} \in \dom(\mathcal{A})$: the id of the train that is concerned.
 \end{itemize}
 
 Given the schedule, we derive our malfunction $M=(m_{time\_step},m_{duration},m_{agent})$ where
@@ -646,13 +641,9 @@ and the second term of (\ref{eq:objectiveresched}) penalizes re-routing with res
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Re-Scheduling Scopes}
+\subsection{Re-Scheduling Scopes}\label{subsec:scopers}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{mdframed}
-\textbf{TODO Christian} Streamline notation: use agents set as indexed set in pseudo-code\\
-\textbf{TODO Christian} Streamline notation: harmonize interfaces of scopers!\\
-\end{mdframed}
 
 Informally, the \emph{re-scheduling problem} is the train scheduling problem such that
 \begin{itemize}
@@ -668,23 +659,34 @@ In order to keep the exposition simple and since this is also in the spirit of a
 
 We distinguish between two classes of scopes:
 \begin{description}
-\item[online] the scoper does not have access to a full re-schedule solution
+\item[online] the scoper does not have access to a full re-schedule solution\footnote{More precisely, online scopers know at most how many agents have changed but not which ones, see below offline delta weak vs. online random.}
 \item[offline] the scoper has access to a full re-schedule solution
 \end{description}
 
-We now define different scopings that further restrict the problem to different degrees. All these scopers have the same interface, i.e. take the same parameters:
+We now define different scopings that further restrict the problem (more precisely the train lines) to different degrees. All these scopers have the same interface, i.e. take the same parameters:
 \begin{itemize}
-    \item initial schedule $S_0=(P,A)$
-    \item agents $\mathcal{A}$ whose elements have the form $(S,L,v)$ where $(S,L)$ are the possible routes for the agent and $v$ is the agent's speed, resp. $v^{-1}$ is the minimum running time per edge;
+    \item an indexed set $\mathcal{A}$ of (unreduced) agents $\mathcal{A}(a)=(S,L,e,l,w)$ that needs to be restricted; in our setup, $S,L$ will contain more routing alternatives than in the scheduling problem $\bar{\mathcal{A}}$, but $e,v,w$ will be defined just the same as in $\bar{\mathcal{A}}$
+    \item initial schedule $(P_{S_0},A_{S_0})$
     \item malfunction $M=(m_{time\_step},m_{duration},m_{agent})$;
+    \item agent speeds $v(a)$, $a \in \dom(\mathcal{A})$
     \item maximum time window size $c$: this is the maximum time window in the re-scheduling problem
     \item upper bound $U$: we will increase the upper bound from scheduling by $m_{duration}$, which in most cases will ensure feasibility of the re-scheduling problem, as we will discuss below.
+    \item online scopers will also receive the full re-schedule solution $(P_S,A_S)$
 \end{itemize}
+The result of the scoper will be a modification of $\mathcal{A}$;
+in the pseudo-code for the different scopers, we will not show $w$, which is constant $w(e)= {v(a)}^{-1}$ for all $e \in L$. The railway network  $N=(V,E,R,m,a,b)$ of the re-scheduling problem will be composed of the union of all these agents,
+\begin{equation}
+V=\bigcup_{(S,L,e,l,w)=\mathcal{A}(a), a \in \dom(\mathcal{A}}S, E=\bigcup_{(S,L,e,l,w)=\mathcal{A}(a), a \in \dom(\mathcal{A}}L,
+\end{equation}
+and $m,a,b$ the restrictions to $E$ and used resources by $E$.
+
 
 In our setting, each edge has exactly one resource; therefore, each vertex points at exactly one resource. Hence, the following definition is well-defined:
 \begin{equation}
-    R(v) = r \textrm{ s.t. } (v,v^\prime) in a(r)
+    R(v) = r \textrm{ s.t. } (v,v^\prime) \in a(r)
 \end{equation}
+
+We will consider
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -703,7 +705,7 @@ if the train has not started yet at the malfunction time step (line 3), we keep 
 
 
 \begin{algorithm}
-	\caption{$scoper\_online\_unrestricted$ for train $a$} \label{algo:Delta0}
+	\caption{$scoper\_online\_unrestricted$ for train $a \in \dom(\mathcal{A})$} \label{algo:Delta0}
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
 	    \Ensure $(S,L),e,l$
@@ -755,7 +757,7 @@ We now describe the remaining case of Algorithm~\ref{algo:Delta0}, namely when t
 
 
 \begin{algorithm}
-	\caption{$scoper\_offline\_delta\_running$ for running train $a$} \label{algo:scoper_offline_delta_running}
+	\caption{$scoper\_offline\_delta\_running$ for running train $a \in \dom(\mathcal{A})$} \label{algo:scoper_offline_delta_running}
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
 	    \Ensure $e,l,(S,L)$
@@ -789,14 +791,14 @@ The scoper offline\_fully\_restricted of Algorithm~\ref{algo:scoper_offline_full
 
 
 \begin{algorithm}
-	\caption{$scoper\_offline\_fully\_restricted$ for running train $a$} \label{algo:scoper_offline_fully_restricted}
+	\caption{$scoper\_offline\_fully\_restricted$ for running train $a \in \dom(\mathcal{A})$} \label{algo:scoper_offline_fully_restricted}
 	\begin{algorithmic}[1]
 		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, $mrt$, $U$, $c$
 	    \Ensure $e,l,(S,L)$
-        \State $S \leftarrow \Set*{v: v\in P_{S}}$
-        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S}$
-        \State $e \leftarrow \Set*{(v,P_S(v): v\in S}$
-        \State $l \leftarrow \Set*{(v,P_S(v): v\in S}$
+        \State $S \leftarrow \Set*{v: v\in P}$
+        \State $L \leftarrow \Set*{(v,v^\prime) \in P: v,v^\prime \in S}$
+        \State $e \leftarrow \Set*{(v,P(v): v\in S}$
+        \State $l \leftarrow \Set*{(v,P(v): v\in S}$
 	\end{algorithmic}
 \end{algorithm}
 
@@ -815,9 +817,9 @@ Everything that is not reachable in path ($F=\Delta_P$) or time ($F_e=F_l=\Delta
 
 
 \begin{algorithm}
-	\caption{$scoper\_offline\_delta$ for running train $a$} \label{algo:scoper_offline_delta}
+	\caption{$scoper\_offline\_delta$ for running train $a \in \dom(\mathcal{A})$} \label{algo:scoper_offline_delta}
 	\begin{algorithmic}[1]
-		\Require $(S,L)$, $(P_{S_0},A_{S_0})$, $(P_S,A_S)$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c
+		\Require $(S,L)$, $(P_{S_0},A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$, mrt, U, c, $(P_S,A_S)$
 	    \Ensure $e,l,(S_1,L_1)$
 	    \State $\Delta_A \leftarrow \Set*{v: A_S(v)=A_{S_0}(v), v\in P_{S_0}, v \in P_S}$
 	    \State $\Delta_P \leftarrow \Set*{v: v\in P_S, v\in P_{S_0}, v\in P_{S_0}, v \in P_S}$
@@ -843,6 +845,52 @@ Everything that is not reachable in path ($F=\Delta_P$) or time ($F_e=F_l=\Delta
 Notice that the solution space of this scoping contains the full re-scheduling solution if $c >= malfunction duration$, so we will find the same solution up to equivalence modulo cost.
 
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{``Weak'' delta scoping (offline\_delta\_weak)}\label{subsubsec:offline_delta_weak}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+We now give a slightly coarser version of the perfect scoping, where we still look at the full offline solution but open up everything for agents whose schedule has changed as described in Algorithm~\ref{algo:scoper_offline_delta_weak}. We reduce the strictness of the oracle by freeing up all the variables of changed trains, i.e., if a train has some change somewhere, all the parameters of the train are available or change such as alternative routes and different times. In Algorithm~\ref{algo:scoper_offline_delta_weak}, we determine the agents that have changed (line 1) and then use Algorithm~\ref{algo:scoper_changed}:
+all agents predicted as changed will have full re-scheduling degrees of freedom (lines 2--3), all others will be ``freezed'' to the original schedule (lines 6--10) or only forced to re-use the same route (lines 4--5).
+
+\begin{algorithm}
+	\caption{$scoper\_offline\_delta\_weak$} \label{algo:scoper_offline_delta_weak}
+	\begin{algorithmic}[1]
+		\Require $\mathcal{A}$, $(P_{S_0},A_{S_0})$,$M=(m_{time\_step},m_{duration},m_{agent})$,$v$,$U$,$U$,$c$, $(P_S,A_S)$
+	    \Ensure $\mathcal{A}$
+	    \State $\mathcal{A}^* \leftarrow \Set{a\in \dom(\mathcal{A}):  P_{S_0} \not=P_{S} \textrm { or } A_{S_0}(a,\cdot) \not= A_{S}(a,\cdot)}$
+	    \State $\mathcal{A}^* \leftarrow scoper\_changed(\mathcal{A},(P_{S_0},A_{S_0}),\mathcal{A}^*,time\_flexibility=\bot,v,U,c)$
+	\end{algorithmic}
+\end{algorithm}
+
+
+
+
+\begin{algorithm}
+	\caption{$scoper\_changed$} \label{algo:scoper_changed}
+	\begin{algorithmic}[1]
+		\Require $\mathcal{A}$, $(P,A)$, $\mathcal{A}^*\subseteq\dom(\mathcal{A})$, $time\_flexibility$, $M$, $v$, $U$, $c$
+	    \Ensure $\mathcal{A}$
+	    \For{$a \in \dom(\mathcal{A})$}
+    	    \If {$a \in \mathcal{A}^*$}
+    	        \State $e,l,S,L \leftarrow scoper\_online\_unrestricted((S,L), (P,A), M, v^{-1}(a), U, c)$
+    	    \ElsIf{$time\_flexibility$}
+    	        \State $e,l,S,L \leftarrow scoper\_online\_path\_restricted((S,L), (P,A), M, v^{-1}(a), U, c)$
+    	    \Else
+    	        \State $e,l,S,L \leftarrow scoper\_online\_fully\_restricted((S,L), (P,A), M, v^{-1}(a), U, c$
+    	    \EndIf
+    	    \For{$e \in L$}
+    	        \State $w(e) \leftarrow v^{-1}$
+    	    \EndFor
+    	    \State $\mathcal{A}(a) \leftarrow (S,L,e,v,w)$
+	    \EndFor
+	\end{algorithmic}
+\end{algorithm}
+
+Again, the solution space of this scoping contains the full re-scheduling solution, so we will find the same or a cost-equivalent solution.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Route-restricted Re-scheduling (online\_route\_restricted)}
 \label{subsubsec:scope_online_route_restricted}
@@ -852,47 +900,16 @@ Notice that the solution space of this scoping contains the full re-scheduling s
 Algorithm~\ref{algo:scoper_online_route_restricted} scopes the re-scheduling problem to the routes of the schedule $S_0$: after discarding all vertices and edges not on scheduled path (lines 1--2), \emph{propagate} makes the constraints consistent. If $c\geq m_{duration}$, the resulting re-scheduling problem is clearly feasible; however, we expect solution quality to deterioriate.
 
 \begin{algorithm}
-	\caption{$scoper\_online\_route\_restricted$ for running train $a$} \label{algo:scoper_online_route_restricted}
+	\caption{$scoper\_online\_route\_restricted$ for running train $a \in \dom(\mathcal{A})$} \label{algo:scoper_online_route_restricted}
 	\begin{algorithmic}[1]
-		\Require $(S,L)$, $S_0(P_{S_0},A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$, $mrt$, $U$, $c$
+		\Require $(S,L)$, $(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, $mrt$, $U$, $c$
 	    \Ensure $e,l,(S,L)$
-        \State $S \leftarrow \Set*{v: v\in P_{S}}$
-        \State $L \leftarrow \Set*{(v,v^\prime) \in P_{S}: v,v^\prime \in S}$
+        \State $S \leftarrow \Set*{v: v\in P}$
+        \State $L \leftarrow \Set*{(v,v^\prime) \in P: v,v^\prime \in S}$
         \State $e,l,(S,L) \leftarrow propagate(e,l,(S,L),\emptyset, \emptyset, \emptyset, mrt, U, c)$
 	\end{algorithmic}
 \end{algorithm}
 
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\subsubsection{Naive Re-scheduling (delta naive after malfunction)}\label{subsubsec:Deltanaive}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%We now give a slightly coarser version of the perfect scoping, where we still look at the full offline solution but open up everything for agents whose schedule has changed as described in Algorithm~\ref{algo:Deltanaive}. We reduce the strictness of the oracle by freeing up all the variables of changed trains. I.e. if a train has some change somewhere, all the parameters of the train are available or change such as alternative routes and different times.
-%
-%\begin{algorithm}
-%	\caption{$Delta_{naive\_after\_malfunction}$} \label{algo:Deltanaive}
-%	\begin{algorithmic}[1]
-%		\Require $\mathcal{A}$, $S_0=(P_0,A_0)$, $S=(P,A)$, $M=(m_{time\_step},m_{duration},m_{agent})$, U, c
-%	    \Ensure $\mathcal{A}^*$
-%	    \State $\mathcal{A}^* = \emptyset$
-%	    \For{$a=(S,L,v) \in \mathcal{A}$}
-%	        \If{$P(a)=P_0(a)$ and $A(a,v)=A_0(a,v)$ for all $v \in P_0(a)$}
-%                \State $S=\Set{v: v\in P_0(a)}$
-%                \State $L = \Set{(v,v^\prime): v,v^\prime \in S}$
-%                \For{$v \in P_0(a)$}
-%        	        \State $e(v)\leftarrow l(v) \leftarrow A_0(a,v)$
-%        	    \EndFor
-%            \Else
-%                \State $e,l,S,L \leftarrow scoper\_online\_unrestricted((S,L), (P,A), M, v^{-1}, U, c)$
-%            \EndIf
-%            \For{$e \in L$}
-%    	        \State $w(e) \leftarrow v^{-1}$
-%    	    \EndFor
-%            \State $\mathcal{A}^* \leftarrow \mathcal{A}^*\cup \Set{(S,L,e,l,w)}$
-%	    \EndFor
-%	\end{algorithmic}
-%\end{algorithm}
-%Again, the solution space of this scoping contains the full re-scheduling solution, so we will find the same or a cost-equivalent solution.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Re-Scheduling with Transmission Chains\\ (online\_transmission\_chains\_fully\_restricted,\\online\_transmission\_chains\_route\_restricted)}
@@ -912,11 +929,8 @@ Now we can have a look at Algorithm~\ref{algo:transmission_chains}: we have a qu
 We initialize the queue and the changed agents with the malfunction agent with pushing all vertices that are passed in the schedule after the malfunction; since the schedule is constructed such that the agents never stop, the delay is not reduced (lines 4--6).
 Then, we look at the next agent after the queued element (lines 8--13). If the delay cannot be absorbed by the time difference between the queued element's departure and the next agent entry (lines 14--15), then we mark the next agent as reached (line 16) and push all vertices of the next agent after the delay propagation (lines 17--20); here, we do not only consider the delay to be propagated to all resources after $v$, but also allow $a^\prime$ to wait for $a$ on resources it is on in the range of the delay that could be transmitted through the common resource of the edge entered at $v$.
 
-\begin{mdframed}
-\textbf{TODO Christian} Compare with algo in Handbook of Railway Optimization
-\end{mdframed}
 
-The output of this prediction can then be passed to Algorithm~\ref{algo:scoper_changed} with or without time flexibility: all agents predicted as changed will have full re-scheduling degrees of freedom (lines 2--3), all others will be ``freezed'' to the original schedule (lines 6--10) or only forced to re-use the same route (lines 4--5).
+The output of this prediction can then be passed to Algorithm~\ref{algo:scoper_changed} with or without time flexibility.
 
 
 
@@ -926,7 +940,7 @@ The output of this prediction can then be passed to Algorithm~\ref{algo:scoper_c
 \begin{algorithm}
 	\caption{$changed\_transmission\_chains$} \label{algo:transmission_chains}
 	\begin{algorithmic}[1]
-		\Require $\mathcal{A}$, $(P_{S_0},A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$
+		\Require $\mathcal{A}$, $(P,A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$
 	    \Ensure $\mathcal{A}^* \subseteq \mathcal{A}$
 	    \State $q = queue()$
 	    \State $done = \emptyset$
@@ -959,26 +973,6 @@ The output of this prediction can then be passed to Algorithm~\ref{algo:scoper_c
 
 
 
-\begin{algorithm}
-	\caption{$scoper\_changed$} \label{algo:scoper_changed}
-	\begin{algorithmic}[1]
-		\Require $\mathcal{A}$, $(P_S,A_S)$, $\mathcal{A}^*\subseteq\mathcal{A}$, $time\_flexibility$
-	    \Ensure $\mathcal{A}^{**}$
-	    \For{$a=(S,L,v) \in \mathcal{A}$}
-    	    \If {$a \in \mathcal{A}^*$}
-    	        \State $e,l,S,L \leftarrow scoper\_online\_unrestricted((S,L), (P,A), M, v^{-1}, U, c)$
-    	    \ElsIf{$time\_flexibility$}
-    	        \State $e,l,S,L \leftarrow scoper\_online\_path\_restricted((S,L), (P,A), M, v^{-1}, U, c)$
-    	    \Else
-    	        \State $e,l,S,L \leftarrow scoper\_online\_fully\_restricted((S,L), (P,A), M, v^{-1}, U, c$
-    	    \EndIf
-    	    \For{$e \in L$}
-    	        \State $w(e) \leftarrow v^{-1}$
-    	    \EndFor
-    	    \State $\mathcal{A}^{**} \leftarrow \mathcal{A}^{**} \cup \Set{(S,L,e,l,w)}$
-	    \EndFor
-	\end{algorithmic}
-\end{algorithm}
 
 Again, we conjecture that this algorithms produces a feasible scope if $c >= malfunction duration$, in both cases with or without time flexibility.
 %
@@ -1003,18 +997,18 @@ As a sanity check, to show that our scoping is not trivial, we use Algorithm~\re
 
 
 \begin{algorithm}
-	\caption{$changed\_random$} \label{algo:scoper_random}
+	\caption{$scoper\_offline\_random$} \label{algo:scoper_random}
 	\begin{algorithmic}[1]
-		\Require $\mathcal{A}$, $(P_{S_0},A_{S_0})$, $M=(m_{time\_step},m_{duration},m_{agent})$, $(P,A)$
-	    \Ensure $\mathcal{A}^* \subseteq \mathcal{A}$
+		\Require $\mathcal{A}$, $(P_{S_0},A_{S_0})$,$M=(m_{time\_step},m_{duration},m_{agent})$,$v$,$U$,$U$,$c$, $(P_S,A_S)$
+	    \Ensure $\mathcal{A}$
 	    \State $\mathcal{A}_{running}=\Set{a \in \mathcal{A}: \max_{v \in P_{S_0}} A_{S_0}(a,v) \geq m_{time\_step}}$
 	    \State $n_{changed} = \left| \Set{a\in \mathcal{A}_{running}:  P_{S_0} \not=P_{S} \textrm { or } A_{S_0}(a,\cdot) \not= A_{S}(a,\cdot)} \right|$
 	    \State $\mathcal{A}^* \leftarrow$ choose $n_{changed}$ from $\mathcal{A}_{running}$
-	    \State $\mathcal{A}^* \leftarrow \mathcal{A}^* \cup \Set{m_{agent}}$
+	    \State $\mathcal{A}^* \leftarrow scoper\_changed(\mathcal{A},(P_{S_0},A_{S_0}),\mathcal{A}^*,time\_flexibility=\top,v,U,c)$
 	\end{algorithmic}
 \end{algorithm}
 The output of this prediction can then be passed to Algorithm~\ref{algo:scoper_changed} with time flexibility to determine the re-scheduling problem.
-Again, we conjecture that this algorithms produces a feasible scope if $c >= malfunction duration$ (without time flexibility, there is clearly no guarantee of feasibility).
+Again, we conjecture that this algorithms produces a feasible scope if $c >= m_{duration}$ (without time flexibility, there is clearly no guarantee of feasibility).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1039,7 +1033,7 @@ In light of the findings of the previous paragraphs, we design our experiments i
 \end{enumerate}
 where at each level we generate multiple instances for a fixed instance of the previous levels (i.e. we generate multiple infrastructures for the same parameters, we generate multiple schedules for the same infrastructure etc.). The lowest level is a sanity level to investigate the variance of the solver for the same problem.
 
-In order to show the speed-up, we want our problems not to be just as large as possible, but as ``dense'' as possible; that's where we expect our scoping approach to be most needed and where we hope our re-scheduling baseline (online unrestricted) is a robust measure of the hardness of our problems.
+In order to show the speed-up, we want our problems to cover a good range of problems.
 These considerations lead us  to the following agenda for this section, as shown in Figure~\ref{fig:agenda}: We have
 \begin{itemize}
     \item 1 infrastructures with 64 agents in a $40\times 40$ grid, with 4 stations (\texttt{max\_num\_cities}), 3 rails per station (\texttt{max\_rail\_in\_city}) and only one track between stations (\texttt{max\_rail\_between\_cities})
@@ -1050,6 +1044,14 @@ These considerations lead us  to the following agenda for this section, as shown
 This gives an agenda of 1981 experiments of which we disturbed the first 10 agents, resulting in a total of 380 data points (the agenda was aborted).
 The data is available in a dedicated git repository \url{https://github.com/SchweizerischeBundesbahnen/rsp-data/tree/master/ONE_INFRA_MANY_SCHEDULES_64_AGENTS}.
 %
+
+We take our  baseline (online unrestricted) as  measure of the hardness of our problems; in Figure~\ref{fig:agenda_histogram}, we see that our experiments are biased to the left, i.e. it is hard to choose parameters such the problems get harder -- we see no correlation between the experiment id (which reflects the infrastructure size) and online unrestricted.
+
+\begin{figure}[hbtp]
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_histogram.pdf}
+	\caption{Histogram of experiments in 10 equi-distant bins, filtered on data with \texttt{solver\_statistics\_times\_total\_online\_unrestricted} between $20s$ and $200s$.}
+	\label{fig:agenda_histogram}
+\end{figure}
 
 \begin{mdframed}
 {\bf TODO Erik} Run and upload full agenda with infrastructure variation, finalize; do we need also multiple runs per experiment and take only the median over runs per scope? Do we want to this for all experiments or for a subset and filter out extreme values?
@@ -1065,7 +1067,7 @@ The data is available in a dedicated git repository \url{https://github.com/Schw
 We filter out experiments with small and large run times (if the solver took less than $20s$ or more than $200s$ for the online unrestricted scope; this leaves us with 125 data points.
 
 \begin{figure}[hbtp]
-    \includegraphics[width=\textwidth]{Figures/04_computational_results/agenda.PNG}
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/agenda.pdf}
 	\caption{Hierarchical Agenda Structure.}
 	\label{fig:agenda}
 \end{figure}
@@ -1078,7 +1080,7 @@ We filter out experiments with small and large run times (if the solver took les
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure}[hbtp]
-    \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_experiment_id.PNG}
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_experiment_id.pdf}
 	\caption{Computation times per experiment.}
 	\label{fig:computationtimesexperimentid}
 \end{figure}
@@ -1099,20 +1101,15 @@ We see a small speed-up for random and none for our transmission chains approach
 
 \begin{figure}[hbtp]
 	\begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_times_total_online_unrestricted_1.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_times_total_online_unrestricted_1.pdf}
         \caption{Total solver runtimes for online unrestricted, online full restricted, offline delta and online route restricted}
         \label{fig:computationtimes_absolute_1}
     \end{subfigure}
 
     \begin{subfigure}{\textwidth}
-          \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_times_total_online_unrestricted_2.PNG}
+          \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_per_times_total_online_unrestricted_2.pdf}
           \label{fig:computationtimes_absolute_2}
           \caption{Total solver runtimes for online transmissions chains and online random against online unrestricted.}
-     \end{subfigure}
-     \begin{subfigure}{\textwidth}
-          \includegraphics[width=\textwidth]{Figures/04_computational_results/times_total_solve_non_solve_per_experiment_id.PNG}
-          \label{fig:computationtimes_absolute_total_solve_non_solve}
-          \caption{Total solver time composed of solve time and non-solve time.}
      \end{subfigure}
 	\caption{Re-scheduling times against full re-scheduling time.}
 	\label{fig:computationtimes}
@@ -1121,17 +1118,17 @@ We see a small speed-up for random and none for our transmission chains approach
 \begin{figure}[hbtp]
 
      \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_times_total_per_times_total_online_unrestricted.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_per_times_total_online_unrestricted.pdf}
         \caption{Speed-up for total solver time}
          \label{fig:computationtimes_speed_up_total}
     \end{subfigure}
      \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_solve_time_per_times_total_online_unrestricted.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_solve_time_per_times_total_online_unrestricted.pdf}
         \caption{Speed-up for solver time spent solving}
          \label{fig:computationtimes_speed_up_solve_time}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_non_solve_time_per_times_total_online_unrestricted.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/speed_up_non_solve_time_per_times_total_online_unrestricted.pdf}
         \caption{Speed-up for total solver time spent non-solving}
          \label{fig:computationtimes_speed_up_non_solve_time}
     \end{subfigure}
@@ -1142,22 +1139,22 @@ We see a small speed-up for random and none for our transmission chains approach
 
 \begin{figure}[hbtp]
     \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_unrestricted.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_unrestricted.pdf}
         \caption{Total solver time, solve time and non-solve time for online unrestricted}
          \label{fig:computationtimes_solve_non_solve_time_online_unrestricted}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_fully_restricted.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_offline_fully_restricted.pdf}
         \caption{Total solver time, solve time and non-solve time for online fully restricted}
          \label{fig:computationtimes_solve_non_solve_time_online_fully_restricted}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_delta.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_offline_delta.pdf}
         \caption{Total solver time, solve time and non-solve time for offline delta}
          \label{fig:computationtimes_solve_non_solve_time_online_delta}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_route_restricted.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_route_restricted.pdf}
         \caption{Total solver time, solve time and non-solve time for online route restricted}
          \label{fig:computationtimes_solve_non_solve_time_online_route_restricted}
     \end{subfigure}
@@ -1166,13 +1163,13 @@ We see a small speed-up for random and none for our transmission chains approach
 \begin{figure}
   \ContinuedFloat
     \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_random.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_random_average.pdf}
         \caption{Total solver time, solve time and non-solve time for online random}
          \label{fig:computationtimes_solve_non_solve_time_online_random}
     \end{subfigure}
     \begin{subfigure}{\textwidth}
-        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_transmission_chains_fully_restricted.PNG}
-                \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_transmission_chains_route_restricted.PNG}
+        \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_transmission_chains_fully_restricted.pdf}
+                \includegraphics[width=\textwidth]{Figures/04_computational_results/solve_non_solve_online_transmission_chains_route_restricted.pdf}
         \caption{Total solver time, solve time and non-solve time for online transmission chains fully and route restricted}
         \label{fig:computationtimes_solve_non_solve_time_online_tranmission_chains}
     \end{subfigure}
@@ -1190,17 +1187,17 @@ Figure~\ref{fig:delay} shows that, as expected, online fully restricted, offline
 
 \begin{figure}[hbtp]
         \begin{subfigure}{\textwidth}
-            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_costs.PNG}
+            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_costs.pdf}
             \caption{Additional costs}
              \label{fig:additional_costs}
         \end{subfigure}
         \begin{subfigure}{\textwidth}
-            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_lateness.PNG}
+            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_lateness.pdf}
             \caption{Additional lateness}
              \label{fig:additional_lateness}
         \end{subfigure}
         \begin{subfigure}{\textwidth}
-            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_route_section_penalties.PNG}
+            \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_route_section_penalties.pdf}
             \caption{Additional weighted route section penalties}
              \label{fig:additional_route_section_penalties}
         \end{subfigure}
@@ -1218,13 +1215,13 @@ Figure~\ref{fig:prediction_quality} shows prediction quality for transmission ch
 Figure~\ref{fig:additional_changed_agents} shows that online route restricted compensates route restriction by changing more agents than all other scopes, however some experiments seem not to allow for such compensation and less agents are changed at still higher costs as we saw above. It is interesting to see that offline delta changes fewer agents, at the same cost as we saw above -- we will come back to this below in Section~\ref{subsec:cost_equivalence}.
 
 \begin{figure}[hbtp]
-    \includegraphics[width=\textwidth]{Figures/04_computational_results/prediction_quality.PNG}
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/prediction_quality.pdf}
 	\caption{Prediction quality: false positives and false negatives rate. Online transmission chains fully restricted is not shown as it is almost completely identical to online transmission chains route restricted.}
 	\label{fig:prediction_quality}
 \end{figure}
 
 \begin{figure}[hbtp]
-    \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_changed_agents.PNG}
+    \includegraphics[width=\textwidth]{Figures/04_computational_results/additional_changed_agents.pdf}
 	\caption{Additional changed agents.}
 	\label{fig:additional_changed_agents}
 \end{figure}
@@ -1260,13 +1257,33 @@ On the other hand, the results must make as also cautious as we compare our  tra
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Cost Equivalence}\label{subsec:cost_equivalence}
+\begin{mdframed}
+{\bf TODO Christian} example of cost-equivalent solution: analyse example where online unrestricted and offline delta trade off between lateness and rerouting!
+\end{mdframed}
 
-\subsection{False Positives and False Negatives}\label{subsec:false_positives_false_negatives}
+
+\subsection{False Positives and False Negatives}
+\label{subsec:false_positives_false_negatives}
+\begin{mdframed}
+{\bf TODO Christian} take example of false positive and false negative from online tranmission chains
+\end{mdframed}
+
+
+\subsection{Outlier Example}\label{subsec:outlier}
+\begin{mdframed}
+{\bf TODO Christian}
+\begin{itemize}
+    \item very high online unrestricted
+    \item very high random average with respect to its bin
+    \item ...
+\end{itemize}
+\end{mdframed}
+
 
 \subsection{Malfunction Variation}\label{subsec:malfunction_variation}
 
 \begin{mdframed}
-{\bf TODO Christian} example of cost-equivalent solutions; example of false negative, false positive; malfunction variation
+{\bf TODO Christian} take a schedule and agent and vary the time of malfunction: show monotone decreasing effect (number of agents affected, re-scheduling time)
 \end{mdframed}
 
 

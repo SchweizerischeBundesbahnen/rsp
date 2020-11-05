@@ -407,7 +407,6 @@ def run_experiment_in_memory(
         problem_online_transmission_chains_fully_restricted,
         predicted_changed_agents_online_transmission_chains_fully_restricted_predicted,
     ) = scoper_online_transmission_chains_for_all_agents(
-        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         online_unrestricted_problem=problem_online_unrestricted,
         malfunction=experiment_malfunction,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
@@ -438,7 +437,6 @@ def run_experiment_in_memory(
         problem_online_transmission_chains_route_restricted,
         predicted_changed_agents_online_transmission_chains_route_restricted_predicted,
     ) = scoper_online_transmission_chains_for_all_agents(
-        online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
         online_unrestricted_problem=problem_online_unrestricted,
         malfunction=experiment_malfunction,
         latest_arrival=schedule_problem.max_episode_steps + experiment_malfunction.malfunction_duration,
@@ -469,7 +467,6 @@ def run_experiment_in_memory(
         # clone topos since propagation will modify them
         online_random_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
         problem_online_random, predicted_changed_agents_online_random = scoper_online_random_for_all_agents(
-            online_unrestricted_trainrun_dict=online_unrestricted_trainruns,
             online_unrestricted_problem=problem_online_unrestricted,
             malfunction=experiment_malfunction,
             # TODO document? will it be visible in ground times?

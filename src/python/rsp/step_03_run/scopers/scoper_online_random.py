@@ -17,7 +17,6 @@ _pp = pprint.PrettyPrinter(indent=4)
 
 
 def scoper_online_random_for_all_agents(
-    online_unrestricted_trainrun_dict: TrainrunDict,
     online_unrestricted_problem: ScheduleProblemDescription,
     malfunction: ExperimentMalfunction,
     minimum_travel_time_dict: Dict[int, int],
