@@ -157,4 +157,4 @@ def main(base_directory=INFRAS_AND_SCHEDULES_FOLDER, experiment_output_base_dire
 
 
 if __name__ == "__main__":
-    main(base_directory="DENSITY_VARIATION_EXPERIMENTS", experiment_output_base_directory=None)
+    main(base_directory="DENSITY_VARIATION_EXPERIMENTS_FIXED", experiment_output_base_directory=None)
