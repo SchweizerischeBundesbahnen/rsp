@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from _plotly_utils.colors.qualitative import Plotly
 from pandas import DataFrame
 from rsp.utils.file_utils import check_create_folder
+from rsp.utils.rsp_logger import rsp_logger
 
 PDF_WIDTH = 1200
 PDF_HEIGHT = 800
@@ -235,7 +236,7 @@ def plot_binned_box_plot(  # noqa: C901
     max_value = experiment_data[axis_of_interest].max() + epsilon
     inc = (max_value - min_value) / nb_bins
     axis_of_interest_binned = axis_of_interest + "_binned"
-    experiment_data.sort_values(by=axis_of_interest, inplace=True)
+    experiment_data = experiment_data.sort_values(by=axis_of_interest)
 
     if binned:
         experiment_data[axis_of_interest_binned] = (
@@ -319,3 +320,4 @@ def plot_binned_box_plot(  # noqa: C901
         pdf_file = os.path.join(output_folder, file_name)
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file, width=width, height=height)
+        rsp_logger.info(msg=f"wrote {pdf_file}")

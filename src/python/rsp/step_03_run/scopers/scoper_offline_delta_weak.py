@@ -30,8 +30,8 @@ def scoper_offline_delta_weak_for_all_agents(
     weight_lateness_seconds: int,
     max_window_size_from_earliest: int = np.inf,
 ) -> ScheduleProblemDescription:
-    """The scoper online only opens up the differences between the schedule and
-    the imaginary re-schedule. It gives no additional routing flexibility!
+    """The scoper offline delta weak only opens up all changed agents and
+    freezes all unchanged agents to the intitial schedule.
 
     Parameters
     ----------
