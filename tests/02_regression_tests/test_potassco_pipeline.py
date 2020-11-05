@@ -44,18 +44,20 @@ def test_hypothesis_one_experiments_potassco():
         print(baseline_data_folder)
         experiment_data_baseline = load_and_filter_experiment_results_analysis(experiment_base_directory=baseline_data_folder,)
         assert len(experiment_data_baseline) == 1
-        experiment_data_comparison_seq = load_and_filter_experiment_results(
-            experiment_base_directory=baseline_data_folder.replace("baseline", "with_seq"), online_unrestricted_only=True
-        )
-        assert len(experiment_data_comparison_seq) == 1
+        suffixes = ["with_SEQ", "with_delay_model_resolution_2", "with_delay_model_resolution_5", "with_delay_model_resolution_10", "without_propagate_partial"]
+        for suffix in suffixes:
+            experiment_data_comparison = load_and_filter_experiment_results(
+                experiment_base_directory=baseline_data_folder.replace("baseline", suffix), online_unrestricted_only=True
+            )
+            assert len(experiment_data_comparison) == 1
 
-        hypothesis_one_analysis_visualize_computational_time_comparison(
-            experiment_data=experiment_data_baseline,
-            experiment_data_comparison=experiment_data_comparison_seq,
-            columns_of_interest=[ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted", dimension="s")],
-            experiment_data_suffix="_baseline",
-            experiment_data_comparison_suffix="_with_SEQ",
-            output_folder=base_directory + "/baseline_with_SEQ",
-        )
+            hypothesis_one_analysis_visualize_computational_time_comparison(
+                experiment_data=experiment_data_baseline,
+                experiment_data_comparison=experiment_data_comparison,
+                columns_of_interest=[ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted", dimension="s")],
+                experiment_data_suffix="_baseline",
+                experiment_data_comparison_suffix=f"_{suffix}",
+                output_folder=base_directory + f"/baseline_{suffix}",
+            )
     finally:
         delete_experiment_folder(base_directory)
