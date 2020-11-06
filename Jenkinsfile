@@ -71,7 +71,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
         conda init bash
         source ~/.bashrc
         # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-        conda create --file rsp_environment.yml --force python=3.7
+        conda env create --file rsp_environment.yml --force python=3.7
         conda activate rsp
         export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
         echo PYTHONPATH=\$PYTHONPATH
