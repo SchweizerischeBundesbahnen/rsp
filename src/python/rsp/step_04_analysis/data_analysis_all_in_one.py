@@ -81,9 +81,7 @@ def hypothesis_one_data_analysis(
     # Create output directoreis
     check_create_folder(experiment_analysis_directory)
 
-    _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
-        experiment_data_folder_name=experiment_data_directory, nonify_all_structured_fields=True
-    )
+    _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_directory)
 
     # convert to data frame for statistical analysis
     experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_analysis_list)

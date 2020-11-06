@@ -74,6 +74,7 @@ from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_02_setup.data_types import Infrastructure
 from rsp.step_02_setup.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.step_03_run.experiment_results import ExperimentResults
+from rsp.step_03_run.experiment_results import plausibility_check_experiment_results
 from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_03_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
@@ -780,6 +781,7 @@ def run_experiment_from_to_file(
 
         # fail fast!
         if not online_unrestricted_only:
+            plausibility_check_experiment_results(experiment_results=experiment_results)
             plausibility_check_experiment_results_analysis(
                 experiment_results_analysis=expand_experiment_results_for_analysis(experiment_results=experiment_results)
             )
@@ -815,9 +817,7 @@ def load_and_filter_experiment_results_analysis(
             )
         else:
             _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
-                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
-                experiment_ids=experiments_of_interest,
-                nonify_all_structured_fields=True,
+                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=experiments_of_interest,
             )
             experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_analysis_list)
 
@@ -1396,9 +1396,7 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
             [expand_experiment_results_online_unrestricted(experiment_results)]
         )
     else:
-        experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
-            [expand_experiment_results_for_analysis(experiment_results, nonify_all_structured_fields=True)]
-        )
+        experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame([expand_experiment_results_for_analysis(experiment_results)])
     experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
 
 
@@ -1421,11 +1419,7 @@ def load_experiments_results(experiment_data_folder_name: str, experiment_id: in
 
 
 def load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name: str,
-    experiment_ids: List[int] = None,
-    nonify_all_structured_fields: bool = False,
-    re_save_csv_after_expansion: bool = False,
-    online_unrestricted_only: bool = False,
+    experiment_data_folder_name: str, experiment_ids: List[int] = None, re_save_csv_after_expansion: bool = False, online_unrestricted_only: bool = False,
 ) -> Tuple[List[ExperimentResults], List[Union[ExperimentResultsAnalysis, ExperimentResultsAnalysisOnlineUnrestricted]]]:
     """Load results as DataFrame to do further analysis.
     Parameters
@@ -1434,9 +1428,6 @@ def load_and_expand_experiment_results_from_data_folder(
         Folder name of experiment where all experiment files are stored
     experiment_ids
         List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
-    nonify_all_structured_fields
-        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
-        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     Returns
     -------
     DataFrame containing the loaded experiment results
@@ -1462,19 +1453,18 @@ def load_and_expand_experiment_results_from_data_folder(
             file_data: ExperimentResults = _pickle_load(file_name=file_name)
             experiment_results_list.append(file_data)
             if online_unrestricted_only:
-                # TODO SIM-749 nonify?
                 results_for_analysis = expand_experiment_results_online_unrestricted(file_data)
                 experiment_results_list_analysis.append(results_for_analysis)
                 if re_save_csv_after_expansion:
                     experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame([results_for_analysis])
                     experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
             else:
-                results_for_analysis = expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields)
+                results_for_analysis = expand_experiment_results_for_analysis(file_data)
                 experiment_results_list_analysis.append(results_for_analysis)
                 if re_save_csv_after_expansion:
                     # ensure it is nonified
                     experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
-                        [expand_experiment_results_for_analysis(results_for_analysis, nonify_all_structured_fields=True)]
+                        [expand_experiment_results_for_analysis(results_for_analysis)]
                     )
                     experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
         except Exception as e:
@@ -1507,7 +1497,6 @@ def load_and_filter_experiment_results_analysis_online_unrestricted(
             _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
                 experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
                 experiment_ids=experiments_of_interest,
-                nonify_all_structured_fields=True,
                 online_unrestricted_only=True,
             )
             experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(experiment_results_analysis_list)

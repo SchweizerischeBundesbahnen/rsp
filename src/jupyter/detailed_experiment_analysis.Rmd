@@ -49,7 +49,6 @@ experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDI
 experiment_results_list, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
-    nonify_all_structured_fields=False
 )
 exp_results_of_experiment_of_interest: ExperimentResults = experiment_results_list[0]
 exp_results_analysis_of_experiment_of_interest: ExperimentResultsAnalysis = experiment_results_analysis_list[0]

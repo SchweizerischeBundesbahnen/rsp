@@ -326,26 +326,6 @@ online_random_average_fields = [
 ExperimentResultsAnalysis = NamedTuple(
     "ExperimentResultsAnalysis",
     [
-        ("experiment_parameters", ExperimentParameters),
-        ("malfunction", ExperimentMalfunction),
-        ("problem_schedule", ScheduleProblemDescription),
-        ("problem_online_unrestricted", ScheduleProblemDescription),
-        ("problem_offline_fully_restricted", ScheduleProblemDescription),
-        ("problem_offline_delta", ScheduleProblemDescription),
-        ("problem_offline_delta_weak", ScheduleProblemDescription),
-        ("problem_online_route_restricted", ScheduleProblemDescription),
-        ("problem_online_transmission_chains_fully_restricted", ScheduleProblemDescription),
-        ("problem_online_transmission_chains_route_restricted", ScheduleProblemDescription),
-        ("results_schedule", SchedulingExperimentResult),
-        ("results_online_unrestricted", SchedulingExperimentResult),
-        ("results_offline_fully_restricted", SchedulingExperimentResult),
-        ("results_offline_delta", SchedulingExperimentResult),
-        ("results_offline_delta_weak", SchedulingExperimentResult),
-        ("results_online_route_restricted", SchedulingExperimentResult),
-        ("results_online_transmission_chains_fully_restricted", SchedulingExperimentResult),
-        ("results_online_transmission_chains_route_restricted", SchedulingExperimentResult),
-        ("predicted_changed_agents_online_transmission_chains_fully_restricted", Set[int]),
-        ("predicted_changed_agents_online_transmission_chains_route_restricted", Set[int]),
         ("experiment_id", int),
         ("grid_id", int),
         ("infra_id", int),
@@ -366,9 +346,6 @@ ExperimentResultsAnalysis = NamedTuple(
         ("rescheduling_horizon", int),
         ("factor_resource_conflicts", int),
     ]
-    + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
-    + [(f"results_online_random_{i}", SchedulingExperimentResult) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
-    + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_rescheduling_scopes_fields.items() for scope in rescheduling_scopes]
     + [(f"{prefix}_{scope}", float) for prefix in speedup_scopes_ratio_fields for scope in speed_up_scopes]
@@ -380,7 +357,6 @@ ExperimentResultsAnalysis = NamedTuple(
 
 def plausibility_check_experiment_results_analysis(experiment_results_analysis: ExperimentResultsAnalysis):
     experiment_id = experiment_results_analysis.experiment_id
-    plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
 
     # sanity check costs
     for scope in rescheduling_scopes:
@@ -398,7 +374,7 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
         except AssertionError as e:
             rsp_logger.warn(str(e))
         assert costs >= experiment_results_analysis.costs_online_unrestricted
-        assert costs >= experiment_results_analysis.malfunction.malfunction_duration
+        assert costs >= experiment_results_analysis.malfunction_duration
 
     for scope in ["offline_fully_restricted", "offline_delta"]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
@@ -408,16 +384,17 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
     ]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
 
-    assert experiment_results_analysis.costs_online_unrestricted >= experiment_results_analysis.malfunction.malfunction_duration, (
+    assert experiment_results_analysis.costs_online_unrestricted >= experiment_results_analysis.malfunction_duration, (
         f"costs_online_unrestricted {experiment_results_analysis.costs_online_unrestricted} should be greater than malfunction duration, "
-        f"{experiment_results_analysis.malfunction} {experiment_results_analysis.experiment_parameters}"
+        f"{experiment_results_analysis.malfunction_duration} {experiment_results_analysis}"
     )
 
 
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
-    experiment_data = pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
-    temporary_backwards_compatibility_scope(experiment_data)
-    return experiment_data
+    df = pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
+    temporary_backwards_compatibility_scope(df)
+    df = df.select_dtypes(exclude=["object"])
+    return df
 
 
 def filter_experiment_results_analysis_data_frame(
@@ -434,20 +411,13 @@ def filter_experiment_results_analysis_data_frame(
     ]
 
 
-def expand_experiment_results_for_analysis(  # noqa: C901
-    experiment_results: ExperimentResults, nonify_all_structured_fields: bool = False
-) -> ExperimentResultsAnalysis:
+def expand_experiment_results_for_analysis(experiment_results: ExperimentResults) -> ExperimentResultsAnalysis:  # noqa: C901
     """
 
     Parameters
     ----------
     experiment_results:
         experiment_results to expand into to experiment_results_analysis
-        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
-    nonify_all_structured_fields: bool
-        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
-        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
-
     Returns
     -------
 
@@ -496,8 +466,8 @@ def expand_experiment_results_for_analysis(  # noqa: C901
             ),
         }
 
-    # retain all fields from experiment results!
-    d = experiment_results._asdict()
+    # retain no fields from experiment results!
+    d = dict()
 
     # extract predicted numbers
     d.update(
@@ -538,6 +508,7 @@ def expand_experiment_results_for_analysis(  # noqa: C901
     )
 
     # plausibility check with fields not nonified
+    plausibility_check_experiment_results(experiment_results=experiment_results)
     plausibility_check_experiment_results_analysis(
         experiment_results_analysis=_to_experiment_results_analysis(
             d=d,
@@ -548,18 +519,6 @@ def expand_experiment_results_for_analysis(  # noqa: C901
             factor_resource_conflicts=factor_resource_conflicts,
         )
     )
-
-    # nonify all non-float fields
-    if nonify_all_structured_fields:
-        d.update({f"problem_{scope}": None for scope in all_scopes})
-        d.update({f"results_{scope}": None for scope in all_scopes})
-        d.update({f"solution_{scope}": None for scope in all_scopes})
-        d.update({f"lateness_per_agent_{scope}": None for scope in rescheduling_scopes})
-        d.update({f"costs_from_route_section_penalties_per_agent_{scope}": None for scope in rescheduling_scopes})
-        d.update({f"vertex_lateness_{scope}": None for scope in rescheduling_scopes})
-        d.update({f"costs_from_route_section_penalties_per_agent_and_edge_{scope}": None for scope in rescheduling_scopes})
-        d.update({"experiment_parameters": None, "malfunction": None, "predicted_changed_agents_online_transmission_chains_fully_restricted": None})
-        d.update({f"predicted_changed_agents_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)})
 
     return _to_experiment_results_analysis(
         d=d,

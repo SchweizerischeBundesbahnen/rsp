@@ -39,6 +39,7 @@ ExperimentResultsAnalysisOnlineUnrestricted = NamedTuple(
 )
 
 
+# TODO SIM-749 check notebooks again!
 # TODO SIM-749 mark csv as containing only online unrestricted?!
 def expand_experiment_results_online_unrestricted(experiment_results: ExperimentResults) -> ExperimentResultsAnalysisOnlineUnrestricted:
     return ExperimentResultsAnalysisOnlineUnrestricted(
@@ -53,5 +54,6 @@ def expand_experiment_results_online_unrestricted(experiment_results: Experiment
 
 
 def convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(l: List[ExperimentResultsAnalysisOnlineUnrestricted]) -> DataFrame:
-    experiment_data = DataFrame(columns=ExperimentResultsAnalysisOnlineUnrestricted._fields, data=[r._asdict() for r in l])
-    return experiment_data
+    df = DataFrame(columns=ExperimentResultsAnalysisOnlineUnrestricted._fields, data=[r._asdict() for r in l])
+    df = df.select_dtypes(exclude=["object"])
+    return df
