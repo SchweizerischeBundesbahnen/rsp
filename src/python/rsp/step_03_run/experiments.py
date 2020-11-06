@@ -1391,7 +1391,6 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
     if not csv_only:
         _pickle_dump(obj=experiment_results, file_name=file_name)
     if online_unrestricted_only:
-        # TODO SIM-749 should we use different file name?
         experiment_data = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(
             [expand_experiment_results_online_unrestricted(experiment_results)]
         )

@@ -39,8 +39,6 @@ ExperimentResultsAnalysisOnlineUnrestricted = NamedTuple(
 )
 
 
-# TODO SIM-749 check notebooks again!
-# TODO SIM-749 mark csv as containing only online unrestricted?!
 def expand_experiment_results_online_unrestricted(experiment_results: ExperimentResults) -> ExperimentResultsAnalysisOnlineUnrestricted:
     return ExperimentResultsAnalysisOnlineUnrestricted(
         **extract_base_fields(
