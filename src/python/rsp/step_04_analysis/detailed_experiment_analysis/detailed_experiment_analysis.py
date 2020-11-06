@@ -107,7 +107,7 @@ def plot_shared_heatmap(plotting_information: PlottingInformation, experiment_re
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
+def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str = None):
     for scope in all_scopes:
         results_scope = experiment_results._asdict()[f"results_{scope}"]
         problem_scope = experiment_results._asdict()[f"problem_{scope}"]
@@ -126,7 +126,9 @@ def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, 
         )
 
 
-def plot_time_resource_trajectories_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str):
+def plot_time_resource_trajectories_all_scopes(
+    experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str = None
+):
     for scope in all_scopes:
         results_scope = experiment_results._asdict()[f"results_{scope}"]
         resource_occupations_schedule = extract_resource_occupations(

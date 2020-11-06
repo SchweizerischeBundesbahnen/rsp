@@ -40,7 +40,7 @@ BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 0
+experiment_of_interest = 1
 ```
 
 ```{python}

@@ -41,6 +41,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -80,6 +81,7 @@ from rsp.step_03_run.experiment_results_analysis import plausibility_check_exper
 from rsp.step_03_run.experiment_results_analysis import temporary_backwards_compatibility_scope
 from rsp.step_03_run.experiment_results_analysis_online_unrestricted import convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame
 from rsp.step_03_run.experiment_results_analysis_online_unrestricted import expand_experiment_results_online_unrestricted
+from rsp.step_03_run.experiment_results_analysis_online_unrestricted import ExperimentResultsAnalysisOnlineUnrestricted
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_delta_weak import scoper_offline_delta_weak_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
@@ -828,32 +830,6 @@ def load_and_filter_experiment_results_analysis(
     return experiment_data_filtered
 
 
-def load_and_filter_experiment_results(
-    experiment_base_directory: str = BASELINE_DATA_FOLDER,
-    experiments_of_interest: List[int] = None,
-    from_cache: bool = False,
-    local_filter_experiment_results_analysis_data_frame: Callable[[DataFrame], DataFrame] = None,
-    online_unrestricted_only: bool = False,
-) -> DataFrame:
-    if from_cache:
-        experiment_data_filtered = pd.read_csv(f"{experiment_base_directory}.csv")
-    else:
-        # todo re_save option?
-        experiment_data: pd.DataFrame = load_data_from_individual_csv_in_data_folder(
-            experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
-            experiment_ids=experiments_of_interest,
-            online_unrestricted_only=online_unrestricted_only,
-        )
-
-        if local_filter_experiment_results_analysis_data_frame is not None:
-            experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
-            print(f"removed {len(experiment_data) - len(experiment_data_filtered)}/{len(experiment_data)} rows")
-        else:
-            experiment_data_filtered = experiment_data
-        experiment_data_filtered.to_csv(f"{experiment_base_directory}.csv")
-    return experiment_data_filtered
-
-
 def run_experiment_agenda(
     experiment_agenda: ExperimentAgenda,
     experiment_base_directory: str,
@@ -1445,8 +1421,12 @@ def load_experiments_results(experiment_data_folder_name: str, experiment_id: in
 
 
 def load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name: str, experiment_ids: List[int] = None, nonify_all_structured_fields: bool = False, re_save_csv_after_expansion: bool = False
-) -> List[ExperimentResultsAnalysis]:
+    experiment_data_folder_name: str,
+    experiment_ids: List[int] = None,
+    nonify_all_structured_fields: bool = False,
+    re_save_csv_after_expansion: bool = False,
+    online_unrestricted_only: bool = False,
+) -> List[Union[ExperimentResultsAnalysis, ExperimentResultsAnalysisOnlineUnrestricted]]:
     """Load results as DataFrame to do further analysis.
     Parameters
     ----------
@@ -1479,13 +1459,22 @@ def load_and_expand_experiment_results_from_data_folder(
             continue
         try:
             file_data: ExperimentResults = _pickle_load(file_name=file_name)
-            results_for_analysis = expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields)
-            experiment_results_list.append(results_for_analysis)
-            if re_save_csv_after_expansion:
-                experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
-                    [expand_experiment_results_for_analysis(results_for_analysis, nonify_all_structured_fields=True)]
-                )
-                experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
+            if online_unrestricted_only:
+                # TODO SIM-749 nonify?
+                results_for_analysis = expand_experiment_results_online_unrestricted(file_data)
+                experiment_results_list.append(results_for_analysis)
+                if re_save_csv_after_expansion:
+                    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame([results_for_analysis])
+                    experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
+            else:
+                results_for_analysis = expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields)
+                experiment_results_list.append(results_for_analysis)
+                if re_save_csv_after_expansion:
+                    # ensure it is nonified
+                    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
+                        [expand_experiment_results_for_analysis(results_for_analysis, nonify_all_structured_fields=True)]
+                    )
+                    experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
         except Exception as e:
             rsp_logger.warn(f"skipping {file} because of {e}")
 
@@ -1494,6 +1483,40 @@ def load_and_expand_experiment_results_from_data_folder(
     rsp_logger.info(f" -> done loading and expanding experiment results from {experiment_data_folder_name} done")
 
     return experiment_results_list
+
+
+def load_and_filter_experiment_results_analysis_online_unrestricted(
+    experiment_base_directory: str = BASELINE_DATA_FOLDER,
+    experiments_of_interest: List[int] = None,
+    from_cache: bool = False,
+    from_individual_csv: bool = True,
+    local_filter_experiment_results_analysis_data_frame: Callable[[DataFrame], DataFrame] = None,
+) -> DataFrame:
+    if from_cache:
+        experiment_data_filtered = pd.read_csv(f"{experiment_base_directory}.csv")
+    else:
+        if from_individual_csv:
+            experiment_data: pd.DataFrame = load_data_from_individual_csv_in_data_folder(
+                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
+                experiment_ids=experiments_of_interest,
+                online_unrestricted_only=True,
+            )
+        else:
+            experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
+                experiment_ids=experiments_of_interest,
+                nonify_all_structured_fields=True,
+                online_unrestricted_only=True,
+            )
+            experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(experiment_results_list)
+
+        if local_filter_experiment_results_analysis_data_frame is not None:
+            experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
+            print(f"removed {len(experiment_data) - len(experiment_data_filtered)}/{len(experiment_data)} rows")
+        else:
+            experiment_data_filtered = experiment_data
+        experiment_data_filtered.to_csv(f"{experiment_base_directory}.csv")
+    return experiment_data_filtered
 
 
 def load_data_from_individual_csv_in_data_folder(

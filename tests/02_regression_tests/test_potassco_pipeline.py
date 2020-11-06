@@ -5,8 +5,8 @@ from rsp.step_01_planning.experiment_parameters_and_ranges import ReSchedulePara
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import delete_experiment_folder
-from rsp.step_03_run.experiments import load_and_filter_experiment_results
 from rsp.step_03_run.experiments import load_and_filter_experiment_results_analysis
+from rsp.step_03_run.experiments import load_and_filter_experiment_results_analysis_online_unrestricted
 from rsp.step_04_analysis.compute_time_analysis.compute_time_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 from rsp.step_04_analysis.plot_utils import ColumnSpec
 
@@ -46,8 +46,8 @@ def test_hypothesis_one_experiments_potassco():
         assert len(experiment_data_baseline) == 1
         suffixes = ["with_SEQ", "with_delay_model_resolution_2", "with_delay_model_resolution_5", "with_delay_model_resolution_10", "without_propagate_partial"]
         for suffix in suffixes:
-            experiment_data_comparison = load_and_filter_experiment_results(
-                experiment_base_directory=baseline_data_folder.replace("baseline", suffix), online_unrestricted_only=True
+            experiment_data_comparison = load_and_filter_experiment_results_analysis_online_unrestricted(
+                experiment_base_directory=baseline_data_folder.replace("baseline", suffix), from_individual_csv=True
             )
             assert len(experiment_data_comparison) == 1
 
