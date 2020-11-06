@@ -493,7 +493,7 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
                 if d[f"{from_field}_online_unrestricted"] == d[f"{from_field}_{speed_up_scope}"]:
                     d[f"{ratio_field}_{speed_up_scope}"] = 1.0
                 else:
-                    d[f"{ratio_field}_{speed_up_scope}"] = None
+                    d[f"{ratio_field}_{speed_up_scope}"] = np.inf
     for additional_field in speedup_scopes_additional_fields:
         for speed_up_scope in speed_up_scopes:
             d[f"additional_{additional_field}_{speed_up_scope}"] = d[f"{additional_field}_{speed_up_scope}"] - d[f"{additional_field}_online_unrestricted"]

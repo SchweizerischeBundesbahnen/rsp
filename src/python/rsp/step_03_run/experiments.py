@@ -1462,9 +1462,7 @@ def load_and_expand_experiment_results_from_data_folder(
                 experiment_results_list_analysis.append(results_for_analysis)
                 if re_save_csv_after_expansion:
                     # ensure it is nonified
-                    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
-                        [expand_experiment_results_for_analysis(results_for_analysis)]
-                    )
+                    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame([results_for_analysis])
                     experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
         except Exception as e:
             rsp_logger.warn(f"skipping {file} because of {e}")
