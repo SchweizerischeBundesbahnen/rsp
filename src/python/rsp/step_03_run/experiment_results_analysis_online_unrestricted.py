@@ -1,3 +1,9 @@
+"""`ExperimentResultsAnalysis` contains data structures for analysis for scope
+`online_unrestricted` only, with/without raw `ExperimentResults`.
+
+Data structure should be mostly be flat (fields should be numbers) and
+only some agent dicts that are often re-used.
+"""
 from typing import List
 from typing import NamedTuple
 
@@ -33,6 +39,7 @@ ExperimentResultsAnalysisOnlineUnrestricted = NamedTuple(
 )
 
 
+# TODO SIM-749 mark csv as containing only online unrestricted?!
 def expand_experiment_results_online_unrestricted(experiment_results: ExperimentResults) -> ExperimentResultsAnalysisOnlineUnrestricted:
     return ExperimentResultsAnalysisOnlineUnrestricted(
         **extract_base_fields(

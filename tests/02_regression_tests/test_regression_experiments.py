@@ -1,6 +1,4 @@
 """Run tests for different experiment methods."""
-from typing import List
-
 import numpy as np
 from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
@@ -289,7 +287,9 @@ def test_regression_experiment_agenda():
         )
 
         # load results
-        experiment_results_for_analysis = load_and_expand_experiment_results_from_data_folder(f"{experiment_folder_name}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}")
+        _, experiment_results_for_analysis = load_and_expand_experiment_results_from_data_folder(
+            f"{experiment_folder_name}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}"
+        )
         result_dict = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_for_analysis).to_dict()
 
         expected_result_dict = {
@@ -348,9 +348,7 @@ def test_hypothesis_one_pipeline_all_in_one():
 
         # load results
         experiment_data_folder = f"{experiment_folder_name}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}"
-        loaded_results: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
-            experiment_data_folder_name=experiment_data_folder
-        )
+        loaded_results, _ = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_folder)
 
         # since we do not return the results in memory from run_experiment_agenda (SIM-393), do some sanity checks:
         assert len(loaded_results) == 1, len(loaded_results)

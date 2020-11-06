@@ -29,6 +29,7 @@ from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import ScheduleProblemEnum
 from rsp.step_02_setup.data_types import ExperimentMalfunction
+from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results_analysis import all_scopes
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes
@@ -48,7 +49,7 @@ from rsp.utils.resource_occupation import extract_resource_occupations
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
 
 
-def plot_shared_heatmap(plotting_information: PlottingInformation, experiment_result: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+def plot_shared_heatmap(plotting_information: PlottingInformation, experiment_result: ExperimentResults, output_folder: Optional[str] = None):
     """Plot a heat map of how many shareds are on the resources.
 
     Parameters
@@ -107,7 +108,7 @@ def plot_shared_heatmap(plotting_information: PlottingInformation, experiment_re
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str = None):
+def plot_time_windows_all_scopes(experiment_results: ExperimentResults, plotting_information: PlottingInformation, output_folder: str = None):
     for scope in all_scopes:
         results_scope = experiment_results._asdict()[f"results_{scope}"]
         problem_scope = experiment_results._asdict()[f"problem_{scope}"]
@@ -126,9 +127,7 @@ def plot_time_windows_all_scopes(experiment_results: ExperimentResultsAnalysis, 
         )
 
 
-def plot_time_resource_trajectories_all_scopes(
-    experiment_results: ExperimentResultsAnalysis, plotting_information: PlottingInformation, output_folder: str = None
-):
+def plot_time_resource_trajectories_all_scopes(experiment_results: ExperimentResults, plotting_information: PlottingInformation, output_folder: str = None):
     for scope in all_scopes:
         results_scope = experiment_results._asdict()[f"results_{scope}"]
         resource_occupations_schedule = extract_resource_occupations(
@@ -272,66 +271,7 @@ def plot_time_resource_trajectories(  # noqa:C901
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def plot_histogram_from_delay_data(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
-    """Plot a histogram of the delay of agents in the full and delta perfect
-    reschedule compared to the schedule."""
-
-    fig = go.Figure()
-    for scope in rescheduling_scopes:
-        fig.add_trace(go.Histogram(x=[v for v in experiment_results._asdict()[f"lateness_per_agent_{scope}"].values()], name=f"results_{scope}"))
-    fig.update_layout(barmode="group", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
-
-    fig.update_traces(opacity=0.75)
-    fig.update_layout(title_text="Delay distributions")
-    fig.update_xaxes(title="Delay [s]")
-
-    if output_folder is None:
-        fig.show()
-    else:
-        check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f"delay_histogram.pdf")
-        # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
-
-
-def plot_lateness(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
-    """
-    Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
-    Parameters
-    ----------
-    experiment_data_frame
-    experiment_id
-
-    Returns
-    -------
-
-    """
-    fig = go.Figure()
-    for scope in rescheduling_scopes:
-        fig.add_trace(go.Bar(x=[f"costs_{scope}"], y=[experiment_results._asdict()[f"costs_{scope}"]], name=f"costs_{scope}"))
-        fig.add_trace(go.Bar(x=[f"lateness_{scope}"], y=[experiment_results._asdict()[f"lateness_{scope}"]], name=f"lateness_{scope}"))
-        fig.add_trace(
-            go.Bar(
-                x=[f"costs_from_route_section_penalties_{scope}"],
-                y=[experiment_results._asdict()[f"costs_from_route_section_penalties_{scope}"]],
-                name=f"costs_from_route_section_penalties_{scope}",
-            )
-        )
-    fig.update_layout(barmode="overlay", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
-    fig.update_traces(opacity=0.75)
-    fig.update_layout(title_text="Total delay and Solver objective")
-    fig.update_yaxes(title="discrete time steps [-] / weighted sum [-]")
-
-    if output_folder is None:
-        fig.show()
-    else:
-        check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f"lateness.pdf")
-        # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
-
-
-def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+def plot_agent_specific_delay(experiment_results_analysis: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """plot_histogram_from_delay_data
     Plot a histogram of the delay of agents in the full and reschedule delta perfect compared to the schedule
     Parameters
@@ -347,7 +287,7 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis, out
     for scope in rescheduling_scopes:
         d = {}
         for dim in ["lateness_per_agent", "costs_from_route_section_penalties_per_agent"]:
-            values = list(experiment_results._asdict()[f"{dim}_{scope}"].values())
+            values = list(experiment_results_analysis._asdict()[f"{dim}_{scope}"].values())
             d[dim] = sum(values)
             fig.add_trace(go.Bar(x=np.arange(len(values)), y=values, name=f"{dim}_{scope}"))
     fig.update_traces(opacity=0.75)
@@ -364,7 +304,7 @@ def plot_agent_specific_delay(experiment_results: ExperimentResultsAnalysis, out
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+def plot_changed_agents(experiment_results: ExperimentResults, output_folder: Optional[str] = None):
     """Plot a histogram of the delay of agents in the full and reschedule delta
     perfect compared to the schedule.
 
@@ -422,48 +362,48 @@ def plot_changed_agents(experiment_results: ExperimentResultsAnalysis, output_fo
 
 
 def plot_route_dag(
-    experiment_results_analysis: ExperimentResultsAnalysis,
+    experiment_results: ExperimentResults,
     agent_id: int,
     suffix_of_constraints_to_visualize: ScheduleProblemEnum,
     save: bool = False,
     output_folder: Optional[str] = None,
 ):
-    train_runs_schedule: TrainrunDict = experiment_results_analysis.solution_schedule
-    train_runs_online_unrestricted: TrainrunDict = experiment_results_analysis.solution_online_unrestricted
-    train_runs_offline_delta: TrainrunDict = experiment_results_analysis.solution_offline_delta
+    train_runs_schedule: TrainrunDict = experiment_results.results_schedule.trainruns_dict
+    train_runs_online_unrestricted: TrainrunDict = experiment_results.results_online_unrestricted.trainruns_dict
+    train_runs_offline_delta: TrainrunDict = experiment_results.results_offline_delta.trainruns_dict
     train_run_schedule: Trainrun = train_runs_schedule[agent_id]
     train_run_online_unrestricted: Trainrun = train_runs_online_unrestricted[agent_id]
     train_run_offline_delta: Trainrun = train_runs_offline_delta[agent_id]
-    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_schedule
-    problem_rsp_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_online_unrestricted
-    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results_analysis.problem_offline_delta
+    problem_schedule: ScheduleProblemDescription = experiment_results.problem_schedule
+    problem_rsp_schedule: ScheduleProblemDescription = experiment_results.problem_online_unrestricted
+    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results.problem_offline_delta
     # TODO hacky, we should take the topo_dict from infrastructure maybe?
-    topo = experiment_results_analysis.problem_online_unrestricted.topo_dict[agent_id]
+    topo = experiment_results.problem_online_unrestricted.topo_dict[agent_id]
 
     config = {
         ScheduleProblemEnum.PROBLEM_SCHEDULE: [
             problem_schedule,
-            f"Schedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            f"Schedule RouteDAG for agent {agent_id} in experiment {experiment_results.experiment_parameters.experiment_id}",
             train_run_schedule,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_FULL_AFTER_MALFUNCTION: [
             problem_rsp_schedule,
-            f"Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            f"Full Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results.experiment_parameters.experiment_id}",
             train_run_online_unrestricted,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
-            f"Delta Perfect Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            f"Delta Perfect Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results.experiment_parameters.experiment_id}",
             train_run_offline_delta,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_ONLINE_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
-            f"Online Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            f"Online Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results.experiment_parameters.experiment_id}",
             train_run_offline_delta,
         ],
         ScheduleProblemEnum.PROBLEM_RSP_DELTA_RANDOM_AFTER_MALFUNCTION: [
             problem_rsp_reduced_scope_perfect,
-            f"Delta Random Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results_analysis.experiment_id}",
+            f"Delta Random Reschedule RouteDAG for agent {agent_id} in experiment {experiment_results.experiment_parameters.experiment_id}",
             train_run_offline_delta,
         ],
     }
@@ -481,7 +421,7 @@ def plot_route_dag(
         costs_from_route_section_penalties_per_agent_and_edge={},
         route_section_penalties=problem_to_visualize.route_section_penalties[agent_id],
         title=title,
-        file_name=(f"{output_folder}/experiment_{experiment_results_analysis.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf" if save else None),
+        file_name=(f"{output_folder}/experiment_{experiment_results.experiment_id:04d}_agent_{agent_id}_route_graph_schedule.pdf" if save else None),
     )
 
 
@@ -765,7 +705,7 @@ def plot_time_density(schedule_as_resource_occupations: ScheduleAsResourceOccupa
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def plot_nb_route_alternatives(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+def plot_nb_route_alternatives(experiment_results: ExperimentResults, output_folder: Optional[str] = None):
     """Plot a histogram of the delay of agents in the full and reschedule delta
     perfect compared to the schedule.
 
@@ -791,7 +731,7 @@ def plot_nb_route_alternatives(experiment_results: ExperimentResultsAnalysis, ou
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def plot_agent_speeds(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+def plot_agent_speeds(experiment_results: ExperimentResults, output_folder: Optional[str] = None):
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
@@ -812,7 +752,7 @@ def plot_agent_speeds(experiment_results: ExperimentResultsAnalysis, output_fold
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def plot_time_window_sizes(experiment_results: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+def plot_time_window_sizes(experiment_results: ExperimentResults, output_folder: Optional[str] = None):
     fig = go.Figure()
     for scope in all_scopes:
         route_dag_constraints_dict: RouteDAGConstraintsDict = experiment_results._asdict()[f"problem_{scope}"].route_dag_constraints_dict
@@ -837,7 +777,7 @@ def plot_time_window_sizes(experiment_results: ExperimentResultsAnalysis, output
         fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
 
 
-def print_path_stats(experiment_results: ExperimentResultsAnalysis):
+def print_path_stats(experiment_results: ExperimentResults):
     for scope in all_scopes:
         problem: ScheduleProblemDescription = experiment_results._asdict()[f"problem_{scope}"]
         nb_paths = [len(get_paths_in_route_dag(topo)) for _, topo in problem.topo_dict.items()]

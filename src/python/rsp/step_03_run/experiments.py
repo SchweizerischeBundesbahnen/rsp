@@ -574,7 +574,7 @@ def _make_restricted_topo(infrastructure_topo_dict: TopoDict, number_of_shortest
 
 
 def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: int):
-    results_before: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
+    results_before, _ = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_base_directory + "/data", experiment_ids=[experiment_id]
     )[0]
     problem_online_unrestricted: ScheduleProblemDescription = results_before.problem_online_unrestricted
@@ -814,12 +814,12 @@ def load_and_filter_experiment_results_analysis(
                 experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=experiments_of_interest
             )
         else:
-            experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+            _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
                 experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
                 experiment_ids=experiments_of_interest,
                 nonify_all_structured_fields=True,
             )
-            experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+            experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_analysis_list)
 
         if local_filter_experiment_results_analysis_data_frame is not None:
             experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
@@ -1426,7 +1426,7 @@ def load_and_expand_experiment_results_from_data_folder(
     nonify_all_structured_fields: bool = False,
     re_save_csv_after_expansion: bool = False,
     online_unrestricted_only: bool = False,
-) -> List[Union[ExperimentResultsAnalysis, ExperimentResultsAnalysisOnlineUnrestricted]]:
+) -> Tuple[List[ExperimentResults], List[Union[ExperimentResultsAnalysis, ExperimentResultsAnalysisOnlineUnrestricted]]]:
     """Load results as DataFrame to do further analysis.
     Parameters
     ----------
@@ -1442,6 +1442,7 @@ def load_and_expand_experiment_results_from_data_folder(
     DataFrame containing the loaded experiment results
     """
 
+    experiment_results_list_analysis = []
     experiment_results_list = []
 
     files = os.listdir(experiment_data_folder_name)
@@ -1459,16 +1460,17 @@ def load_and_expand_experiment_results_from_data_folder(
             continue
         try:
             file_data: ExperimentResults = _pickle_load(file_name=file_name)
+            experiment_results_list.append(file_data)
             if online_unrestricted_only:
                 # TODO SIM-749 nonify?
                 results_for_analysis = expand_experiment_results_online_unrestricted(file_data)
-                experiment_results_list.append(results_for_analysis)
+                experiment_results_list_analysis.append(results_for_analysis)
                 if re_save_csv_after_expansion:
                     experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame([results_for_analysis])
                     experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
             else:
                 results_for_analysis = expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields)
-                experiment_results_list.append(results_for_analysis)
+                experiment_results_list_analysis.append(results_for_analysis)
                 if re_save_csv_after_expansion:
                     # ensure it is nonified
                     experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
@@ -1482,7 +1484,7 @@ def load_and_expand_experiment_results_from_data_folder(
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> done loading and expanding experiment results from {experiment_data_folder_name} done")
 
-    return experiment_results_list
+    return experiment_results_list, experiment_results_list_analysis
 
 
 def load_and_filter_experiment_results_analysis_online_unrestricted(
@@ -1502,13 +1504,13 @@ def load_and_filter_experiment_results_analysis_online_unrestricted(
                 online_unrestricted_only=True,
             )
         else:
-            experiment_results_list = load_and_expand_experiment_results_from_data_folder(
+            _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
                 experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
                 experiment_ids=experiments_of_interest,
                 nonify_all_structured_fields=True,
                 online_unrestricted_only=True,
             )
-            experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(experiment_results_list)
+            experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(experiment_results_analysis_list)
 
         if local_filter_experiment_results_analysis_data_frame is not None:
             experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)

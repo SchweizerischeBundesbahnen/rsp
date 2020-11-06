@@ -1,3 +1,10 @@
+"""`ExperimentResultsAnalysis` contains data structures for analysis,
+with/without raw `ExperimentResults`.
+
+Data structure should be mostly be flat (fields should be numbers) and
+only some agent dicts that are often re-used.
+"""
+# TODO cleaner data structures without optionals?
 import warnings
 from typing import Dict
 from typing import List

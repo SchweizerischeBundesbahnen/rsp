@@ -8,8 +8,8 @@ from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
+from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results_analysis import all_scopes
-from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.utils.global_constants import GLOBAL_CONSTANTS
 
 LeftClosedInterval = NamedTuple("LeftClosedInterval", [("from_incl", int), ("to_excl", int)])
@@ -166,7 +166,7 @@ def verify_schedule_as_resource_occupations(  # noqa: C901
 
 
 def extract_resource_occupations_for_all_scopes(
-    experiment_result: ExperimentResultsAnalysis, release_time: int = GLOBAL_CONSTANTS.RELEASE_TIME
+    experiment_result: ExperimentResults, release_time: int = GLOBAL_CONSTANTS.RELEASE_TIME
 ) -> ScheduleAsResourceOccupationsAllScopes:
     return ScheduleAsResourceOccupationsAllScopes(
         **{

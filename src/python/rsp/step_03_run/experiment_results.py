@@ -1,3 +1,5 @@
+"""`ExperimentResults` are raw data structures from experiments, without post-
+processing for analysis."""
 from typing import NamedTuple
 from typing import Set
 

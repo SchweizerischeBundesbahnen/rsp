@@ -10,7 +10,7 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
+from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiments import create_env_from_experiment_parameters
 from rsp.step_03_run.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME
 from rsp.utils.file_utils import check_create_folder
@@ -206,19 +206,15 @@ def cleanup_renderer_for_env(renderer):
         warnings.warn(str(e))
 
 
-def render_flatland_env(  # noqa
-    data_folder: str, experiment_data: ExperimentResultsAnalysis, experiment_id: int, render_schedule: bool = True, render_reschedule: bool = True
-):
+def render_flatland_env(data_folder: str, experiment_data: ExperimentResults, render_schedule: bool = True, render_reschedule: bool = True):  # noqa
     """
     Method to render the environment for visual inspection
     Parameters
     ----------
     data_folder: str
         Folder name to store and load images from
-    experiment_data: ExperimentResultsAnalysis
+    experiment_data: ExperimentResults
         experiment data used for visualization
-    experiment_id: int
-        ID of experiment we like to visualize
     render_reschedule
     render_schedule
 
@@ -226,6 +222,8 @@ def render_flatland_env(  # noqa
     -------
     File paths to generated videos to render in the notebook
     """
+
+    experiment_id = experiment_data.experiment_parameters.experiment_id
 
     # Generate environment for rendering
     rail_env = create_env_from_experiment_parameters(experiment_data.experiment_parameters.infra_parameters)
@@ -242,8 +240,8 @@ def render_flatland_env(  # noqa
         title = "Schedule"
         video_src_schedule = os.path.join(
             output_folder,
-            f"experiment_{experiment_data.experiment_id:04d}_analysis",
-            f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
+            f"experiment_{experiment_id:04d}_analysis",
+            f"experiment_{experiment_id}_rendering_output_{title}/",
             f"experiment_{experiment_id}_flatland_data_analysis.mp4",
         )
 
@@ -251,7 +249,7 @@ def render_flatland_env(  # noqa
         if not os.path.exists(video_src_schedule):
             render_trainruns(
                 data_folder=output_folder,
-                experiment_id=experiment_data.experiment_id,
+                experiment_id=experiment_id,
                 title=title,
                 rail_env=rail_env,
                 trainruns=experiment_data.solution_schedule,
@@ -264,19 +262,19 @@ def render_flatland_env(  # noqa
         title = "Reschedule"
         video_src_reschedule = os.path.join(
             output_folder,
-            f"experiment_{experiment_data.experiment_id:04d}_analysis",
-            f"experiment_{experiment_data.experiment_id}_rendering_output_{title}/",
+            f"experiment_{experiment_id:04d}_analysis",
+            f"experiment_{experiment_id}_rendering_output_{title}/",
             f"experiment_{experiment_id}_flatland_data_analysis.mp4",
         )
         # Only render if file is not yet created
         if not os.path.exists(video_src_reschedule):
             render_trainruns(
                 data_folder=output_folder,
-                experiment_id=experiment_data.experiment_id,
+                experiment_id=experiment_id,
                 malfunction=experiment_data.malfunction,
                 title=title,
                 rail_env=rail_env,
-                trainruns=experiment_data.solution_online_unrestricted,
+                trainruns=experiment_data.results_online_unrestricted.trainruns_dict,
                 convert_to_mpeg=True,
             )
 

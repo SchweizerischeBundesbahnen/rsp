@@ -10,8 +10,8 @@ from pandas import DataFrame
 from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import ScheduleProblemEnum
-from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_02_setup.data_types import ExperimentMalfunction
+from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import filter_experiment_results_analysis_data_frame
@@ -28,8 +28,6 @@ from rsp.step_04_analysis.compute_time_analysis.compute_time_analysis import hyp
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_agent_specific_delay
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_agent_speeds
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_changed_agents
-from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_histogram_from_delay_data
-from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_lateness
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_nb_route_alternatives
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_resource_occupation_heat_map
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_route_dag
@@ -52,6 +50,8 @@ from rsp.step_04_analysis.malfunction_analysis.disturbance_propagation import co
 from rsp.step_04_analysis.malfunction_analysis.disturbance_propagation import plot_delay_propagation_graph
 from rsp.step_04_analysis.malfunction_analysis.disturbance_propagation import resource_occpuation_from_transmission_chains
 from rsp.step_04_analysis.malfunction_analysis.malfunction_analysis import plot_delay_propagation_2d
+from rsp.step_04_analysis.malfunction_analysis.malfunction_analysis import plot_histogram_from_delay_data
+from rsp.step_04_analysis.malfunction_analysis.malfunction_analysis import plot_lateness
 from rsp.step_04_analysis.malfunction_analysis.malfunction_analysis import print_situation_overview
 from rsp.transmission_chains.transmission_chains import extract_transmission_chains_from_schedule
 from rsp.utils.file_utils import check_create_folder
@@ -81,12 +81,12 @@ def hypothesis_one_data_analysis(
     # Create output directoreis
     check_create_folder(experiment_analysis_directory)
 
-    experiment_results_list_nonified: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
+    _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_data_directory, nonify_all_structured_fields=True
     )
 
     # convert to data frame for statistical analysis
-    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_nonified)
+    experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_analysis_list)
     experiment_data = filter_experiment_results_analysis_data_frame(experiment_data)
 
     if save_as_tsv:
@@ -100,20 +100,30 @@ def hypothesis_one_data_analysis(
         _compute_time_analysis(experiment_data, results_folder)
 
     if qualitative_analysis_experiment_ids:
-        experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
+        experiment_results_list, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
             experiment_data_folder_name=experiment_data_directory, experiment_ids=qualitative_analysis_experiment_ids
         )
-        for experiment_result in experiment_results_list:
+        for experiment_results, experiment_results_analysis in zip(experiment_results_list, experiment_results_analysis_list):
             _route_dag_constraints_analysis(
-                experiment_parameters=experiment_result.experiment_parameters,
-                experiment_results_analysis=experiment_result,
+                experiment_results=experiment_results,
                 experiment_analysis_directory=experiment_analysis_directory,
+                experiment_results_analysis=experiment_results_analysis,
             )
 
-            agent_of_interest = experiment_result.malfunction.agent_id
-            output_folder_of_interest = f"{results_folder}/experiment_{experiment_result.experiment_id:04d}_agent_{agent_of_interest:04d}/"
-            _detailed_experiment_results(experiment_result=experiment_result, output_folder_of_interest=output_folder_of_interest)
-            _malfunction_analysis(experiment_result=experiment_result, output_folder_of_interest=output_folder_of_interest)
+            agent_of_interest = experiment_results.malfunction.agent_id
+            output_folder_of_interest = (
+                f"{results_folder}/experiment_{experiment_results.experiment_parameters.experiment_id:04d}_agent_{agent_of_interest:04d}/"
+            )
+            _detailed_experiment_results(
+                experiment_results=experiment_results,
+                experiment_results_analysis=experiment_results_analysis,
+                output_folder_of_interest=output_folder_of_interest,
+            )
+            _malfunction_analysis(
+                experiment_results=experiment_results,
+                experiment_results_analysis=experiment_results_analysis,
+                output_folder_of_interest=output_folder_of_interest,
+            )
 
 
 def _compute_time_analysis(experiment_data: DataFrame, results_folder: str):
@@ -126,36 +136,33 @@ def _compute_time_analysis(experiment_data: DataFrame, results_folder: str):
     hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data, output_folder=results_folder)
 
 
-def _detailed_experiment_results(experiment_result: ExperimentResultsAnalysis, output_folder_of_interest: str):
-    agent_of_interest = experiment_result.malfunction.agent_id
-    resource_occupations_for_all_scopes = extract_resource_occupations_for_all_scopes(experiment_result=experiment_result)
+def _detailed_experiment_results(experiment_results: ExperimentResults, experiment_results_analysis: ExperimentResultsAnalysis, output_folder_of_interest: str):
+    agent_of_interest = experiment_results.malfunction.agent_id
+    resource_occupations_for_all_scopes = extract_resource_occupations_for_all_scopes(experiment_result=experiment_results)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
-        grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
+        grid_depth=experiment_results.experiment_parameters.infra_parameters.width,
         sorting_agent_id=agent_of_interest,
     )
     trajectories_for_all_scopes = extract_trajectories_for_all_scopes(
         schedule_as_resource_occupations_all_scopes=resource_occupations_for_all_scopes, plotting_information=plotting_information
     )
-    plot_time_windows_all_scopes(experiment_results=experiment_result, plotting_information=plotting_information, output_folder=output_folder_of_interest)
+    plot_time_windows_all_scopes(experiment_results=experiment_results, plotting_information=plotting_information, output_folder=output_folder_of_interest)
     plot_time_resource_trajectories_all_scopes(
-        experiment_results=experiment_result, plotting_information=plotting_information, output_folder=output_folder_of_interest
+        experiment_results=experiment_results, plotting_information=plotting_information, output_folder=output_folder_of_interest
     )
-    plot_shared_heatmap(plotting_information=plotting_information, experiment_result=experiment_result, output_folder=output_folder_of_interest)
-    plot_histogram_from_delay_data(experiment_results=experiment_result, output_folder=output_folder_of_interest)
-    plot_lateness(experiment_results=experiment_result, output_folder=output_folder_of_interest)
-    plot_agent_specific_delay(experiment_results=experiment_result, output_folder=output_folder_of_interest)
-    plot_changed_agents(experiment_results=experiment_result, output_folder=output_folder_of_interest)
+    plot_shared_heatmap(plotting_information=plotting_information, experiment_result=experiment_results, output_folder=output_folder_of_interest)
+    plot_changed_agents(experiment_results=experiment_results, output_folder=output_folder_of_interest)
     plot_route_dag(
-        experiment_results_analysis=experiment_result,
+        experiment_results=experiment_results,
         agent_id=agent_of_interest,
         suffix_of_constraints_to_visualize=ScheduleProblemEnum.PROBLEM_SCHEDULE,
         output_folder=output_folder_of_interest,
     )
-    plot_nb_route_alternatives(experiment_results=experiment_result, output_folder=output_folder_of_interest)
-    print_path_stats(experiment_results=experiment_result)
-    plot_agent_speeds(experiment_results=experiment_result, output_folder=output_folder_of_interest)
-    plot_time_window_sizes(experiment_results=experiment_result, output_folder=output_folder_of_interest)
+    plot_nb_route_alternatives(experiment_results=experiment_results, output_folder=output_folder_of_interest)
+    print_path_stats(experiment_results=experiment_results)
+    plot_agent_speeds(experiment_results=experiment_results, output_folder=output_folder_of_interest)
+    plot_time_window_sizes(experiment_results=experiment_results, output_folder=output_folder_of_interest)
     plot_resource_occupation_heat_map(
         schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
         reschedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
@@ -173,12 +180,12 @@ def _detailed_experiment_results(experiment_result: ExperimentResultsAnalysis, o
     return plotting_information, resource_occupations_for_all_scopes, trajectories_for_all_scopes
 
 
-def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis, output_folder_of_interest: str):
-    agent_of_interest = experiment_result.malfunction.agent_id
-    resource_occupations_for_all_scopes = extract_resource_occupations_for_all_scopes(experiment_result=experiment_result)
+def _malfunction_analysis(experiment_results: ExperimentResults, experiment_results_analysis: ExperimentResultsAnalysis, output_folder_of_interest: str):
+    agent_of_interest = experiment_results.malfunction.agent_id
+    resource_occupations_for_all_scopes = extract_resource_occupations_for_all_scopes(experiment_result=experiment_results)
     plotting_information: PlottingInformation = extract_plotting_information(
         schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
-        grid_depth=experiment_result.experiment_parameters.infra_parameters.width,
+        grid_depth=experiment_results.experiment_parameters.infra_parameters.width,
         sorting_agent_id=agent_of_interest,
     )
     trajectories_for_all_scopes = extract_trajectories_for_all_scopes(
@@ -186,10 +193,10 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis, output_f
     )
     # malfunction analysis
     transmission_chains = extract_transmission_chains_from_schedule(
-        malfunction=experiment_result.malfunction, occupations=resource_occupations_for_all_scopes.schedule
+        malfunction=experiment_results.malfunction, occupations=resource_occupations_for_all_scopes.schedule
     )
     distance_matrix, minimal_depth = compute_disturbance_propagation_graph(
-        transmission_chains=transmission_chains, number_of_trains=experiment_result.experiment_parameters.infra_parameters.number_of_agents
+        transmission_chains=transmission_chains, number_of_trains=experiment_results.experiment_parameters.infra_parameters.number_of_agents
     )
     _, changed_agents_dict = get_difference_in_time_space_trajectories(
         base_trajectories=trajectories_for_all_scopes.schedule, target_trajectories=trajectories_for_all_scopes.offline_delta
@@ -201,21 +208,21 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis, output_f
     false_positives = resource_occpuation_from_transmission_chains(transmission_chains, unchanged_agents)
     true_positives_trajectories = trajectories_from_resource_occupations_per_agent({0: true_positives}, plotting_information)
     false_positives_trajectories = trajectories_from_resource_occupations_per_agent({0: false_positives}, plotting_information)
-    print_situation_overview(resource_occupations_for_all_scopes=resource_occupations_for_all_scopes, malfunction=experiment_result.malfunction)
+    print_situation_overview(resource_occupations_for_all_scopes=resource_occupations_for_all_scopes, malfunction=experiment_results.malfunction)
     plot_time_resource_trajectories(
         title="Malfunction Propagation in Schedule",
         trajectories=trajectories_for_all_scopes.schedule,
         plotting_information=plotting_information,
-        malfunction=experiment_result.malfunction,
+        malfunction=experiment_results.malfunction,
         true_positives=true_positives_trajectories,
         false_positives=false_positives_trajectories,
         output_folder=output_folder_of_interest,
     )
     plot_delay_propagation_2d(
         plotting_information=plotting_information,
-        malfunction=experiment_result.malfunction,
+        malfunction=experiment_results.malfunction,
         schedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
-        delay_information=experiment_result.lateness_per_agent_offline_delta,
+        delay_information=experiment_results_analysis.lateness_per_agent_offline_delta,
         depth_dict=minimal_depth,
         pdf_file=f"{output_folder_of_interest}/delay_propagation_2d.pdf",
     )
@@ -225,33 +232,33 @@ def _malfunction_analysis(experiment_result: ExperimentResultsAnalysis, output_f
         changed_agents=changed_agents_dict,
         pdf_file=f"{output_folder_of_interest}/delay_propagation_graph.pdf",
     )
+    plot_histogram_from_delay_data(experiment_results_analysis=experiment_results_analysis, output_folder=output_folder_of_interest)
+    plot_lateness(experiment_results_analysis=experiment_results_analysis, output_folder=output_folder_of_interest)
+    plot_agent_specific_delay(experiment_results_analysis=experiment_results_analysis, output_folder=output_folder_of_interest)
 
 
 def _route_dag_constraints_analysis(
-    experiment_parameters: ExperimentParameters, experiment_results_analysis: ExperimentResultsAnalysis, experiment_analysis_directory: str = None,
+    experiment_results: ExperimentResults, experiment_results_analysis: ExperimentResultsAnalysis, experiment_analysis_directory: str = None,
 ):
     """Render the experiment the DAGs.
 
     Parameters
     ----------
-    route_dag
-        toggle route-dag rendering
-    experiment_parameters: ExperimentParameters
-        experiment parameters
     experiment_analysis_directory
         Folder to store FLATland pngs and mpeg to
     """
+    experiment_parameters = experiment_results.experiment_parameters
 
-    train_runs_schedule: TrainrunDict = experiment_results_analysis.solution_schedule
-    train_runs_online_unrestricted: TrainrunDict = experiment_results_analysis.solution_online_unrestricted
-    train_runs_offline_delta: TrainrunDict = experiment_results_analysis.solution_offline_delta
+    train_runs_schedule: TrainrunDict = experiment_results.results_schedule.trainruns_dict
+    train_runs_online_unrestricted: TrainrunDict = experiment_results.results_online_unrestricted.trainruns_dict
+    train_runs_offline_delta: TrainrunDict = experiment_results.results_offline_delta.trainruns_dict
 
-    problem_online_unrestricted: ScheduleProblemDescription = experiment_results_analysis.problem_online_unrestricted
+    problem_online_unrestricted: ScheduleProblemDescription = experiment_results.problem_online_unrestricted
     costs_online_unrestricted: ScheduleProblemDescription = experiment_results_analysis.costs_online_unrestricted
-    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results_analysis.problem_offline_delta
+    problem_rsp_reduced_scope_perfect: ScheduleProblemDescription = experiment_results.problem_offline_delta
     costs_offline_delta: ScheduleProblemDescription = experiment_results_analysis.costs_offline_delta
-    problem_schedule: ScheduleProblemDescription = experiment_results_analysis.problem_schedule
-    malfunction: ExperimentMalfunction = experiment_results_analysis.malfunction
+    problem_schedule: ScheduleProblemDescription = experiment_results.problem_schedule
+    malfunction: ExperimentMalfunction = experiment_results.malfunction
     n_agents: int = experiment_results_analysis.n_agents
     lateness_online_unrestricted: Dict[int, int] = experiment_results_analysis.lateness_per_agent_online_unrestricted
     costs_from_route_section_penalties_per_agent_online_unrestricted: Dict[
@@ -270,10 +277,10 @@ def _route_dag_constraints_analysis(
     check_create_folder(route_dag_folder)
 
     visualize_route_dag_constraints_simple_wrapper(
-        schedule_problem_description=experiment_results_analysis.problem_schedule,
+        schedule_problem_description=experiment_results.problem_schedule,
         trainrun_dict=None,
-        experiment_malfunction=experiment_results_analysis.malfunction,
-        agent_id=experiment_results_analysis.malfunction.agent_id,
+        experiment_malfunction=experiment_results.malfunction,
+        agent_id=experiment_results.malfunction.agent_id,
         file_name=f"{route_dag_folder}/schedule_route_dag.pdf",
     )
 
