@@ -112,11 +112,11 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
         check_create_folder(base_directory)
 
     infra_parameters_range = InfrastructureParametersRange(
-        number_of_agents=[64, 64, 1],
-        width=[60, 60, 1],
-        height=[60, 60, 1],
+        number_of_agents=[80, 160, 8],
+        width=[80, 80, 1],
+        height=[80, 80, 1],
         flatland_seed_value=[10, 10, 1],
-        max_num_cities=[4, 16, 12],
+        max_num_cities=[16, 16, 1],
         max_rail_in_city=[3, 3, 1],
         max_rail_between_cities=[1, 1, 1],
         number_of_shortest_paths_per_agent=[10, 10, 1],
@@ -157,4 +157,4 @@ def main(base_directory=INFRAS_AND_SCHEDULES_FOLDER, experiment_output_base_dire
 
 
 if __name__ == "__main__":
-    main(base_directory="DENSITY_VARIATION_EXPERIMENTS_FIXED", experiment_output_base_directory=None)
+    main(base_directory="DENSITY_VARIATION_EXPERIMENTS_LARGE_ENV", experiment_output_base_directory=None)
