@@ -115,13 +115,13 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
         number_of_agents=[50, 100, 4],
         width=[100, 100, 1],
         height=[100, 100, 1],
-        flatland_seed_value=[10, 10, 1],
-        max_num_cities=[7, 10, 3],
+        flatland_seed_value=[190, 190, 1],
+        max_num_cities=[8, 15, 3],
         max_rail_in_city=[2, 3, 2],
         max_rail_between_cities=[1, 2, 2],
         number_of_shortest_paths_per_agent=[10, 10, 1],
     )
-    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[14, 14, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
+    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[814, 814, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
 
     create_infrastructure_and_schedule_from_ranges(
         base_directory=base_directory,
@@ -157,4 +157,6 @@ def main(base_directory=INFRAS_AND_SCHEDULES_FOLDER, experiment_output_base_dire
 
 
 if __name__ == "__main__":
-    main(base_directory="PUBLICATION_DATA", experiment_output_base_directory=None,)
+    main(
+        base_directory="PUBLICATION_DATA", experiment_output_base_directory=None,
+    )
