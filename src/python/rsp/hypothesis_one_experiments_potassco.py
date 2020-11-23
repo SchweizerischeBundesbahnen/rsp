@@ -112,16 +112,16 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
         check_create_folder(base_directory)
 
     infra_parameters_range = InfrastructureParametersRange(
-        number_of_agents=[64, 64, 1],
-        width=[60, 60, 1],
-        height=[60, 60, 1],
-        flatland_seed_value=[10, 10, 1],
-        max_num_cities=[4, 16, 12],
-        max_rail_in_city=[3, 3, 1],
-        max_rail_between_cities=[1, 1, 1],
+        number_of_agents=[50, 100, 4],
+        width=[100, 100, 1],
+        height=[100, 100, 1],
+        flatland_seed_value=[190, 190, 1],
+        max_num_cities=[8, 15, 3],
+        max_rail_in_city=[2, 3, 2],
+        max_rail_between_cities=[1, 2, 2],
         number_of_shortest_paths_per_agent=[10, 10, 1],
     )
-    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[1, 104, 2], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
+    schedule_parameters_range = ScheduleParametersRange(asp_seed_value=[814, 814, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
 
     create_infrastructure_and_schedule_from_ranges(
         base_directory=base_directory,
@@ -140,7 +140,7 @@ def generate_potassco_infras_and_schedules(base_directory: Optional[str] = None,
 
 
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
-    return experiment.re_schedule_parameters.malfunction_agent_id < 20
+    return experiment.re_schedule_parameters.malfunction_agent_id < 100
 
 
 def main(base_directory=INFRAS_AND_SCHEDULES_FOLDER, experiment_output_base_directory=BASELINE_DATA_FOLDER):
@@ -152,9 +152,11 @@ def main(base_directory=INFRAS_AND_SCHEDULES_FOLDER, experiment_output_base_dire
         experiment_output_base_directory=experiment_output_base_directory,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         parallel_compute=parallel_compute,
-        csv_only=False,
+        csv_only=True,
     )
 
 
 if __name__ == "__main__":
-    main(base_directory="DENSITY_VARIATION_EXPERIMENTS_FIXED", experiment_output_base_directory=None)
+    main(
+        base_directory="PUBLICATION_DATA", experiment_output_base_directory=None,
+    )
