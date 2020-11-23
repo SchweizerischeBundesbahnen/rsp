@@ -5,6 +5,8 @@ import numpy as np
 from IPython.core.magics.execution import Timer, TimeitResult
 from numba import vectorize
 
+from rsp.step_03_run.experiments import list_infrastructure_and_schedule_params_from_base_directory
+
 
 @vectorize(nopython=True)
 def ufunc_zero_clamp(x, threshold):
@@ -88,3 +90,12 @@ def timeit_ipython_magic_wrapper(f,
             print("Compiler time: %.2f s" % tc)
     if return_result:
         return timeit_result
+
+def make_resources(infra_parameters: InfraParameters):
+    infra_parameters
+
+if __name__ == '__main__':
+    infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
+        base_directory="../rsp-data/PUBLICATION_DATA/PUBLICATION_DATA_baseline_2020_11_17T23_40_54"
+    )
+    infra_parameters = infra_parameters_list[0]
