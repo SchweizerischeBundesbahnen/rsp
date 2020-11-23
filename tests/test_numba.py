@@ -1,11 +1,15 @@
 import timeit
 from functools import partial
+from typing import Dict
 
 import numpy as np
 from IPython.core.magics.execution import Timer, TimeitResult
-from numba import vectorize
+from flatland.envs.rail_trainrun_data_structures import Waypoint
+from numba import vectorize, prange, jit
 
-from rsp.step_03_run.experiments import list_infrastructure_and_schedule_params_from_base_directory
+from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
+from rsp.step_03_run.experiments import load_infrastructure, create_env_from_experiment_parameters
+from rsp.utils.global_constants import GLOBAL_CONSTANTS
 
 
 @vectorize(nopython=True)
@@ -14,18 +18,6 @@ def ufunc_zero_clamp(x, threshold):
         return x
     else:
         return 0
-
-def make_time_expansion(nb_resources, time_horizon):
-    assert time_horizon <= 2**32
-    return np.ndarray(nb_resources, dtype=np.int32)
-
-def make_bit_pattern_for_trainrun() -> Dict[]:
-
-# make coordinate -> index mapping (used resources only)
-# for each agent, make bit pattern
-# to check, shift bit pattern by start time
-# implement insertion and removal at time t for agent a
-
 
 
 def test():
@@ -91,11 +83,88 @@ def timeit_ipython_magic_wrapper(f,
     if return_result:
         return timeit_result
 
-def make_resources(infra_parameters: InfraParameters):
-    infra_parameters
+
+@jit(nopython=True, parallel=True)
+def check_agent_at(occupations, unshifted_bit_pattern, agent_id: int, start_time: int):
+    conflicts = 0
+    for resource_index in prange(occupations.shape[0]):
+        from_t_incl, to_t_excl = unshifted_bit_pattern[agent_id][resource_index]
+        for t in prange(from_t_incl + start_time, to_t_excl + start_time):
+            conflict = occupations[resource_index][t]
+            if conflict:
+                conflicts += 1
+    return conflicts
+
+
+@jit(nopython=True, parallel=True)
+def apply_agent_at(occupations, unshifted_bit_pattern, agent_id: int, start_time: int, flag: bool):
+    conflicts = 0
+    for resource_index in prange(occupations.shape[0]):
+        from_t_incl, to_t_excl = unshifted_bit_pattern[agent_id][resource_index]
+        for t in range(from_t_incl + start_time, to_t_excl + start_time):
+            occupations[resource_index][t] = flag
+
 
 if __name__ == '__main__':
-    infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(
-        base_directory="../rsp-data/PUBLICATION_DATA/PUBLICATION_DATA_baseline_2020_11_17T23_40_54"
+    infra, infra_parameters = load_infrastructure(
+        base_directory="../rsp-data/PUBLICATION_DATA",
+        infra_id=0
     )
-    infra_parameters = infra_parameters_list[0]
+
+    # take shortest path for each agent
+    topo_dict = infra.topo_dict
+    number_of_shortest_paths_per_agent_schedule = 1
+    shortest_path_per_agent = {}
+    for agent_id, topo in topo_dict.items():
+        paths = get_paths_in_route_dag(topo)
+        shortest_path_per_agent[agent_id] = paths[0]
+        paths = paths[:number_of_shortest_paths_per_agent_schedule]
+        remaining_vertices = {vertex for path in paths for vertex in path}
+        topo.remove_nodes_from(set(topo.nodes).difference(remaining_vertices))
+
+    # collect resources
+    resources = set()
+    for _, topo in topo_dict.items():
+        for v in topo.nodes:
+            wp: Waypoint = v
+            resources.add(wp.position)
+
+    # make coordinate -> index mapping (used resources only)
+    # index -> resource
+    resource_index_to_position: Dict[int, Waypoint] = dict(enumerate(resources))
+    position_to_resource_index: Dict[Waypoint, int] = {resource: index for index, resource in resource_index_to_position.items()}
+
+    number_agents = len(topo_dict)
+    number_resources = len(resources)
+
+    #
+    env = create_env_from_experiment_parameters(infra_parameters)
+    max_episode_steps = env._max_episode_steps
+
+    # empty resource-time-expansion
+    # TODO can we make this more compact, 1 bit per timestep?
+    occupations = np.zeros(shape=(number_resources, max_episode_steps), dtype=np.bool)
+
+    # for each agent, make bit pattern if they started at zero
+    unshifted_bit_pattern = np.zeros(shape=(number_agents, number_resources, 2), dtype=np.int64)
+    for agent_id, shortest_path in shortest_path_per_agent.items():
+        mrt = infra.minimum_travel_time_dict[agent_id]
+        for index, wp in enumerate(shortest_path):
+            from_t_incl = index * mrt
+            to_t_excl = (index + 1) * mrt + GLOBAL_CONSTANTS.RELEASE_TIME
+            resource = position_to_resource_index[wp.position]
+            unshifted_bit_pattern[agent_id][resource] = (from_t_incl, to_t_excl)
+
+    # warm up jit: TODO make this better
+    timeit_ipython_magic_wrapper(partial(check_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0))
+
+    conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
+    assert conflicts == 0
+    apply_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=True)
+    timeit_ipython_magic_wrapper(partial(apply_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=True))
+    conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
+    assert conflicts > 0
+    apply_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=False)
+    timeit_ipython_magic_wrapper(partial(apply_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=False))
+    conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
+    assert conflicts == 0
