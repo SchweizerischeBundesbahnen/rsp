@@ -46,7 +46,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             return "circle"
 
     plot_binned_box_plot(
-        experiment_data=experiment_data,
+        experiment_data=experiment_data_filtered,
         axis_of_interest="infra_id_schedule_id",
         title_text="Additional changed agents per schedule",
         cols=[ColumnSpec(prefix="additional_changed_agents", scope=speed_up_series) for speed_up_series in speed_up_scopes_visualization],
@@ -58,7 +58,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
     )
 
     plot_binned_box_plot(
-        experiment_data=experiment_data,
+        experiment_data=experiment_data_filtered,
         axis_of_interest="infra_id_schedule_id",
         cols=[ColumnSpec(prefix="additional_costs", scope=speed_up_series) for speed_up_series in speed_up_scopes_visualization],
         output_folder=output_folder,
@@ -70,7 +70,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
     )
 
     plot_binned_box_plot(
-        experiment_data=experiment_data,
+        experiment_data=experiment_data_filtered,
         axis_of_interest="infra_id_schedule_id",
         cols=[ColumnSpec(prefix="additional_lateness", scope=speed_up_series) for speed_up_series in speed_up_scopes_visualization],
         title_text="Additional (unweighted) lateness per schedule",
@@ -82,7 +82,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
     )
 
     plot_binned_box_plot(
-        experiment_data=experiment_data,
+        experiment_data=experiment_data_filtered,
         axis_of_interest="infra_id_schedule_id",
         cols=[ColumnSpec(prefix="additional_costs_from_route_section_penalties", scope=speed_up_series) for speed_up_series in speed_up_scopes_visualization],
         title_text="Additional weighted costs from route section penalties per schedule",
@@ -94,7 +94,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
     )
 
     plot_binned_box_plot(
-        experiment_data=experiment_data,
+        experiment_data=experiment_data_filtered,
         axis_of_interest="experiment_id",
         axis_of_interest_dimension="",
         output_folder=output_folder,
@@ -113,7 +113,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
 
     for speed_up_scope in rescheduling_scopes_visualization:
         plot_binned_box_plot(
-            experiment_data=experiment_data,
+            experiment_data=experiment_data_filtered,
             axis_of_interest="experiment_id",
             cols=[
                 ColumnSpec(prefix=prefix, scope=speed_up_scope, dimension="s")
@@ -131,7 +131,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             ("speed_up_non_solve_time", "Speed-up solver time non-processing (grounding etc.)"),
         ]:
             plot_binned_box_plot(
-                experiment_data=experiment_data,
+                experiment_data=experiment_data_filtered,
                 axis_of_interest="solver_statistics_times_total_online_unrestricted",
                 axis_of_interest_dimension="s",
                 output_folder=output_folder,
@@ -145,7 +145,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             )
 
         plot_binned_box_plot(
-            experiment_data=experiment_data,
+            experiment_data=experiment_data_filtered,
             axis_of_interest="experiment_id",
             cols=[ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted")],
             output_folder=output_folder,
@@ -153,9 +153,21 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             file_name="times_total_per_experiment_id.pdf",
             marker_color=marker_color_scope,
             one_field_many_scopes=True,
+            binned=False,
         )
+
         plot_binned_box_plot(
-            experiment_data=experiment_data,
+            experiment_data=experiment_data_filtered,
+            axis_of_interest="solver_statistics_times_total_online_unrestricted",
+            cols=[ColumnSpec(prefix="experiment_id")],
+            output_folder=output_folder,
+            title_text="Computational times bin histogram",
+            file_name="times_total_histogram.pdf",
+            show_bin_counts=True,
+        )
+
+        plot_binned_box_plot(
+            experiment_data=experiment_data_filtered,
             axis_of_interest="solver_statistics_times_total_online_unrestricted",
             cols=[
                 ColumnSpec(prefix="solver_statistics_times_total", scope=scope, dimension="s")
@@ -167,7 +179,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             marker_color=marker_color_scope,
         )
         plot_binned_box_plot(
-            experiment_data=experiment_data,
+            experiment_data=experiment_data_filtered,
             axis_of_interest="solver_statistics_times_total_online_unrestricted",
             cols=[
                 ColumnSpec(prefix="solver_statistics_times_total", scope=scope, dimension="s")
