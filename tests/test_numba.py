@@ -118,24 +118,29 @@ def main():
         paths = paths[:number_of_shortest_paths_per_agent_schedule]
         remaining_vertices = {vertex for path in paths for vertex in path}
         topo.remove_nodes_from(set(topo.nodes).difference(remaining_vertices))
+
     # collect resources
     resources = set()
     for _, topo in topo_dict.items():
         for v in topo.nodes:
             wp: Waypoint = v
             resources.add(wp.position)
+
     # make coordinate -> index mapping (used resources only)
     # index -> resource
     resource_index_to_position: Dict[int, Waypoint] = dict(enumerate(resources))
     position_to_resource_index: Dict[Waypoint, int] = {resource: index for index, resource in resource_index_to_position.items()}
     number_agents = len(topo_dict)
     number_resources = len(resources)
+
     #
     env = create_env_from_experiment_parameters(infra_parameters)
     max_episode_steps = env._max_episode_steps
+
     # empty resource-time-expansion
     # TODO can we make this more compact, 1 bit per timestep?
     occupations = np.zeros(shape=(number_resources, max_episode_steps), dtype=np.bool)
+
     # for each agent, make bit pattern if they started at zero
     unshifted_bit_pattern = np.zeros(shape=(number_agents, number_resources, 2), dtype=np.int64)
     for agent_id, shortest_path in shortest_path_per_agent.items():
@@ -145,6 +150,7 @@ def main():
             to_t_excl = (index + 1) * mrt + GLOBAL_CONSTANTS.RELEASE_TIME
             resource = position_to_resource_index[wp.position]
             unshifted_bit_pattern[agent_id][resource] = (from_t_incl, to_t_excl)
+
     # warm up jit: TODO make this better
     timeit_ipython_magic_wrapper(partial(check_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0))
     conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
