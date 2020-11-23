@@ -5,7 +5,7 @@ from typing import Dict
 import numpy as np
 from IPython.core.magics.execution import Timer, TimeitResult
 from flatland.envs.rail_trainrun_data_structures import Waypoint
-from numba import vectorize, prange, jit
+from numba import vectorize, prange, njit
 
 from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
 from rsp.step_03_run.experiments import load_infrastructure, create_env_from_experiment_parameters
@@ -84,19 +84,17 @@ def timeit_ipython_magic_wrapper(f,
         return timeit_result
 
 
-@jit(nopython=True, parallel=True)
+@njit(parallel=True)
 def check_agent_at(occupations, unshifted_bit_pattern, agent_id: int, start_time: int):
     conflicts = 0
     for resource_index in prange(occupations.shape[0]):
         from_t_incl, to_t_excl = unshifted_bit_pattern[agent_id][resource_index]
         for t in prange(from_t_incl + start_time, to_t_excl + start_time):
-            conflict = occupations[resource_index][t]
-            if conflict:
-                conflicts += 1
+            conflicts += occupations[resource_index][t]
     return conflicts
 
 
-@jit(nopython=True, parallel=True)
+@njit(parallel=True)
 def apply_agent_at(occupations, unshifted_bit_pattern, agent_id: int, start_time: int, flag: bool):
     conflicts = 0
     for resource_index in prange(occupations.shape[0]):
@@ -105,12 +103,11 @@ def apply_agent_at(occupations, unshifted_bit_pattern, agent_id: int, start_time
             occupations[resource_index][t] = flag
 
 
-if __name__ == '__main__':
+def main():
     infra, infra_parameters = load_infrastructure(
         base_directory="../rsp-data/PUBLICATION_DATA",
         infra_id=0
     )
-
     # take shortest path for each agent
     topo_dict = infra.topo_dict
     number_of_shortest_paths_per_agent_schedule = 1
@@ -121,30 +118,24 @@ if __name__ == '__main__':
         paths = paths[:number_of_shortest_paths_per_agent_schedule]
         remaining_vertices = {vertex for path in paths for vertex in path}
         topo.remove_nodes_from(set(topo.nodes).difference(remaining_vertices))
-
     # collect resources
     resources = set()
     for _, topo in topo_dict.items():
         for v in topo.nodes:
             wp: Waypoint = v
             resources.add(wp.position)
-
     # make coordinate -> index mapping (used resources only)
     # index -> resource
     resource_index_to_position: Dict[int, Waypoint] = dict(enumerate(resources))
     position_to_resource_index: Dict[Waypoint, int] = {resource: index for index, resource in resource_index_to_position.items()}
-
     number_agents = len(topo_dict)
     number_resources = len(resources)
-
     #
     env = create_env_from_experiment_parameters(infra_parameters)
     max_episode_steps = env._max_episode_steps
-
     # empty resource-time-expansion
     # TODO can we make this more compact, 1 bit per timestep?
     occupations = np.zeros(shape=(number_resources, max_episode_steps), dtype=np.bool)
-
     # for each agent, make bit pattern if they started at zero
     unshifted_bit_pattern = np.zeros(shape=(number_agents, number_resources, 2), dtype=np.int64)
     for agent_id, shortest_path in shortest_path_per_agent.items():
@@ -154,10 +145,8 @@ if __name__ == '__main__':
             to_t_excl = (index + 1) * mrt + GLOBAL_CONSTANTS.RELEASE_TIME
             resource = position_to_resource_index[wp.position]
             unshifted_bit_pattern[agent_id][resource] = (from_t_incl, to_t_excl)
-
     # warm up jit: TODO make this better
     timeit_ipython_magic_wrapper(partial(check_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0))
-
     conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
     assert conflicts == 0
     apply_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=True)
@@ -168,3 +157,7 @@ if __name__ == '__main__':
     timeit_ipython_magic_wrapper(partial(apply_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=False))
     conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
     assert conflicts == 0
+
+
+if __name__ == '__main__':
+    main()
