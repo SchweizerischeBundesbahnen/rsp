@@ -18,16 +18,16 @@ from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 
 INFRA_PARAMETERS_RANGE = InfrastructureParametersRange(
-    number_of_agents=[64, 64, 1],
-    width=[60, 60, 1],
-    height=[60, 60, 1],
-    flatland_seed_value=[10, 10, 1],
-    max_num_cities=[4, 16, 12],
-    max_rail_in_city=[3, 3, 1],
-    max_rail_between_cities=[1, 1, 1],
+    number_of_agents=[50, 100, 4],
+    width=[100, 100, 1],
+    height=[100, 100, 1],
+    flatland_seed_value=[190, 190, 1],
+    max_num_cities=[8, 15, 3],
+    max_rail_in_city=[2, 3, 2],
+    max_rail_between_cities=[1, 2, 2],
     number_of_shortest_paths_per_agent=[10, 10, 1],
 )
-SCHEDULE_PARAMETERS_RANGE = ScheduleParametersRange(asp_seed_value=[1, 104, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
+SCHEDULE_PARAMETERS_RANGE = ScheduleParametersRange(asp_seed_value=[814, 814, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
 RESCHEDULE_PARAMETERS_RANGE = ReScheduleParametersRange(
     earliest_malfunction=[30, 30, 1],
     malfunction_duration=[50, 50, 1],
@@ -182,7 +182,7 @@ def generate_potassco_infras_and_schedules(
 
 
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
-    return experiment.malfunction.agent_id <= 20
+    return experiment.re_schedule_parameters.malfunction_agent_id < 100
 
 
 def hypothesis_one_experiments_potassco(
@@ -207,7 +207,7 @@ def hypothesis_one_experiments_potassco(
         experiment_output_base_directory=experiment_output_base_directory,
         experiment_filter=experiment_filter,
         parallel_compute=parallel_compute,
-        csv_only=False,
+        csv_only=True,
     )
 
 
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         infra_parameters_range=INFRA_PARAMETERS_RANGE,
         schedule_parameters_range=SCHEDULE_PARAMETERS_RANGE,
         reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,
-        base_directory="DENSITY_VARIATION_EXPERIMENTS_FIXED",
-        experiment_output_base_directory="DENSITY_VARIATION_EXPERIMENTS_FIXED/DENSITY_VARIATION_EXPERIMENTS_FIXED_baseline_2020_11_05T09_58_04",
+        base_directory="PUBLICATION_DATA",
+        experiment_output_base_directory=None,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
     )
