@@ -23,7 +23,7 @@ class ASPSolutionDescription:
 
     # TODO SIM-517 harmonize with verify trainruns?
     @staticmethod  # noqa: C901
-    def verify_correctness_helper(schedule_problem_description: ScheduleProblemDescription, answer_set: Set[str]):
+    def verify_correctness_helper(schedule_problem_description: ScheduleProblemDescription, answer_set: Set[str]):  # noqa: C901
         """Verify that solution is consistent."""
 
         trainrun_dict = {}
