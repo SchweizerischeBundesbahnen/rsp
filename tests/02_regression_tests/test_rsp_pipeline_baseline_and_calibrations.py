@@ -11,6 +11,7 @@ from rsp.step_04_analysis.compute_time_analysis.compute_time_analysis import hyp
 from rsp.step_04_analysis.plot_utils import ColumnSpec
 
 
+# TODO reduce size
 def test_rsp_pipeline_baseline_and_calibrations():
     experiment_name = "test_calibrations"
     base_directory = "target/" + create_experiment_folder_name(experiment_name)

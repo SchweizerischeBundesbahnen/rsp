@@ -179,10 +179,11 @@ the experiment agenda will also get a new timestamped subfolder here; if you unc
 appropriately.
 
 ### Use case 1b: only use baseline solver settings
-Comment out calls to `list_from_base_directory_and_run_experiment_agenda` you don't need.
+Comment out calls to `rsp_pipeline` you don't need in `rsp_pipeline_baseline_and_calibrations`.
 
 ### Use case 2a: you've aborted scheduling and want to run experiments on the schedules you already have
-Comment out `generate_infras_and_schedules(...)` in `main`. The agenda will only contain experiments for the existing schedules.
+Comment out `generate_infras_and_schedules(...)` in `rsp_pipeline`.
+The agenda will only contain experiments for the existing schedules.
 
 ### Use case 2b: you've aborted experiments and want to run a certain subset of experiments into the same data folder
 Configure `BASELINE_DATA_FOLDER` in `src/python/rsp/utils/global_data_configuration.py` to point to the location you want to have your experiments in;
@@ -193,25 +194,44 @@ this will be a subfolder of your base directory for data. In order to apply a fi
 
     if __name__ == "__main__":
         ...
-        run_agenda(
+        rsp_pipeline_baseline_and_calibrations(
             ...
             experiment_filter=experiment_filter_first_ten_of_each_schedule,
             ...
         )
-    experiment_filter=experiment_filter_first_ten_of_each_schedule
 
 ### Use case 2c: you want to generate more schedules after you've already run experiments
-You will need to tweak:
+In this case, an agenda has already been put to file that needs to be extended. You will need to tweak:
 * Define an appropriate filter (see `experiment_filter_first_ten_of_each_schedule`) for the missing experiments (they will have larger experiment ids than so far)
 * Run scheduling with the same `INFRAS_AND_SCHEDULES_FOLDER` as before; this will add the missing schedules incrementally;
 * Use a new `BASELINE_DATA_FOLDER` for running the experiments. Be sure you use the same parameters as before.
 * Copy the older experiments to the new location.
+
+
+### Use case 3: you have generated data with `csv_only=True` and want to generate the full data for some experiments
+
+Define a filter and re-run the agenda from the output directory with `csv_only=False`:
+
+        def filter_experiment_agenda(params: ExperimentParameters):
+            return params.experiment_id == 0
+
+        run_experiment_agenda(
+            experiment_base_directory="../rsp-data/my-agenda",
+            experiment_output_directory=../rsp-data/my-agenda/my-run,
+            csv_only=False,
+            filter_experiment_agenda=filter_experiment_agenda,
+        )
+
+The agenda will be read from the `experiment_output_directory`.
+
+For a full example, see `test_rerun_single_experiment_after_csv_only()`.
 
 ## Coding Guidelines
 See [CODING.md](CODING.md).
 
 ## Disclaimer
 ### Authors:
-- Adrian Egli
 - Christian Eichenberger
 - Erik Nygren
+- Adrian Egli
+- Christian Baumberger

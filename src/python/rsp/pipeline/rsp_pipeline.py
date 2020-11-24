@@ -14,8 +14,6 @@ from rsp.step_03_run.experiments import run_experiment_agenda
 from rsp.step_03_run.experiments import save_experiment_agenda_and_hash_to_file
 from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
-from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 from rsp.utils.json_file_dumper import dump_object_as_human_readable_json
 
 
@@ -54,8 +52,8 @@ def rsp_pipeline(
     schedule_parameters_range: ScheduleParametersRange,
     reschedule_parameters_range: ReScheduleParametersRange,
     experiment_name: str,
-    experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER,
-    experiment_output_directory=BASELINE_DATA_FOLDER,
+    experiment_base_directory=None,
+    experiment_output_directory=None,
     experiment_filter=None,
     speed_data=None,
     grid_mode: bool = False,
@@ -106,4 +104,4 @@ def rsp_pipeline(
         hypothesis_one_data_analysis(
             experiment_output_directory=experiment_output_directory, analysis_2d=True, qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
         )
-    return experiment_output_directory
+    return experiment_output_directory, experiment_agenda

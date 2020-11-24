@@ -3,6 +3,7 @@ from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentPara
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
+from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 INFRA_PARAMETERS_RANGE = InfrastructureParametersRange(
     number_of_agents=[50, 100, 4],
@@ -38,7 +39,8 @@ if __name__ == "__main__":
         infra_parameters_range=INFRA_PARAMETERS_RANGE,
         schedule_parameters_range=SCHEDULE_PARAMETERS_RANGE,
         reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,
-        base_directory="PUBLICATION_DATA",
+        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        # create new folder, add BASELINE_DATA_FOLDER for incremental
         experiment_output_base_directory=None,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         grid_mode=False,

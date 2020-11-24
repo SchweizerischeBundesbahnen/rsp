@@ -29,7 +29,7 @@ def test_rsp_pipeline():
 
     Check that loading gives the same result.
     """
-    experiment_name = "test_hypothesis_one_pipeline_all_in_one"
+    experiment_name = "test_rsp_pipeline"
     experiment_base_directory = "target/" + create_experiment_folder_name(experiment_name)
     try:
         experiment_folder_name, experiment_agenda = rsp_pipeline(
@@ -68,7 +68,7 @@ def test_rsp_pipeline():
         loaded_results, _ = load_and_expand_experiment_results_from_data_folder(experiment_data_folder_name=experiment_data_folder)
 
         # since we do not return the results in memory from run_experiment_agenda (SIM-393), do some sanity checks:
-        assert len(loaded_results) == 1, len(loaded_results)
+        assert len(loaded_results) == 2, len(loaded_results)
         loaded_result: ExperimentResultsAnalysis = loaded_results[0]
         assert loaded_result.results_online_unrestricted.solver_statistics is not None
 
@@ -87,7 +87,7 @@ def test_rsp_pipeline():
         )
 
         loaded_df = load_data_from_individual_csv_in_data_folder(experiment_data_folder_name=experiment_data_folder)
-        assert len(loaded_df) == 1, len(loaded_df)
+        assert len(loaded_df) == 2, len(loaded_df)
 
         assert load_experiments_results(experiment_data_folder_name=experiment_data_folder, experiment_id=0) is not None, None
     finally:

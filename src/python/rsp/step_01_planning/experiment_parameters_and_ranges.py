@@ -6,44 +6,6 @@ from rsp.utils.global_constants import GlobalConstants
 
 SpeedData = Mapping[float, float]
 
-# @deprecated(reason="You should use hiearchy level ranges.")
-ParameterRanges = NamedTuple(
-    "ParameterRanges",
-    [
-        # infrastructure and agent placement
-        # 0: size_range
-        ("size_range", List[int]),
-        # 1: agent_range
-        ("agent_range", List[int]),
-        # 2: in_city_rail_range
-        ("in_city_rail_range", List[int]),
-        # 3: out_city_rail_range
-        ("out_city_rail_range", List[int]),
-        # 4: city_range
-        ("city_range", List[int]),
-        # malfunction
-        # 5: earliest_malfunction
-        ("earliest_malfunction", List[int]),
-        # 6: malfunction_duration
-        ("malfunction_duration", List[int]),
-        # rescheduling
-        # 7: number_of_shortest_paths_per_agent
-        ("number_of_shortest_paths_per_agent", List[int]),
-        # 8: max_window_size_from_earliest
-        ("max_window_size_from_earliest", List[int]),
-        # 9: asp_seed_value
-        ("asp_seed_value", List[int]),
-        # 10: weight_route_change
-        ("weight_route_change", List[int]),
-        # 11: weight_lateness_seconds
-        ("weight_lateness_seconds", List[int]),
-    ],
-)
-
-# TODO remove deprecated ParameterRangesAndSpeedData
-# @deprecated(reason="You should use hiearchy level ranges.") # deprecated decorator only applies to functions, therefore comment out
-ParameterRangesAndSpeedData = NamedTuple("ParameterRangesAndSpeedData", [("parameter_ranges", ParameterRanges), ("speed_data", SpeedData)])
-
 InfrastructureParameters = NamedTuple(
     "InfrastructureParameters",
     [
@@ -62,7 +24,7 @@ InfrastructureParameters = NamedTuple(
 )
 
 InfrastructureParametersRange = NamedTuple(
-    "InfrastructureParameters",
+    "InfrastructureParametersRange",
     [
         ("width", List[int]),
         ("height", List[int]),

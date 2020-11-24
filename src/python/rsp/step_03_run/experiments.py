@@ -270,6 +270,7 @@ def run_experiment_in_memory(
         number_of_shortest_paths=experiment_parameters.re_schedule_parameters.number_of_shortest_paths_per_agent,
     )
 
+    # TODO SIM-774 streamline 5 stages according to overleaf; introduce planning stage; split experiments.py!!!
     # --------------------------------------------------------------------------------------
     # B.1. Re-schedule Full
     # --------------------------------------------------------------------------------------
@@ -790,7 +791,7 @@ def run_experiment_from_to_file(
 
         return os.getpid()
     except Exception as e:
-        rsp_logger.error(f"XXX failed {experiment_parameters.experiment_id} {experiment_data_directory} " + str(e))
+        rsp_logger.error(f"XXX failed experiment_id={experiment_parameters.experiment_id} in {experiment_data_directory} with error message: " + str(e))
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:
@@ -829,8 +830,8 @@ def load_and_filter_experiment_results_analysis(
 
 
 def run_experiment_agenda(
-    experiment_agenda: ExperimentAgenda,
     experiment_base_directory: str,
+    experiment_agenda: ExperimentAgenda = None,
     experiment_output_directory: str = None,
     filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
     # take only half of avilable cpus so the machine stays responsive
@@ -876,11 +877,14 @@ def run_experiment_agenda(
 
         experiment_agenda_from_file = load_experiment_agenda_from_file(experiment_folder_name=experiment_output_directory)
 
-        assert experiment_agenda_from_file == experiment_agenda
+        if experiment_agenda is not None:
+            assert experiment_agenda_from_file == experiment_agenda
+        experiment_agenda = experiment_agenda_from_file
     elif experiment_agenda is not None:
         save_experiment_agenda_and_hash_to_file(output_base_folder=experiment_output_directory, experiment_agenda=experiment_agenda)
     else:
         raise Exception("Either experiment_agenda or experiment_output_directory with experiment_agenda.pkl must be passed.")
+    assert experiment_agenda is not None
 
     check_create_folder(experiment_data_directory)
 
@@ -939,6 +943,7 @@ def run_experiment_agenda(
         rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
+
         run_and_save_one_experiment_partial = partial(
             run_experiment_from_to_file,
             experiment_base_directory=experiment_base_directory,

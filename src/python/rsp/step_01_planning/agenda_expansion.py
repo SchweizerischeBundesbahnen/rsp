@@ -3,13 +3,11 @@ from typing import List
 from typing import Tuple
 
 import numpy as np
-from deprecated import deprecated
 from rsp.scheduling.schedule import Schedule
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
-from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
@@ -17,7 +15,6 @@ from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParame
 from rsp.step_01_planning.experiment_parameters_and_ranges import SpeedData
 from rsp.utils.global_constants import get_defaults
 from rsp.utils.global_constants import GlobalConstants
-from rsp.utils.rsp_logger import rsp_logger
 
 
 def span_n_grid(collected_parameters: List, open_dimensions: List) -> list:
@@ -127,95 +124,3 @@ def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
     return ExperimentAgenda(
         experiment_name=experiment_name, global_constants=get_defaults() if global_constants is None else global_constants, experiments=experiments
     )
-
-
-# TODO remove deprecated ParameterRangesAndSpeedData
-@deprecated(reason="You should use hiearchy level ranges.")
-def create_experiment_agenda_from_parameter_ranges_and_speed_data(
-    experiment_name: str,
-    parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-    flatland_seed: int = 12,
-    experiments_per_grid_element: int = 1,
-    debug: bool = False,
-) -> ExperimentAgenda:
-    """Create an experiment agenda given a range of parameters defined as
-    ParameterRanges.
-    Parameters
-    ----------
-
-    parameter_ranges_and_speed_data
-    flatland_seed
-    experiment_name: str
-        Name of the experiment
-    experiments_per_grid_element: int
-        Number of runs with different seed per parameter set we want to run
-    debug
-
-    Returns
-    -------
-    ExperimentAgenda built from the ParameterRanges
-    """
-    parameter_ranges = parameter_ranges_and_speed_data.parameter_ranges
-    number_of_dimensions = len(parameter_ranges)
-    parameter_values = [[] for _ in range(number_of_dimensions)]
-
-    # Setup experiment parameters
-    for dim_idx, dimensions in enumerate(parameter_ranges):
-        if dimensions[-1] > 1:
-            parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1], np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
-        else:
-            parameter_values[dim_idx] = [dimensions[0]]
-    full_param_set = span_n_grid([], parameter_values)
-    experiment_list = []
-    for grid_id, parameter_set in enumerate(full_param_set):
-        for run_of_this_grid_element in range(experiments_per_grid_element):
-            experiment_id = grid_id * experiments_per_grid_element + run_of_this_grid_element
-            # 0: size_range
-            # 1: agent_range
-            # 2: in_city_rail_range
-            # 3: out_city_rail_range
-            # 4: city_range
-            # 5: earliest_malfunction
-            # 6: malfunction_duration
-            # 7: number_of_shortest_paths_per_agent
-            # 8: max_window_size_from_earliest
-            # 9: asp_seed_value
-            # 10: weight_route_change
-            # 11: weight_lateness_seconds
-            current_experiment = ExperimentParameters(
-                experiment_id=experiment_id,
-                grid_id=grid_id,
-                infra_id_schedule_id=grid_id,
-                infra_parameters=InfrastructureParameters(
-                    infra_id=grid_id,
-                    speed_data=parameter_ranges_and_speed_data.speed_data,
-                    width=parameter_set[0],
-                    height=parameter_set[0],
-                    flatland_seed_value=flatland_seed + run_of_this_grid_element,
-                    max_num_cities=parameter_set[4],
-                    # Do we need to have this true?
-                    grid_mode=False,
-                    max_rail_between_cities=parameter_set[3],
-                    max_rail_in_city=parameter_set[2],
-                    number_of_agents=parameter_set[1],
-                    number_of_shortest_paths_per_agent=parameter_set[7],
-                ),
-                schedule_parameters=ScheduleParameters(
-                    infra_id=grid_id, schedule_id=grid_id, asp_seed_value=parameter_set[9], number_of_shortest_paths_per_agent_schedule=1
-                ),
-                re_schedule_parameters=ReScheduleParameters(
-                    earliest_malfunction=parameter_set[5],
-                    malfunction_duration=parameter_set[6],
-                    malfunction_agent_id=0,
-                    weight_route_change=parameter_set[10],
-                    weight_lateness_seconds=parameter_set[11],
-                    max_window_size_from_earliest=parameter_set[8],
-                    number_of_shortest_paths_per_agent=10,
-                    asp_seed_value=94,
-                ),
-            )
-
-            experiment_list.append(current_experiment)
-    experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, global_constants=get_defaults(), experiments=experiment_list)
-    rsp_logger.info("Generated an agenda with {} experiments".format(len(experiment_list)))
-    return experiment_agenda

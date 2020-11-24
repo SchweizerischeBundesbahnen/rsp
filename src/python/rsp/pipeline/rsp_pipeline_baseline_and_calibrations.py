@@ -28,7 +28,7 @@ def rsp_pipeline_baseline_and_calibrations(
 ):
     experiment_name_prefix = os.path.basename(base_directory) + "_"
     # baseline with defaults
-    experiment_output_base_directory = rsp_pipeline(
+    experiment_output_base_directory, _ = rsp_pipeline(
         infra_parameters_range=infra_parameters_range,
         schedule_parameters_range=schedule_parameters_range,
         experiment_base_directory=base_directory,
