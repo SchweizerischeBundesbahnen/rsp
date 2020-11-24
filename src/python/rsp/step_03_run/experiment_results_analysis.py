@@ -1,3 +1,10 @@
+"""`ExperimentResultsAnalysis` contains data structures for analysis,
+with/without raw `ExperimentResults`.
+
+Data structure should be mostly be flat (fields should be numbers) and
+only some agent dicts that are often re-used.
+"""
+# TODO cleaner data structures without optionals?
 import warnings
 from typing import Dict
 from typing import List
@@ -319,26 +326,6 @@ online_random_average_fields = [
 ExperimentResultsAnalysis = NamedTuple(
     "ExperimentResultsAnalysis",
     [
-        ("experiment_parameters", ExperimentParameters),
-        ("malfunction", ExperimentMalfunction),
-        ("problem_schedule", ScheduleProblemDescription),
-        ("problem_online_unrestricted", ScheduleProblemDescription),
-        ("problem_offline_fully_restricted", ScheduleProblemDescription),
-        ("problem_offline_delta", ScheduleProblemDescription),
-        ("problem_offline_delta_weak", ScheduleProblemDescription),
-        ("problem_online_route_restricted", ScheduleProblemDescription),
-        ("problem_online_transmission_chains_fully_restricted", ScheduleProblemDescription),
-        ("problem_online_transmission_chains_route_restricted", ScheduleProblemDescription),
-        ("results_schedule", SchedulingExperimentResult),
-        ("results_online_unrestricted", SchedulingExperimentResult),
-        ("results_offline_fully_restricted", SchedulingExperimentResult),
-        ("results_offline_delta", SchedulingExperimentResult),
-        ("results_offline_delta_weak", SchedulingExperimentResult),
-        ("results_online_route_restricted", SchedulingExperimentResult),
-        ("results_online_transmission_chains_fully_restricted", SchedulingExperimentResult),
-        ("results_online_transmission_chains_route_restricted", SchedulingExperimentResult),
-        ("predicted_changed_agents_online_transmission_chains_fully_restricted", Set[int]),
-        ("predicted_changed_agents_online_transmission_chains_route_restricted", Set[int]),
         ("experiment_id", int),
         ("grid_id", int),
         ("infra_id", int),
@@ -359,9 +346,6 @@ ExperimentResultsAnalysis = NamedTuple(
         ("rescheduling_horizon", int),
         ("factor_resource_conflicts", int),
     ]
-    + [(f"problem_online_random_{i}", ScheduleProblemDescription) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
-    + [(f"results_online_random_{i}", SchedulingExperimentResult) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
-    + [(f"predicted_changed_agents_online_random_{i}", Set[int]) for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_all_scopes_fields.items() for scope in all_scopes]
     + [(f"{prefix}_{scope}", type_) for prefix, (type_, _) in experiment_results_analysis_rescheduling_scopes_fields.items() for scope in rescheduling_scopes]
     + [(f"{prefix}_{scope}", float) for prefix in speedup_scopes_ratio_fields for scope in speed_up_scopes]
@@ -373,7 +357,6 @@ ExperimentResultsAnalysis = NamedTuple(
 
 def plausibility_check_experiment_results_analysis(experiment_results_analysis: ExperimentResultsAnalysis):
     experiment_id = experiment_results_analysis.experiment_id
-    plausibility_check_experiment_results(experiment_results=experiment_results_analysis)
 
     # sanity check costs
     for scope in rescheduling_scopes:
@@ -391,7 +374,7 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
         except AssertionError as e:
             rsp_logger.warn(str(e))
         assert costs >= experiment_results_analysis.costs_online_unrestricted
-        assert costs >= experiment_results_analysis.malfunction.malfunction_duration
+        assert costs >= experiment_results_analysis.malfunction_duration
 
     for scope in ["offline_fully_restricted", "offline_delta"]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
@@ -401,16 +384,17 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
     ]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
 
-    assert experiment_results_analysis.costs_online_unrestricted >= experiment_results_analysis.malfunction.malfunction_duration, (
+    assert experiment_results_analysis.costs_online_unrestricted >= experiment_results_analysis.malfunction_duration, (
         f"costs_online_unrestricted {experiment_results_analysis.costs_online_unrestricted} should be greater than malfunction duration, "
-        f"{experiment_results_analysis.malfunction} {experiment_results_analysis.experiment_parameters}"
+        f"{experiment_results_analysis.malfunction_duration} {experiment_results_analysis}"
     )
 
 
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
-    experiment_data = pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
-    temporary_backwards_compatibility_scope(experiment_data)
-    return experiment_data
+    df = pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
+    temporary_backwards_compatibility_scope(df)
+    df = df.select_dtypes(exclude=["object"])
+    return df
 
 
 def filter_experiment_results_analysis_data_frame(
@@ -427,20 +411,13 @@ def filter_experiment_results_analysis_data_frame(
     ]
 
 
-def expand_experiment_results_for_analysis(  # noqa: C901
-    experiment_results: ExperimentResults, nonify_all_structured_fields: bool = False
-) -> ExperimentResultsAnalysis:
+def expand_experiment_results_for_analysis(experiment_results: ExperimentResults) -> ExperimentResultsAnalysis:  # noqa: C901
     """
 
     Parameters
     ----------
     experiment_results:
         experiment_results to expand into to experiment_results_analysis
-        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
-    nonify_all_structured_fields: bool
-        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
-        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
-
     Returns
     -------
 
@@ -489,8 +466,8 @@ def expand_experiment_results_for_analysis(  # noqa: C901
             ),
         }
 
-    # retain all fields from experiment results!
-    d = experiment_results._asdict()
+    # retain no fields from experiment results!
+    d = dict()
 
     # extract predicted numbers
     d.update(
@@ -505,20 +482,8 @@ def expand_experiment_results_for_analysis(  # noqa: C901
 
     # extract other fields by configuration
     d.update(
-        **{
-            f"{prefix}_{scope}": results_extractor(experiment_results._asdict()[f"results_{scope}"], experiment_results._asdict()[f"problem_{scope}"])
-            for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
-            for scope in all_scopes
-        },
-        **{
-            f"{prefix}_{scope}": results_extractor(
-                results_schedule=experiment_results._asdict()[f"results_schedule"],
-                results_reschedule=experiment_results._asdict()[f"results_{scope}"],
-                problem_reschedule=experiment_results._asdict()[f"problem_{scope}"],
-            )
-            for prefix, (_, results_extractor) in experiment_results_analysis_rescheduling_scopes_fields.items()
-            for scope in rescheduling_scopes
-        },
+        **extract_all_scopes_fields(experiment_results=experiment_results, all_scopes=all_scopes),
+        **extract_rescheduling_scopes_fields(experiment_results=experiment_results, rescheduling_scopes=rescheduling_scopes),
     )
     for ratio_field, from_field in speedup_scopes_ratio_fields.items():
         for speed_up_scope in speed_up_scopes:
@@ -528,7 +493,7 @@ def expand_experiment_results_for_analysis(  # noqa: C901
                 if d[f"{from_field}_online_unrestricted"] == d[f"{from_field}_{speed_up_scope}"]:
                     d[f"{ratio_field}_{speed_up_scope}"] = 1.0
                 else:
-                    d[f"{ratio_field}_{speed_up_scope}"] = None
+                    d[f"{ratio_field}_{speed_up_scope}"] = np.inf
     for additional_field in speedup_scopes_additional_fields:
         for speed_up_scope in speed_up_scopes:
             d[f"additional_{additional_field}_{speed_up_scope}"] = d[f"{additional_field}_{speed_up_scope}"] - d[f"{additional_field}_online_unrestricted"]
@@ -542,53 +507,97 @@ def expand_experiment_results_for_analysis(  # noqa: C901
         },
     )
 
-    def _to_experiment_results_analysis():
-        return ExperimentResultsAnalysis(
-            experiment_id=experiment_parameters.experiment_id,
-            grid_id=experiment_parameters.grid_id,
-            size=experiment_parameters.infra_parameters.width,
-            n_agents=experiment_parameters.infra_parameters.number_of_agents,
-            n_agents_running=len(
-                [
-                    agent_id
-                    for agent_id, schedule_trainrun in experiment_results.results_schedule.trainruns_dict.items()
-                    if schedule_trainrun[-1].scheduled_at >= experiment_results.malfunction.time_step
-                ]
-            ),
-            rescheduling_horizon=experiment_results.problem_online_unrestricted.max_episode_steps
-            + experiment_results.malfunction.malfunction_duration
-            - experiment_results.malfunction.time_step,
-            max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
-            max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
-            max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
-            infra_id=experiment_parameters.infra_parameters.infra_id,
-            schedule_id=experiment_parameters.schedule_parameters.schedule_id,
-            infra_id_schedule_id=experiment_parameters.infra_id_schedule_id,
-            earliest_malfunction=experiment_parameters.re_schedule_parameters.earliest_malfunction,
-            malfunction_duration=experiment_parameters.re_schedule_parameters.malfunction_duration,
-            malfunction_agent_id=experiment_parameters.re_schedule_parameters.malfunction_agent_id,
-            weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
-            weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
-            max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+    # plausibility check with fields not nonified
+    plausibility_check_experiment_results(experiment_results=experiment_results)
+    plausibility_check_experiment_results_analysis(
+        experiment_results_analysis=_to_experiment_results_analysis(
+            d=d,
+            experiment_parameters=experiment_results.experiment_parameters,
+            problem_online_unrestricted=experiment_results.problem_online_unrestricted,
+            malfunction=experiment_results.malfunction,
+            results_schedule=experiment_results.results_schedule,
             factor_resource_conflicts=factor_resource_conflicts,
-            **d,
         )
+    )
 
-    plausibility_check_experiment_results_analysis(experiment_results_analysis=_to_experiment_results_analysis())
+    return _to_experiment_results_analysis(
+        d=d,
+        experiment_parameters=experiment_results.experiment_parameters,
+        problem_online_unrestricted=experiment_results.problem_online_unrestricted,
+        malfunction=experiment_results.malfunction,
+        results_schedule=experiment_results.results_schedule,
+        factor_resource_conflicts=factor_resource_conflicts,
+    )
 
-    # nonify all non-float fields
-    if nonify_all_structured_fields:
-        d.update({f"problem_{scope}": None for scope in all_scopes})
-        d.update({f"results_{scope}": None for scope in all_scopes})
-        d.update({f"solution_{scope}": None for scope in all_scopes})
-        d.update({f"lateness_per_agent_{scope}": None for scope in rescheduling_scopes})
-        d.update({f"costs_from_route_section_penalties_per_agent_{scope}": None for scope in rescheduling_scopes})
-        d.update({f"vertex_lateness_{scope}": None for scope in rescheduling_scopes})
-        d.update({f"costs_from_route_section_penalties_per_agent_and_edge_{scope}": None for scope in rescheduling_scopes})
-        d.update({"experiment_parameters": None, "malfunction": None, "predicted_changed_agents_online_transmission_chains_fully_restricted": None})
-        d.update({f"predicted_changed_agents_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)})
 
-    return _to_experiment_results_analysis()
+def extract_rescheduling_scopes_fields(experiment_results: ExperimentResults, rescheduling_scopes: List[str]):
+    return {
+        f"{prefix}_{scope}": results_extractor(
+            results_schedule=experiment_results._asdict()[f"results_schedule"],
+            results_reschedule=experiment_results._asdict()[f"results_{scope}"],
+            problem_reschedule=experiment_results._asdict()[f"problem_{scope}"],
+        )
+        for prefix, (_, results_extractor) in experiment_results_analysis_rescheduling_scopes_fields.items()
+        for scope in rescheduling_scopes
+    }
+
+
+def extract_all_scopes_fields(experiment_results: ExperimentResults, all_scopes: List[str]):
+    return {
+        f"{prefix}_{scope}": results_extractor(experiment_results._asdict()[f"results_{scope}"], experiment_results._asdict()[f"problem_{scope}"])
+        for prefix, (_, results_extractor) in experiment_results_analysis_all_scopes_fields.items()
+        for scope in all_scopes
+    }
+
+
+def _to_experiment_results_analysis(
+    d: dict,
+    experiment_parameters: ExperimentParameters,
+    results_schedule: ExperimentResults,
+    malfunction: ExperimentMalfunction,
+    problem_online_unrestricted: ScheduleProblemDescription,
+    factor_resource_conflicts: int,
+):
+    return ExperimentResultsAnalysis(
+        **extract_base_fields(
+            experiment_parameters=experiment_parameters,
+            results_schedule=results_schedule,
+            malfunction=malfunction,
+            problem_online_unrestricted=problem_online_unrestricted,
+        ),
+        **d,
+        factor_resource_conflicts=factor_resource_conflicts,
+    )
+
+
+def extract_base_fields(
+    experiment_parameters: ExperimentParameters,
+    results_schedule: ExperimentResults,
+    malfunction: ExperimentMalfunction,
+    problem_online_unrestricted: ScheduleProblemDescription,
+):
+    return dict(
+        experiment_id=experiment_parameters.experiment_id,
+        grid_id=experiment_parameters.grid_id,
+        size=experiment_parameters.infra_parameters.width,
+        n_agents=experiment_parameters.infra_parameters.number_of_agents,
+        n_agents_running=len(
+            [agent_id for agent_id, schedule_trainrun in results_schedule.trainruns_dict.items() if schedule_trainrun[-1].scheduled_at >= malfunction.time_step]
+        ),
+        rescheduling_horizon=problem_online_unrestricted.max_episode_steps + malfunction.malfunction_duration - malfunction.time_step,
+        max_num_cities=experiment_parameters.infra_parameters.max_num_cities,
+        max_rail_between_cities=experiment_parameters.infra_parameters.max_rail_between_cities,
+        max_rail_in_city=experiment_parameters.infra_parameters.max_rail_in_city,
+        infra_id=experiment_parameters.infra_parameters.infra_id,
+        schedule_id=experiment_parameters.schedule_parameters.schedule_id,
+        infra_id_schedule_id=experiment_parameters.infra_id_schedule_id,
+        earliest_malfunction=experiment_parameters.re_schedule_parameters.earliest_malfunction,
+        malfunction_duration=experiment_parameters.re_schedule_parameters.malfunction_duration,
+        malfunction_agent_id=experiment_parameters.re_schedule_parameters.malfunction_agent_id,
+        weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
+        weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
+        max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
+    )
 
 
 # TODO SIM-750 temporary code

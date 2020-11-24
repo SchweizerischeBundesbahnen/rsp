@@ -41,6 +41,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -73,11 +74,15 @@ from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_02_setup.data_types import Infrastructure
 from rsp.step_02_setup.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
 from rsp.step_03_run.experiment_results import ExperimentResults
+from rsp.step_03_run.experiment_results import plausibility_check_experiment_results
 from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_03_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import plausibility_check_experiment_results_analysis
 from rsp.step_03_run.experiment_results_analysis import temporary_backwards_compatibility_scope
+from rsp.step_03_run.experiment_results_analysis_online_unrestricted import convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame
+from rsp.step_03_run.experiment_results_analysis_online_unrestricted import expand_experiment_results_online_unrestricted
+from rsp.step_03_run.experiment_results_analysis_online_unrestricted import ExperimentResultsAnalysisOnlineUnrestricted
 from rsp.step_03_run.scopers.scoper_offline_delta import scoper_offline_delta_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_delta_weak import scoper_offline_delta_weak_for_all_agents
 from rsp.step_03_run.scopers.scoper_offline_fully_restricted import scoper_offline_fully_restricted_for_all_agents
@@ -93,6 +98,7 @@ from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
 from rsp.utils.global_constants import get_defaults
 from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.global_constants import GlobalConstants
+from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 from rsp.utils.psutil_helpers import current_process_stats_human_readable
 from rsp.utils.psutil_helpers import virtual_memory_human_readable
 from rsp.utils.rename_unpickler import RenameUnpickler
@@ -224,6 +230,7 @@ def run_experiment_in_memory(
     infrastructure_topo_dict: TopoDict,
     # TODO we should use logging debug levels instead
     debug: bool = False,
+    online_unrestricted_only: bool = False,
 ) -> ExperimentResults:
     """A.2 + B Runs the main part of the experiment: re-scheduling full and
     delta perfect/naive.
@@ -293,6 +300,33 @@ def run_experiment_in_memory(
 
     costs_ = results_online_unrestricted.solver_statistics["summary"]["costs"][0]
     rsp_logger.info(f" full re-schedule has costs {costs_}")
+
+    if online_unrestricted_only:
+        return ExperimentResults(
+            experiment_parameters=experiment_parameters,
+            malfunction=experiment_malfunction,
+            problem_schedule=schedule_problem,
+            problem_online_unrestricted=problem_online_unrestricted,
+            problem_offline_delta=None,
+            problem_offline_delta_weak=None,
+            problem_offline_fully_restricted=None,
+            problem_online_route_restricted=None,
+            problem_online_transmission_chains_fully_restricted=None,
+            problem_online_transmission_chains_route_restricted=None,
+            results_schedule=schedule_result,
+            results_online_unrestricted=results_online_unrestricted,
+            results_offline_delta=None,
+            results_offline_delta_weak=None,
+            results_offline_fully_restricted=None,
+            results_online_route_restricted=None,
+            results_online_transmission_chains_fully_restricted=None,
+            results_online_transmission_chains_route_restricted=None,
+            predicted_changed_agents_online_transmission_chains_fully_restricted=None,
+            predicted_changed_agents_online_transmission_chains_route_restricted=None,
+            **{f"problem_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)},
+            **{f"results_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)},
+            **{f"predicted_changed_agents_online_random_{i}": None for i in range(GLOBAL_CONSTANTS.NB_RANDOM)},
+        )
 
     # --------------------------------------------------------------------------------------
     # B.2.a Lower bound: Re-Schedule Delta Perfect
@@ -541,7 +575,7 @@ def _make_restricted_topo(infrastructure_topo_dict: TopoDict, number_of_shortest
 
 
 def _render_route_dags_from_data(experiment_base_directory: str, experiment_id: int):
-    results_before: ExperimentResultsAnalysis = load_and_expand_experiment_results_from_data_folder(
+    results_before, _ = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=experiment_base_directory + "/data", experiment_ids=[experiment_id]
     )[0]
     problem_online_unrestricted: ScheduleProblemDescription = results_before.problem_online_unrestricted
@@ -654,6 +688,7 @@ def run_experiment_from_to_file(
     global_constants: GlobalConstants,
     csv_only: bool = False,
     debug: bool = False,
+    online_unrestricted_only: bool = False,
 ):
     """A.2 + B. Run and save one experiment from experiment parameters.
     Parameters
@@ -709,7 +744,11 @@ def run_experiment_from_to_file(
 
         # B2: full and delta perfect re-scheduling
         experiment_results: ExperimentResults = run_experiment_in_memory(
-            schedule=schedule, experiment_parameters=experiment_parameters, infrastructure_topo_dict=infrastructure.topo_dict, debug=debug
+            schedule=schedule,
+            experiment_parameters=experiment_parameters,
+            infrastructure_topo_dict=infrastructure.topo_dict,
+            debug=debug,
+            online_unrestricted_only=online_unrestricted_only,
         )
 
         if experiment_results is None:
@@ -718,31 +757,38 @@ def run_experiment_from_to_file(
 
         elapsed_time = time.time() - start_time
         end_datetime_str = datetime.datetime.now().strftime("%H:%M:%S")
-        s = ("Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta perfect:  {} / ").format(
-            experiment_parameters.experiment_id,
-            elapsed_time,
-            start_datetime_str,
-            end_datetime_str,
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_schedule.solver_statistics),
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_online_unrestricted.solver_statistics),
-            _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_offline_delta.solver_statistics),
-        )
-        solver_time_schedule = experiment_results.results_schedule.solver_statistics["summary"]["times"]["total"]
-        solver_statistics_times_total_online_unrestricted = experiment_results.results_online_unrestricted.solver_statistics["summary"]["times"]["total"]
-        solver_time_offline_delta = experiment_results.results_offline_delta.solver_statistics["summary"]["times"]["total"]
-        elapsed_overhead_time = elapsed_time - solver_time_schedule - solver_statistics_times_total_online_unrestricted - solver_time_offline_delta
-        s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(elapsed_overhead_time, elapsed_overhead_time / elapsed_time * 100, threading.get_ident())
-        rsp_logger.info(s)
+        if not online_unrestricted_only:
+            s = ("Running experiment {}: took {:5.3f}s ({}--{}) (sched:  {} / re-sched full:  {} / re-sched delta perfect:  {} / ").format(
+                experiment_parameters.experiment_id,
+                elapsed_time,
+                start_datetime_str,
+                end_datetime_str,
+                _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_schedule.solver_statistics),
+                _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_online_unrestricted.solver_statistics),
+                _get_asp_solver_details_from_statistics(elapsed_time=elapsed_time, statistics=experiment_results.results_offline_delta.solver_statistics),
+            )
+            solver_time_schedule = experiment_results.results_schedule.solver_statistics["summary"]["times"]["total"]
+            solver_statistics_times_total_online_unrestricted = experiment_results.results_online_unrestricted.solver_statistics["summary"]["times"]["total"]
+            solver_time_offline_delta = experiment_results.results_offline_delta.solver_statistics["summary"]["times"]["total"]
+            elapsed_overhead_time = elapsed_time - solver_time_schedule - solver_statistics_times_total_online_unrestricted - solver_time_offline_delta
+            s += "remaining: {:5.3f}s = {:5.2f}%)  in thread {}".format(
+                elapsed_overhead_time, elapsed_overhead_time / elapsed_time * 100, threading.get_ident()
+            )
+            rsp_logger.info(s)
 
         rsp_logger.info(virtual_memory_human_readable())
         rsp_logger.info(current_process_stats_human_readable())
 
         # fail fast!
-        plausibility_check_experiment_results_analysis(
-            experiment_results_analysis=expand_experiment_results_for_analysis(experiment_results=experiment_results)
-        )
+        if not online_unrestricted_only:
+            plausibility_check_experiment_results(experiment_results=experiment_results)
+            plausibility_check_experiment_results_analysis(
+                experiment_results_analysis=expand_experiment_results_for_analysis(experiment_results=experiment_results)
+            )
         filename = create_experiment_filename(experiment_data_directory, experiment_parameters.experiment_id)
-        save_experiment_results_to_file(experiment_results=experiment_results, file_name=filename, csv_only=csv_only)
+        save_experiment_results_to_file(
+            experiment_results=experiment_results, file_name=filename, csv_only=csv_only, online_unrestricted_only=online_unrestricted_only
+        )
 
         return os.getpid()
     except Exception as e:
@@ -755,6 +801,35 @@ def run_experiment_from_to_file(
         rsp_logger.info(f"end experiment {experiment_parameters.experiment_id}")
 
 
+def load_and_filter_experiment_results_analysis(
+    experiment_base_directory: str = BASELINE_DATA_FOLDER,
+    experiments_of_interest: List[int] = None,
+    from_cache: bool = False,
+    from_individual_csv: bool = True,
+    local_filter_experiment_results_analysis_data_frame: Callable[[DataFrame], DataFrame] = None,
+) -> DataFrame:
+    if from_cache:
+        experiment_data_filtered = pd.read_csv(f"{experiment_base_directory}.csv")
+    else:
+        if from_individual_csv:
+            experiment_data: pd.DataFrame = load_data_from_individual_csv_in_data_folder(
+                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=experiments_of_interest
+            )
+        else:
+            _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
+                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=experiments_of_interest,
+            )
+            experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_analysis_list)
+
+        if local_filter_experiment_results_analysis_data_frame is not None:
+            experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
+            print(f"removed {len(experiment_data) - len(experiment_data_filtered)}/{len(experiment_data)} rows")
+        else:
+            experiment_data_filtered = experiment_data
+        experiment_data_filtered.to_csv(f"{experiment_base_directory}.csv")
+    return experiment_data_filtered
+
+
 def run_experiment_agenda(
     experiment_agenda: ExperimentAgenda,
     experiment_base_directory: str,
@@ -763,6 +838,7 @@ def run_experiment_agenda(
     # take only half of avilable cpus so the machine stays responsive
     run_experiments_parallel: int = AVAILABLE_CPUS // 2,
     csv_only: bool = False,
+    online_unrestricted_only: bool = False,
 ) -> str:
     """Run A.2 + B.
     Parameters
@@ -826,6 +902,7 @@ def run_experiment_agenda(
             experiment_output_directory=experiment_output_directory,
             csv_only=csv_only,
             global_constants=experiment_agenda.global_constants,
+            online_unrestricted_only=online_unrestricted_only,
         )
 
         for pid_done in tqdm.tqdm(
@@ -1113,6 +1190,10 @@ def expand_infrastructure_parameter_range_and_generate_infrastructure(
     for infra_parameters in list_of_infra_parameters:
         if exists_infrastructure(base_directory=base_directory, infra_id=infra_parameters.infra_id):
             rsp_logger.info(f"skipping gen infrastructure for [{infra_parameters.infra_id}] {infra_parameters} -> infrastructure already exists")
+            _, infra_parameters_from_file = load_infrastructure(base_directory=base_directory, infra_id=infra_parameters.infra_id)
+            assert (
+                infra_parameters == infra_parameters_from_file
+            ), f"infra parameters not the same for  [{infra_parameters.infra_id}]: expected {infra_parameters}, found {infra_parameters_from_file} in file"
             continue
         infra = gen_infrastructure(infra_parameters=infra_parameters)
         save_infrastructure(infrastructure=infra, infrastructure_parameters=infra_parameters, base_directory=base_directory)
@@ -1138,9 +1219,15 @@ def expand_schedule_parameter_range_and_get_those_not_existing_yet(
     for schedule_parameters in list_of_schedule_parameters:
         if exists_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_parameters.schedule_id):
             rsp_logger.info(
-                f"skipping gen schedule for [infra {infra_id}/schedule{schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
+                f"skipping gen schedule for [infra {infra_id}/schedule {schedule_parameters.schedule_id}] {infra_parameters} {schedule_parameters} "
                 f"-> schedule already exists"
             )
+            _, schedule_parameters_from_file = load_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_parameters.schedule_id)
+            assert schedule_parameters_from_file == schedule_parameters, (
+                f"schedule parameters [infra {infra_id}/schedule {schedule_parameters.schedule_id}] not the same: "
+                f"expected  {schedule_parameters}, found {schedule_parameters_from_file} in file"
+            )
+
             continue
         list_of_schedule_parameters_to_generate.append(schedule_parameters)
     return list_of_schedule_parameters_to_generate
@@ -1287,7 +1374,7 @@ def create_experiment_filename(experiment_data_folder_name: str, experiment_id: 
     return os.path.join(experiment_data_folder_name, filename)
 
 
-def save_experiment_results_to_file(experiment_results: ExperimentResults, file_name: str, csv_only: bool = False):
+def save_experiment_results_to_file(experiment_results: ExperimentResults, file_name: str, csv_only: bool = False, online_unrestricted_only: bool = False):
     """Save the data frame with all the result from an experiment into a given
     file.
     Parameters
@@ -1303,10 +1390,12 @@ def save_experiment_results_to_file(experiment_results: ExperimentResults, file_
     """
     if not csv_only:
         _pickle_dump(obj=experiment_results, file_name=file_name)
-
-    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
-        [expand_experiment_results_for_analysis(experiment_results, nonify_all_structured_fields=True)]
-    )
+    if online_unrestricted_only:
+        experiment_data = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(
+            [expand_experiment_results_online_unrestricted(experiment_results)]
+        )
+    else:
+        experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame([expand_experiment_results_for_analysis(experiment_results)])
     experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
 
 
@@ -1329,8 +1418,8 @@ def load_experiments_results(experiment_data_folder_name: str, experiment_id: in
 
 
 def load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name: str, experiment_ids: List[int] = None, nonify_all_structured_fields: bool = False, re_save_csv_after_expansion: bool = False
-) -> List[ExperimentResultsAnalysis]:
+    experiment_data_folder_name: str, experiment_ids: List[int] = None, re_save_csv_after_expansion: bool = False, online_unrestricted_only: bool = False,
+) -> Tuple[List[ExperimentResults], List[Union[ExperimentResultsAnalysis, ExperimentResultsAnalysisOnlineUnrestricted]]]:
     """Load results as DataFrame to do further analysis.
     Parameters
     ----------
@@ -1338,14 +1427,12 @@ def load_and_expand_experiment_results_from_data_folder(
         Folder name of experiment where all experiment files are stored
     experiment_ids
         List of experiment ids which should be loaded, if None all experiments in experiment_folder are loaded
-    nonify_all_structured_fields
-        in order to save space, set results_* and problem_* fields to None. This may cause not all code to work any more.
-        TODO SIM-418 cleanup of this workaround: what would be a good compromise between typing and memory usage?
     Returns
     -------
     DataFrame containing the loaded experiment results
     """
 
+    experiment_results_list_analysis = []
     experiment_results_list = []
 
     files = os.listdir(experiment_data_folder_name)
@@ -1363,13 +1450,20 @@ def load_and_expand_experiment_results_from_data_folder(
             continue
         try:
             file_data: ExperimentResults = _pickle_load(file_name=file_name)
-            results_for_analysis = expand_experiment_results_for_analysis(file_data, nonify_all_structured_fields=nonify_all_structured_fields)
-            experiment_results_list.append(results_for_analysis)
-            if re_save_csv_after_expansion:
-                experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(
-                    [expand_experiment_results_for_analysis(results_for_analysis, nonify_all_structured_fields=True)]
-                )
-                experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
+            experiment_results_list.append(file_data)
+            if online_unrestricted_only:
+                results_for_analysis = expand_experiment_results_online_unrestricted(file_data)
+                experiment_results_list_analysis.append(results_for_analysis)
+                if re_save_csv_after_expansion:
+                    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame([results_for_analysis])
+                    experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
+            else:
+                results_for_analysis = expand_experiment_results_for_analysis(file_data)
+                experiment_results_list_analysis.append(results_for_analysis)
+                if re_save_csv_after_expansion:
+                    # ensure it is nonified
+                    experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame([results_for_analysis])
+                    experiment_data.to_csv(file_name.replace(".pkl", ".csv"))
         except Exception as e:
             rsp_logger.warn(f"skipping {file} because of {e}")
 
@@ -1377,10 +1471,45 @@ def load_and_expand_experiment_results_from_data_folder(
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> done loading and expanding experiment results from {experiment_data_folder_name} done")
 
-    return experiment_results_list
+    return experiment_results_list, experiment_results_list_analysis
 
 
-def load_data_from_individual_csv_in_data_folder(experiment_data_folder_name: str, experiment_ids: List[int] = None,) -> DataFrame:
+def load_and_filter_experiment_results_analysis_online_unrestricted(
+    experiment_base_directory: str = BASELINE_DATA_FOLDER,
+    experiments_of_interest: List[int] = None,
+    from_cache: bool = False,
+    from_individual_csv: bool = True,
+    local_filter_experiment_results_analysis_data_frame: Callable[[DataFrame], DataFrame] = None,
+) -> DataFrame:
+    if from_cache:
+        experiment_data_filtered = pd.read_csv(f"{experiment_base_directory}.csv")
+    else:
+        if from_individual_csv:
+            experiment_data: pd.DataFrame = load_data_from_individual_csv_in_data_folder(
+                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
+                experiment_ids=experiments_of_interest,
+                online_unrestricted_only=True,
+            )
+        else:
+            _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
+                experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
+                experiment_ids=experiments_of_interest,
+                online_unrestricted_only=True,
+            )
+            experiment_data: pd.DataFrame = convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame(experiment_results_analysis_list)
+
+        if local_filter_experiment_results_analysis_data_frame is not None:
+            experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
+            print(f"removed {len(experiment_data) - len(experiment_data_filtered)}/{len(experiment_data)} rows")
+        else:
+            experiment_data_filtered = experiment_data
+        experiment_data_filtered.to_csv(f"{experiment_base_directory}.csv")
+    return experiment_data_filtered
+
+
+def load_data_from_individual_csv_in_data_folder(
+    experiment_data_folder_name: str, experiment_ids: List[int] = None, online_unrestricted_only: bool = False
+) -> DataFrame:
     """Load results as DataFrame to do further analysis.
     Parameters
     ----------
@@ -1419,7 +1548,8 @@ def load_data_from_individual_csv_in_data_folder(experiment_data_folder_name: st
 
     experiment_data = pd.concat(list_of_frames)
 
-    temporary_backwards_compatibility_scope(experiment_data)
+    if not online_unrestricted_only:
+        temporary_backwards_compatibility_scope(experiment_data)
     return experiment_data
 
 

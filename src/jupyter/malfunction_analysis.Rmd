@@ -43,7 +43,7 @@ BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 2064
+experiment_of_interest = 1
 agent_of_interest = 0
 ```
 
@@ -52,12 +52,13 @@ Extract data and aggregate plotting data
 ```{python}
 experiment_data_directory = f'{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
 
-exp_results_of_experiment_of_interest = load_and_expand_experiment_results_from_data_folder(
+experiment_results_list, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
     experiment_data_folder_name=experiment_data_directory,
     experiment_ids=[experiment_of_interest],
-    nonify_all_structured_fields=False
-)[0]
-agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.malfunction_agent_id
+)
+exp_results_of_experiment_of_interest: ExperimentResults = experiment_results_list[0]
+exp_results_analysis_of_experiment_of_interest = experiment_results_analysis_list[0]
+agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.malfunction_agent_id
 
 ```
 
@@ -127,7 +128,7 @@ Spatially the influence of the malfunction would have spread according to the fo
 plot_delay_propagation_2d(plotting_information=plotting_information,
                           malfunction=exp_results_of_experiment_of_interest.malfunction,
                           schedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
-                          delay_information=exp_results_of_experiment_of_interest.lateness_per_agent_offline_delta,
+                          delay_information=exp_results_analysis_of_experiment_of_interest.lateness_per_agent_offline_delta,
                           depth_dict=minimal_depth)
 ```
 
@@ -148,7 +149,7 @@ The spatial spread of the malfunction can be seen below. The arrows indicate dir
 plot_delay_propagation_2d(plotting_information=plotting_information,
                           malfunction=exp_results_of_experiment_of_interest.malfunction,
                           schedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
-                          delay_information=exp_results_of_experiment_of_interest.lateness_per_agent_offline_delta,
+                          delay_information=exp_results_analysis_of_experiment_of_interest.lateness_per_agent_offline_delta,
                           depth_dict=minimal_depth,
                           changed_agents=changed_agents_dict)
 ```
@@ -156,7 +157,7 @@ plot_delay_propagation_2d(plotting_information=plotting_information,
 Figure below shows the histogram of the delay times, giving us a great overview of how strongly trains where affected by the malfunciton
 
 ```{python}
-plot_histogram_from_delay_data(experiment_results=exp_results_of_experiment_of_interest)
+plot_histogram_from_delay_data(experiment_results_analysis=exp_results_analysis_of_experiment_of_interest)
 ```
 
 The below figure shows the propagation of the malfunction within the schedule, when there are no actions taken. The progation is projected to show the influence from an agent to the next agent.

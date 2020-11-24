@@ -22,12 +22,10 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
         )
 
     else:
-        experiment_results_list = load_and_expand_experiment_results_from_data_folder(
-            experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}",
-            experiment_ids=experiments_of_interest,
-            nonify_all_structured_fields=True,
+        _, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
+            experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=experiments_of_interest,
         )
-        experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list)
+        experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_analysis_list)
     local_filter_experiment_results_analysis_data_frame = partial(
         filter_experiment_results_analysis_data_frame, min_time_online_unrestricted=20, max_time_online_unrestricted=200, max_time_online_unrestricted_q=1.0
     )

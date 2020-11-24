@@ -132,6 +132,7 @@ def list_from_base_directory_and_run_experiment_agenda(
     experiment_filter=None,
     csv_only: bool = False,
     global_constants: GlobalConstants = None,
+    online_unrestricted_only: bool = False,
 ):
     """
 
@@ -220,5 +221,6 @@ def list_from_base_directory_and_run_experiment_agenda(
         experiment_output_directory=experiment_output_directory,
         experiment_base_directory=experiment_base_directory,
         csv_only=csv_only,
+        online_unrestricted_only=online_unrestricted_only,
     )
     return experiment_agenda, experiment_output_directory

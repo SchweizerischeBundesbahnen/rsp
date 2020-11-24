@@ -21,153 +21,118 @@ jupyter:
 import sys
 sys.path.append("../../src/python")
 sys.path.append("../../src/asp")
-
 import pandas as pd
 from IPython.display import Video
 
-from rsp.utils.data_types import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.utils.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.utils.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.step_04_analysis.compute_time_analysis import plot_box_plot
-from rsp.step_04_analysis.compute_time_analysis import plot_histogram_from_delay_data
-from rsp.step_04_analysis.compute_time_analysis import plot_speed_up
-from rsp.step_04_analysis.compute_time_analysis import render_flatland_env
-from rsp.step_04_analysis.compute_time_analysis import plot_route_dag
-from rsp.schedule_problem_description.data_types_and_utils import ScheduleProblemEnum
-```
+from rsp.step_03_run.experiments import *
+from rsp.step_03_run.experiment_results_analysis import *
+from rsp.step_03_run.experiment_results_analysis_online_unrestricted import *
+from rsp.step_04_analysis.plot_utils import *
+from rsp.step_04_analysis.compute_time_analysis.compute_time_analysis import *
+from rsp.step_04_analysis.compute_time_analysis.asp_plausi import *
+from rsp.utils.global_data_configuration import *
+BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 
-```{python}
+
+from IPython.core.display import display, HTML
+display(HTML("<style>.container { width:80% !important; }</style>"))
+
+
+# pkl -> individual csv -> cache
+reprocess_from_pkl=False
+from_individual_csv = True
+from_cache = False
+
 experiments_of_interest = None
-agenda_name_baseline = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_baseline_2020_07_15T17_14_34'
+baseline_data_folder = BASELINE_DATA_FOLDER
+```
 
-experiment_base_directory_baseline = f'../rsp-data/{agenda_name_baseline}'
+```{python}
+if reprocess_from_pkl:
+    suffixes = ["with_SEQ", "with_delay_model_resolution_2", "with_delay_model_resolution_5", "with_delay_model_resolution_10", "without_propagate_partial"]
+    for suffix in suffixes:
+        load_and_expand_experiment_results_from_data_folder(
+            experiment_data_folder_name=baseline_data_folder.replace("baseline", suffix)+ "/data",
+            re_save_csv_after_expansion=True,
+            online_unrestricted_only=True
+        )
+```
 
+```{python}
 
-agenda_name_baseline = 'hypothesis_one_experiments_potassco_2020_08_24T21_04_42_baseline_2020_08_25T09_43_46'
-experiment_base_directory_baseline = f'./h1_2020_08_24T21_04_42/{agenda_name_baseline}'
-
-
-experiment_data_directory_baseline = f'{experiment_base_directory_baseline}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-
-experiment_results_list_baseline = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_baseline,
-    nonify_all_structured_fields=True
+# Filter data depending on full rescheduling time (>=20s and <= 200s)
+local_filter_experiment_results_analysis_data_frame = partial(
+    filter_experiment_results_analysis_data_frame,
+    min_time_online_unrestricted=0,
+    max_time_online_unrestricted=200,
+    max_time_online_unrestricted_q=1.0
 )
-experiment_data_baseline: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_baseline)
-experiment_results_list = experiment_results_list_baseline
-```
 
-```{python}
-import pandas as pd
-experiment_data = pd.DataFrame(
-    [exp._asdict() for exp in experiment_results_list],
-    columns=['experiment_id','malfunction','size', 'size_used_online_unrestricted',
-            'n_agents', 'max_num_cities', 'max_rail_between_cities',
-            'max_rail_in_city', 'time_schedule', 'time_online_unrestricted',
-            'time_offline_delta',
-            'speed_up_lower_bound',
-            'nb_resource_conflicts_schedule',
-            'nb_resource_conflicts_online_unrestricted',
-            'nb_resource_conflicts_offline_delta',
-            'costs_schedule',
-            'solve_total_ratio_schedule',
-            'solve_time_schedule',
-            'choice_conflict_ratio_schedule',
-            'choices_schedule',
-            'conflicts_schedule',
-            'user_accu_propagations_schedule',
-            'user_step_propagations_schedule',
-            'costs_online_unrestricted',
-            'solve_total_ratio_online_unrestricted',
-            'solve_time_online_unrestricted',
-            'choice_conflict_ratio_online_unrestricted',
-            'choices_online_unrestricted',
-            'conflicts_online_unrestricted',
-            'user_accu_propagations_online_unrestricted',
-            'user_step_propagations_online_unrestricted',
-            'costs_offline_delta',
-            'solve_total_ratio_offline_delta',
-            'solve_time_offline_delta',
-            'choice_conflict_ratio_offline_delta',
-            'choices_offline_delta',
-            'conflicts_offline_delta',
-            'user_accu_propagations_offline_delta',
-            'user_step_propagations_offline_delta'])
+experiment_data_baseline = load_and_filter_experiment_results_analysis(
+    experiments_of_interest = experiments_of_interest,
+    experiment_base_directory = baseline_data_folder,
+    local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame,
+    from_individual_csv=from_individual_csv,
+    from_cache=from_cache
+)
 
-display(experiment_data)
-```
+experiment_data_comparison_seq = load_and_filter_experiment_results_analysis_online_unrestricted(
+    experiments_of_interest = experiments_of_interest,
+    experiment_base_directory = baseline_data_folder.replace("baseline", "with_SEQ"),
+    local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame,
+    from_individual_csv=from_individual_csv,
+    from_cache=from_cache
+)
 
-```{python}
-axis_of_interest = 'n_agents'
-columns_of_interest = ['time_schedule','time_online_unrestricted','time_offline_delta']
+experiment_data_comparison_delay_2 = load_and_filter_experiment_results_analysis_online_unrestricted(
+    experiments_of_interest = experiments_of_interest,
+    experiment_base_directory = baseline_data_folder.replace("baseline", "with_delay_model_resolution_2"),
+    local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame,
+    from_individual_csv=from_individual_csv,
+    from_cache=from_cache
+)
+
+experiment_data_comparison_delay_5 = load_and_filter_experiment_results_analysis_online_unrestricted(
+    experiments_of_interest = experiments_of_interest,
+    experiment_base_directory = baseline_data_folder.replace("baseline", "with_delay_model_resolution_5"),
+    local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame,
+    from_individual_csv=from_individual_csv,
+    from_cache=from_cache
+)
+
+experiment_data_comparison_delay_10 = load_and_filter_experiment_results_analysis_online_unrestricted(
+    experiments_of_interest = experiments_of_interest,
+    experiment_base_directory = baseline_data_folder.replace("baseline", "with_delay_model_resolution_10"),
+    local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame,
+    from_individual_csv=from_individual_csv,
+    from_cache=from_cache
+)
+
+experiment_data_comparison_without_propagate = load_and_filter_experiment_results_analysis_online_unrestricted(
+    experiments_of_interest = experiments_of_interest,
+    experiment_base_directory = baseline_data_folder.replace("baseline", "without_propagate_partial"),
+    local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame,
+    from_individual_csv=from_individual_csv,
+    from_cache=from_cache
+)
 ```
 
 # Visualize Compuational time comparison
 
-```{python}
-from rsp.step_04_analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-# display(experiment_data.dtypes)
-
-hypothesis_one_analysis_visualize_computational_time_comparison(experiment_data=experiment_data)
-
-
-
-# for exploration, use:
-# plot_box_plot(experiment_data=experiment_data,
-#                                   axis_of_interest=axis_of_interest,
-#                                   columns_of_interest=columns_of_interest)
-```
-
-# Visualize Speed Up factors for experiments
-
-
-### Discussion Speed-Up
-Why is speed-up in run time so low over the whole range of experiments when compared to problem reduction?
-Is it plausible to compare total times only? Should we compare solving and non-solving times as well? Should we compare times until first model as well? ...
-
-```{python}
-from rsp.step_04_analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_speed_up
-hypothesis_one_analysis_visualize_speed_up(experiment_data=experiment_data)
-
-# for exploration, use:
-# plot_speed_up(experiment_data=experiment_data,
-#                        axis_of_interest=axis_of_interest)
-```
-
-
-# Visualize ASP solver stats (TODO)
-
-```{python}
-from rsp.asp_plausibility.asp_plausi import visualize_hypotheses_asp
-visualize_hypotheses_asp(experiment_data=experiment_data)
-```
 
 # Visualize effect of SEQ heuristics (SIM-167)
 
-```{python}
-from rsp.step_04_analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_comparison_seq = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_SEQ_2020_07_16T01_13_12'
-experiment_base_directory_comparison_seq = f'../rsp-data/{agenda_name_comparison_seq}'
-experiment_data_directory_comparison_seq = f'{experiment_base_directory_comparison_seq}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-
-experiment_results_list_comparison_seq = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_comparison_seq,
-    nonify_all_structured_fields=True
-)
-experiment_data_comparison_seq: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_seq)
-
-
-```
 
 ### Discussion effect sequence heuristic
 The sequence heuristic seems not to have a consistent positive effect on run times. Do we understand why?
 
 ```{python}
 hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data_baseline=experiment_data_baseline,
-    experiment_data=experiment_data_comparison_seq,
-    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
-    experiment_data_suffix=f'_{agenda_name_comparison_seq}'
+    experiment_data=experiment_data_baseline,
+    experiment_data_comparison=experiment_data_comparison_seq,
+    experiment_data_suffix="_baseline",
+    experiment_data_comparison_suffix="_with_SEQ",
+    columns_of_interest = [ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted")]
 )
 ```
 
@@ -176,124 +141,63 @@ hypothesis_one_analysis_visualize_computational_time_comparison(
 
 ## delay resolution 1 -> 2
 
-```{python}
-from rsp.step_04_analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_comparison_delay_2 = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_delay_model_resolution_2_2020_07_16T06_37_21'
-experiment_base_directory_comparison_delay_2 = f'../rsp-data/{agenda_name_comparison_delay_2}'
-experiment_data_directory_comparison_delay_2 = f'{experiment_base_directory_comparison_delay_2}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-
-experiment_results_list_comparison_delay_2 = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_comparison_delay_2,
-    nonify_all_structured_fields=True
-)
-experiment_data_comparison_delay_2: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_2)
-
-
-```
 
 ### Discussion effect of delay model resolution 1->2
 Delay model resolution seems to have a considerable speed-up
 
 ```{python}
 hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data_baseline=experiment_data_baseline,
-    experiment_data=experiment_data_comparison_delay_2,
-    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
-    experiment_data_suffix=f'_{agenda_name_comparison_delay_2}'
+    experiment_data=experiment_data_baseline,
+    experiment_data_comparison=experiment_data_comparison_delay_2,
+    experiment_data_suffix="_baseline",
+    experiment_data_comparison_suffix="_with_delay_model_resolution_2",
+    columns_of_interest = [ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted")]
 )
 ```
 
 ## delay resolution 1 -> 5
 
-```{python}
-from rsp.step_04_analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_comparison_delay_5 = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_delay_model_resolution_5_2020_07_16T07_52_55'
-experiment_base_directory_comparison_delay_5 = f'../rsp-data/{agenda_name_comparison_delay_5}'
-experiment_data_directory_comparison_delay_5 = f'{experiment_base_directory_comparison_delay_5}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-
-experiment_results_list_comparison_delay_5 = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_comparison_delay_5,
-    nonify_all_structured_fields=True
-)
-experiment_data_comparison_delay_5: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_5)
-
-
-```
 
 ### Discussion effect of delay model resolution 1->5
 The effect is even positively stronger than with 2.
 
 ```{python}
 hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data_baseline=experiment_data_baseline,
-    experiment_data=experiment_data_comparison_delay_5,
-    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
-    experiment_data_suffix=f'_{agenda_name_comparison_delay_5}'
+    experiment_data=experiment_data_baseline,
+    experiment_data_comparison=experiment_data_comparison_delay_5,
+    experiment_data_suffix="_baseline",
+    experiment_data_comparison_suffix="_with_delay_model_resolution_5",
+    columns_of_interest = [ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted")]
 )
 ```
 
 ## delay resolution 1 -> 10
 
-```{python}
-from rsp.step_04_analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_comparison_delay_10 = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_with_delay_model_resolution_10_2020_07_16T08_33_50'
-experiment_base_directory_comparison_delay_10 = f'../rsp-data/{agenda_name_comparison_delay_10}'
-experiment_data_directory_comparison_delay_10 = f'{experiment_base_directory_comparison_delay_10}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-
-experiment_results_list_comparison_delay_10 = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_comparison_delay_10,
-    nonify_all_structured_fields=True
-)
-experiment_data_comparison_delay_10: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_delay_10)
-
-```
 
 ### Discussion effect of delay model resolution 1->10
 
 ```{python}
 hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data_baseline=experiment_data_baseline,
-    experiment_data=experiment_data_comparison_delay_10,
-    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
-    experiment_data_suffix=f'_{agenda_name_comparison_delay_10}'
+    experiment_data=experiment_data_baseline,
+    experiment_data_comparison=experiment_data_comparison_delay_10,
+    experiment_data_suffix="_baseline",
+    experiment_data_comparison_suffix="_with_delay_model_resolution_10",
+    columns_of_interest = [ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted")]
 )
 ```
 
 # Visualize effect of --propagate (SIM-543)
 
-```{python}
-from rsp.step_04_analysis.detailed_experiment_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
-agenda_name_comparison_without_propagate = '003_a_bit_more_advanced_schedules_only_2020_06_19T16_23_16_without_propagate_partial_2020_07_16T09_10_03'
-experiment_base_directory_comparison_without_propagate = f'../rsp-data/{agenda_name_comparison_without_propagate}'
-experiment_data_directory_comparison_without_propagate = f'{experiment_base_directory_comparison_without_propagate}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}'
-
-experiment_results_list_comparison_without_propagate = load_and_expand_experiment_results_from_data_folder(
-    experiment_data_folder_name=experiment_data_directory_comparison_without_propagate,
-    nonify_all_structured_fields=True
-)
-experiment_data_comparison_without_propagate: pd.DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_list_comparison_without_propagate)
-```
 
 ### Discussion without --propagate
 No consistent effect of disabling propagation.
 
 ```{python}
 hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data_baseline=experiment_data_baseline,
-    experiment_data=experiment_data_comparison_without_propagate,
-    experiment_data_baseline_suffix=f'_{agenda_name_baseline}',
-    experiment_data_suffix=f'_{agenda_name_comparison_without_propagate}'
+    experiment_data=experiment_data_baseline,
+    experiment_data_comparison=experiment_data_comparison_without_propagate,
+    experiment_data_suffix="_baseline",
+    experiment_data_comparison_suffix="_without_propagate_partial",
+    columns_of_interest = [ColumnSpec(prefix="solver_statistics_times_total", scope="online_unrestricted")]
 )
-```
-
-# Visualize effect of different time window sizes (TODO)
-
-```{python}
-
-```
-
-# Visualize effect of different ASP solver seeds (TODO)
-
-```{python}
-
 ```

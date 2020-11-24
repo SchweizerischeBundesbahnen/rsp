@@ -1,9 +1,7 @@
 import os
-from typing import List
 
 from rsp.hypothesis_one_pipeline_all_in_one import get_agenda_pipeline_params_001_simple_setting
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
-from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import delete_experiment_folder
@@ -28,7 +26,7 @@ def test_hypothesis_two():
             experiment_agenda=experiment_agenda, experiment_base_directory=experiment_base_directory, experiment_output_directory=experiment_folder_name
         )
 
-        experiment_results_list: List[ExperimentResultsAnalysis] = load_and_expand_experiment_results_from_data_folder(
+        experiment_results_list, _ = load_and_expand_experiment_results_from_data_folder(
             experiment_data_folder_name=os.path.join(experiment_output_directory, EXPERIMENT_DATA_SUBDIRECTORY_NAME), experiment_ids=[0]
         )
         experiment_result = experiment_results_list[0]

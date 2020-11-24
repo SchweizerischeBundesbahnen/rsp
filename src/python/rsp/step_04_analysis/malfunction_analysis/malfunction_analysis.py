@@ -1,13 +1,17 @@
+import os
 from typing import Dict
 from typing import Optional
 
 import numpy as np
 import plotly.graph_objects as go
 from rsp.step_02_setup.data_types import ExperimentMalfunction
+from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
+from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes
 from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import PlottingInformation
 from rsp.step_04_analysis.plot_utils import GREY_BACKGROUND_COLOR
 from rsp.step_04_analysis.plot_utils import PDF_HEIGHT
 from rsp.step_04_analysis.plot_utils import PDF_WIDTH
+from rsp.utils.file_utils import check_create_folder
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupationsAllScopes
 from rsp.utils.resource_occupation import SortedResourceOccupationsPerAgent
@@ -140,3 +144,62 @@ def print_situation_overview(malfunction: ExperimentMalfunction, resource_occupa
             malfunction.agent_id, malfunction.time_step, malfunction.malfunction_duration, nb_changed_agents, total_lateness
         )
     )
+
+
+def plot_histogram_from_delay_data(experiment_results_analysis: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+    """Plot a histogram of the delay of agents in the full and delta perfect
+    reschedule compared to the schedule."""
+
+    fig = go.Figure()
+    for scope in rescheduling_scopes:
+        fig.add_trace(go.Histogram(x=[v for v in experiment_results_analysis._asdict()[f"lateness_per_agent_{scope}"].values()], name=f"results_{scope}"))
+    fig.update_layout(barmode="group", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
+
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Delay distributions")
+    fig.update_xaxes(title="Delay [s]")
+
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f"delay_histogram.pdf")
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
+
+
+def plot_lateness(experiment_results_analysis: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+    """
+    Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
+    Parameters
+    ----------
+    experiment_data_frame
+    experiment_id
+
+    Returns
+    -------
+
+    """
+    fig = go.Figure()
+    for scope in rescheduling_scopes:
+        fig.add_trace(go.Bar(x=[f"costs_{scope}"], y=[experiment_results_analysis._asdict()[f"costs_{scope}"]], name=f"costs_{scope}"))
+        fig.add_trace(go.Bar(x=[f"lateness_{scope}"], y=[experiment_results_analysis._asdict()[f"lateness_{scope}"]], name=f"lateness_{scope}"))
+        fig.add_trace(
+            go.Bar(
+                x=[f"costs_from_route_section_penalties_{scope}"],
+                y=[experiment_results_analysis._asdict()[f"costs_from_route_section_penalties_{scope}"]],
+                name=f"costs_from_route_section_penalties_{scope}",
+            )
+        )
+    fig.update_layout(barmode="overlay", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Total delay and Solver objective")
+    fig.update_yaxes(title="discrete time steps [-] / weighted sum [-]")
+
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f"lateness.pdf")
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
