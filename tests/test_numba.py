@@ -142,6 +142,7 @@ def main():
     occupations = np.zeros(shape=(number_resources, max_episode_steps), dtype=np.bool)
 
     # for each agent, make bit pattern if they started at zero
+
     unshifted_bit_pattern = np.zeros(shape=(number_agents, number_resources, 2), dtype=np.int64)
     for agent_id, shortest_path in shortest_path_per_agent.items():
         mrt = infra.minimum_travel_time_dict[agent_id]
@@ -151,18 +152,69 @@ def main():
             resource = position_to_resource_index[wp.position]
             unshifted_bit_pattern[agent_id][resource] = (from_t_incl, to_t_excl)
 
-    # warm up jit: TODO make this better
-    timeit_ipython_magic_wrapper(partial(check_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0))
-    conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
-    assert conflicts == 0
-    apply_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=True)
-    timeit_ipython_magic_wrapper(partial(apply_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=True))
-    conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
-    assert conflicts > 0
-    apply_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=False)
-    timeit_ipython_magic_wrapper(partial(apply_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=False))
-    conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
-    assert conflicts == 0
+    if False:
+        # warm up jit: TODO make this better
+        timeit_ipython_magic_wrapper(partial(check_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0))
+        conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
+        assert conflicts == 0
+        apply_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=True)
+        timeit_ipython_magic_wrapper(partial(apply_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=True))
+        conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
+        assert conflicts > 0
+        apply_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=False)
+        timeit_ipython_magic_wrapper(partial(apply_agent_at, occupations, unshifted_bit_pattern, agent_id=0, start_time=0, flag=False))
+        conflicts = check_agent_at(occupations, unshifted_bit_pattern, agent_id=0, start_time=0)
+        assert conflicts == 0
+
+    # TODO sort agents descending by running time
+    # TODO put loop into numba and parallelize
+    # TODO take random increments instead (with exponentially decreasing probability)
+    # TODO take random backtrackings instead (with exponentially decreasing probability)
+    # TODO visualization of unshifted and shifted
+
+    print({
+        mrt * len(shortest_path_per_agent[agent_id]) for agent_id, mrt in infra.minimum_travel_time_dict.items()
+    })
+
+    elapsed_start_time = timeit.default_timer()
+    start_times = {}
+    agent_id = 0
+    outer_count = 0
+    inner_count = 0
+    while agent_id < number_agents:
+        outer_count += 1
+        if outer_count % 1000 == 0:
+            elapsed = timeit.default_timer()
+            print(
+                f"{agent_id}/{number_agents}@{start_times.get(agent_id, -1) + 1}/{max_episode_steps} after {elapsed - elapsed_start_time:10.3f}s = {(elapsed - elapsed_start_time) / outer_count:10.3f}s/it {(elapsed - elapsed_start_time)*1000 / inner_count:10.3f}ms/it ({outer_count} / {inner_count})")
+        mrt = infra.minimum_travel_time_dict[agent_id]
+        # backtracking?
+        if agent_id in start_times:
+            apply_agent_at(occupations=occupations, unshifted_bit_pattern=unshifted_bit_pattern, agent_id=agent_id, start_time=start_times[agent_id],
+                           flag=False)
+
+        found = False
+        # if not backtracking, start at 0
+        for start_time in range(start_times.get(agent_id, -1) + 1, max_episode_steps - mrt * len(shortest_path_per_agent[agent_id])):
+            inner_count += 1
+            if check_agent_at(occupations=occupations, unshifted_bit_pattern=unshifted_bit_pattern, agent_id=agent_id, start_time=start_time) == 0:
+                apply_agent_at(occupations=occupations, unshifted_bit_pattern=unshifted_bit_pattern, agent_id=agent_id, start_time=start_time, flag=True)
+                start_times[agent_id] = start_time
+                if agent_id < number_agents / 3:
+                    print(f"{agent_id}/{number_agents}@{start_times[agent_id]}/{max_episode_steps}")
+                agent_id += 1
+                found = True
+                break
+        if not found:
+            # remove trace before backtracing
+            if agent_id in start_times:
+                apply_agent_at(occupations=occupations, unshifted_bit_pattern=unshifted_bit_pattern, agent_id=agent_id, start_time=start_times[agent_id],
+                               flag=False)
+                del start_times[agent_id]
+            # backtracing
+            agent_id -= 1
+    print(f"elapsed {timeit.default_timer() - elapsed_start_time}")
+    print(start_times)
 
 
 if __name__ == '__main__':
