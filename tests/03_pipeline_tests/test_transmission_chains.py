@@ -1,10 +1,10 @@
 import os
 
 import numpy as np
+from rsp.step_01_planning.agenda_expansion import create_experiment_agenda_from_parameter_ranges_and_speed_data
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
 from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRanges
 from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
-from rsp.step_03_run.experiments import create_experiment_agenda_from_parameter_ranges_and_speed_data
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import delete_experiment_folder
 from rsp.step_03_run.experiments import EXPERIMENT_ANALYSIS_SUBDIRECTORY_NAME

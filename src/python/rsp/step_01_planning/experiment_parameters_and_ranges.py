@@ -40,7 +40,9 @@ ParameterRanges = NamedTuple(
         ("weight_lateness_seconds", List[int]),
     ],
 )
-# @deprecated(reason="You should use hiearchy level ranges.")
+
+# TODO remove deprecated ParameterRangesAndSpeedData
+# @deprecated(reason="You should use hiearchy level ranges.") # deprecated decorator only applies to functions, therefore comment out
 ParameterRangesAndSpeedData = NamedTuple("ParameterRangesAndSpeedData", [("parameter_ranges", ParameterRanges), ("speed_data", SpeedData)])
 
 InfrastructureParameters = NamedTuple(

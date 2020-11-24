@@ -174,6 +174,8 @@ def rsp_pipeline(
         schedule_parameters_range=schedule_parameters_range,
         base_directory=base_directory,
         parallel_compute=parallel_compute,
+        speed_data=speed_data,
+        grid_mode=grid_mode,
     )
     return run_agenda(
         base_directory=base_directory,
