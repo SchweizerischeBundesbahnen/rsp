@@ -2,9 +2,7 @@ import os
 from shutil import copyfile
 from typing import Optional
 
-from rsp.hypothesis_one_pipeline_all_in_one import list_from_base_directory_and_run_experiment_agenda
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
-from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
@@ -15,34 +13,10 @@ from rsp.utils.file_utils import check_create_folder
 from rsp.utils.global_constants import get_defaults
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
+from utils.rsp_pipline_offline import list_from_base_directory_and_run_experiment_agenda
 
 
-INFRA_PARAMETERS_RANGE = InfrastructureParametersRange(
-    number_of_agents=[50, 100, 4],
-    width=[100, 100, 1],
-    height=[100, 100, 1],
-    flatland_seed_value=[190, 190, 1],
-    max_num_cities=[8, 15, 3],
-    max_rail_in_city=[2, 3, 2],
-    max_rail_between_cities=[1, 2, 2],
-    number_of_shortest_paths_per_agent=[10, 10, 1],
-)
-SCHEDULE_PARAMETERS_RANGE = ScheduleParametersRange(asp_seed_value=[814, 814, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
-RESCHEDULE_PARAMETERS_RANGE = ReScheduleParametersRange(
-    earliest_malfunction=[30, 30, 1],
-    malfunction_duration=[50, 50, 1],
-    # take all agents (200 is larger than largest number of agents)
-    malfunction_agent_id=[0, 200, 200],
-    number_of_shortest_paths_per_agent=[10, 10, 1],
-    max_window_size_from_earliest=[60, 60, 1],
-    asp_seed_value=[99, 99, 1],
-    # route change is penalized the same as 30 seconds delay
-    weight_route_change=[30, 30, 1],
-    weight_lateness_seconds=[1, 1, 1],
-)
-
-
-def run_potassco_agenda(
+def run_agenda(
     base_directory: str,
     reschedule_parameters_range: ReScheduleParametersRange,
     experiment_output_base_directory: Optional[str] = None,
@@ -50,7 +24,6 @@ def run_potassco_agenda(
     parallel_compute: int = 5,
     csv_only: bool = False,
 ):
-
     experiments_per_grid_element = 1
     experiment_name_prefix = os.path.basename(base_directory) + "_"
     # baseline with defaults
@@ -155,12 +128,21 @@ def run_potassco_agenda(
     return experiment_output_base_directory
 
 
-def generate_potassco_infras_and_schedules(
+def generate_infras_and_schedules(
     infra_parameters_range: InfrastructureParametersRange,
     schedule_parameters_range: ScheduleParametersRange,
     base_directory: Optional[str] = None,
     parallel_compute: int = 5,
+    speed_data=None,
+    grid_mode: bool = False,
 ):
+    if speed_data is None:
+        speed_data = {
+            1.0: 0.25,  # Fast passenger train
+            1.0 / 2.0: 0.25,  # Fast freight train
+            1.0 / 3.0: 0.25,  # Slow commuter train
+            1.0 / 4.0: 0.25,  # Slow freight train
+        }
     if base_directory is None:
         base_directory = create_experiment_folder_name("h1")
         check_create_folder(base_directory)
@@ -169,38 +151,31 @@ def generate_potassco_infras_and_schedules(
         base_directory=base_directory,
         infrastructure_parameters_range=infra_parameters_range,
         schedule_parameters_range=schedule_parameters_range,
-        speed_data={
-            1.0: 0.25,  # Fast passenger train
-            1.0 / 2.0: 0.25,  # Fast freight train
-            1.0 / 3.0: 0.25,  # Slow commuter train
-            1.0 / 4.0: 0.25,
-        },  # Slow freight train
-        grid_mode=False,
+        grid_mode=grid_mode,
+        speed_data=speed_data,
         run_experiments_parallel=parallel_compute,
     )
     return base_directory
 
 
-def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
-    return experiment.re_schedule_parameters.malfunction_agent_id < 100
-
-
-def hypothesis_one_experiments_potassco(
+def rsp_pipeline(
     infra_parameters_range: InfrastructureParametersRange,
     schedule_parameters_range: ScheduleParametersRange,
     reschedule_parameters_range: ReScheduleParametersRange,
     base_directory=INFRAS_AND_SCHEDULES_FOLDER,
     experiment_output_base_directory=BASELINE_DATA_FOLDER,
     experiment_filter=None,
+    speed_data=None,
+    grid_mode: bool = False,
 ):
     parallel_compute = AVAILABLE_CPUS // 2
-    generate_potassco_infras_and_schedules(
+    generate_infras_and_schedules(
         infra_parameters_range=infra_parameters_range,
         schedule_parameters_range=schedule_parameters_range,
         base_directory=base_directory,
         parallel_compute=parallel_compute,
     )
-    return run_potassco_agenda(
+    return run_agenda(
         base_directory=base_directory,
         reschedule_parameters_range=reschedule_parameters_range,
         # incremental re-start after interruption
@@ -208,15 +183,4 @@ def hypothesis_one_experiments_potassco(
         experiment_filter=experiment_filter,
         parallel_compute=parallel_compute,
         csv_only=True,
-    )
-
-
-if __name__ == "__main__":
-    hypothesis_one_experiments_potassco(
-        infra_parameters_range=INFRA_PARAMETERS_RANGE,
-        schedule_parameters_range=SCHEDULE_PARAMETERS_RANGE,
-        reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,
-        base_directory="PUBLICATION_DATA",
-        experiment_output_base_directory=None,
-        experiment_filter=experiment_filter_first_ten_of_each_schedule,
     )

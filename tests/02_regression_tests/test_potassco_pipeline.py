@@ -1,5 +1,5 @@
 """Run tests for different experiment methods."""
-from rsp.hypothesis_one_experiments_potassco import hypothesis_one_experiments_potassco
+from rsp.pipeline.rsp_pipeline import rsp_pipeline
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
@@ -14,7 +14,7 @@ from rsp.step_04_analysis.plot_utils import ColumnSpec
 def test_hypothesis_one_experiments_potassco():
     base_directory = "target/" + create_experiment_folder_name("test_potassco")
     try:
-        baseline_data_folder = hypothesis_one_experiments_potassco(
+        baseline_data_folder = rsp_pipeline(
             infra_parameters_range=InfrastructureParametersRange(
                 number_of_agents=[10, 10, 1],
                 width=[60, 60, 1],

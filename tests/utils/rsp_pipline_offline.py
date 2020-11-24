@@ -3,11 +3,9 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import numpy as np
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import parameter_ranges_and_speed_data_to_hiearchical
-from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRanges
 from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_03_run.experiments import AVAILABLE_CPUS
@@ -27,33 +25,10 @@ from rsp.utils.global_constants import GlobalConstants
 from rsp.utils.rsp_logger import rsp_logger
 
 
-def get_agenda_pipeline_params_001_simple_setting() -> ParameterRangesAndSpeedData:
-    parameter_ranges = ParameterRanges(
-        agent_range=[2, 2, 1],
-        size_range=[18, 18, 1],
-        in_city_rail_range=[2, 2, 1],
-        out_city_rail_range=[1, 1, 1],
-        city_range=[2, 2, 1],
-        earliest_malfunction=[5, 5, 1],
-        malfunction_duration=[20, 20, 1],
-        number_of_shortest_paths_per_agent=[10, 10, 1],
-        max_window_size_from_earliest=[np.inf, np.inf, 1],
-        asp_seed_value=[94, 94, 1],
-        # route change is penalized the same as 60 seconds delay
-        weight_route_change=[60, 60, 1],
-        weight_lateness_seconds=[1, 1, 1],
-    )
-    # Define the desired speed profiles
-    speed_data = {
-        1.0: 0.25,  # Fast passenger train
-        1.0 / 2.0: 0.25,  # Fast freight train
-        1.0 / 3.0: 0.25,  # Slow commuter train
-        1.0 / 4.0: 0.25,
-    }  # Slow freight train
-    return ParameterRangesAndSpeedData(parameter_ranges=parameter_ranges, speed_data=speed_data)
+# TODO bad code smell: do we need a separate for testing? harmonize?
 
 
-def hypothesis_one_pipeline_all_in_one(
+def rsp_pipline_offline(
     parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
     experiment_base_directory: str,
     qualitative_analysis_experiment_ids: Optional[List[int]] = None,

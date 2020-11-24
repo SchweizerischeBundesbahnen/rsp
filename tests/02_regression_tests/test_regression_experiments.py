@@ -1,6 +1,5 @@
 """Run tests for different experiment methods."""
 import numpy as np
-from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
@@ -28,6 +27,7 @@ from rsp.step_03_run.experiments import save_schedule
 from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.utils.global_constants import get_defaults
 from rsp.utils.rsp_logger import rsp_logger
+from utils.rsp_pipline_offline import rsp_pipline_offline
 
 
 def test_created_env_tuple():
@@ -323,7 +323,7 @@ def test_hypothesis_one_pipeline_all_in_one():
     """
     experiment_base_directory = "target/" + create_experiment_folder_name("test_hypothesis_one_pipeline_all_in_one")
     try:
-        experiment_folder_name, experiment_agenda = hypothesis_one_pipeline_all_in_one(
+        experiment_folder_name, experiment_agenda = rsp_pipline_offline(
             experiment_base_directory=experiment_base_directory,
             parameter_ranges_and_speed_data=ParameterRangesAndSpeedData(
                 parameter_ranges=ParameterRanges(

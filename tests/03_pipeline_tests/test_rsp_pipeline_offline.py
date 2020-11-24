@@ -1,9 +1,9 @@
 import numpy as np
-from rsp.hypothesis_one_pipeline_all_in_one import hypothesis_one_pipeline_all_in_one
 from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRanges
 from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import delete_experiment_folder
+from utils.rsp_pipline_offline import rsp_pipline_offline
 
 
 def test_hypothesis_one_all_in_one():
@@ -12,7 +12,7 @@ def test_hypothesis_one_all_in_one():
 
     experiment_base_directory = "target/" + create_experiment_folder_name("test_hypothesis_one_all_in_one")
     try:
-        hypothesis_one_pipeline_all_in_one(
+        rsp_pipline_offline(
             parameter_ranges_and_speed_data=ParameterRangesAndSpeedData(
                 parameter_ranges=ParameterRanges(
                     agent_range=[5, 5, 1],
@@ -48,7 +48,7 @@ def test_parallel_experiment_execution():
     """Run a parallel experiment agenda."""
     experiment_folder_name = "target/" + create_experiment_folder_name("test_parallel_experiment_execution")
     try:
-        hypothesis_one_pipeline_all_in_one(
+        rsp_pipline_offline(
             parameter_ranges_and_speed_data=ParameterRangesAndSpeedData(
                 parameter_ranges=ParameterRanges(
                     agent_range=[5, 15, 5],

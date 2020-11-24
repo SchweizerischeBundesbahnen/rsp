@@ -1,7 +1,7 @@
 import glob
 
 import pytest
-from rsp.hypothesis_one_malfunction_experiments import malfunction_variation_for_one_schedule
+from rsp.rsp_malfunction_variation import malfunction_variation_for_one_schedule
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import delete_experiment_folder
 from rsp.step_03_run.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
