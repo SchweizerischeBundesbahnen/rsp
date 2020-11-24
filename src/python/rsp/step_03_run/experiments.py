@@ -994,10 +994,13 @@ def create_infrastructure_and_schedule_from_ranges(
     grid_mode: bool = False,
     run_experiments_parallel: int = 5,
 ) -> List[ScheduleParameters]:
+
+    # expand infrastructure parameters and generate infrastructure
     list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range=infrastructure_parameters_range, base_directory=base_directory, speed_data=speed_data, grid_mode=grid_mode
     )
 
+    # expand schedule parameters and get list of those missing
     list_of_schedule_parameters_to_generate: List[ScheduleParameters] = list(
         itertools.chain.from_iterable(
             [
@@ -1008,6 +1011,8 @@ def create_infrastructure_and_schedule_from_ranges(
             ]
         )
     )
+
+    # generate schedules in parallel
     pool = multiprocessing.Pool(processes=run_experiments_parallel, maxtasksperchild=1)
     gen_and_save_schedule_partial = partial(gen_and_save_schedule, base_directory=base_directory)
     for done in tqdm.tqdm(
@@ -1015,6 +1020,7 @@ def create_infrastructure_and_schedule_from_ranges(
     ):
         rsp_logger.info(f"done: {done}")
 
+    # expand schedule parameters and get full list
     list_of_schedule_parameters: List[ScheduleParameters] = list(
         itertools.chain.from_iterable(
             [

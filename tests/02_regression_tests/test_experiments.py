@@ -308,10 +308,10 @@ def test_run_experiment_agenda():
 
 
 def assert_expected_experiment_pkl_and_csv(experiment_output_directory, nb_csvs, nb_pkls):
-    file_names = glob.glob(f"{experiment_output_directory}/data/experiment_{0:04d}_*.csv")
-    assert len(file_names) == nb_csvs, f"found {file_names}, expected {nb_csvs}"
-    file_names = glob.glob(f"{experiment_output_directory}/data/experiment_{0:04d}_*.pkl")
-    assert len(file_names) == nb_pkls, f"found {file_names}, expected {nb_pkls}"
+    file_names = glob.glob(f"{experiment_output_directory}/data/experiment_*.csv")
+    assert len(file_names) == nb_csvs, f"found {file_names} in {experiment_output_directory}, expected {nb_csvs}"
+    file_names = glob.glob(f"{experiment_output_directory}/data/experiment_*.pkl")
+    assert len(file_names) == nb_pkls, f"found {file_names} in {experiment_output_directory}, expected {nb_pkls}"
 
 
 def test_rerun_single_experiment_after_csv_only():
@@ -382,7 +382,7 @@ def test_rerun_single_experiment_after_csv_only():
             filter_experiment_agenda=filter_experiment_agenda,
         )
         # the first csv is not removed, but the pkl is generated alongside
-        assert_expected_experiment_pkl_and_csv(experiment_output_directory, nb_csvs=2, nb_pkls=1)
+        assert_expected_experiment_pkl_and_csv(experiment_output_directory=experiment_output_directory, nb_csvs=2, nb_pkls=1)
         run_experiment_agenda(
             experiment_output_directory=experiment_output_directory,
             experiment_base_directory="tests/02_regression_tests/data/regression_experiment_agenda",
@@ -390,7 +390,7 @@ def test_rerun_single_experiment_after_csv_only():
             filter_experiment_agenda=filter_experiment_agenda,
         )
         # since there is a pkl, the experiment is not re-run
-        assert_expected_experiment_pkl_and_csv(experiment_output_directory, nb_csvs=2, nb_pkls=1)
+        assert_expected_experiment_pkl_and_csv(experiment_output_directory=experiment_output_directory, nb_csvs=2, nb_pkls=1)
 
     finally:
         delete_experiment_folder(experiment_output_directory)
@@ -447,7 +447,7 @@ def test_run_agenda_incremental():
                 number_of_agents=[2, 2, 1],
                 width=[30, 30, 1],
                 height=[30, 30, 1],
-                flatland_seed_value=[190, 192, 2],
+                flatland_seed_value=[190, 195, 4],
                 max_rail_in_city=[6, 6, 1],
                 max_rail_between_cities=[2, 2, 1],
                 max_num_cities=[20, 20, 1],
@@ -465,7 +465,7 @@ def test_run_agenda_incremental():
                 malfunction_agent_id=[0, 2, 2],
                 number_of_shortest_paths_per_agent=[10, 10, 1],
                 max_window_size_from_earliest=[60, 60, 1],
-                asp_seed_value=[99, 101, 2],
+                asp_seed_value=[99, 101, 1],
                 # route change is penalized the same as 30 seconds delay
                 weight_route_change=[60, 60, 1],
                 weight_lateness_seconds=[1, 1, 1],
@@ -473,15 +473,22 @@ def test_run_agenda_incremental():
             ),
             infra_parameters_list=infra_parameters_list,
             infra_schedule_dict=infra_schedule_dict,
-            experiments_per_grid_element=2,
+            experiments_per_grid_element=1,
         )
+        # run experiment 2
         experiment_output_directory = run_experiment_agenda(
             experiment_base_directory=experiment_base_directory,
             experiment_agenda=experiment_agenda,
             filter_experiment_agenda=lambda experiment_parameters: experiment_parameters.experiment_id == 2,
         )
         assert_expected_experiment_pkl_and_csv(experiment_output_directory=experiment_output_directory, nb_csvs=1, nb_pkls=1)
-        experiment_output_directory = run_experiment_agenda(experiment_base_directory=experiment_base_directory,)
+
+        # run experiments 0...3 (2 is not re-run)
+        experiment_output_directory = run_experiment_agenda(
+            experiment_base_directory=experiment_base_directory,
+            experiment_output_directory=experiment_output_directory,
+            filter_experiment_agenda=lambda experiment_parameters: experiment_parameters.experiment_id < 4,
+        )
         assert_expected_experiment_pkl_and_csv(experiment_output_directory=experiment_output_directory, nb_csvs=4, nb_pkls=4)
 
     finally:
