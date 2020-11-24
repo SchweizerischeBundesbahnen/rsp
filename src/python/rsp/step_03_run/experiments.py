@@ -831,18 +831,18 @@ def load_and_filter_experiment_results_analysis(
 def run_experiment_agenda(
     experiment_agenda: ExperimentAgenda,
     experiment_base_directory: str,
-    experiment_output_directory: str,
+    experiment_output_directory: str = None,
     filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
     # take only half of avilable cpus so the machine stays responsive
     run_experiments_parallel: int = AVAILABLE_CPUS // 2,
     csv_only: bool = False,
     online_unrestricted_only: bool = False,
 ) -> str:
-    """Run A.2 + B.
+    """Run A.2 + B. Presupposes infras and schedules
     Parameters
     ----------
-
     experiment_output_directory
+        if passed, agenda in this directory must be the same as the one passed
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_base_directory: str
@@ -851,17 +851,36 @@ def run_experiment_agenda(
         filter which experiment to run
     run_experiments_parallel: in
         run experiments in parallel
-    verbose: bool
-        Print additional information
+    run_analysis
+    online_unrestricted_only
+    csv_only
 
     Returns
     -------
     Returns the name of the experiment base and data folders
     """
+    assert (
+        experiment_agenda is not None or experiment_output_directory is not None
+    ), "Either experiment_agenda or experiment_output_directory must be specified."
+    if experiment_output_directory is None:
+        experiment_output_directory = f"{experiment_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)
+        check_create_folder(experiment_output_directory)
 
     experiment_data_directory = f"{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}"
 
-    # N.B. we must guarantee that access happens in same thread and that not two agendas are running concurrently
+    if exists_experiment_agenda(experiment_output_directory):
+
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"loading agenda <- {experiment_output_directory}")
+        rsp_logger.info(f"============================================================================================================")
+
+        experiment_agenda_from_file = load_experiment_agenda_from_file(experiment_folder_name=experiment_output_directory)
+
+        assert experiment_agenda_from_file == experiment_agenda
+    elif experiment_agenda is not None:
+        save_experiment_agenda_and_hash_to_file(output_base_folder=experiment_output_directory, experiment_agenda=experiment_agenda)
+    else:
+        raise Exception("Either experiment_agenda or experiment_output_directory with experiment_agenda.pkl must be passed.")
 
     check_create_folder(experiment_data_directory)
 
@@ -874,11 +893,37 @@ def run_experiment_agenda(
     stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
     stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
     try:
+
         if filter_experiment_agenda is not None:
+            len_before_filtering = len(experiment_agenda.experiments)
+            rsp_logger.info(f"============================================================================================================")
+            rsp_logger.info(f"filtering agenda by passed filter {filter_experiment_agenda} <- {experiment_output_directory}")
+            rsp_logger.info(f"============================================================================================================")
             experiments_filtered = filter(filter_experiment_agenda, experiment_agenda.experiments)
             experiment_agenda = ExperimentAgenda(
                 experiment_name=experiment_agenda.experiment_name, global_constants=experiment_agenda.global_constants, experiments=list(experiments_filtered)
             )
+            rsp_logger.info(
+                f"after applying filter, there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda)
+            )
+
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"filtering agenda by experiments not run yet <- {experiment_output_directory}")
+        rsp_logger.info(f"============================================================================================================")
+        len_before_filtering = len(experiment_agenda.experiments)
+        experiment_agenda = ExperimentAgenda(
+            experiment_name=experiment_agenda.experiments,
+            experiments=[
+                experiment
+                for experiment in experiment_agenda.experiments
+                if load_experiments_results(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment.experiment_id) is None
+            ],
+            global_constants=experiment_agenda.global_constants,
+        )
+        rsp_logger.info(
+            f"after filtering out experiments already run from {experiment_output_directory}, "
+            f"there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda)
+        )
 
         rsp_logger.info(f"============================================================================================================")
         rsp_logger.info(f"RUNNING agenda -> {experiment_data_directory} ({len(experiment_agenda.experiments)} experiments)")
@@ -913,6 +958,7 @@ def run_experiment_agenda(
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE)
         newline_and_flush_stdout_and_stderr()
         _print_error_summary(experiment_data_directory)
+
     finally:
         remove_file_handler_from_rsp_logger(stdout_log_fh)
         remove_file_handler_from_rsp_logger(stderr_log_fh)
@@ -995,11 +1041,10 @@ def list_infrastructure_and_schedule_params_from_base_directory(
             if filter_experiment_agenda is not None and not filter_experiment_agenda(infra_id, schedule_id):
                 continue
             schedule, schedule_parameters = load_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_id)
-
+            infra_schedule_dict.setdefault(infra_parameters.infra_id, []).append((schedule_parameters, schedule))
     return infra_parameters_list, infra_schedule_dict
 
 
-# TODO
 def expand_infrastructure_parameter_range_and_generate_infrastructure(
     infrastructure_parameter_range: InfrastructureParametersRange, base_directory: str, speed_data: SpeedData, grid_mode: bool = True
 ) -> List[InfrastructureParameters]:
@@ -1157,6 +1202,12 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
         Folder name of experiment where all experiment files and agenda are stored
     """
     return _pickle_load(file_name="experiment_agenda.pkl", folder=experiment_folder_name)
+
+
+def exists_experiment_agenda(experiment_folder_name: str) -> bool:
+    """Does a `ExperimentAgenda` exist?"""
+    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    return os.path.isfile(file_name)
 
 
 def create_experiment_folder_name(experiment_name: str) -> str:

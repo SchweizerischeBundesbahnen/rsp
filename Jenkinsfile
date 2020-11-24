@@ -73,7 +73,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
         # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
         conda env create --file rsp_environment.yml --force python=3.7
         conda activate rsp
-        export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PWD/tests:\$PYTHONPATH
+        export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
         echo PYTHONPATH=\$PYTHONPATH
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
         pre-commit install

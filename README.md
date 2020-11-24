@@ -12,8 +12,8 @@ conda env create -f rsp_environment.yml
 # activate the conda env (if you want to use a different env name, run conda env create -f rsp_environment.yml --name other-env-name)
 conda activate rsp
 
-#
-export PYTHONPATH=$PWD/src/python:$PWD/src/asp:$PWD/tests:$PYTHONPATH
+# PYTHONPATH
+export PYTHONPATH=$PWD/src/python:$PWD/src/asp:$PYTHONPATH
 
 # run pipeline (see section "Getting Started with Experiments" below)
 python src/python/rsp/rsp_overleaf_pipeline.py

@@ -49,6 +49,9 @@ def test_create_experiment_agenda_from_infrastructure_and_schedule():
             infra_schedule_dict=infra_schedule_dict,
             experiments_per_grid_element=2,
         )
-        assert (2 * 3 * 2) * (2 * 2 * 2) == len(experiment_agenda.experiments)
+        print(experiment_agenda)
+        assert (2 * 3 * 2) * (2 * 2 * 2) == len(
+            experiment_agenda.experiments
+        ), f"expected{(2 * 3 * 2) * (2 * 2 * 2)}, found {len(experiment_agenda.experiments)}"
     finally:
         delete_experiment_folder(base_directory)

@@ -1,131 +1,22 @@
 import os
-from shutil import copyfile
+from typing import List
 from typing import Optional
 
-from rsp.scheduling.asp.asp_data_types import ASPHeuristics
+from rsp.step_01_planning.agenda_expansion import create_experiment_agenda_from_infrastructure_and_schedule_ranges
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
 from rsp.step_03_run.experiments import AVAILABLE_CPUS
 from rsp.step_03_run.experiments import create_experiment_folder_name
 from rsp.step_03_run.experiments import create_infrastructure_and_schedule_from_ranges
+from rsp.step_03_run.experiments import list_infrastructure_and_schedule_params_from_base_directory
+from rsp.step_03_run.experiments import run_experiment_agenda
+from rsp.step_03_run.experiments import save_experiment_agenda_and_hash_to_file
+from rsp.step_04_analysis.data_analysis_all_in_one import hypothesis_one_data_analysis
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.global_constants import get_defaults
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
-from utils.rsp_pipline_offline import list_from_base_directory_and_run_experiment_agenda
-
-
-def run_agenda(
-    base_directory: str,
-    reschedule_parameters_range: ReScheduleParametersRange,
-    experiment_output_base_directory: Optional[str] = None,
-    experiment_filter=None,
-    parallel_compute: int = 5,
-    csv_only: bool = False,
-):
-    experiments_per_grid_element = 1
-    experiment_name_prefix = os.path.basename(base_directory) + "_"
-    # baseline with defaults
-    _, experiment_output_base_directory = list_from_base_directory_and_run_experiment_agenda(
-        experiment_base_directory=base_directory,
-        experiment_output_directory=experiment_output_base_directory,
-        reschedule_parameters_range=reschedule_parameters_range,
-        experiment_name=("%sbaseline" % experiment_name_prefix),
-        parallel_compute=parallel_compute,
-        experiments_per_grid_element=experiments_per_grid_element,
-        experiment_filter=experiment_filter,
-        csv_only=csv_only,
-        global_constants=get_defaults(),
-    )
-    # effect of SEQ heuristic (SIM-167)
-    experiment_output_directory_with_seq = experiment_output_base_directory.replace("baseline", "with_SEQ")
-    check_create_folder(experiment_output_directory_with_seq)
-    copyfile(experiment_output_base_directory + "/experiment_agenda.pkl", experiment_output_directory_with_seq + "/experiment_agenda.pkl")
-    list_from_base_directory_and_run_experiment_agenda(
-        experiment_base_directory=base_directory,
-        experiment_output_directory=experiment_output_directory_with_seq,
-        reschedule_parameters_range=reschedule_parameters_range,
-        experiment_name=("%swith_SEQ" % experiment_name_prefix),
-        parallel_compute=parallel_compute,
-        experiments_per_grid_element=experiments_per_grid_element,
-        experiment_filter=experiment_filter,
-        csv_only=csv_only,
-        global_constants=get_defaults(reschedule_heuristics=[ASPHeuristics.HEURISTIC_SEQ]),
-        online_unrestricted_only=True,
-    )
-    # effect of delay model resolution with 2, 5, 10 (SIM-542)
-    experiment_output_directory_with_delay_model_resolution_2 = experiment_output_base_directory.replace("baseline", "with_delay_model_resolution_2")
-    check_create_folder(experiment_output_directory_with_delay_model_resolution_2)
-    copyfile(
-        experiment_output_base_directory + "/experiment_agenda.pkl", experiment_output_directory_with_delay_model_resolution_2 + "/experiment_agenda.pkl",
-    )
-    list_from_base_directory_and_run_experiment_agenda(
-        experiment_base_directory=base_directory,
-        experiment_output_directory=experiment_output_directory_with_delay_model_resolution_2,
-        reschedule_parameters_range=reschedule_parameters_range,
-        experiment_name=("%swith_delay_model_resolution_2" % experiment_name_prefix),
-        parallel_compute=parallel_compute,
-        experiments_per_grid_element=experiments_per_grid_element,
-        experiment_filter=experiment_filter,
-        csv_only=csv_only,
-        global_constants=get_defaults(delay_model_resolution=2),
-        online_unrestricted_only=True,
-    )
-    experiment_output_directory_with_delay_model_resolution_5 = experiment_output_base_directory.replace("baseline", "with_delay_model_resolution_5")
-    check_create_folder(experiment_output_directory_with_delay_model_resolution_5)
-
-    copyfile(
-        experiment_output_base_directory + "/experiment_agenda.pkl", experiment_output_directory_with_delay_model_resolution_5 + "/experiment_agenda.pkl",
-    )
-    list_from_base_directory_and_run_experiment_agenda(
-        experiment_base_directory=base_directory,
-        experiment_output_directory=experiment_output_directory_with_delay_model_resolution_5,
-        reschedule_parameters_range=reschedule_parameters_range,
-        experiment_name=("%swith_delay_model_resolution_5" % experiment_name_prefix),
-        parallel_compute=parallel_compute,
-        experiments_per_grid_element=experiments_per_grid_element,
-        experiment_filter=experiment_filter,
-        csv_only=csv_only,
-        global_constants=get_defaults(delay_model_resolution=5),
-        online_unrestricted_only=True,
-    )
-    experiment_output_directory_with_delay_model_resolution_10 = experiment_output_base_directory.replace("baseline", "with_delay_model_resolution_10")
-    check_create_folder(experiment_output_directory_with_delay_model_resolution_10)
-    copyfile(
-        experiment_output_base_directory + "/experiment_agenda.pkl", experiment_output_directory_with_delay_model_resolution_10 + "/experiment_agenda.pkl",
-    )
-    list_from_base_directory_and_run_experiment_agenda(
-        experiment_base_directory=base_directory,
-        experiment_output_directory=experiment_output_directory_with_delay_model_resolution_10,
-        reschedule_parameters_range=reschedule_parameters_range,
-        experiment_name=("%swith_delay_model_resolution_10" % experiment_name_prefix),
-        parallel_compute=parallel_compute,
-        experiments_per_grid_element=experiments_per_grid_element,
-        experiment_filter=experiment_filter,
-        csv_only=csv_only,
-        global_constants=get_defaults(delay_model_resolution=10),
-        online_unrestricted_only=True,
-    )
-    # effect of --propagate (SIM-543)
-    experiment_output_directory_without_propagate_partial = experiment_output_base_directory.replace("baseline", "without_propagate_partial")
-    check_create_folder(experiment_output_directory_without_propagate_partial)
-    copyfile(
-        experiment_output_base_directory + "/experiment_agenda.pkl", experiment_output_directory_without_propagate_partial + "/experiment_agenda.pkl",
-    )
-    list_from_base_directory_and_run_experiment_agenda(
-        experiment_base_directory=base_directory,
-        experiment_output_directory=experiment_output_directory_without_propagate_partial,
-        reschedule_parameters_range=reschedule_parameters_range,
-        experiment_name=("%swithout_propagate_partial" % experiment_name_prefix),
-        parallel_compute=parallel_compute,
-        experiments_per_grid_element=experiments_per_grid_element,
-        experiment_filter=experiment_filter,
-        csv_only=csv_only,
-        global_constants=get_defaults(dl_propagate_partial=False),
-        online_unrestricted_only=True,
-    )
-    return experiment_output_base_directory
+from rsp.utils.json_file_dumper import dump_object_as_human_readable_json
 
 
 def generate_infras_and_schedules(
@@ -162,27 +53,57 @@ def rsp_pipeline(
     infra_parameters_range: InfrastructureParametersRange,
     schedule_parameters_range: ScheduleParametersRange,
     reschedule_parameters_range: ReScheduleParametersRange,
-    base_directory=INFRAS_AND_SCHEDULES_FOLDER,
-    experiment_output_base_directory=BASELINE_DATA_FOLDER,
+    experiment_name: str,
+    experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+    experiment_output_directory=BASELINE_DATA_FOLDER,
     experiment_filter=None,
     speed_data=None,
     grid_mode: bool = False,
+    parallel_compute=AVAILABLE_CPUS // 2,
+    experiments_per_grid_element=1,
+    csv_only: bool = False,
+    global_constants=None,
+    online_unrestricted_only: bool = False,
+    run_analysis: bool = False,
+    qualitative_analysis_experiment_ids: List[int] = None,
 ):
-    parallel_compute = AVAILABLE_CPUS // 2
     generate_infras_and_schedules(
         infra_parameters_range=infra_parameters_range,
         schedule_parameters_range=schedule_parameters_range,
-        base_directory=base_directory,
+        base_directory=experiment_base_directory,
         parallel_compute=parallel_compute,
         speed_data=speed_data,
         grid_mode=grid_mode,
     )
-    return run_agenda(
-        base_directory=base_directory,
+    infra_parameters_list, infra_schedule_dict = list_infrastructure_and_schedule_params_from_base_directory(base_directory=experiment_base_directory)
+    experiment_agenda = create_experiment_agenda_from_infrastructure_and_schedule_ranges(
+        experiment_name=experiment_name,
         reschedule_parameters_range=reschedule_parameters_range,
-        # incremental re-start after interruption
-        experiment_output_base_directory=experiment_output_base_directory,
-        experiment_filter=experiment_filter,
-        parallel_compute=parallel_compute,
-        csv_only=True,
+        infra_parameters_list=infra_parameters_list,
+        infra_schedule_dict=infra_schedule_dict,
+        experiments_per_grid_element=experiments_per_grid_element,
+        global_constants=global_constants,
     )
+    if experiment_output_directory is None:
+        experiment_output_directory = f"{experiment_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)
+        check_create_folder(experiment_output_directory)
+    save_experiment_agenda_and_hash_to_file(output_base_folder=experiment_output_directory, experiment_agenda=experiment_agenda)
+    dump_object_as_human_readable_json(obj=infra_parameters_range, file_name=os.path.join(experiment_output_directory, "infrastructure_parameters_range.json"))
+    dump_object_as_human_readable_json(obj=schedule_parameters_range, file_name=os.path.join(experiment_output_directory, "schedule_parameters_range.json"))
+    dump_object_as_human_readable_json(obj=reschedule_parameters_range, file_name=os.path.join(experiment_output_directory, "reschedule_parameters_range.json"))
+    dump_object_as_human_readable_json(obj=experiment_agenda, file_name=os.path.join(experiment_output_directory, "experiment_agenda.json"))
+
+    run_experiment_agenda(
+        experiment_agenda=experiment_agenda,
+        experiment_base_directory=experiment_base_directory,
+        experiment_output_directory=experiment_output_directory,
+        filter_experiment_agenda=experiment_filter,
+        csv_only=csv_only,
+        online_unrestricted_only=online_unrestricted_only,
+    )
+    # C. Experiment Analysis
+    if run_analysis:
+        hypothesis_one_data_analysis(
+            experiment_output_directory=experiment_output_directory, analysis_2d=True, qualitative_analysis_experiment_ids=qualitative_analysis_experiment_ids,
+        )
+    return experiment_output_directory

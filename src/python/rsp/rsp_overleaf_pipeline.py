@@ -1,4 +1,4 @@
-from rsp.pipeline.rsp_pipeline import rsp_pipeline
+from rsp.pipeline.rsp_pipeline_baseline_and_calibrations import rsp_pipeline_baseline_and_calibrations
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
@@ -34,7 +34,7 @@ def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameter
 
 
 if __name__ == "__main__":
-    rsp_pipeline(
+    rsp_pipeline_baseline_and_calibrations(
         infra_parameters_range=INFRA_PARAMETERS_RANGE,
         schedule_parameters_range=SCHEDULE_PARAMETERS_RANGE,
         reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,

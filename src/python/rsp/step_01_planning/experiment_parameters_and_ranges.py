@@ -1,7 +1,6 @@
 from typing import List
 from typing import Mapping
 from typing import NamedTuple
-from typing import Tuple
 
 from rsp.utils.global_constants import GlobalConstants
 
@@ -143,36 +142,3 @@ ExperimentParameters = NamedTuple(
 ExperimentAgenda = NamedTuple(
     "ExperimentAgenda", [("experiment_name", str), ("experiments", List[ExperimentParameters]), ("global_constants", GlobalConstants)]
 )
-
-
-def parameter_ranges_and_speed_data_to_hiearchical(
-    parameter_ranges_and_speed_data: ParameterRangesAndSpeedData, flatland_seed_value: int = 12
-) -> Tuple[InfrastructureParametersRange, SpeedData, ScheduleParametersRange, ReScheduleParametersRange]:
-    return (
-        InfrastructureParametersRange(
-            width=parameter_ranges_and_speed_data.parameter_ranges.size_range,
-            height=parameter_ranges_and_speed_data.parameter_ranges.size_range,
-            flatland_seed_value=[flatland_seed_value, flatland_seed_value, 1],
-            max_num_cities=parameter_ranges_and_speed_data.parameter_ranges.city_range,
-            max_rail_in_city=parameter_ranges_and_speed_data.parameter_ranges.in_city_rail_range,
-            max_rail_between_cities=parameter_ranges_and_speed_data.parameter_ranges.out_city_rail_range,
-            number_of_agents=parameter_ranges_and_speed_data.parameter_ranges.agent_range,
-            number_of_shortest_paths_per_agent=parameter_ranges_and_speed_data.parameter_ranges.number_of_shortest_paths_per_agent,
-        ),
-        parameter_ranges_and_speed_data.speed_data,
-        ScheduleParametersRange(
-            asp_seed_value=parameter_ranges_and_speed_data.parameter_ranges.asp_seed_value,
-            # TODO SIM-622 hard-code to 1/evaluate
-            number_of_shortest_paths_per_agent_schedule=parameter_ranges_and_speed_data.parameter_ranges.number_of_shortest_paths_per_agent,
-        ),
-        ReScheduleParametersRange(
-            earliest_malfunction=parameter_ranges_and_speed_data.parameter_ranges.earliest_malfunction,
-            malfunction_duration=parameter_ranges_and_speed_data.parameter_ranges.malfunction_duration,
-            malfunction_agent_id=[0, 0, 1],
-            number_of_shortest_paths_per_agent=parameter_ranges_and_speed_data.parameter_ranges.number_of_shortest_paths_per_agent,
-            max_window_size_from_earliest=parameter_ranges_and_speed_data.parameter_ranges.max_window_size_from_earliest,
-            asp_seed_value=parameter_ranges_and_speed_data.parameter_ranges.asp_seed_value,
-            weight_route_change=parameter_ranges_and_speed_data.parameter_ranges.weight_route_change,
-            weight_lateness_seconds=parameter_ranges_and_speed_data.parameter_ranges.weight_lateness_seconds,
-        ),
-    )
