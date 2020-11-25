@@ -118,10 +118,12 @@ The data layout will look as follows:
     │   │   ├── data
     │   │   │   ├── err.txt
     │   │   │   ├── experiment_2064_2020_10_14T19_07_39.pkl
+    │   │   │   ├── experiment_2064_2020_10_14T19_07_39.csv
     │   │   │   ├── experiment_2067_2020_10_14T19_07_41.pkl
+    │   │   │   ├── experiment_2067_2020_10_14T19_07_41.csv
 
     │   │   │   ├── experiment_2961_2020_10_15T05_49_18.pkl
-    │   │   │   ├── experiment_3056_2020_10_15T06_18_14.pkl
+    │   │   │   ├── experiment_2961_2020_10_15T05_49_18.csv
     │   │   │   └── log.txt
     │   │   ├── experiment_agenda.pkl
     │   │   └── sha.txt
@@ -138,6 +140,20 @@ The data layout will look as follows:
     │               │   └── schedule_parameters.pkl
     │
 
+
+The `pkl` files contain all results (required for detailed analysis notebook), whereas `csv` files contain only tabular information (as required by computation times notebook).
+See below use case 3 on how to generate `pkl` if you only have `csv`.
+
+Experiment results are gathered in `ExperimentResultsAnalysis` and then expanded for analysis into `ExperimentResultsAnalysis`/`ExperimentResultsOnlineUnrestricted`.
+
+
+Here's an overview of the experiment results data structures and where they are used:
+
+location        | data structure
+----------------|---------------------
+pkl 	        | `ExperimentResults` (unexpanded)
+in Memory only 	| `ExperimentResultsAnalysis`/`ExperimentResultsOnlineUnrestricted` with `dict`s
+csv/DataFrame 	| `ExperimentResultsAnalysis`/`ExperimentResultsOnlineUnrestricted` without columns of type `object`.
 
 Here's the main part of `src/python/rsp/rsp_overleaf_pipeline.py`:
 
