@@ -23,6 +23,7 @@ import plotly.graph_objects as go
 from flatland.core.grid.grid_utils import position_to_coordinate
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
 from rsp.scheduling.scheduling_problem import path_stats
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
