@@ -41,7 +41,7 @@ if __name__ == "__main__":
         reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         # create new folder, add BASELINE_DATA_FOLDER for incremental
-        experiment_output_base_directory=None,
+        experiment_output_base_directory="../rsp-data/PUBLICATION_DATA/PUBLICATION_DATA_transmission_chains_fix/",
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         grid_mode=False,
         speed_data={
