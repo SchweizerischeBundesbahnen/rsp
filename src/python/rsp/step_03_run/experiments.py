@@ -793,6 +793,7 @@ def run_experiment_from_to_file(
         return os.getpid()
     except Exception as e:
         rsp_logger.error(f"XXX failed experiment_id={experiment_parameters.experiment_id} in {experiment_data_directory} with error message: " + str(e))
+        rsp_logger.error(e, exc_info=True)
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:

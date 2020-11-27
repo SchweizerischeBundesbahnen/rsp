@@ -79,6 +79,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
 
+        # N.B. set PYTHONPATH only after pre-commit, may cause reorder-import to fail else
         export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
         echo PYTHONPATH=\$PYTHONPATH
 
