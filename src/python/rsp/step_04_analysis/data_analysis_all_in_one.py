@@ -7,6 +7,7 @@ import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
+
 from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import ScheduleProblemEnum

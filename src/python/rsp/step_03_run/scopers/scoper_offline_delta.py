@@ -6,6 +6,7 @@ import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.scheduling.propagate import _get_delayed_trainrun_waypoint_after_malfunction
 from rsp.scheduling.propagate import propagate
 from rsp.scheduling.propagate import verify_consistency_of_route_dag_constraints_for_agent

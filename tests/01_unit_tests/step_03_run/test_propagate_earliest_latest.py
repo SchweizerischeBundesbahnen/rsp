@@ -1,6 +1,7 @@
 import numpy as np
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.scheduling.propagate import _propagate_earliest
 from rsp.scheduling.propagate import propagate
 from rsp.scheduling.scheduling_problem import _get_topology_from_agents_path_dict

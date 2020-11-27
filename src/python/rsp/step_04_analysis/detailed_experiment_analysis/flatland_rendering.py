@@ -9,6 +9,7 @@ import numpy as np
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiments import create_env_from_experiment_parameters

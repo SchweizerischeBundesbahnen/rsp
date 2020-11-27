@@ -11,6 +11,7 @@ import networkx as nx
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.utils.rsp_logger import rsp_logger
 
 TopoDict = Dict[int, nx.DiGraph]

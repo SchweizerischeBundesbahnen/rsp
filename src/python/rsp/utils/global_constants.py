@@ -2,6 +2,7 @@ from typing import List
 from typing import NamedTuple
 
 from frozenlist import FrozenList
+
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 
 GlobalConstants = NamedTuple(

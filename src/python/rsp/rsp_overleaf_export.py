@@ -1,6 +1,7 @@
 from functools import partial
 
 from pandas import DataFrame
+
 from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_03_run.experiment_results_analysis import filter_experiment_results_analysis_data_frame
 from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes_visualization

@@ -5,6 +5,7 @@ from typing import Dict
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.scheduling.scheduling_problem import _get_topology_from_agents_path_dict
 from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
 from rsp.scheduling.scheduling_problem import experiment_freeze_pretty_print

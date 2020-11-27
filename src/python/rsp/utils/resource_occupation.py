@@ -7,6 +7,7 @@ from typing import NamedTuple
 from typing import Tuple
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.step_03_run.experiment_results import ExperimentResults
 from rsp.step_03_run.experiment_results_analysis import all_scopes
