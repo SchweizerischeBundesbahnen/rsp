@@ -60,6 +60,7 @@ def extract_transmission_chains_from_schedule(malfunction: ExperimentMalfunction
             continue
         closed_wave_front[wave_front] = delay_time
 
+        # subsequent resource occupations: next agent in the delay window at the resource
         # a' <=> ro.agent_id: the next scheduled train at r!
         ro = next(iter([ro for ro in resource_occupations_per_resource[wave_front_resource] if ro.interval.from_incl >= wave_front.interval.to_excl]), None)
 
@@ -77,8 +78,6 @@ def extract_transmission_chains_from_schedule(malfunction: ExperimentMalfunction
                 impact_distance_from_wave_front = delay_time - remaining_delay_time
                 assert impact_distance_from_wave_front >= 0
 
-                # subsequent resource occupations: all agents in the delay window at the resource
-
                 # argmax_{v''} { A_{S_0}(a',v''): A_{S_0}(a',v'') < A_{S_0}(a',v') }
                 start_ro = next(
                     reversed(
@@ -86,13 +85,13 @@ def extract_transmission_chains_from_schedule(malfunction: ExperimentMalfunction
                             subsequent_ro
                             for subsequent_ro in resource_occupations_per_agent[ro.agent_id]
                             # the propagation may flow backwards in space: agents may already wait one cell in advance!
-                            # here we assume green wave of a': it cannot absorb (some of) d'
                             # A_{S_0}(a',v'') < A_{S_0}(a',v')
                             # ro.interval.from_incl <=> A_{S_0}(a',v')
                             # subsequent_ro.interval.from_incl <=> A_{S_0}(a',v'')
                             if subsequent_ro.interval.from_incl < ro.interval.from_incl
                         ]
-                    )
+                    ),
+                    None,
                 )
 
                 # if argmax_{v''} is not defined, take ro.interval.from_incl <=> A_{S_0}(a',v')
