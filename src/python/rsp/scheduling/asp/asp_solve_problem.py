@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.scheduling.asp.asp_helper import configuration_as_dict_from_control
 from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
 from rsp.scheduling.asp.asp_solution_description import ASPSolutionDescription

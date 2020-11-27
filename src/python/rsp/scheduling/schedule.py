@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Set
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 

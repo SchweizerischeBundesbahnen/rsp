@@ -8,6 +8,7 @@ from typing import Tuple
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 from rsp.scheduling.asp.asp_data_types import ASPObjective
 from rsp.scheduling.asp.asp_helper import flux_helper

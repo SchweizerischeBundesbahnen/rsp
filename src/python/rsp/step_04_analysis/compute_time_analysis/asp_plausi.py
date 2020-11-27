@@ -1,6 +1,7 @@
 from typing import Optional
 
 import pandas as pd
+
 from rsp.step_03_run.experiment_results_analysis import all_scopes_visualization
 from rsp.step_04_analysis.plot_utils import ColumnSpec
 from rsp.step_04_analysis.plot_utils import marker_color_scope

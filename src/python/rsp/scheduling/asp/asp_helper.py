@@ -10,6 +10,7 @@ from typing import Set
 import clingo
 import numpy as np
 from importlib_resources import path
+
 from rsp.scheduling.asp import theory
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 from rsp.scheduling.asp.asp_data_types import ASPObjective
