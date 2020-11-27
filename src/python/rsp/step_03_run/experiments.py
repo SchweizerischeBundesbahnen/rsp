@@ -20,6 +20,7 @@ save_experiment_results_to_file
 load_experiment_results_to_file
     Load the results form an experiment result file
 """
+import _pickle
 import datetime
 import glob
 import itertools
@@ -30,10 +31,8 @@ import pickle
 import platform
 import pprint
 import shutil
-import sys
 import threading
 import time
-import traceback
 from functools import partial
 from typing import Any
 from typing import Callable
@@ -135,7 +134,12 @@ def _pickle_load(file_name: str, folder: Optional[str] = None):
     if folder is not None:
         file_path = os.path.join(folder, file_name)
     with open(file_path, "rb") as handle:
-        return RenameUnpickler(handle).load()
+        try:
+            return RenameUnpickler(handle).load()
+        except _pickle.UnpicklingError as e:
+            rsp_logger.error(f"Failed unpickling {file_path}")
+            rsp_logger.error(e, exc_info=True)
+            raise e
 
 
 def save_schedule(
@@ -532,7 +536,7 @@ def run_experiment_in_memory(
         problem_schedule=schedule_problem,
         problem_online_unrestricted=problem_online_unrestricted,
         problem_offline_delta=problem_offline_delta,
-        problem_offline_delta_weak=problem_offline_delta,
+        problem_offline_delta_weak=problem_offline_delta_weak,
         problem_offline_fully_restricted=problem_offline_fully_restricted,
         problem_online_route_restricted=problem_online_route_restricted,
         problem_online_transmission_chains_fully_restricted=problem_online_transmission_chains_fully_restricted,
@@ -688,6 +692,7 @@ def run_experiment_from_to_file(
     csv_only: bool = False,
     debug: bool = False,
     online_unrestricted_only: bool = False,
+    raise_exceptions: bool = False,
 ):
     """A.2 + B. Run and save one experiment from experiment parameters.
     Parameters
@@ -791,8 +796,14 @@ def run_experiment_from_to_file(
 
         return os.getpid()
     except Exception as e:
-        rsp_logger.error(f"XXX failed experiment_id={experiment_parameters.experiment_id} in {experiment_data_directory} with error message: " + str(e))
-        traceback.print_exc(file=sys.stderr)
+        rsp_logger.error(e, exc_info=True)
+        rsp_logger.error(
+            f"XXX failed experiment_id={experiment_parameters.experiment_id} in {experiment_data_directory}, "
+            f"infra_id={experiment_parameters.infra_parameters.infra_id}, "
+            f"schedule_id={experiment_parameters.schedule_parameters.schedule_id}"
+        )
+        if raise_exceptions:
+            raise e
         return os.getpid()
     finally:
         remove_file_handler_from_rsp_logger(stdout_log_fh)
