@@ -6,6 +6,7 @@ channels:
   - plotly
   - conda-forge
 dependencies:
+  - python==3.7.6
   - ca-certificates=2019.11.27=0
   - cairo==1.14.12
   - certifi=2019.11.28
