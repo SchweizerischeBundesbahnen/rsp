@@ -21,26 +21,45 @@ sys.path.append("../../src/python")
 sys.path.append("../../src/asp")
 from IPython.display import Video
 import pandas as pd
+import plotly.express as px
 
 
 from rsp.step_03_run.experiments import *
 from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import *
 from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import *
 from rsp.step_04_analysis.detailed_experiment_analysis.flatland_rendering import *
+from rsp.step_04_analysis.detailed_experiment_analysis.scatter_with_slider import *
 
 from rsp.step_04_analysis.plot_utils import *
 from rsp.utils.global_data_configuration import *
 from rsp.utils.resource_occupation import *
 from rsp.scheduling.asp.asp_helper import _print_stats
 
+import pprint
 
+_pp = pprint.PrettyPrinter(indent=4)
+
+INFRAS_AND_SCHEDULES_FOLDER = f"../../{INFRAS_AND_SCHEDULES_FOLDER}"
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
+
+# if we have csv_only=True, re-run the experiment to generate pkl as well?
+run_experiment = False
 ```
 
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 1
+experiment_of_interest = 342
+```
+
+```{python}
+if run_experiment:
+        run_experiment_agenda(
+            experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+            experiment_output_directory=BASELINE_DATA_FOLDER,
+            csv_only=False,
+            filter_experiment_agenda=lambda experiment_parameters: experiment_parameters.experiment_id == experiment_of_interest,
+        )
 ```
 
 ```{python}
@@ -75,6 +94,20 @@ The figure below shows the initial schedule we use as input to our re-scheduling
 
 ```{python}
 plot_time_resource_trajectories_all_scopes(experiment_results=exp_results_of_experiment_of_interest, plotting_information=plotting_information)
+```
+
+### Changed agents
+
+```{python}
+schedule_trainruns_dict = exp_results_of_experiment_of_interest.results_schedule.trainruns_dict
+for scope in rescheduling_scopes:
+    reschedule_trainruns_dict = exp_results_of_experiment_of_interest._asdict()[f"results_{scope}"].trainruns_dict
+    values = [
+        agent_id
+        for agent_id, trainrun_reschedule in reschedule_trainruns_dict.items()
+        if set(schedule_trainruns_dict[agent_id]) != set(trainrun_reschedule)
+    ]
+    print(f"{scope}: {values}")
 ```
 
 ```{python}
@@ -139,14 +172,177 @@ plot_train_paths(
 ```
 
 ```{python}
-video_src_schedule, video_src_reschedule=render_flatland_env(data_folder=experiment_base_directory,
-                    experiment_data=exp_results_of_experiment_of_interest,
-                    render_schedule = True,
-                    render_reschedule = True)
+sorted_resource_occupations_per_scope_and_agent = {
+    scope:     extract_resource_occupations(
+            exp_results_of_experiment_of_interest._asdict()[f"results_{scope}"].trainruns_dict, GLOBAL_CONSTANTS.RELEASE_TIME
+    ).sorted_resource_occupations_per_agent
+    for scope in all_scopes
+}
 ```
 
 ```{python}
-Video(video_src_schedule, embed=True)
+height = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.height
+width = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.width
+num_agents = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.number_of_agents
+```
+
+```{python}
+occupations = []
+resources = set()
+for scope in all_scopes:
+    trainruns_dict = exp_results_of_experiment_of_interest._asdict()[f"results_{scope}"].trainruns_dict
+    sorted_resource_occupations_per_agent = sorted_resource_occupations_per_scope_and_agent[scope]
+    for agent_id, sorted_resource_occupations_per_agent in sorted_resource_occupations_per_agent.items():
+        occupations_x = {}
+        occupations_y = {}
+        for ro in sorted_resource_occupations_per_agent:
+            for time_step in range(ro.interval.from_incl,ro.interval.to_excl):
+                occupations.append((scope, ro.resource.row,ro.resource.column,time_step,agent_id, ro.direction, str(tuple(ro.resource))))
+                resources.add(tuple(ro.resource))
+
+
+
+full_df = pd.DataFrame(occupations, columns =['scope', 'row', 'column', 'time_step', 'agent_id', 'direction', 'position'])
+full_df.sort_values(['agent_id', 'time_step','scope',],
+              ascending = [True, True, True])
+
+df_background = pd.DataFrame(resources, columns =['row', 'column'])
+```
+
+```{python}
+color_discrete_map = dict(enumerate(PLOTLY_COLORLIST))
+color_discrete_map[-1] = 'grey'
+symbol_map=dict(enumerate(['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']))
+symbol_map[-1] = 'square'
+```
+
+```{python}
+print("-------------------------------------------------|-------|---------------------|-----------------------------------")
+print("scope                                            | costs | costs_from_lateness | costs_from_route_section_penalties")
+print("-------------------------------------------------|-------|---------------------|-----------------------------------")
+for scope in rescheduling_scopes:
+    costs = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_{scope}"]
+    costs_from_lateness = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_from_lateness_{scope}"]
+    costs_from_route_section_penalties = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_from_route_section_penalties_{scope}"]
+    print(f"{scope:49}| {costs:4.0f}  | {costs_from_lateness:19.0f} | {costs_from_route_section_penalties:34.0f}")
+```
+
+```{python}
+TODO: instead lateness and route section penalties distribution per agent
+
+print(num_agents)
+change_range_dict = {}
+left_scope = "online_unrestricted"
+right_scope = "offline_delta_weak"
+for agent_id in range(num_agents):
+    left_scope_ros = set(sorted_resource_occupations_per_scope_and_agent[left_scope][agent_id])
+    right_scope_ros = set(sorted_resource_occupations_per_scope_and_agent[right_scope][agent_id])
+    sym_diff = left_scope_ros.symmetric_difference(right_scope_ros)
+
+    costs_from_route_section_penalties_left = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_from_route_section_penalties_per_agent_{left_scope}"][agent_id]
+    costs_from_route_section_penalties_right = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_from_route_section_penalties_per_agent_{right_scope}"][agent_id]
+    lateness_left = exp_results_analysis_of_experiment_of_interest._asdict()[f"lateness_per_agent_{left_scope}"][agent_id]
+    lateness_right = exp_results_analysis_of_experiment_of_interest._asdict()[f"lateness_per_agent_{right_scope}"][agent_id]
+
+    if (costs_from_route_section_penalties_left != costs_from_route_section_penalties_right) or (lateness_left != lateness_left):
+        print(f"agent {agent_id} ")
+        print(f"                                     {left_scope}-{right_scope}")
+        print(f"  lateness                           {lateness_left} - {lateness_right}")
+        print(f"  costs_from_route_section_penalties {costs_from_route_section_penalties_left} - {costs_from_route_section_penalties_right}")
+
+    if sym_diff:
+        change_range_dict[agent_id]=(np.min([ro.interval.from_incl for ro in sym_diff]), np.max([ro.interval.to_excl for ro in sym_diff]))
+        print(f"{agent_id}: {change_range_dict[agent_id]}")
+print(change_range_dict)
+change_range_lbs, change_range_ubs = list(zip(*change_range_dict.values()))
+
+change_interval = (np.min(change_range_lbs), np.max(change_range_ubs))
+print(change_interval)
+```
+
+```{python}
+agent_range = [6,48]
+agent_range = list(range(0, num_agents))
+#change_interval = (900, 980)
+time_step_range = range(*change_interval)
+
+
+df = full_df[full_df["scope"].isin(["online_unrestricted", "offline_delta_weak"])]
+if agent_range is not None:
+    df = df[df["agent_id"].isin(agent_range)]
+if time_step_range is not None:
+    df = df[df["time_step"].isin(time_step_range)]
+
+
+# TODO moving number in colorbar ?!
+# TODO remove hard-codd in
+# TODO better hovertext
+# TODO start step at lower bound, get rid of ste-*
+
+
+scatter_with_slider(df, x_dim="column", y_dim="row", slider_dim="time_step", range_x=[0,width], range_y=[height,0],range_slider=change_interval, agents_list=agent_range,
+                   df_background = df_background
+                   )
+raise
+fig = px.scatter(df, x="column", y="row",
+                 animation_frame="time_step",
+                 hover_name="scope",
+                 range_x=[0,width], range_y=[height,0],
+                 color="agent_id", color_discrete_map = color_discrete_map,
+                 symbol="agent_id", symbol_map={agent_id: "square" for agent_id in agent_range},
+             title="online_unrestricted - offline_delta_weak")
+fig.show()
+fig = px.scatter_3d(df, x="column", y="row", z="time_step",
+                 hover_name="scope",
+                 range_x=[0,width], range_y=[height,0],
+                 color="agent_id", color_discrete_map = dict(enumerate(PLOTLY_COLORLIST)),
+                 title="online_unrestricted - offline_delta_weak")
+fig.show()
+```
+
+```{python}
+for scope in all_scopes:
+    df = full_df[full_df["scope"] == scope]
+    if agent_range is not None:
+        df = df[df["agent_id"].isin(agent_range)]
+    if time_step_range is not None:
+        df = df[df["time_step"].isin(time_step_range)]
+
+    fig = px.scatter(df, x="position", y="time_step",
+                     hover_name="agent_id",
+                     range_y=list(reversed(change_interval)),
+                     color="agent_id", color_discrete_map = dict(enumerate(PLOTLY_COLORLIST)),
+                     symbol="agent_id", symbol_map={agent_id: "square" for agent_id in agent_range},
+                     title=scope)
+    fig.show()
+```
+
+```{python}
+for scope in all_scopes:
+    df = full_df[full_df["scope"] == scope]
+    if agent_range is not None:
+        print(agent_range)
+        df = df[df["agent_id"].isin(agent_range)]
+    if time_step_range is not None:
+        df = df[df["time_step"].isin(time_step_range)]
+
+    df = df.sort_values(['time_step','agent_id',],
+              ascending = [True, True])
+    fig = px.scatter(df, x="column", y="row",
+                 animation_frame="time_step",
+                 hover_name="scope",
+                 range_x=[-1,width], range_y=[height,-1],
+                 color="agent_id", color_discrete_map = dict(enumerate(PLOTLY_COLORLIST)),
+                 symbol="agent_id", symbol_map={agent_id: "square" for agent_id in agent_range},
+             title=scope)
+
+
+    fig.show()
+    fig = px.scatter_3d(df, x="column", y="row", z='time_step',
+                    color='agent_id',
+                    range_x=[0,width], range_y=[height,0],
+                       )
+    fig.show()
 ```
 
 ```{python}

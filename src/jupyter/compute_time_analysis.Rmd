@@ -74,6 +74,15 @@ axis_of_interest = 'n_agents'
 columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'online_unrestricted', 'offline_delta']]
 ```
 
+```{python}
+for scope in rescheduling_scopes:
+    print(scope)
+    if "weak" in scope:
+        print(f"skipping {scope}, wrong results generated, see next pr")
+        continue
+    print(experiment_data_filtered[(experiment_data_filtered['costs_online_unrestricted']==experiment_data_filtered[f'costs_{scope}']) & (experiment_data_filtered['costs_from_route_section_penalties_online_unrestricted']!=experiment_data_filtered[f'costs_from_route_section_penalties_{scope}'])]['experiment_id'])
+```
+
 ### Inspect experiment parameters
 
 ```{python}
