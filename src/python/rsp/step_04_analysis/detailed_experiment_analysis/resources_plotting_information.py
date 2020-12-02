@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Tuple
 
 from flatland.core.grid.grid_utils import coordinate_to_position
+
 from rsp.utils.resource_occupation import ResourceOccupation
 from rsp.utils.resource_occupation import ScheduleAsResourceOccupations
 

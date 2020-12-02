@@ -71,13 +71,18 @@ curl --insecure -v --request POST -H "Authorization: token ${
         conda init bash
         source ~/.bashrc
         # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-        conda env create --file rsp_environment.yml --force python=3.7
+        conda env create --file rsp_environment.yml python=3.7
         conda activate rsp
-        export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
-        echo PYTHONPATH=\$PYTHONPATH
+        python --version
+
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
+
+        # N.B. set PYTHONPATH only after pre-commit, may cause reorder-import to fail else
+        export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
+        echo PYTHONPATH=\$PYTHONPATH
+
         # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
         python -m pytest tests/01_unit_tests
         python -m pytest tests/02_regression_tests
@@ -124,7 +129,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
                     // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
                     expression { env.CHANGE_ID == null }
                     // TODO notebook tests currently disabled
-                    expression { 'disabled' == 'enabled'}
+                    expression { 'disabled' == 'enabled' }
                 }
             }
             steps {

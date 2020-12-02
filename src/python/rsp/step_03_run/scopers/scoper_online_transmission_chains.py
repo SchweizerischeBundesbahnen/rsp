@@ -5,6 +5,7 @@ from typing import Tuple
 
 import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.scheduling.propagate import verify_consistency_of_route_dag_constraints_for_agent
 from rsp.scheduling.scheduling_problem import RouteDAGConstraints
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict

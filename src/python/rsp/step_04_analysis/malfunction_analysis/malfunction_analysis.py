@@ -4,6 +4,7 @@ from typing import Optional
 
 import numpy as np
 import plotly.graph_objects as go
+
 from rsp.step_02_setup.data_types import ExperimentMalfunction
 from rsp.step_03_run.experiment_results_analysis import ExperimentResultsAnalysis
 from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes

@@ -233,7 +233,7 @@ Define a filter and re-run the agenda from the output directory with `csv_only=F
 
         run_experiment_agenda(
             experiment_base_directory="../rsp-data/my-agenda",
-            experiment_output_directory=../rsp-data/my-agenda/my-run,
+            experiment_output_directory="../rsp-data/my-agenda/my-run",
             csv_only=False,
             filter_experiment_agenda=filter_experiment_agenda,
         )
@@ -241,6 +241,18 @@ Define a filter and re-run the agenda from the output directory with `csv_only=F
 The agenda will be read from the `experiment_output_directory`.
 
 For a full example, see `test_rerun_single_experiment_after_csv_only()`.
+
+### Use case 4: you want to re-rerun the same agenda
+1. Make a new run directory:  `mkdir -p ../rsp-data/my-agenda/my-new-run`
+2. Copy the old agenda from the old to the new run directory: `cp ../rsp-data/my-agenda/my-old-run/experiment_agenda.pkl ../rsp-data/my-agenda/my-new-run`
+3. Run the agenda
+
+        run_experiment_agenda(
+            experiment_base_directory="../rsp-data/my-agenda",
+            experiment_output_directory="../rsp-data/my-agenda/my-new-run",
+            csv_only=False,
+            filter_experiment_agenda=filter_experiment_agenda,
+        )
 
 ## Coding Guidelines
 See [CODING.md](CODING.md).

@@ -50,6 +50,7 @@ from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from pandas import DataFrame
+
 from rsp.scheduling.asp.asp_helper import _print_stats
 from rsp.scheduling.asp_wrapper import asp_reschedule_wrapper
 from rsp.scheduling.asp_wrapper import asp_schedule_wrapper
@@ -792,6 +793,7 @@ def run_experiment_from_to_file(
         return os.getpid()
     except Exception as e:
         rsp_logger.error(f"XXX failed experiment_id={experiment_parameters.experiment_id} in {experiment_data_directory} with error message: " + str(e))
+        rsp_logger.error(e, exc_info=True)
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:
