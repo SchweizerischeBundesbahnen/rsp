@@ -33,6 +33,7 @@ RESCHEDULE_PARAMETERS_RANGE = ReScheduleParametersRange(
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
     return experiment.re_schedule_parameters.malfunction_agent_id < 100
 
+NEW_OUTPUT_FOLDER = "../rsp-data/PUBLICATION_DATA/NEW_RUN"
 
 if __name__ == "__main__":
     rsp_pipeline_baseline_and_calibrations(
@@ -41,7 +42,7 @@ if __name__ == "__main__":
         reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,
         base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         # create new folder, add BASELINE_DATA_FOLDER for incremental
-        experiment_output_base_directory=None,
+        experiment_output_base_directory=NEW_OUTPUT_FOLDER,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
         grid_mode=False,
         speed_data={
@@ -50,4 +51,5 @@ if __name__ == "__main__":
             1.0 / 3.0: 0.25,  # Slow commuter train
             1.0 / 4.0: 0.25,  # Slow freight train
         },
+        csv_only=True
     )
