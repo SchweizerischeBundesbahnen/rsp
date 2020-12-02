@@ -60,13 +60,12 @@ from rsp.scheduling.scheduling_problem import get_sources_for_topo
 from rsp.scheduling.scheduling_problem import path_stats
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import TopoDict
+from rsp.step_01_planning.agenda_expansion import expand_infrastructure_parameter_range
+from rsp.step_01_planning.agenda_expansion import expand_schedule_parameter_range
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentAgenda
 from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
-from rsp.step_01_planning.experiment_parameters_and_ranges import ParameterRangesAndSpeedData
-from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParameters
-from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
 from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
 from rsp.step_01_planning.experiment_parameters_and_ranges import SpeedData
@@ -95,7 +94,6 @@ from rsp.utils.experiment_env_generators import create_flatland_environment
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.file_utils import get_experiment_id_from_filename
 from rsp.utils.file_utils import newline_and_flush_stdout_and_stderr
-from rsp.utils.global_constants import get_defaults
 from rsp.utils.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.global_constants import GlobalConstants
 from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
@@ -272,6 +270,7 @@ def run_experiment_in_memory(
         number_of_shortest_paths=experiment_parameters.re_schedule_parameters.number_of_shortest_paths_per_agent,
     )
 
+    # TODO SIM-774 streamline 5 stages according to overleaf; introduce planning stage; split experiments.py!!!
     # --------------------------------------------------------------------------------------
     # B.1. Re-schedule Full
     # --------------------------------------------------------------------------------------
@@ -792,7 +791,7 @@ def run_experiment_from_to_file(
 
         return os.getpid()
     except Exception as e:
-        rsp_logger.error(f"XXX failed {experiment_parameters.experiment_id} {experiment_data_directory} " + str(e))
+        rsp_logger.error(f"XXX failed experiment_id={experiment_parameters.experiment_id} in {experiment_data_directory} with error message: " + str(e))
         traceback.print_exc(file=sys.stderr)
         return os.getpid()
     finally:
@@ -831,20 +830,20 @@ def load_and_filter_experiment_results_analysis(
 
 
 def run_experiment_agenda(
-    experiment_agenda: ExperimentAgenda,
     experiment_base_directory: str,
-    experiment_output_directory: str,
+    experiment_agenda: ExperimentAgenda = None,
+    experiment_output_directory: str = None,
     filter_experiment_agenda: Callable[[ExperimentParameters], bool] = None,
     # take only half of avilable cpus so the machine stays responsive
     run_experiments_parallel: int = AVAILABLE_CPUS // 2,
     csv_only: bool = False,
     online_unrestricted_only: bool = False,
 ) -> str:
-    """Run A.2 + B.
+    """Run A.2 + B. Presupposes infras and schedules
     Parameters
     ----------
-
     experiment_output_directory
+        if passed, agenda in this directory must be the same as the one passed
     experiment_agenda: ExperimentAgenda
         Full list of experiments
     experiment_base_directory: str
@@ -853,17 +852,39 @@ def run_experiment_agenda(
         filter which experiment to run
     run_experiments_parallel: in
         run experiments in parallel
-    verbose: bool
-        Print additional information
+    run_analysis
+    online_unrestricted_only
+    csv_only
 
     Returns
     -------
     Returns the name of the experiment base and data folders
     """
+    assert (
+        experiment_agenda is not None or experiment_output_directory is not None
+    ), "Either experiment_agenda or experiment_output_directory must be specified."
+    if experiment_output_directory is None:
+        experiment_output_directory = f"{experiment_base_directory}/" + create_experiment_folder_name(experiment_agenda.experiment_name)
+        check_create_folder(experiment_output_directory)
 
     experiment_data_directory = f"{experiment_output_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}"
 
-    # N.B. we must guarantee that access happens in same thread and that not two agendas are running concurrently
+    if exists_experiment_agenda(experiment_output_directory):
+
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"loading agenda <- {experiment_output_directory}")
+        rsp_logger.info(f"============================================================================================================")
+
+        experiment_agenda_from_file = load_experiment_agenda_from_file(experiment_folder_name=experiment_output_directory)
+
+        if experiment_agenda is not None:
+            assert experiment_agenda_from_file == experiment_agenda
+        experiment_agenda = experiment_agenda_from_file
+    elif experiment_agenda is not None:
+        save_experiment_agenda_and_hash_to_file(output_base_folder=experiment_output_directory, experiment_agenda=experiment_agenda)
+    else:
+        raise Exception("Either experiment_agenda or experiment_output_directory with experiment_agenda.pkl must be passed.")
+    assert experiment_agenda is not None
 
     check_create_folder(experiment_data_directory)
 
@@ -876,11 +897,37 @@ def run_experiment_agenda(
     stdout_log_fh = add_file_handler_to_rsp_logger(stdout_log_file, logging.INFO)
     stderr_log_fh = add_file_handler_to_rsp_logger(stderr_log_file, logging.ERROR)
     try:
+
         if filter_experiment_agenda is not None:
+            len_before_filtering = len(experiment_agenda.experiments)
+            rsp_logger.info(f"============================================================================================================")
+            rsp_logger.info(f"filtering agenda by passed filter {filter_experiment_agenda} <- {experiment_output_directory}")
+            rsp_logger.info(f"============================================================================================================")
             experiments_filtered = filter(filter_experiment_agenda, experiment_agenda.experiments)
             experiment_agenda = ExperimentAgenda(
                 experiment_name=experiment_agenda.experiment_name, global_constants=experiment_agenda.global_constants, experiments=list(experiments_filtered)
             )
+            rsp_logger.info(
+                f"after applying filter, there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda)
+            )
+
+        rsp_logger.info(f"============================================================================================================")
+        rsp_logger.info(f"filtering agenda by experiments not run yet <- {experiment_output_directory}")
+        rsp_logger.info(f"============================================================================================================")
+        len_before_filtering = len(experiment_agenda.experiments)
+        experiment_agenda = ExperimentAgenda(
+            experiment_name=experiment_agenda.experiments,
+            experiments=[
+                experiment
+                for experiment in experiment_agenda.experiments
+                if load_experiments_results(experiment_data_folder_name=experiment_data_directory, experiment_id=experiment.experiment_id) is None
+            ],
+            global_constants=experiment_agenda.global_constants,
+        )
+        rsp_logger.info(
+            f"after filtering out experiments already run from {experiment_output_directory}, "
+            f"there are {len(experiment_agenda.experiments)} experiments out of {len_before_filtering}: \n" + str(experiment_agenda)
+        )
 
         rsp_logger.info(f"============================================================================================================")
         rsp_logger.info(f"RUNNING agenda -> {experiment_data_directory} ({len(experiment_agenda.experiments)} experiments)")
@@ -896,6 +943,7 @@ def run_experiment_agenda(
         rsp_logger.info(f"pool size {pool._processes} / {multiprocessing.cpu_count()} ({os.cpu_count()}) cpus on {platform.node()}")
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE, separated in files)
         newline_and_flush_stdout_and_stderr()
+
         run_and_save_one_experiment_partial = partial(
             run_experiment_from_to_file,
             experiment_base_directory=experiment_base_directory,
@@ -915,6 +963,7 @@ def run_experiment_agenda(
         # nicer printing when tdqm print to stderr and we have logging to stdout shown in to the same console (IDE)
         newline_and_flush_stdout_and_stderr()
         _print_error_summary(experiment_data_directory)
+
     finally:
         remove_file_handler_from_rsp_logger(stdout_log_fh)
         remove_file_handler_from_rsp_logger(stderr_log_fh)
@@ -937,100 +986,6 @@ def _print_error_summary(experiment_data_directory):
     print("\n\n\n\n")
 
 
-def filter_experiment_agenda(current_experiment_parameters, experiment_ids) -> bool:
-    return current_experiment_parameters.experiment_id in experiment_ids
-
-
-def create_experiment_agenda_from_parameter_ranges_and_speed_data(
-    experiment_name: str,
-    parameter_ranges_and_speed_data: ParameterRangesAndSpeedData,
-    flatland_seed: int = 12,
-    experiments_per_grid_element: int = 1,
-    debug: bool = False,
-) -> ExperimentAgenda:
-    """Create an experiment agenda given a range of parameters defined as
-    ParameterRanges.
-    Parameters
-    ----------
-
-    parameter_ranges_and_speed_data
-    flatland_seed
-    experiment_name: str
-        Name of the experiment
-    experiments_per_grid_element: int
-        Number of runs with different seed per parameter set we want to run
-    debug
-
-    Returns
-    -------
-    ExperimentAgenda built from the ParameterRanges
-    """
-    parameter_ranges = parameter_ranges_and_speed_data.parameter_ranges
-    number_of_dimensions = len(parameter_ranges)
-    parameter_values = [[] for _ in range(number_of_dimensions)]
-
-    # Setup experiment parameters
-    for dim_idx, dimensions in enumerate(parameter_ranges):
-        if dimensions[-1] > 1:
-            parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1], np.abs(dimensions[1] - dimensions[0]) / dimensions[-1], dtype=int)
-        else:
-            parameter_values[dim_idx] = [dimensions[0]]
-    full_param_set = span_n_grid([], parameter_values)
-    experiment_list = []
-    for grid_id, parameter_set in enumerate(full_param_set):
-        for run_of_this_grid_element in range(experiments_per_grid_element):
-            experiment_id = grid_id * experiments_per_grid_element + run_of_this_grid_element
-            # 0: size_range
-            # 1: agent_range
-            # 2: in_city_rail_range
-            # 3: out_city_rail_range
-            # 4: city_range
-            # 5: earliest_malfunction
-            # 6: malfunction_duration
-            # 7: number_of_shortest_paths_per_agent
-            # 8: max_window_size_from_earliest
-            # 9: asp_seed_value
-            # 10: weight_route_change
-            # 11: weight_lateness_seconds
-            current_experiment = ExperimentParameters(
-                experiment_id=experiment_id,
-                grid_id=grid_id,
-                infra_id_schedule_id=grid_id,
-                infra_parameters=InfrastructureParameters(
-                    infra_id=grid_id,
-                    speed_data=parameter_ranges_and_speed_data.speed_data,
-                    width=parameter_set[0],
-                    height=parameter_set[0],
-                    flatland_seed_value=flatland_seed + run_of_this_grid_element,
-                    max_num_cities=parameter_set[4],
-                    # Do we need to have this true?
-                    grid_mode=False,
-                    max_rail_between_cities=parameter_set[3],
-                    max_rail_in_city=parameter_set[2],
-                    number_of_agents=parameter_set[1],
-                    number_of_shortest_paths_per_agent=parameter_set[7],
-                ),
-                schedule_parameters=ScheduleParameters(
-                    infra_id=grid_id, schedule_id=grid_id, asp_seed_value=parameter_set[9], number_of_shortest_paths_per_agent_schedule=1
-                ),
-                re_schedule_parameters=ReScheduleParameters(
-                    earliest_malfunction=parameter_set[5],
-                    malfunction_duration=parameter_set[6],
-                    malfunction_agent_id=0,
-                    weight_route_change=parameter_set[10],
-                    weight_lateness_seconds=parameter_set[11],
-                    max_window_size_from_earliest=parameter_set[8],
-                    number_of_shortest_paths_per_agent=10,
-                    asp_seed_value=94,
-                ),
-            )
-
-            experiment_list.append(current_experiment)
-    experiment_agenda = ExperimentAgenda(experiment_name=experiment_name, global_constants=get_defaults(), experiments=experiment_list)
-    rsp_logger.info("Generated an agenda with {} experiments".format(len(experiment_list)))
-    return experiment_agenda
-
-
 def create_infrastructure_and_schedule_from_ranges(
     infrastructure_parameters_range: InfrastructureParametersRange,
     schedule_parameters_range: ScheduleParametersRange,
@@ -1039,10 +994,13 @@ def create_infrastructure_and_schedule_from_ranges(
     grid_mode: bool = False,
     run_experiments_parallel: int = 5,
 ) -> List[ScheduleParameters]:
+
+    # expand infrastructure parameters and generate infrastructure
     list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range=infrastructure_parameters_range, base_directory=base_directory, speed_data=speed_data, grid_mode=grid_mode
     )
 
+    # expand schedule parameters and get list of those missing
     list_of_schedule_parameters_to_generate: List[ScheduleParameters] = list(
         itertools.chain.from_iterable(
             [
@@ -1053,6 +1011,8 @@ def create_infrastructure_and_schedule_from_ranges(
             ]
         )
     )
+
+    # generate schedules in parallel
     pool = multiprocessing.Pool(processes=run_experiments_parallel, maxtasksperchild=1)
     gen_and_save_schedule_partial = partial(gen_and_save_schedule, base_directory=base_directory)
     for done in tqdm.tqdm(
@@ -1060,6 +1020,7 @@ def create_infrastructure_and_schedule_from_ranges(
     ):
         rsp_logger.info(f"done: {done}")
 
+    # expand schedule parameters and get full list
     list_of_schedule_parameters: List[ScheduleParameters] = list(
         itertools.chain.from_iterable(
             [
@@ -1091,94 +1052,8 @@ def list_infrastructure_and_schedule_params_from_base_directory(
             if filter_experiment_agenda is not None and not filter_experiment_agenda(infra_id, schedule_id):
                 continue
             schedule, schedule_parameters = load_schedule(base_directory=base_directory, infra_id=infra_id, schedule_id=schedule_id)
-
-            if debug:
-                for agent_id, topo in schedule.schedule_problem_description.topo_dict.topo_dict.items():
-                    print(f"    {agent_id} has {len(get_paths_in_route_dag(topo))} paths in infra {infra_id} / schedule {schedule_id}")
             infra_schedule_dict.setdefault(infra_parameters.infra_id, []).append((schedule_parameters, schedule))
     return infra_parameters_list, infra_schedule_dict
-
-
-def create_experiment_agenda_from_infrastructure_and_schedule_ranges(
-    experiment_name: str,
-    reschedule_parameters_range: ReScheduleParametersRange,
-    infra_parameters_list: List[InfrastructureParameters],
-    infra_schedule_dict: Dict[InfrastructureParameters, List[Tuple[ScheduleParameters, Schedule]]],
-    experiments_per_grid_element: int = 1,
-    global_constants: GlobalConstants = None,
-):
-    list_of_re_schedule_parameters = [ReScheduleParameters(*expanded) for expanded in expand_range_to_parameter_set(reschedule_parameters_range)]
-    infra_parameters_dict = {infra_parameters.infra_id: infra_parameters for infra_parameters in infra_parameters_list}
-    experiments = []
-
-    # we want to be able to have different number of schedules for two infrastructures, therefore, we increment counters
-    experiment_id = 0
-    grid_id = 0
-    infra_id_schedule_id = 0
-    for infra_id, list_of_schedule_parameters in infra_schedule_dict.items():
-        infra_parameters: InfrastructureParameters = infra_parameters_dict[infra_id]
-        for schedule_parameters, _ in list_of_schedule_parameters:
-            for re_schedule_parameters in list_of_re_schedule_parameters:
-                # allow for malfunction agent range to be greater than number of agents of this infrastructure
-                if re_schedule_parameters.malfunction_agent_id >= infra_parameters.number_of_agents:
-                    continue
-                for _ in range(experiments_per_grid_element):
-                    experiments.append(
-                        ExperimentParameters(
-                            experiment_id=experiment_id,
-                            schedule_parameters=schedule_parameters,
-                            infra_parameters=infra_parameters,
-                            grid_id=grid_id,
-                            infra_id_schedule_id=infra_id_schedule_id,
-                            re_schedule_parameters=re_schedule_parameters,
-                        )
-                    )
-                    experiment_id += 1
-                grid_id += 1
-            infra_id_schedule_id += 1
-    return ExperimentAgenda(
-        experiment_name=experiment_name, global_constants=get_defaults() if global_constants is None else global_constants, experiments=experiments
-    )
-
-
-def expand_range_to_parameter_set(parameter_ranges: List[Tuple[int, int, int]], debug: bool = False) -> List[List[int]]:
-    """Expand parameter ranges.
-
-    Parameters
-    ----------
-
-
-    Returns
-    -------
-    ExperimentAgenda built from the ParameterRanges
-    """
-    number_of_dimensions = len(parameter_ranges)
-    parameter_values = [[] for _ in range(number_of_dimensions)]
-
-    # Setup experiment parameters
-    for dim_idx, dimensions in enumerate(parameter_ranges):
-        if dimensions[-1] > 1:
-            step = np.abs(dimensions[1] - dimensions[0]) / dimensions[-1]
-            assert step > 0, "You should defined a number of items in the interval that makes the step < 1.0, check your parameters"
-            parameter_values[dim_idx] = np.arange(dimensions[0], dimensions[1], step, dtype=int)
-        else:
-            parameter_values[dim_idx] = [dimensions[0]]
-    full_param_set = span_n_grid([], parameter_values)
-    return full_param_set
-
-
-def expand_infrastructure_parameter_range(
-    infrastructure_parameter_range: InfrastructureParametersRange, speed_data: SpeedData, grid_mode: bool = True
-) -> List[InfrastructureParameters]:
-    expanded = expand_range_to_parameter_set(infrastructure_parameter_range)
-    return [
-        InfrastructureParameters(*([infra_id] + params[:4] + [grid_mode] + params[4:7] + [speed_data, params[7]])) for infra_id, params in enumerate(expanded)
-    ]
-
-
-def expand_schedule_parameter_range(schedule_parameter_range: ScheduleParametersRange, infra_id: int) -> List[ScheduleParameters]:
-    expanded = expand_range_to_parameter_set(schedule_parameter_range)
-    return [ScheduleParameters(*([infra_id, schedule_id] + params)) for schedule_id, params in enumerate(expanded)]
 
 
 def expand_infrastructure_parameter_range_and_generate_infrastructure(
@@ -1231,29 +1106,6 @@ def expand_schedule_parameter_range_and_get_those_not_existing_yet(
             continue
         list_of_schedule_parameters_to_generate.append(schedule_parameters)
     return list_of_schedule_parameters_to_generate
-
-
-def span_n_grid(collected_parameters: List, open_dimensions: List) -> list:
-    """Recursive function to generate all combinations of parameters given the
-    open_dimensions.
-    Parameters
-    ----------
-    collected_parameters: list
-        The parameter sets filled so far in the recurions, starts out empty
-    open_dimensions: list
-        Parameter dimensions we have not yet included in the set
-    Returns
-    -------
-    list of parameter sets for ExperimentAgenda
-    """
-    full_params = []
-    if len(open_dimensions) == 0:
-        return [collected_parameters]
-
-    for parameter in open_dimensions[0]:
-        full_params.extend(span_n_grid(collected_parameters + [parameter], open_dimensions[1:]))
-
-    return full_params
 
 
 def create_env_from_experiment_parameters(params: InfrastructureParameters) -> RailEnv:
@@ -1361,6 +1213,12 @@ def load_experiment_agenda_from_file(experiment_folder_name: str) -> ExperimentA
         Folder name of experiment where all experiment files and agenda are stored
     """
     return _pickle_load(file_name="experiment_agenda.pkl", folder=experiment_folder_name)
+
+
+def exists_experiment_agenda(experiment_folder_name: str) -> bool:
+    """Does a `ExperimentAgenda` exist?"""
+    file_name = os.path.join(experiment_folder_name, "experiment_agenda.pkl")
+    return os.path.isfile(file_name)
 
 
 def create_experiment_folder_name(experiment_name: str) -> str:

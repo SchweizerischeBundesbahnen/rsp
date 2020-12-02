@@ -458,11 +458,11 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
             f"predicted_changed_agents_false_positives_{scope}": len(predicted_changed_agents_false_positives),
             f"predicted_changed_agents_false_negatives_{scope}": len(predicted_changed_agents_false_negatives),
             f"predicted_changed_agents_percentage_{scope}": (len(predicted_changed_agents) / nb_agents),
-            f"predicted_changed_agents_false_positives_percentage_{scope}": (
-                len(predicted_changed_agents_false_positives) / len(ground_truth_negative_changed_agents)
+            f"predicted_changed_agents_false_positives_percentage_{scope}": catch_zero_division_error_as_minus_one(
+                lambda: len(predicted_changed_agents_false_positives) / len(ground_truth_negative_changed_agents)
             ),
-            f"predicted_changed_agents_false_negatives_percentage_{scope}": (
-                len(predicted_changed_agents_false_negatives) / len(ground_truth_positive_changed_agents)
+            f"predicted_changed_agents_false_negatives_percentage_{scope}": catch_zero_division_error_as_minus_one(
+                lambda: len(predicted_changed_agents_false_negatives) / len(ground_truth_positive_changed_agents)
             ),
         }
 
