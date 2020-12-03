@@ -7,6 +7,8 @@ from typing import Optional
 import numpy as np
 import plotly.graph_objects as go
 from _plotly_utils.colors.qualitative import Plotly
+import plotly.plotly as py
+import plotly.figure_factory as ff
 from pandas import DataFrame
 
 from rsp.utils.file_utils import check_create_folder
@@ -335,3 +337,23 @@ def plot_binned_box_plot(  # noqa: C901
         # https://plotly.com/python/static-image-export/
         fig.write_image(pdf_file, width=width, height=height)
         rsp_logger.info(msg=f"wrote {pdf_file}")
+
+def density_hist_plot_2d():
+    """
+
+    Returns
+    -------
+
+    """
+    t = np.linspace(-1, 1.2, 2000)
+    x = (t**3) + (0.3 * np.random.randn(2000))
+    y = (t**6) + (0.3 * np.random.randn(2000))
+
+    colorscale = ['#7A4579', '#D56073', 'rgb(236,158,105)', (1, 1, 0.2), (0.98,0.98,0.98)]
+
+    fig = ff.create_2d_density(
+        x, y, colorscale=colorscale,
+        hist_color='rgb(255, 237, 222)', point_size=3
+    )
+
+    py.iplot(fig, filename='histogram_subplots')

@@ -171,3 +171,9 @@ def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame,
                 one_field_many_scopes=True,
                 marker_color=marker_color_scope,
             )
+
+def speed_up_vs_performance(experiment_data: DataFrame, output_folder: str = None):
+    for scoper in {}.items():
+
+
+
