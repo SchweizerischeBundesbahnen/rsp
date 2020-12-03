@@ -33,6 +33,7 @@ RESCHEDULE_PARAMETERS_RANGE = ReScheduleParametersRange(
 def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameters):
     return experiment.re_schedule_parameters.malfunction_agent_id < 100
 
+
 NEW_OUTPUT_FOLDER = "../rsp-data/PUBLICATION_DATA/NEW_RUN"
 
 if __name__ == "__main__":
@@ -51,5 +52,5 @@ if __name__ == "__main__":
             1.0 / 3.0: 0.25,  # Slow commuter train
             1.0 / 4.0: 0.25,  # Slow freight train
         },
-        csv_only=True
+        csv_only=True,
     )

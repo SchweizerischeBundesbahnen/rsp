@@ -5,10 +5,10 @@ from typing import NamedTuple
 from typing import Optional
 
 import numpy as np
+import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from _plotly_utils.colors.qualitative import Plotly
-import plotly.plotly as py
-import plotly.figure_factory as ff
+from chart_studio.plotly import iplot
 from pandas import DataFrame
 
 from rsp.utils.file_utils import check_create_folder
@@ -338,22 +338,33 @@ def plot_binned_box_plot(  # noqa: C901
         fig.write_image(pdf_file, width=width, height=height)
         rsp_logger.info(msg=f"wrote {pdf_file}")
 
-def density_hist_plot_2d():
+
+def density_hist_plot_2d(
+    title: str, x, y, width: int = PDF_WIDTH, height: int = PDF_HEIGHT, output_folder: Optional[str] = None, file_name: Optional[str] = None
+):
     """
 
     Returns
     -------
 
     """
-    t = np.linspace(-1, 1.2, 2000)
-    x = (t**3) + (0.3 * np.random.randn(2000))
-    y = (t**6) + (0.3 * np.random.randn(2000))
 
-    colorscale = ['#7A4579', '#D56073', 'rgb(236,158,105)', (1, 1, 0.2), (0.98,0.98,0.98)]
+    colorscale = ["#7A4579", "#D56073", "rgb(236,158,105)", (1, 1, 0.2), (0.98, 0.98, 0.98)]
 
-    fig = ff.create_2d_density(
-        x, y, colorscale=colorscale,
-        hist_color='rgb(255, 237, 222)', point_size=3
-    )
+    fig = ff.create_2d_density(x, y, colorscale=colorscale, hist_color="rgb(255, 237, 222)", point_size=5)
+    fig.update_layout(title=title, xaxis_title="Speed Up", yaxis_title="Additional Cost")
 
-    py.iplot(fig, filename='histogram_subplots')
+    fig.update_xaxes(range=[0, 10])
+    fig.update_yaxes(range=[0, 1000])
+    if output_folder is None and file_name is None:
+        fig.show()
+    else:
+        if output_folder is None:
+            output_folder = "."
+        if file_name is None:
+            file_name = f"{title}.pdf"
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, file_name)
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file, width=width, height=height)
+        rsp_logger.info(msg=f"wrote {pdf_file}")

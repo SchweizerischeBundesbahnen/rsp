@@ -6,8 +6,10 @@ from pandas import DataFrame
 
 from rsp.step_03_run.experiment_results_analysis import all_scopes_visualization
 from rsp.step_03_run.experiment_results_analysis import prediction_scopes_visualization
+from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes
 from rsp.step_03_run.experiment_results_analysis import speed_up_scopes_visualization
 from rsp.step_04_analysis.plot_utils import ColumnSpec
+from rsp.step_04_analysis.plot_utils import density_hist_plot_2d
 from rsp.step_04_analysis.plot_utils import marker_color_scope
 from rsp.step_04_analysis.plot_utils import plot_binned_box_plot
 
@@ -172,8 +174,9 @@ def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame,
                 marker_color=marker_color_scope,
             )
 
+
 def speed_up_vs_performance(experiment_data: DataFrame, output_folder: str = None):
-    for scoper in {}.items():
-
-
-
+    for scoper in speed_up_scopes_visualization:
+        x = experiment_data["speed_up_" + scoper]
+        y = experiment_data["additional_costs_" + scoper]
+        density_hist_plot_2d(title=scoper, x=x, y=y)
