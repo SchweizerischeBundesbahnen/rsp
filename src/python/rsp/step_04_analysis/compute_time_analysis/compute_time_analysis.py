@@ -176,7 +176,7 @@ def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame,
 
 
 def speed_up_vs_performance(experiment_data: DataFrame, output_folder: str = None):
-    for scoper in speed_up_scopes_visualization:
+    for scoper in prediction_scopes_visualization:
         x = experiment_data["speed_up_" + scoper]
         y = experiment_data["additional_costs_" + scoper]
-        density_hist_plot_2d(title=scoper, x=x, y=y)
+        density_hist_plot_2d(title=scoper, data_frame=experiment_data)

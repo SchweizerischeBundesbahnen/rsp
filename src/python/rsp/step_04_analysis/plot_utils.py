@@ -7,8 +7,8 @@ from typing import Optional
 import numpy as np
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
+import plotly.express as px
 from _plotly_utils.colors.qualitative import Plotly
-from chart_studio.plotly import iplot
 from pandas import DataFrame
 
 from rsp.utils.file_utils import check_create_folder
@@ -195,24 +195,24 @@ class ColumnSpec(NamedTuple):
 
 
 def plot_binned_box_plot(  # noqa: C901
-    experiment_data: DataFrame,
-    axis_of_interest: str,
-    cols: List[ColumnSpec],
-    title_text: str,
-    experiment_data_comparison: DataFrame = None,
-    axis_of_interest_dimension: Optional[str] = None,
-    output_folder: Optional[str] = None,
-    file_name: Optional[str] = None,
-    nb_bins: Optional[int] = 10,
-    show_bin_counts: Optional[bool] = False,
-    marker_color: Callable[[int, str], str] = None,
-    marker_symbol: Callable[[int, str], str] = None,
-    one_field_many_scopes: bool = False,
-    width: int = PDF_WIDTH,
-    height: int = PDF_HEIGHT,
-    binned: bool = True,
-    experiment_data_suffix: str = None,
-    experiment_data_comparison_suffix: str = None,
+        experiment_data: DataFrame,
+        axis_of_interest: str,
+        cols: List[ColumnSpec],
+        title_text: str,
+        experiment_data_comparison: DataFrame = None,
+        axis_of_interest_dimension: Optional[str] = None,
+        output_folder: Optional[str] = None,
+        file_name: Optional[str] = None,
+        nb_bins: Optional[int] = 10,
+        show_bin_counts: Optional[bool] = False,
+        marker_color: Callable[[int, str], str] = None,
+        marker_symbol: Callable[[int, str], str] = None,
+        one_field_many_scopes: bool = False,
+        width: int = PDF_WIDTH,
+        height: int = PDF_HEIGHT,
+        binned: bool = True,
+        experiment_data_suffix: str = None,
+        experiment_data_comparison_suffix: str = None,
 ):
     """
 
@@ -247,8 +247,8 @@ def plot_binned_box_plot(  # noqa: C901
     if binned:
         experiment_data[axis_of_interest_binned] = (
             experiment_data[axis_of_interest]
-            .astype(float)
-            .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
+                .astype(float)
+                .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
         )
 
     for col_index, col_spec in enumerate(cols):
@@ -263,7 +263,7 @@ def plot_binned_box_plot(  # noqa: C901
         if experiment_data_comparison is not None:
             data[
                 col_name + (experiment_data_comparison_suffix if experiment_data_comparison_suffix is not None else "_comparison")
-            ] = experiment_data_comparison
+                ] = experiment_data_comparison
         for col_name, d in data.items():
             fig.add_trace(
                 go.Box(
@@ -289,13 +289,13 @@ def plot_binned_box_plot(  # noqa: C901
                     )[0],
                     hovertext=d["experiment_id"],
                     hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
-                    + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
-                    + "<b>Grid Size:</b> %{customdata[1]}<br>"
-                    + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
-                    + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
-                    + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
-                    + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
-                    + "<b>Experiment id:</b>%{hovertext}",
+                                  + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
+                                  + "<b>Grid Size:</b> %{customdata[1]}<br>"
+                                  + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
+                                  + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
+                                  + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
+                                  + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
+                                  + "<b>Experiment id:</b>%{hovertext}",
                     marker=dict(
                         color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
                         symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
@@ -340,8 +340,12 @@ def plot_binned_box_plot(  # noqa: C901
 
 
 def density_hist_plot_2d(
-    title: str, x, y, width: int = PDF_WIDTH, height: int = PDF_HEIGHT, output_folder: Optional[str] = None, file_name: Optional[str] = None
-):
+        title: str,
+        data_frame,
+        width: int = PDF_WIDTH,
+        height: int = PDF_HEIGHT,
+        output_folder: Optional[str] = None,
+        file_name: Optional[str] = None):
     """
 
     Returns
@@ -351,11 +355,20 @@ def density_hist_plot_2d(
 
     colorscale = ["#7A4579", "#D56073", "rgb(236,158,105)", (1, 1, 0.2), (0.98, 0.98, 0.98)]
 
-    fig = ff.create_2d_density(x, y, colorscale=colorscale, hist_color="rgb(255, 237, 222)", point_size=5)
+    # fig = ff.create_2d_density(x, y, colorscale=colorscale, hist_color="rgb(255, 237, 222)", point_size=5)
+    fig = px.density_heatmap(data_frame=data_frame,
+                             x='speed_up_' + title,
+                             y='additional_costs_' + title,
+                             nbinsx=20,
+                             nbinsy=20,
+                             width=1000,
+                             height=1000,
+                             marginal_x='histogram',
+                             marginal_y='histogram')
     fig.update_layout(title=title, xaxis_title="Speed Up", yaxis_title="Additional Cost")
 
     fig.update_xaxes(range=[0, 10])
-    fig.update_yaxes(range=[0, 1000])
+    fig.update_yaxes(range=[-10, 500])
     if output_folder is None and file_name is None:
         fig.show()
     else:
