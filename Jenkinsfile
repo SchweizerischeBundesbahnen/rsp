@@ -32,18 +32,6 @@ pipeline {
         //   https://ssp.app.ose.sbb-cloud.net --> WZU-Dienste --> Artifactory
         ARTIFACTORY_PROJECT = 'pfi'
         BASE_IMAGE_NAME = 'rsp-workspace'
-
-        //-------------------------------------------------------------
-        // Configuration for base image deployment
-        //-------------------------------------------------------------
-        // https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/browse/src/ch/sbb/util/OcClusters.groovy
-        OPENSHIFT_CLUSTER = "otc_prod_gpu"
-        OPENSHIFT_CLUSTER_URL = "https://master.gpu.otc.sbb.ch:8443"
-        OPENSHIFT_PROJECT = "pfi-digitaltwin-ci"
-        HELM_CHART = 'rsp_workspace'
-        // https://ssp.app.ose.sbb-cloud.net/ose/newserviceaccount
-        // https://ci.sbb.ch/job/KS_PFI/credentials/
-        SERVICE_ACCOUNT_TOKEN = 'aaff533e-7ebe-469d-a13a-31f786245d1b'
     }
     stages {
         stage('github pending') {
@@ -83,7 +71,7 @@ curl --insecure -v --request POST -H "Authorization: token ${
         export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
         echo PYTHONPATH=\$PYTHONPATH
 
-        # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
+        # TODO pytest hangs in ci.sbb.ch.
         python -m pytest tests/01_unit_tests
         python -m pytest tests/02_regression_tests
         python -m pytest tests/03_pipeline_tests
@@ -123,41 +111,6 @@ curl --insecure -v --request POST -H "Authorization: token ${
                 }
             }
         }
-        stage("Integration Test Notebooks") {
-            when {
-                allOf {
-                    // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
-                    expression { env.CHANGE_ID == null }
-                    // TODO notebook tests currently disabled
-                    expression { 'disabled' == 'enabled' }
-                }
-            }
-            steps {
-                script {
-                    cloud_helmchartsDeploy(
-                            cluster: OPENSHIFT_CLUSTER,
-                            project: env.OPENSHIFT_PROJECT,
-                            credentialId: SERVICE_ACCOUNT_TOKEN,
-                            chart: env.HELM_CHART,
-                            release: 'rsp-ci-' + GIT_COMMIT,
-                            additionalValues: [
-                                    // TODO the docker image should be extracted from this repo since they have independent lifecycles!
-                                    RspWorkspaceVersion: "latest",
-                                    RspVersion         : GIT_COMMIT
-                            ]
-                    )
-                    echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
-                    cloud_helmchartsTest(
-                            cluster: OPENSHIFT_CLUSTER,
-                            project: env.OPENSHIFT_PROJECT,
-                            credentialId: SERVICE_ACCOUNT_TOKEN,
-                            release: 'rsp-ci-$GIT_COMMIT',
-                            timeoutInSeconds: 2700
-                    )
-                    echo "helm test succesful."
-                }
-            }
-        }
     }
     post {
         failure {
@@ -181,21 +134,6 @@ curl --insecure -v --request POST -H "Authorization: token ${
 """
         }
         always {
-            withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
-                echo """get logs from https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"""
-                sh """
-oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
-oc project $OPENSHIFT_PROJECT
-
-oc logs rsp-ci-$GIT_COMMIT-test-pod || true
-oc delete pod rsp-ci-$GIT_COMMIT-test-pod || true
-
-helm delete rsp-ci-$GIT_COMMIT || true
-
-# delete all failed test pods older than 1 day (https://stackoverflow.com/questions/48934491/kubernetes-how-to-delete-pods-based-on-age-creation-time/48960060#48960060)
-oc get pods --field-selector status.phase=Failed -o go-template --template '{{range .items}}{{.metadata.name}} {{.metadata.creationTimestamp}}{{"\\n"}}{{end}}' | awk '\$2 <= "'\$(date -d 'yesterday' -Ins --utc | sed 's/+0000/Z/')'" { print \$1 }' | fgrep test-pod | xargs --no-run-if-empty oc delete pod
-"""
-            }
             archiveArtifacts artifacts: 'rsp_*.png', onlyIfSuccessful: true, allowEmptyArchive: true
             cleanWs()
         }
