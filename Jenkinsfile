@@ -23,15 +23,6 @@ pipeline {
         // uploaded to Jenkins via https://ssp.app.ose.sbb-cloud.net/wzu/jenkinscredentials
         // list of credentials: https://ci.sbb.ch/job/KS_PFI/credentials/
         GITHUB_TOKEN = credentials('19fbbc7a-7243-431c-85d8-0f1cc63d413b')
-
-        //-------------------------------------------------------------
-        // Configuration for base image
-        //-------------------------------------------------------------
-        // Enter the name of your Artifactory Docker Repository.
-        //   Artifactory Docker Repositories can be created on:
-        //   https://ssp.app.ose.sbb-cloud.net --> WZU-Dienste --> Artifactory
-        ARTIFACTORY_PROJECT = 'pfi'
-        BASE_IMAGE_NAME = 'rsp-workspace'
     }
     stages {
         stage('github pending') {
@@ -80,35 +71,6 @@ curl --insecure -v --request POST -H "Authorization: token ${
     """
                         }
                 )
-            }
-        }
-        // if we're on master, tag the docker image with the new semantic version
-        stage("Build and Tag Docker Image if on master") {
-            when {
-                allOf {
-                    expression { BRANCH_NAME == 'master' }
-                }
-            }
-            steps {
-                script {
-                    echo """cloud_buildDockerImage()"""
-                    echo """GIT_COMMIT=${env.GIT_COMMIT}"""
-                    cloud_buildDockerImage(
-                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-                            ocApp: env.BASE_IMAGE_NAME,
-                            ocAppVersion: env.GIT_COMMIT,
-                            // we must be able to access rsp_environment.yml from within docker root !
-                            // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
-                            dockerDir: '.',
-                            dockerfilePath: 'docker/Dockerfile'
-                    )
-                    cloud_tagDockerImage(
-                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-                            ocApp: env.BASE_IMAGE_NAME,
-                            tag: env.GIT_COMMIT,
-                            targetTag: "latest"
-                    )
-                }
             }
         }
     }
