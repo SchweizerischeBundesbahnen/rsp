@@ -11,7 +11,7 @@ INFRA_PARAMETERS_RANGE = InfrastructureParametersRange(
     height=[120, 120, 1],
     flatland_seed_value=[190, 190, 1],
     max_num_cities=[5, 20, 4],
-    max_rail_in_city=[3, 3, 1],
+    max_rail_in_city=[2, 2, 1],
     max_rail_between_cities=[1, 1, 1],
     number_of_shortest_paths_per_agent=[10, 10, 1],
 )

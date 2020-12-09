@@ -54,6 +54,7 @@ rescheduling_scopes_visualization = _extract_visulization(rescheduling_scopes)
 prediction_scopes_visualization = _extract_visulization(prediction_scopes)
 speed_up_scopes_visualization = _extract_visulization(speed_up_scopes)
 
+
 def solver_statistics_costs_from_experiment_results(results: SchedulingExperimentResult, p: ScheduleProblemDescription) -> float:
     return results.solver_statistics["summary"]["costs"][0]
 
