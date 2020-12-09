@@ -6,11 +6,11 @@ from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParame
 from rsp.utils.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 
 INFRA_PARAMETERS_RANGE = InfrastructureParametersRange(
-    number_of_agents=[50, 120, 4],
+    number_of_agents=[50, 100, 4],
     width=[120, 120, 1],
     height=[120, 120, 1],
     flatland_seed_value=[190, 190, 1],
-    max_num_cities=[8, 20, 4],
+    max_num_cities=[5, 20, 4],
     max_rail_in_city=[3, 3, 1],
     max_rail_between_cities=[1, 1, 1],
     number_of_shortest_paths_per_agent=[10, 10, 1],
