@@ -28,7 +28,7 @@ def scoper_online_random_for_all_agents(
     weight_route_change: int,
     weight_lateness_seconds: int,
     max_window_size_from_earliest: int,
-    changed_running_agents_online: int,
+    nb_changed_running_agents_online: int,
 ) -> ScheduleProblemDescription:
     """The scoper random only opens up the malfunction agent and the same
     amount of agents as were changed in the full re-schedule, but chosen
@@ -68,7 +68,7 @@ def scoper_online_random_for_all_agents(
     ]
     assert malfunction.agent_id in agents_running_after_malfunction
 
-    changed_agents = np.random.choice(agents_running_after_malfunction, changed_running_agents_online, replace=False)
+    changed_agents = np.random.choice(agents_running_after_malfunction, nb_changed_running_agents_online, replace=False)
 
     for agent_id in schedule_trainrun_dict.keys():
         earliest_dict, latest_dict, topo = scoper_agent_wise(

@@ -74,6 +74,8 @@ axis_of_interest = 'n_agents'
 columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'online_unrestricted', 'offline_delta']]
 ```
 
+#### Find interesting experiments for cost equivalence use case: same costs as for online_unrestricted, but different lateness/route section penalties
+
 ```{python}
 for scope in rescheduling_scopes:
     print(scope)

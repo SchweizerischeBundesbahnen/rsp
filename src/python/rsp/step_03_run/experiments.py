@@ -517,7 +517,7 @@ def run_experiment_in_memory(
             max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
             weight_route_change=experiment_parameters.re_schedule_parameters.weight_route_change,
             weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
-            changed_running_agents_online=len(predicted_changed_agents_online_transmission_chains_fully_restricted_predicted),
+            nb_changed_running_agents_online=len(predicted_changed_agents_online_transmission_chains_fully_restricted_predicted),
         )
         results_online_random = asp_reschedule_wrapper(
             reschedule_problem_description=problem_online_random,
