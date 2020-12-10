@@ -243,14 +243,14 @@ Full rescheduling has the following available parameter space
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
 
 ```{python}
-# TODO replace with df-based ploggint, remov plotting_information stuff
+# TODO replace with df-based ploggint, remove plotting_information stuff
 plot_time_windows_all_scopes(experiment_results=exp_results_of_experiment_of_interest, plotting_information=plotting_information)
 ```
 
 ## Problems Heatmaps
 
 ```{python}
-# TODO replace with df-based ploggint, remov plotting_information stuff
+# TODO replace with df-based ploggint, remove plotting_information stuff
 plot_shared_heatmap(plotting_information=plotting_information,experiment_result=exp_results_of_experiment_of_interest)
 ```
 

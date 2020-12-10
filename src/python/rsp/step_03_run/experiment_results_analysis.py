@@ -288,7 +288,7 @@ experiment_results_analysis_rescheduling_scopes_fields = {
     "changed_agents_percentage": (float, changed_percentage_from_results),
 }
 
-# TODO we could make this more systematic by calling fields ratio_XXX (e.g."c" should become "ratio_solver_statistics_times_total")
+# TODO we could make this more systematic by calling fields ratio_XXX (e.g."speed_up" should become "ratio_solver_statistics_times_total")
 # TODO streamline "non_solve_time" and "times_total_without_solve"!
 # ratio to online_unrestricted
 speedup_scopes_ratio_fields = {
