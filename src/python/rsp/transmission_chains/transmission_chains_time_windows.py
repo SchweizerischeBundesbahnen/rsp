@@ -2,9 +2,9 @@ from typing import Dict
 from typing import List
 from typing import NamedTuple
 
-from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.utils.resource_occupation import ResourceOccupation
-from rsp.utils.resource_occupation import SchedulingProblemInTimeWindows
+from rsp.resource_occupation.resource_occupation import ResourceOccupation
+from rsp.resource_occupation.resource_occupation import SchedulingProblemInTimeWindows
+from rsp.step_05_experiment_run.experiment_malfunction import ExperimentMalfunction
 from rsp.utils.rsp_logger import rsp_logger
 
 TransmissionLeg = NamedTuple("TransmissionLeg", [("hop_on", ResourceOccupation), ("hop_off", ResourceOccupation), ("delay_time", int)])

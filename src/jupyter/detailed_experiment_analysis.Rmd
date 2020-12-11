@@ -25,17 +25,16 @@ import plotly.express as px
 import plotly.figure_factory as ff
 
 
-from rsp.step_03_run.experiments import *
-from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import *
-from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import *
-from rsp.step_04_analysis.detailed_experiment_analysis.flatland_rendering import *
-from rsp.step_04_analysis.detailed_experiment_analysis.scatter_with_slider import *
-from rsp.step_04_analysis.detailed_experiment_analysis.time_resource_plots_from_data_frames import *
+from rsp.step_05_experiment_run.experiment_run import *
+from rsp.step_06_analysis.detailed_experiment_analysis.detailed_experiment_analysis import *
+from rsp.step_06_analysis.detailed_experiment_analysis.resources_plotting_information import *
+from rsp.step_06_analysis.detailed_experiment_analysis.flatland_rendering import *
+from rsp.step_06_analysis.detailed_experiment_analysis.scatter_with_slider import *
+from rsp.step_06_analysis.detailed_experiment_analysis.time_resource_plots_from_data_frames import *
+from rsp.step_06_analysis.plot_utils import *
 
-
-from rsp.step_04_analysis.plot_utils import *
-from rsp.utils.global_data_configuration import *
-from rsp.utils.resource_occupation import *
+from rsp.global_data_configuration import *
+from rsp.resource_occupation.resource_occupation import *
 from rsp.scheduling.asp.asp_helper import _print_stats
 
 import pprint

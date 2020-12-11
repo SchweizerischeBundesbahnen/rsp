@@ -169,7 +169,15 @@ def topo_from_agent_paths(agent_paths: AgentPaths) -> nx.DiGraph:
 
 
 def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> TopoDict:
-    # get topology from agent paths
+    """get topology from agent paths.
+
+    Parameters
+    ----------
+    agents_paths_dict
+
+    Returns
+    -------
+    """
     topo_dict = {agent_id: topo_from_agent_paths(agents_paths_dict[agent_id]) for agent_id in agents_paths_dict}
 
     return topo_dict
@@ -178,12 +186,12 @@ def _get_topology_from_agents_path_dict(agents_paths_dict: AgentsPathsDict) -> T
 _pp = pprint.PrettyPrinter(indent=4)
 
 
-def experiment_freeze_dict_pretty_print(d: RouteDAGConstraintsDict):
+def route_dag_constraints_dict_pretty_print(d: RouteDAGConstraintsDict):
     for agent_id, route_dag_constraints in d.items():
         prefix = f"agent {agent_id} "
-        experiment_freeze_pretty_print(route_dag_constraints, prefix)
+        route_dag_constraints_pretty_print(route_dag_constraints, prefix)
 
 
-def experiment_freeze_pretty_print(route_dag_constraints: RouteDAGConstraints, prefix: str = ""):
+def route_dag_constraints_pretty_print(route_dag_constraints: RouteDAGConstraints, prefix: str = ""):
     print(f"{prefix}earliest={_pp.pformat(route_dag_constraints.earliest)}")
     print(f"{prefix}latest={_pp.pformat(route_dag_constraints.latest)}")

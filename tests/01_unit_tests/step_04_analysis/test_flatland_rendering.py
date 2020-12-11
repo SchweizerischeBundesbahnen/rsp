@@ -2,7 +2,7 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
-from rsp.step_04_analysis.detailed_experiment_analysis.flatland_rendering import convert_trainrun_dict_to_train_schedule_dict
+from rsp.step_06_analysis.detailed_experiment_analysis.flatland_rendering import convert_trainrun_dict_to_train_schedule_dict
 
 
 def test_convert_trainrundict_to_positions_for_flatland_timesteps():

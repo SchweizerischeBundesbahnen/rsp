@@ -7,16 +7,16 @@ from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
 
 from rsp.scheduling.scheduling_problem import _get_topology_from_agents_path_dict
-from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
-from rsp.scheduling.scheduling_problem import experiment_freeze_pretty_print
 from rsp.scheduling.scheduling_problem import route_dag_constraints_dict_from_list_of_train_run_waypoint
+from rsp.scheduling.scheduling_problem import route_dag_constraints_dict_pretty_print
+from rsp.scheduling.scheduling_problem import route_dag_constraints_pretty_print
 from rsp.scheduling.scheduling_problem import RouteDAGConstraints
 from rsp.scheduling.scheduling_problem import RouteDAGConstraintsDict
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.scheduling.scheduling_problem import topo_from_agent_paths
-from rsp.step_02_setup.data_types import ExperimentMalfunction
-from rsp.step_03_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_for_all_agents
-from rsp.step_03_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_running
+from rsp.step_05_experiment_run.experiment_malfunction import ExperimentMalfunction
+from rsp.step_05_experiment_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_for_all_agents
+from rsp.step_05_experiment_run.scopers.scoper_online_unrestricted import scoper_online_unrestricted_running
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -1713,7 +1713,7 @@ def test_get_freeze_for_offline_delta():
     freeze_dict: RouteDAGConstraintsDict = reschedule_problem_description.route_dag_constraints_dict
 
     print("####freeze_dict")
-    experiment_freeze_dict_pretty_print(freeze_dict)
+    route_dag_constraints_dict_pretty_print(freeze_dict)
     assert freeze_dict.keys() == expected_freeze_dict.keys()
     for agent_id in expected_freeze_dict:
         assert freeze_dict[agent_id].earliest == expected_freeze_dict[agent_id].earliest, (
@@ -2059,7 +2059,7 @@ def test_bugfix_sim_172():
         latest_arrival=6667,
     )
 
-    experiment_freeze_pretty_print(actual_route_dag_constraints)
+    route_dag_constraints_pretty_print(actual_route_dag_constraints)
 
     expected_latest = route_dag_constraints_dict_from_list_of_train_run_waypoint(
         [
@@ -2102,7 +2102,7 @@ def test_bugfix_sim_172():
             TrainrunWaypoint(waypoint=Waypoint(position=(16, 29), direction=0), scheduled_at=6651 + 1),
         ]
     )
-    experiment_freeze_pretty_print(actual_route_dag_constraints)
+    route_dag_constraints_pretty_print(actual_route_dag_constraints)
     actual_dict = actual_route_dag_constraints.latest
     expected_dict = expected_latest
     compare_dicts(actual_dict, expected_dict)
@@ -2195,7 +2195,7 @@ def test_bugfix_sim_175_no_path_splitting_forward():
         latest_arrival=6667,
     )
 
-    experiment_freeze_pretty_print(actual_route_dag_constraints)
+    route_dag_constraints_pretty_print(actual_route_dag_constraints)
     # (3,0) must be removed (forward) since the edge (2,0)->(3,1) is frozen and since (3,0) is a forward successor of (2,0)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
@@ -2247,7 +2247,7 @@ def test_bugfix_sim_175_no_path_splitting_backward():
         latest_arrival=6667,
     )
 
-    experiment_freeze_pretty_print(actual_route_dag_constraints)
+    route_dag_constraints_pretty_print(actual_route_dag_constraints)
     # (4,0) must be removed (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
@@ -2300,7 +2300,7 @@ def test_bugfix_sim_175_no_path_splitting_notorious():
         latest_arrival=6667,
     )
 
-    experiment_freeze_pretty_print(actual_route_dag_constraints)
+    route_dag_constraints_pretty_print(actual_route_dag_constraints)
     # (4,0) must be removed (backward) since the edge (3,1)->(4,1) is frozen and since (4,0) is a backward neighbor of (4,1)
     assert Waypoint(position=(3, 0), direction=0) not in topo.nodes
 
