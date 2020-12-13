@@ -8,15 +8,16 @@ from typing import Tuple
 import networkx as nx
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 from rsp.scheduling.asp.asp_data_types import ASPObjective
 from rsp.scheduling.asp.asp_helper import flux_helper
 from rsp.scheduling.asp.asp_solution_description import ASPSolutionDescription
 from rsp.scheduling.scheduling_problem import get_sinks_for_topo
 from rsp.scheduling.scheduling_problem import get_sources_for_topo
+from rsp.scheduling.scheduling_problem import RouteDAGConstraints
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
-from rsp.step_02_setup.route_dag_constraints_schedule import RouteDAGConstraints
-from rsp.utils.global_constants import GLOBAL_CONSTANTS
+from rsp.step_01_agenda_expansion.global_constants import GLOBAL_CONSTANTS
 
 
 class ASPProblemDescription:

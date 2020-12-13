@@ -1,11 +1,11 @@
-from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
-from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
-from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
-from rsp.step_03_run.experiments import create_experiment_agenda_from_infrastructure_and_schedule_ranges
-from rsp.step_03_run.experiments import create_experiment_folder_name
-from rsp.step_03_run.experiments import create_infrastructure_and_schedule_from_ranges
-from rsp.step_03_run.experiments import delete_experiment_folder
-from rsp.step_03_run.experiments import list_infrastructure_and_schedule_params_from_base_directory
+from rsp.step_01_agenda_expansion.agenda_expansion import create_experiment_agenda_from_infrastructure_and_schedule_ranges
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import InfrastructureParametersRange
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import ReScheduleParametersRange
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import ScheduleParametersRange
+from rsp.step_05_experiment_run.experiment_run import create_experiment_folder_name
+from rsp.step_05_experiment_run.experiment_run import create_infrastructure_and_schedule_from_ranges
+from rsp.step_05_experiment_run.experiment_run import delete_experiment_folder
+from rsp.step_05_experiment_run.experiment_run import list_infrastructure_and_schedule_params_from_base_directory
 from rsp.utils.file_utils import check_create_folder
 
 
@@ -49,6 +49,9 @@ def test_create_experiment_agenda_from_infrastructure_and_schedule():
             infra_schedule_dict=infra_schedule_dict,
             experiments_per_grid_element=2,
         )
-        assert (2 * 3 * 2) * (2 * 2 * 2) == len(experiment_agenda.experiments)
+        print(experiment_agenda)
+        assert (2 * 3 * 2) * (2 * 2 * 2) == len(
+            experiment_agenda.experiments
+        ), f"expected{(2 * 3 * 2) * (2 * 2 * 2)}, found {len(experiment_agenda.experiments)}"
     finally:
         delete_experiment_folder(base_directory)

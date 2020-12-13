@@ -3,12 +3,13 @@ import pprint
 import networkx as nx
 from flatland.core.grid.grid4 import Grid4TransitionsEnum
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
 from rsp.scheduling.asp.asp_solve_problem import solve_problem
-from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
+from rsp.scheduling.scheduling_problem import route_dag_constraints_dict_pretty_print
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
-from rsp.step_02_setup.route_dag_constraints_schedule import _get_route_dag_constraints_for_scheduling
-from rsp.utils.global_constants import GLOBAL_CONSTANTS
+from rsp.step_01_agenda_expansion.global_constants import GLOBAL_CONSTANTS
+from rsp.step_03_schedule_generation.schedule_generation import _get_route_dag_constraints_for_scheduling
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -41,7 +42,7 @@ def test_costs_forced_rerouting_one_agent():
         )
         solution, _ = solve_problem(problem=reschedule_problem)
         print(solution.trainruns_dict[0])
-        experiment_freeze_dict_pretty_print(schedule_problem_description.route_dag_constraints_dict)
+        route_dag_constraints_dict_pretty_print(schedule_problem_description.route_dag_constraints_dict)
         assert solution.optimization_costs == 0, f"found {solution.optimization_costs} for test {index}"
 
         assert penalized_edge[1] not in {trainrun_waypoint.waypoint for trainrun_waypoint in solution.trainruns_dict[0]}

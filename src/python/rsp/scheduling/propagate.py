@@ -10,9 +10,10 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.scheduling.scheduling_problem import get_paths_in_route_dag
 from rsp.scheduling.scheduling_problem import RouteDAGConstraints
-from rsp.step_02_setup.data_types import ExperimentMalfunction
+from rsp.step_05_experiment_run.experiment_malfunction import ExperimentMalfunction
 from rsp.utils.rsp_logger import rsp_logger
 
 

@@ -8,12 +8,13 @@ from flatland.envs.rail_generators import rail_from_grid_transition_map
 from flatland.envs.schedule_generators import random_schedule_generator
 from flatland.utils.simple_rail import make_simple_rail
 from importlib_resources import path
+
 from rsp.scheduling.asp.asp_helper import _asp_helper
 from rsp.scheduling.asp.asp_helper import flux_helper
 from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
 from rsp.scheduling.asp.asp_solution_description import ASPSolutionDescription
-from rsp.step_03_run.experiments import create_infrastructure_from_rail_env
-from rsp.step_03_run.experiments import create_schedule_problem_description_from_instructure
+from rsp.step_02_infrastructure_generation.infrastructure import create_infrastructure_from_rail_env
+from rsp.step_03_schedule_generation.schedule_generation import create_schedule_problem_description_from_instructure
 
 
 def test_asp_helper():

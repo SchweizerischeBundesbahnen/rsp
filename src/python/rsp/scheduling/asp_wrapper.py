@@ -2,11 +2,12 @@ import pprint
 from typing import Optional
 
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
+
 from rsp.scheduling.asp.asp_problem_description import ASPProblemDescription
 from rsp.scheduling.asp.asp_solve_problem import solve_problem
 from rsp.scheduling.schedule import SchedulingExperimentResult
-from rsp.scheduling.scheduling_problem import experiment_freeze_dict_pretty_print
 from rsp.scheduling.scheduling_problem import get_sinks_for_topo
+from rsp.scheduling.scheduling_problem import route_dag_constraints_dict_pretty_print
 from rsp.scheduling.scheduling_problem import ScheduleProblemDescription
 from rsp.utils.rsp_logger import rsp_logger
 
@@ -16,8 +17,7 @@ _pp = pprint.PrettyPrinter(indent=4)
 def asp_schedule_wrapper(
     schedule_problem_description: ScheduleProblemDescription, asp_seed_value: Optional[int] = None, debug: bool = False, no_optimize: bool = False
 ) -> SchedulingExperimentResult:
-    """Solves the Full Scheduling Problem for static rail env (i.e. without
-    malfunctions).
+    """Solves the Full Scheduling Problem (i.e. no malfunction)
 
     Parameters
     ----------
@@ -47,8 +47,7 @@ def asp_schedule_wrapper(
 def asp_reschedule_wrapper(
     reschedule_problem_description: ScheduleProblemDescription, schedule: TrainrunDict, asp_seed_value: Optional[int] = None, debug: bool = False,
 ) -> SchedulingExperimentResult:
-    """Solve the Full Re-Scheduling Problem for static rail env (i.e. without
-    malfunctions).
+    """Solve the Re-Scheduling Problem (i.e. with malfunction).
 
     Returns
     -------
@@ -69,7 +68,7 @@ def asp_reschedule_wrapper(
 
     if debug:
         print("###reschedule")
-        experiment_freeze_dict_pretty_print(reschedule_problem_description.route_dag_constraints_dict)
+        route_dag_constraints_dict_pretty_print(reschedule_problem_description.route_dag_constraints_dict)
 
     reschedule_result, asp_solution = solve_problem(problem=reschedule_problem, debug=debug)
     if debug:

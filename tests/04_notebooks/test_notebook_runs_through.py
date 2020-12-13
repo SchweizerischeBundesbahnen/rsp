@@ -18,9 +18,9 @@ def multiline_eval(expr):
 
 
 def test_notebooks_run_through():
-    base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir)
+    base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "src", "jupyter")
     # TODO SIM-571 SIM-672 activate potassco notebooks when data is added to src.python.rsp-data
-    notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd") and "potassco" not in f]
+    notebooks = [f for f in os.listdir(base_path) if f.endswith(".Rmd")]
     for notebook in notebooks:
         print("*****************************************************************")
         print("Converting and running {}".format(notebook))

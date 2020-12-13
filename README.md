@@ -12,11 +12,11 @@ conda env create -f rsp_environment.yml
 # activate the conda env (if you want to use a different env name, run conda env create -f rsp_environment.yml --name other-env-name)
 conda activate rsp
 
-#
+# PYTHONPATH
 export PYTHONPATH=$PWD/src/python:$PWD/src/asp:$PYTHONPATH
 
 # run pipeline (see section "Getting Started with Experiments" below)
-python src/python/rsp/hypothesis_one_experiments_potassco.py
+python src/python/rsp/rsp_overleaf_pipeline.py
 
 # ..... do some development....
 
@@ -88,16 +88,18 @@ In order to have automatic mpeg conversion, we use the python-wrapper [ffmpeg-py
 For this to work, `ffmpeg` must be installed and on the `PATH`.
 
 ## Getting Started with Experiments
-You should only need two files:
-* `src/python/rsp/hypothesis_one_experiments_potassco.py`: defines parameters of your experiments
+You should only need three files:
+* `src/python/rsp/rsp_overleaf_pipeline.py`: defines parameters of your experiments
 * `src/python/rsp/utils/global_data_configuration.py`: defines data location
 Here, you can define parameters on three levels:
 
- level         | parameter range data structure  | defined in                                 | deterministic (yes/no)
+ level         | parameter range data structure  | code of `src/python/rsp/pipeline/rsp_pipeline.py` | deterministic (yes/no)
  --------------|---------------------------------|--------------------------------------------|--------------
-infrastructure | `InfrastructureParametersRange` | `generate_potassco_infras_and_schedules`   | yes
-schedule       | `ScheduleParametersRange`       | `generate_potassco_infras_and_schedules`   | no
-re-schedule    | `ScheduleParametersRange`       | `run_potassco_agenda`                      | no
+infrastructure | `InfrastructureParametersRange` | `generate_infras_and_schedules`   | yes
+schedule       | `ScheduleParametersRange`       | `generate_infras_and_schedules`   | no
+re-schedule    | `ScheduleParametersRange`       | `run_agenda`                      | no
+
+
 
 The Cartesian product of parameter settings at all three levels defines an experiment agenda of experiments. The infrastructure level is deterministic, the schedule and re-schedule level are not deterministic;
 examples:
@@ -116,10 +118,12 @@ The data layout will look as follows:
     │   │   ├── data
     │   │   │   ├── err.txt
     │   │   │   ├── experiment_2064_2020_10_14T19_07_39.pkl
+    │   │   │   ├── experiment_2064_2020_10_14T19_07_39.csv
     │   │   │   ├── experiment_2067_2020_10_14T19_07_41.pkl
+    │   │   │   ├── experiment_2067_2020_10_14T19_07_41.csv
 
     │   │   │   ├── experiment_2961_2020_10_15T05_49_18.pkl
-    │   │   │   ├── experiment_3056_2020_10_15T06_18_14.pkl
+    │   │   │   ├── experiment_2961_2020_10_15T05_49_18.csv
     │   │   │   └── log.txt
     │   │   ├── experiment_agenda.pkl
     │   │   └── sha.txt
@@ -137,21 +141,41 @@ The data layout will look as follows:
     │
 
 
-Here's the main part of `src/python/rsp/hypothesis_one_experiments_potassco.py`:
+The `pkl` files contain all results (required for detailed analysis notebook), whereas `csv` files contain only tabular information (as required by computation times notebook).
+See below use case 3 on how to generate `pkl` if you only have `csv`.
 
-    generate_potassco_infras_and_schedules(base_directory=INFRAS_AND_SCHEDULES_FOLDER, parallel_compute=parallel_compute)
-    run_potassco_agenda(
-        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
-        # incremental re-start after interruption
-        experiment_output_base_directory=BASELINE_DATA_FOLDER,
-        experiment_filter=experiment_filter_first_ten_of_each_schedule,
-        parallel_compute=parallel_compute,
-        csv_only=False,
-    )
+Experiment results are gathered in `ExperimentResultsAnalysis` and then expanded for analysis into `ExperimentResultsAnalysis`/`ExperimentResultsOnlineUnrestricted`.
+
+
+Here's an overview of the experiment results data structures and where they are used:
+
+location        | data structure
+----------------|---------------------
+pkl 	        | `ExperimentResults` (unexpanded)
+in Memory only 	| `ExperimentResultsAnalysis`/`ExperimentResultsOnlineUnrestricted` with `dict`s
+csv/DataFrame 	| `ExperimentResultsAnalysis`/`ExperimentResultsOnlineUnrestricted` without columns of type `object`.
+
+Here's the main part of `src/python/rsp/rsp_overleaf_pipeline.py`:
+
+        rsp_pipeline(
+            infra_parameters_range=INFRA_PARAMETERS_RANGE,
+            schedule_parameters_range=SCHEDULE_PARAMETERS_RANGE,
+            reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,
+            base_directory="PUBLICATION_DATA",
+            experiment_output_base_directory=None,
+            experiment_filter=experiment_filter_first_ten_of_each_schedule,
+            grid_mode=False,
+            speed_data={
+                1.0: 0.25,  # Fast passenger train
+                1.0 / 2.0: 0.25,  # Fast freight train
+                1.0 / 3.0: 0.25,  # Slow commuter train
+                1.0 / 4.0: 0.25,  # Slow freight train
+            },
+        )
 
 It consists of infrastructure and schedule generation (`infra` subfolder) and one or more agenda runs  (`h1_2020_08_24T21_04_42_baseline_2020_10_12T13_59_59` subfolder for the run with baseline solver settings).
 
-See the use cases below for details how to use these options of `generate_potassco_infras_and_schedules` and `run_potassco_agenda`.
+See the use cases below for details how to use these options of `generate_infras_and_schedules` and `run_agenda`.
 
 
 ### Use case 1a: run all three levels
@@ -171,10 +195,11 @@ the experiment agenda will also get a new timestamped subfolder here; if you unc
 appropriately.
 
 ### Use case 1b: only use baseline solver settings
-Comment out calls to `list_from_base_directory_and_run_experiment_agenda` you don't need.
+Comment out calls to `rsp_pipeline` you don't need in `rsp_pipeline_baseline_and_calibrations`.
 
 ### Use case 2a: you've aborted scheduling and want to run experiments on the schedules you already have
-Comment out `generate_potassco_infras_and_schedules(...)` in `main`. The agenda will only contain experiments for the existing schedules.
+Comment out `generate_infras_and_schedules(...)` in `rsp_pipeline`.
+The agenda will only contain experiments for the existing schedules.
 
 ### Use case 2b: you've aborted experiments and want to run a certain subset of experiments into the same data folder
 Configure `BASELINE_DATA_FOLDER` in `src/python/rsp/utils/global_data_configuration.py` to point to the location you want to have your experiments in;
@@ -185,25 +210,61 @@ this will be a subfolder of your base directory for data. In order to apply a fi
 
     if __name__ == "__main__":
         ...
-        run_potassco_agenda(
+        rsp_pipeline_baseline_and_calibrations(
             ...
             experiment_filter=experiment_filter_first_ten_of_each_schedule,
             ...
         )
-    experiment_filter=experiment_filter_first_ten_of_each_schedule
 
 ### Use case 2c: you want to generate more schedules after you've already run experiments
-You will need to tweak:
+In this case, an agenda has already been put to file that needs to be extended. You will need to tweak:
 * Define an appropriate filter (see `experiment_filter_first_ten_of_each_schedule`) for the missing experiments (they will have larger experiment ids than so far)
 * Run scheduling with the same `INFRAS_AND_SCHEDULES_FOLDER` as before; this will add the missing schedules incrementally;
 * Use a new `BASELINE_DATA_FOLDER` for running the experiments. Be sure you use the same parameters as before.
 * Copy the older experiments to the new location.
+
+
+### Use case 3: you have generated data with `csv_only=True` and want to generate the full data for some experiments
+
+Define a filter and re-run the agenda from the output directory with `csv_only=False`:
+
+        def filter_experiment_agenda(params: ExperimentParameters):
+            return params.experiment_id == 0
+
+        run_experiment_agenda(
+            experiment_base_directory="../rsp-data/my-agenda",
+            experiment_output_directory="../rsp-data/my-agenda/my-run",
+            csv_only=False,
+            filter_experiment_agenda=filter_experiment_agenda,
+        )
+
+The agenda will be read from the `experiment_output_directory`.
+
+For a full example, see `test_rerun_single_experiment_after_csv_only()`.
+
+### Use case 4: you want to re-rerun the same agenda
+1. Make a new run directory:  `mkdir -p ../rsp-data/my-agenda/my-new-run`
+2. Copy the old agenda from the old to the new run directory: `cp ../rsp-data/my-agenda/my-old-run/experiment_agenda.pkl ../rsp-data/my-agenda/my-new-run`
+3. Run the agenda from a new `main` or from `detailed_experiment_analysis.Rmd` with `run_experiment = True` with the following call:
+
+        run_experiment_agenda(
+            experiment_base_directory="../rsp-data/my-agenda",
+            experiment_output_directory="../rsp-data/my-agenda/my-new-run",
+            csv_only=False,
+            filter_experiment_agenda=filter_experiment_agenda,
+        )
+
+Caveats:
+* Be sure to have git-lfs data checked out (see `README.md` in `rsp-data`)
+* Experiments that already have run (`.pkl` present, not only `.csv`) will be skipped. Re-running such an experiment is not supported (just remove the `.pkl` as a workaround).
+* The `ERROR SUMMARY` at the end lists all errors, not only those from the re-run. Check the dates!
 
 ## Coding Guidelines
 See [CODING.md](CODING.md).
 
 ## Disclaimer
 ### Authors:
-- Adrian Egli
 - Christian Eichenberger
 - Erik Nygren
+- Adrian Egli
+- Christian Baumberger

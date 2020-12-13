@@ -10,10 +10,11 @@ from typing import Set
 import clingo
 import numpy as np
 from importlib_resources import path
+
 from rsp.scheduling.asp import theory
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
 from rsp.scheduling.asp.asp_data_types import ASPObjective
-from rsp.utils.global_constants import GLOBAL_CONSTANTS
+from rsp.step_01_agenda_expansion.global_constants import GLOBAL_CONSTANTS
 from rsp.utils.rsp_logger import rsp_logger
 from rsp.utils.rsp_logger import VERBOSE
 

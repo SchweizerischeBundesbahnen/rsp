@@ -23,27 +23,6 @@ pipeline {
         // uploaded to Jenkins via https://ssp.app.ose.sbb-cloud.net/wzu/jenkinscredentials
         // list of credentials: https://ci.sbb.ch/job/KS_PFI/credentials/
         GITHUB_TOKEN = credentials('19fbbc7a-7243-431c-85d8-0f1cc63d413b')
-
-        //-------------------------------------------------------------
-        // Configuration for base image
-        //-------------------------------------------------------------
-        // Enter the name of your Artifactory Docker Repository.
-        //   Artifactory Docker Repositories can be created on:
-        //   https://ssp.app.ose.sbb-cloud.net --> WZU-Dienste --> Artifactory
-        ARTIFACTORY_PROJECT = 'pfi'
-        BASE_IMAGE_NAME = 'rsp-workspace'
-
-        //-------------------------------------------------------------
-        // Configuration for base image deployment
-        //-------------------------------------------------------------
-        // https://code.sbb.ch/projects/KD_ESTA/repos/pipeline-helper/browse/src/ch/sbb/util/OcClusters.groovy
-        OPENSHIFT_CLUSTER = "otc_prod_gpu"
-        OPENSHIFT_CLUSTER_URL = "https://master.gpu.otc.sbb.ch:8443"
-        OPENSHIFT_PROJECT = "pfi-digitaltwin-ci"
-        HELM_CHART = 'rsp_workspace'
-        // https://ssp.app.ose.sbb-cloud.net/ose/newserviceaccount
-        // https://ci.sbb.ch/job/KS_PFI/credentials/
-        SERVICE_ACCOUNT_TOKEN = 'aaff533e-7ebe-469d-a13a-31f786245d1b'
     }
     stages {
         stage('github pending') {
@@ -71,14 +50,19 @@ curl --insecure -v --request POST -H "Authorization: token ${
         conda init bash
         source ~/.bashrc
         # set up conda environment with dependencies and requirement for ci (testing, linting etc.)
-        conda env create --file rsp_environment.yml --force python=3.7
+        conda env create --file rsp_environment.yml python=3.7
         conda activate rsp
-        export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
-        echo PYTHONPATH=\$PYTHONPATH
+        python --version
+
         # run pre-commit without docformatter (TODO docformatter complains in ci - no output which files)
         pre-commit install
         SKIP=docformatter pre-commit run --all --verbose
-        # TODO pytest hangs in ci.sbb.ch -> run them in OpenShift with integration tests.
+
+        # N.B. set PYTHONPATH only after pre-commit, may cause reorder-import to fail else
+        export PYTHONPATH=\$PWD/src/python:\$PWD/src/asp:\$PYTHONPATH
+        echo PYTHONPATH=\$PYTHONPATH
+
+        # TODO pytest hangs in ci.sbb.ch.
         python -m pytest tests/01_unit_tests
         python -m pytest tests/02_regression_tests
         python -m pytest tests/03_pipeline_tests
@@ -87,70 +71,6 @@ curl --insecure -v --request POST -H "Authorization: token ${
     """
                         }
                 )
-            }
-        }
-        // if we're on master, tag the docker image with the new semantic version
-        stage("Build and Tag Docker Image if on master") {
-            when {
-                allOf {
-                    expression { BRANCH_NAME == 'master' }
-                }
-            }
-            steps {
-                script {
-                    echo """cloud_buildDockerImage()"""
-                    echo """GIT_COMMIT=${env.GIT_COMMIT}"""
-                    cloud_buildDockerImage(
-                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-                            ocApp: env.BASE_IMAGE_NAME,
-                            ocAppVersion: env.GIT_COMMIT,
-                            // we must be able to access rsp_environment.yml from within docker root !
-                            // https://confluence.sbb.ch/display/CLEW/Pipeline+Helper#PipelineHelper-cloud_buildDockerImage()-BuildfromownDockerfile
-                            dockerDir: '.',
-                            dockerfilePath: 'docker/Dockerfile'
-                    )
-                    cloud_tagDockerImage(
-                            artifactoryProject: env.ARTIFACTORY_PROJECT,
-                            ocApp: env.BASE_IMAGE_NAME,
-                            tag: env.GIT_COMMIT,
-                            targetTag: "latest"
-                    )
-                }
-            }
-        }
-        stage("Integration Test Notebooks") {
-            when {
-                allOf {
-                    // skip on pr: https://jenkins.io/doc/book/pipeline/multibranch/
-                    expression { env.CHANGE_ID == null }
-                    // TODO notebook tests currently disabled
-                    expression { 'disabled' == 'enabled'}
-                }
-            }
-            steps {
-                script {
-                    cloud_helmchartsDeploy(
-                            cluster: OPENSHIFT_CLUSTER,
-                            project: env.OPENSHIFT_PROJECT,
-                            credentialId: SERVICE_ACCOUNT_TOKEN,
-                            chart: env.HELM_CHART,
-                            release: 'rsp-ci-' + GIT_COMMIT,
-                            additionalValues: [
-                                    // TODO the docker image should be extracted from this repo since they have independent lifecycles!
-                                    RspWorkspaceVersion: "latest",
-                                    RspVersion         : GIT_COMMIT
-                            ]
-                    )
-                    echo "Logs can be found under https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"
-                    cloud_helmchartsTest(
-                            cluster: OPENSHIFT_CLUSTER,
-                            project: env.OPENSHIFT_PROJECT,
-                            credentialId: SERVICE_ACCOUNT_TOKEN,
-                            release: 'rsp-ci-$GIT_COMMIT',
-                            timeoutInSeconds: 2700
-                    )
-                    echo "helm test succesful."
-                }
             }
         }
     }
@@ -176,21 +96,6 @@ curl --insecure -v --request POST -H "Authorization: token ${
 """
         }
         always {
-            withCredentials([string(credentialsId: SERVICE_ACCOUNT_TOKEN, variable: 'TOKEN')]) {
-                echo """get logs from https://master.gpu.otc.sbb.ch:8443/console/project/pfi-digitaltwin-ci/browse/pods/rsp-ci-$GIT_COMMIT-test-pod?tab=logs"""
-                sh """
-oc login $OPENSHIFT_CLUSTER_URL --token=$TOKEN --insecure-skip-tls-verify=true
-oc project $OPENSHIFT_PROJECT
-
-oc logs rsp-ci-$GIT_COMMIT-test-pod || true
-oc delete pod rsp-ci-$GIT_COMMIT-test-pod || true
-
-helm delete rsp-ci-$GIT_COMMIT || true
-
-# delete all failed test pods older than 1 day (https://stackoverflow.com/questions/48934491/kubernetes-how-to-delete-pods-based-on-age-creation-time/48960060#48960060)
-oc get pods --field-selector status.phase=Failed -o go-template --template '{{range .items}}{{.metadata.name}} {{.metadata.creationTimestamp}}{{"\\n"}}{{end}}' | awk '\$2 <= "'\$(date -d 'yesterday' -Ins --utc | sed 's/+0000/Z/')'" { print \$1 }' | fgrep test-pod | xargs --no-run-if-empty oc delete pod
-"""
-            }
             archiveArtifacts artifacts: 'rsp_*.png', onlyIfSuccessful: true, allowEmptyArchive: true
             cleanWs()
         }

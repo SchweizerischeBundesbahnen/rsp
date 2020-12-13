@@ -2,10 +2,12 @@ import re
 from typing import List
 from typing import Set
 
+import numpy as np
 from flatland.envs.rail_trainrun_data_structures import Trainrun
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 from flatland.envs.rail_trainrun_data_structures import TrainrunWaypoint
 from flatland.envs.rail_trainrun_data_structures import Waypoint
+
 from rsp.scheduling.asp.asp_helper import FluxHelperResult
 from rsp.scheduling.scheduling_problem import get_sinks_for_topo
 from rsp.scheduling.scheduling_problem import get_sources_for_topo
@@ -19,12 +21,14 @@ class ASPSolutionDescription:
         self.schedule_problem_description: ScheduleProblemDescription = schedule_problem_description
 
     def verify_correctness(self):
-        self.__class__.verify_correctness_helper(self.schedule_problem_description, self.answer_set)
+        self.__class__.verify_correctness_helper(self.schedule_problem_description, self.asp_solution)
 
     # TODO SIM-517 harmonize with verify trainruns?
     @staticmethod  # noqa: C901
-    def verify_correctness_helper(schedule_problem_description: ScheduleProblemDescription, answer_set: Set[str]):  # noqa: C901
+    def verify_correctness_helper(schedule_problem_description: ScheduleProblemDescription, asp_solution: FluxHelperResult):  # noqa: C901
         """Verify that solution is consistent."""
+
+        answer_set = asp_solution.answer_sets[0]
 
         trainrun_dict = {}
 
@@ -97,6 +101,29 @@ class ASPSolutionDescription:
                             agent_id == resource_occupations[occupation]
                         ), f"(3) conflicting resource occuptions {occupation} for {agent_id} and {resource_occupations[occupation]}"
                     resource_occupations[occupation] = agent_id
+
+        # 4. check costs are sum of lates and active_penalty
+        solver_result: Set[str] = answer_set
+
+        # 'active_penalty(30,t48,(((21,24),3),((21,23),3)))', 'active_penalty(30,t6,(((52,37),0),((52,36),3)))' #noqa
+        penalty_first_item_pattern = re.compile(r"[a-z_]+\(([0-9]+),")
+        # 'late(t6,((22,28),1),959,1)', 'late(t6,((22,28),1),957,50)', 'late(t6,((22,28),1),958,1)'#noqa
+        # act_penalty_for_train(T,R,P)#noqa
+        penalty_last_item_pattern = re.compile(r".*,([0-9]+)\)")
+
+        # minimize_delay_and_routes_combined.lp: late and active_penalty #noqa
+
+        active_penalty_string = [s for s in solver_result if "active_penalty(" in s]
+
+        late_string = [s for s in solver_result if s.startswith("late(")]
+        active_penalty = [int(penalty_first_item_pattern.match(s).group(1)) for s in active_penalty_string]
+
+        # minimize_total_sum_of_running_times.lp: act_penalty_for_train #noqa
+        act_penalty_for_train_string = [s for s in solver_result if s.startswith("act_penalty_for_train(")]
+        act_penalty_for_train = [int(penalty_last_item_pattern.match(s).group(1)) for s in act_penalty_for_train_string]
+
+        late = [int(penalty_last_item_pattern.match(s).group(1)) for s in late_string]
+        assert asp_solution.stats["summary"]["costs"][0] == np.sum(late) + np.sum(active_penalty) + np.sum(act_penalty_for_train)
 
     def get_trainruns_dict(self) -> TrainrunDict:
         """Get train runs for all agents: waypoints and entry times."""

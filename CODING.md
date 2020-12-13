@@ -45,16 +45,20 @@ We currently use `plotly` for visualization. Use the generic helpers. Do we need
 ### package structure
 We use one top-level package per pipeline step and one for the generic solver model:
 
-    hypothesis_one_experiments_potassco.py    <- main entry point for running experiments
-    hypothesis_one_malfunction_experiments.py <- do we still need this?
-    hypothesis_one_pipeline_all_in_one.py     <- should this go under utils?
-    scheduling
-    step_01_planning
-    step_02_setup
-    step_03_run
-    step_04_analysis
-    transmission_chains                        <- should this go under step_03_run?
-    utils                                      <- resource_occupations here?
+    rsp/
+        rsp_overleaf_pipeline.py              <- main entry point for running experiments
+        rsp_overleaf_export.py                <- re-generate diagrams for publication
+        rsp_malfunction_variation.py          <- malfunction variation - TODO: do we still need this?
+
+        scheduling                            <- solver stuff used for scheduling and re-scheduling; TODO: needs refactoring if multiple solvers are used
+
+        step_01_planning
+        step_02_setup
+        step_03_run
+        step_04_analysis
+
+        transmission_chains                    <- TODO: should this go under step_03_run?
+        utils                                  <- TODO: resource_occupations here?
 
 We put data structures and their accessors and modifiers and transformers and validators in a separate file. The file is placed in the first step where it occurs. (See whishlist below.)
 
