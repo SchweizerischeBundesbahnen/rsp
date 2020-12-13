@@ -393,7 +393,6 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
 
 def convert_list_of_experiment_results_analysis_to_data_frame(l: List[ExperimentResultsAnalysis]) -> DataFrame:
     df = pd.DataFrame(columns=ExperimentResultsAnalysis._fields, data=[r._asdict() for r in l])
-    temporary_backwards_compatibility_scope(df)
     df = df.select_dtypes(exclude=["object"])
     return df
 
@@ -599,44 +598,3 @@ def extract_base_fields(
         weight_lateness_seconds=experiment_parameters.re_schedule_parameters.weight_lateness_seconds,
         max_window_size_from_earliest=experiment_parameters.re_schedule_parameters.max_window_size_from_earliest,
     )
-
-
-# TODO SIM-750 temporary code
-def temporary_backwards_compatibility_scope(experiment_data):  # noqa: C901
-    # tweak if delta_weak missing
-    delta_weak_found_in_data = False
-    for col in experiment_data.columns:
-        if "delta_weak" in col:
-            delta_weak_found_in_data = True
-    if not delta_weak_found_in_data:
-        all_scopes_visualization.remove("offline_delta_weak")
-        rescheduling_scopes_visualization.remove("offline_delta_weak")
-        speed_up_scopes_visualization.remove("offline_delta_weak")
-
-    # tweak renaming offline_full_restricted <- online_full_restricted
-    for col in experiment_data.columns:
-        if "online_fully_restricted" in col:
-            experiment_data[col.replace("online_fully_restricted", "offline_fully_restricted")] = experiment_data[col]
-
-    # tweak missing "additional" fields from expansion
-    for field in ["changed_agents", "costs", "lateness", "costs_from_route_section_penalties"]:
-        for scope in rescheduling_scopes_visualization:
-            if f"additional_{field}_{scope}" not in experiment_data.columns:
-                experiment_data[f"additional_{field}_{scope}"] = experiment_data[f"{field}_{scope}"] - experiment_data[f"{field}_online_unrestricted"]
-
-    # tweak missing "ratio" fields from expansion
-    for field in ["solver_statistics_conflicts", "solver_statistics_choices", "nb_resource_conflicts"]:
-        for scope in all_scopes_visualization:
-            if f"{field}_ratio_{scope}" not in experiment_data.columns:
-                experiment_data[f"{field}_ratio_{scope}"] = experiment_data[f"{field}_online_unrestricted"] / experiment_data[f"{field}_{scope}"]
-
-    # tweak costs_ratio as string "(1.0,)" in csvs
-    for scope in speed_up_scopes_visualization:
-        f = f"costs_ratio_{scope}"
-        if str(experiment_data.dtypes[f]) == "object":
-            experiment_data[f] = experiment_data[f].map(lambda t: eval(t)[0]).astype(float)
-
-    if "solve_total_ratio_schedule" not in experiment_data.columns:
-        experiment_data["solve_total_ratio_schedule"] = (
-            experiment_data["solver_statistics_times_solve_schedule"] / experiment_data["solver_statistics_times_total_schedule"]
-        )

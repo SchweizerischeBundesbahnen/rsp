@@ -3,53 +3,52 @@ from typing import Optional
 import pandas as pd
 
 from rsp.step_05_experiment_run.experiment_results_analysis import all_scopes_visualization
+from rsp.step_05_experiment_run.experiment_results_analysis import speed_up_scopes_visualization
 from rsp.step_06_analysis.plot_utils import ColumnSpec
 from rsp.step_06_analysis.plot_utils import marker_color_scope
 from rsp.step_06_analysis.plot_utils import plot_binned_box_plot
 
 
 def visualize_asp_problem_reduction(experiment_data: pd.DataFrame, output_folder: Optional[str] = None):
-    suffixes = all_scopes_visualization
-
     plot_binned_box_plot(
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
-        cols=[(ColumnSpec(prefix="nb_resource_conflicts", scope=scope)) for scope in suffixes],
+        cols=[(ColumnSpec(prefix="nb_resource_conflicts", scope=scope)) for scope in all_scopes_visualization],
         title_text="problem reduction in terms of resource conflicts (shared)",
         output_folder=output_folder,
     )
     plot_binned_box_plot(
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
-        cols=[(ColumnSpec(prefix="nb_resource_conflicts_ratio", scope=scope)) for scope in suffixes],
+        cols=[(ColumnSpec(prefix="nb_resource_conflicts_ratio", scope=scope)) for scope in speed_up_scopes_visualization],
         title_text="problem reduction in terms of resource conflicts (shared)",
         output_folder=output_folder,
     )
     plot_binned_box_plot(
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
-        cols=[(ColumnSpec(prefix="solver_statistics_conflicts", scope=scope)) for scope in suffixes],
+        cols=[(ColumnSpec(prefix="solver_statistics_conflicts", scope=scope)) for scope in all_scopes_visualization],
         title_text="problem reduction ratio in terms of conflicts in the model",
         output_folder=output_folder,
     )
     plot_binned_box_plot(
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
-        cols=[(ColumnSpec(prefix="solver_statistics_conflicts_ratio", scope=scope)) for scope in suffixes],
+        cols=[(ColumnSpec(prefix="solver_statistics_conflicts_ratio", scope=scope)) for scope in speed_up_scopes_visualization],
         title_text="problem reduction in terms of conflicts in the model",
         output_folder=output_folder,
     )
     plot_binned_box_plot(
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
-        cols=[(ColumnSpec(prefix="solver_statistics_choices", scope=scope)) for scope in suffixes],
+        cols=[(ColumnSpec(prefix="solver_statistics_choices", scope=scope)) for scope in all_scopes_visualization],
         title_text="problem reduction in terms of choices during solving",
         output_folder=output_folder,
     )
     plot_binned_box_plot(
         experiment_data=experiment_data,
         axis_of_interest="experiment_id",
-        cols=[(ColumnSpec(prefix="solver_statistics_choices_ratio", scope=scope)) for scope in suffixes],
+        cols=[(ColumnSpec(prefix="solver_statistics_choices_ratio", scope=scope)) for scope in speed_up_scopes_visualization],
         title_text="problem reduction in terms of choices during solving",
         output_folder=output_folder,
     )

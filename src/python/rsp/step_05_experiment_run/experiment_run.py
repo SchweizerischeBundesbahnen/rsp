@@ -117,6 +117,7 @@ def run_experiment_in_memory(
 
     Parameters
     ----------
+
     schedule
         operational schedule that where malfunction happened
     experiment_parameters
@@ -125,6 +126,9 @@ def run_experiment_in_memory(
         the "full" topology for each agent
     debug
         debug logging
+    online_unrestricted_only
+        run only scope `online_unrestricted`.
+        Used for "calibration runs" where we are only interested in the speed-up between `online_unrestricted` with different `GlobalConstants`.
 
     Returns
     -------
@@ -819,6 +823,22 @@ def create_infrastructure_and_schedule_from_ranges(
     grid_mode: bool = False,
     run_experiments_parallel: int = 5,
 ) -> List[ScheduleParameters]:
+    """Create infrastructures and schedules for the given ranges. Skips
+    infrastructures and schedules already existing. For existing
+    infrastructures, checks that parameters match.
+
+    Parameters
+    ----------
+    infrastructure_parameters_range
+    schedule_parameters_range
+    base_directory
+    speed_data
+    grid_mode
+    run_experiments_parallel
+
+    Returns
+    -------
+    """
     # expand infrastructure parameters and generate infrastructure
     list_of_infrastructure_parameters = expand_infrastructure_parameter_range_and_generate_infrastructure(
         infrastructure_parameter_range=infrastructure_parameters_range, base_directory=base_directory, speed_data=speed_data, grid_mode=grid_mode
@@ -883,6 +903,20 @@ def list_infrastructure_and_schedule_params_from_base_directory(
 def expand_infrastructure_parameter_range_and_generate_infrastructure(
     infrastructure_parameter_range: InfrastructureParametersRange, base_directory: str, speed_data: SpeedData, grid_mode: bool = True
 ) -> List[InfrastructureParameters]:
+    """Expand infrastructure parameter range and generate infrastructure for
+    those not existing. If infrastructure file is present, checks that it
+    corresponds to the expansion.
+
+    Parameters
+    ----------
+    infrastructure_parameter_range
+    base_directory
+    speed_data
+    grid_mode
+
+    Returns
+    -------
+    """
     list_of_infra_parameters = expand_infrastructure_parameter_range(
         infrastructure_parameter_range=infrastructure_parameter_range, grid_mode=grid_mode, speed_data=speed_data
     )

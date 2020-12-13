@@ -14,7 +14,6 @@ from rsp.step_05_experiment_run.experiment_results import ExperimentResults
 from rsp.step_05_experiment_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
 from rsp.step_05_experiment_run.experiment_results_analysis import expand_experiment_results_for_analysis
 from rsp.step_05_experiment_run.experiment_results_analysis import ExperimentResultsAnalysis
-from rsp.step_05_experiment_run.experiment_results_analysis import temporary_backwards_compatibility_scope
 from rsp.step_05_experiment_run.experiment_results_analysis_online_unrestricted import (
     convert_list_of_experiment_results_analysis_online_unrestricted_to_data_frame,
 )
@@ -151,8 +150,6 @@ def load_data_from_individual_csv_in_data_folder(
 
     experiment_data = pd.concat(list_of_frames)
 
-    if not online_unrestricted_only:
-        temporary_backwards_compatibility_scope(experiment_data)
     return experiment_data
 
 
