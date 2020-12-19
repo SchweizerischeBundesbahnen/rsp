@@ -2,13 +2,13 @@ import numpy as np
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.scheduling.asp_wrapper import asp_schedule_wrapper
-from rsp.step_01_planning.experiment_parameters_and_ranges import ExperimentParameters
-from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParameters
-from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParameters
-from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParameters
-from rsp.step_03_run.experiments import create_env_from_experiment_parameters
-from rsp.step_03_run.experiments import create_infrastructure_from_rail_env
-from rsp.step_03_run.experiments import create_schedule_problem_description_from_instructure
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import ExperimentParameters
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import InfrastructureParameters
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import ReScheduleParameters
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import ScheduleParameters
+from rsp.step_02_infrastructure_generation.infrastructure import create_env_from_experiment_parameters
+from rsp.step_02_infrastructure_generation.infrastructure import create_infrastructure_from_rail_env
+from rsp.step_03_schedule_generation.schedule_generation import create_schedule_problem_description_from_instructure
 
 
 def get_sum_running_times_trainruns_dict(trainruns_dict: TrainrunDict):
@@ -207,7 +207,7 @@ def test_scheduling():
     ]
     assert static_env.rail.grid.tolist() == expected_grid
 
-    schedule_problem = schedule_problem = create_schedule_problem_description_from_instructure(
+    schedule_problem = create_schedule_problem_description_from_instructure(
         infrastructure=create_infrastructure_from_rail_env(static_env, 10), number_of_shortest_paths_per_agent_schedule=10
     )
     schedule_result = asp_schedule_wrapper(schedule_problem_description=schedule_problem, asp_seed_value=94, no_optimize=False)

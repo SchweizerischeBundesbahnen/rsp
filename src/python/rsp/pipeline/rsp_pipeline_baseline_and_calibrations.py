@@ -4,12 +4,12 @@ from typing import Optional
 
 from rsp.pipeline.rsp_pipeline import rsp_pipeline
 from rsp.scheduling.asp.asp_data_types import ASPHeuristics
-from rsp.step_01_planning.experiment_parameters_and_ranges import InfrastructureParametersRange
-from rsp.step_01_planning.experiment_parameters_and_ranges import ReScheduleParametersRange
-from rsp.step_01_planning.experiment_parameters_and_ranges import ScheduleParametersRange
-from rsp.step_03_run.experiments import AVAILABLE_CPUS
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import InfrastructureParametersRange
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import ReScheduleParametersRange
+from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import ScheduleParametersRange
+from rsp.step_01_agenda_expansion.global_constants import get_defaults
+from rsp.step_05_experiment_run.experiment_run import AVAILABLE_CPUS
 from rsp.utils.file_utils import check_create_folder
-from rsp.utils.global_constants import get_defaults
 
 
 def rsp_pipeline_baseline_and_calibrations(
@@ -26,6 +26,26 @@ def rsp_pipeline_baseline_and_calibrations(
     experiments_per_grid_element=1,
     csv_only: bool = False,
 ):
+    """Run the same rsp pipeline multiple times with different
+    `GlobalConstants`.
+
+    Parameters
+    ----------
+    base_directory
+    infra_parameters_range
+    schedule_parameters_range
+    reschedule_parameters_range
+    experiment_output_base_directory
+    experiment_filter
+    speed_data
+    grid_mode
+    parallel_compute
+    experiments_per_grid_element
+    csv_only
+
+    Returns
+    -------
+    """
     experiment_name_prefix = os.path.basename(base_directory) + "_"
     # baseline with defaults
     experiment_output_base_directory, _ = rsp_pipeline(
