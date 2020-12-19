@@ -4,6 +4,7 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 
+from deprecated import deprecated
 from flatland.core.grid.grid_utils import coordinate_to_position
 
 from rsp.utils.resource_occupation import ResourceOccupation
@@ -16,6 +17,7 @@ ResourceSorting = Dict[Resource, int]
 PlottingInformation = NamedTuple("PlottingInformation", [("sorting", ResourceSorting), ("dimensions", Tuple[int, int]), ("grid_width", int)])
 
 
+@deprecated(reason="We should DataFrame approach instead, as it is more flexible.")
 def extract_plotting_information(
     schedule_as_resource_occupations: ScheduleAsResourceOccupations, grid_depth: int, sorting_agent_id: Optional[int] = None
 ) -> PlottingInformation:

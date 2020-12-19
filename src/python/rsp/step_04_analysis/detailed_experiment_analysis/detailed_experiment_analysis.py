@@ -783,3 +783,66 @@ def print_path_stats(experiment_results: ExperimentResults):
         problem: ScheduleProblemDescription = experiment_results._asdict()[f"problem_{scope}"]
         nb_paths = [len(get_paths_in_route_dag(topo)) for _, topo in problem.topo_dict.items()]
         print(f"{scope}: " + path_stats(nb_paths))
+
+
+def plot_histogram_from_delay_data(experiment_results_analysis: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
+    """Plot a histogram of the delay of agents in the full and delta perfect
+    reschedule compared to the schedule."""
+
+    fig = go.Figure()
+    for scope in rescheduling_scopes:
+        fig.add_trace(go.Histogram(x=[v for v in experiment_results_analysis._asdict()[f"lateness_per_agent_{scope}"].values()], name=f"results_{scope}"))
+    fig.update_layout(barmode="group", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
+
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text="Delay distributions")
+    fig.update_xaxes(title="Delay [s]")
+
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f"delay_histogram.pdf")
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
+
+
+def plot_costs(
+    experiment_results_analysis: ExperimentResultsAnalysis, output_folder: Optional[str] = None, scopes: List[str] = None, width: int = None, height: int = None
+):
+    experiment_id = experiment_results_analysis.experiment_id
+    fig = go.Figure()
+    if scopes is None:
+        scopes = rescheduling_scopes
+    for scope in scopes:
+        fig.add_trace(
+            go.Bar(
+                x=list(experiment_results_analysis._asdict()[f"lateness_per_agent_{scope}"].keys()),
+                y=list(experiment_results_analysis._asdict()[f"lateness_per_agent_{scope}"].values()),
+                name=f"lateness_per_agent_{scope}",
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=list(experiment_results_analysis._asdict()[f"costs_from_route_section_penalties_per_agent_{scope}"].keys()),
+                y=list(experiment_results_analysis._asdict()[f"costs_from_route_section_penalties_per_agent_{scope}"].values()),
+                name=f"costs_from_route_section_penalties_per_agent_{scope}",
+            )
+        )
+    fig.update_traces(opacity=0.75)
+    fig.update_layout(title_text=f"Costs per agent for experiment {experiment_id}")
+    fig.update_xaxes(title="Agent ID [-]")
+    fig.update_yaxes(title="Costs [discretetime steps]")
+    fig.update_layout(barmode="group")  # , legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
+    fig.update_layout(legend=dict(yanchor="top", y=-0.2, x=0.01))
+    if height is not None:
+        fig.update_layout(height=height)
+    if width is not None:
+        fig.update_layout(width=width)
+    if output_folder is None:
+        fig.show()
+    else:
+        check_create_folder(output_folder)
+        pdf_file = os.path.join(output_folder, f"costs_experiment_{experiment_id:03d}.pdf")
+        # https://plotly.com/python/static-image-export/
+        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)

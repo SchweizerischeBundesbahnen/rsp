@@ -22,6 +22,7 @@ sys.path.append("../../src/asp")
 from IPython.display import Video
 import pandas as pd
 import plotly.express as px
+import plotly.figure_factory as ff
 
 
 from rsp.step_03_run.experiments import *
@@ -29,6 +30,8 @@ from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analy
 from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import *
 from rsp.step_04_analysis.detailed_experiment_analysis.flatland_rendering import *
 from rsp.step_04_analysis.detailed_experiment_analysis.scatter_with_slider import *
+from rsp.step_04_analysis.detailed_experiment_analysis.time_resource_plots_from_data_frames import *
+
 
 from rsp.step_04_analysis.plot_utils import *
 from rsp.utils.global_data_configuration import *
@@ -36,6 +39,9 @@ from rsp.utils.resource_occupation import *
 from rsp.scheduling.asp.asp_helper import _print_stats
 
 import pprint
+
+from IPython.core.display import display, HTML
+display(HTML("<style>.container { width:80% !important; }</style>"))
 
 _pp = pprint.PrettyPrinter(indent=4)
 
@@ -72,6 +78,18 @@ experiment_results_list, experiment_results_analysis_list = load_and_expand_expe
 exp_results_of_experiment_of_interest: ExperimentResults = experiment_results_list[0]
 exp_results_analysis_of_experiment_of_interest: ExperimentResultsAnalysis = experiment_results_analysis_list[0]
 agent_of_interest = exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.malfunction_agent_id
+
+malfunction  = gen_malfunction(
+        earliest_malfunction=exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.earliest_malfunction,
+        malfunction_duration=exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.malfunction_duration,
+        malfunction_agent_id=exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.malfunction_agent_id,
+        schedule_trainruns=exp_results_of_experiment_of_interest.results_schedule.trainruns_dict,
+    )
+print(malfunction)
+```
+
+```{python}
+experiment_agenda = load_experiment_agenda_from_file(experiment_base_directory)
 ```
 
 ```{python}
@@ -87,16 +105,103 @@ plotting_information: PlottingInformation = extract_plotting_information(
 print(f"agent_of_interest={agent_of_interest}")
 ```
 
-### Visualize solutions
+```{python}
+full_df, df_background, sorted_resource_occupations_per_scope_and_agent = extract_full_df_from_experiment_results(
+    exp_results_of_experiment_of_interest=exp_results_of_experiment_of_interest,
+    global_constants=experiment_agenda.global_constants
+)
+```
+
+```{python}
+height = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.height
+width = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.width
+num_agents = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.number_of_agents
+max_episode_steps = exp_results_of_experiment_of_interest.problem_online_unrestricted.max_episode_steps + exp_results_of_experiment_of_interest.malfunction.malfunction_duration
+```
+
+# Inspect Solutions
+
+
+## Solutions Gantt Charts of Agents Runnin
+
+```{python}
+for scope in all_scopes:
+    df = [
+        dict(Task=str(agent_id), Start=str(sorted_resource_occupations_per_agent[0].interval.from_incl), Finish=str(sorted_resource_occupations_per_agent[-1].interval.to_excl))
+        for agent_id, sorted_resource_occupations_per_agent in sorted_resource_occupations_per_scope_and_agent[scope].items()
+    ]
+
+    fig = ff.create_gantt(df, title=f"Agents running in {scope}")
+    fig.add_trace(
+        go.Scatter(
+            x = [malfunction.time_step, malfunction.time_step],
+            y = [0, num_agents],
+            mode = "lines",
+            line = go.scatter.Line(color = "gray", width = 1),
+            showlegend = False
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration],
+            y = [0, num_agents],
+            mode = "lines",
+            line = go.scatter.Line(color = "gray", width = 1, dash="dot"),
+            showlegend = False
+        )
+    )
+    fig.update_xaxes(type='linear')
+    fig.show()
+```
+
+## Solutions Time-Resource Graphs
 
 
 The figure below shows the initial schedule we use as input to our re-scheduling pipeline. It is taken as given as used as target for optimization (minimal delay to initial schedule)
 
 ```{python}
-plot_time_resource_trajectories_all_scopes(experiment_results=exp_results_of_experiment_of_interest, plotting_information=plotting_information)
+all_agents_with_malfunction_agent_first=[malfunction.agent_id]+[agent_id for agent_id in range(num_agents) if agent_id != malfunction.agent_id]
 ```
 
-### Changed agents
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["schedule"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["online_unrestricted"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["online_unrestricted"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["online_unrestricted"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["offline_delta_weak"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["online_route_restricted"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["online_transmission_chains_fully_restricted"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+time_resource_graph_from_df(full_df=full_df, scopes=["online_transmission_chains_route_restricted"], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+```{python}
+random_scopes = [scope for scope in all_scopes if "random" in scope]
+for scope in random_scopes:
+    time_resource_graph_from_df(full_df=full_df, scopes=[scope], time_step_interval=[0,max_episode_steps], num_agents=num_agents, agents_of_interest=all_agents_with_malfunction_agent_first, malfunction=malfunction)
+```
+
+### Solutions Changed Agents with Respect to Initial Schedule
 
 ```{python}
 schedule_trainruns_dict = exp_results_of_experiment_of_interest.results_schedule.trainruns_dict
@@ -114,7 +219,10 @@ for scope in rescheduling_scopes:
 plot_changed_agents(exp_results_of_experiment_of_interest)
 ```
 
-### Visualize Problems
+# Inspect Problems
+
+
+## Problems Routing Alternatives, Speed and Time Windows
 
 ```{python}
 print_path_stats(experiment_results=exp_results_of_experiment_of_interest)
@@ -129,20 +237,24 @@ plot_agent_speeds(experiment_results=exp_results_of_experiment_of_interest)
 plot_time_window_sizes(experiment_results=exp_results_of_experiment_of_interest)
 ```
 
-### Visualize Problem instances as time-resource graphs
+## Problems Time-Resource graphs
 This visualization shows the parameter spaced available to the optimizer to find solutions. Initial schedule is not shown as we have a tabularasa approach with no restrictions.
 Full rescheduling has the following available parameter space
 Using the perfect oracle we can reduce the available parameters to disjunct patches in the space-time-continuum ;)
 
 ```{python}
+# TODO replace with df-based ploggint, remove plotting_information stuff
 plot_time_windows_all_scopes(experiment_results=exp_results_of_experiment_of_interest, plotting_information=plotting_information)
 ```
 
+## Problems Heatmaps
+
 ```{python}
+# TODO replace with df-based ploggint, remove plotting_information stuff
 plot_shared_heatmap(plotting_information=plotting_information,experiment_result=exp_results_of_experiment_of_interest)
 ```
 
-### Some metrics about the schedule
+## Some metrics about the schedule
 
 
 Number of active agents at each time step for the initial schedule
@@ -154,6 +266,7 @@ plot_time_density(schedule_as_resource_occupations=resource_occupations_for_all_
 Below we plot the resource occupation for the schedule and the difference between to the re-schedule as well as an indication of where agents start and where they travel. THe circles represent number of agents that either start or end at the city location.
 
 ```{python}
+# TODO remove plotting_information stuff
 plot_resource_occupation_heat_map(
     schedule_as_resource_occupations=resource_occupations_for_all_scopes.schedule,
     reschedule_as_resource_occupations=resource_occupations_for_all_scopes.offline_delta,
@@ -171,69 +284,18 @@ plot_train_paths(
         agent_ids= [agent_of_interest])
 ```
 
+## Solutions Costs
+
 ```{python}
-sorted_resource_occupations_per_scope_and_agent = {
-    scope:     extract_resource_occupations(
-            exp_results_of_experiment_of_interest._asdict()[f"results_{scope}"].trainruns_dict, GLOBAL_CONSTANTS.RELEASE_TIME
-    ).sorted_resource_occupations_per_agent
-    for scope in all_scopes
-}
+plot_costs(experiment_results_analysis= exp_results_analysis_of_experiment_of_interest, height=1000)
 ```
 
-```{python}
-height = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.height
-width = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.width
-num_agents = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.number_of_agents
-```
+## Solutions: Find Intervals and Agents with Changes in two Scopes
 
 ```{python}
-occupations = []
-resources = set()
-for scope in all_scopes:
-    trainruns_dict = exp_results_of_experiment_of_interest._asdict()[f"results_{scope}"].trainruns_dict
-    sorted_resource_occupations_per_agent = sorted_resource_occupations_per_scope_and_agent[scope]
-    for agent_id, sorted_resource_occupations_per_agent in sorted_resource_occupations_per_agent.items():
-        occupations_x = {}
-        occupations_y = {}
-        for ro in sorted_resource_occupations_per_agent:
-            for time_step in range(ro.interval.from_incl,ro.interval.to_excl):
-                occupations.append((scope, ro.resource.row,ro.resource.column,time_step,agent_id, ro.direction, str(tuple(ro.resource))))
-                resources.add(tuple(ro.resource))
-
-
-
-full_df = pd.DataFrame(occupations, columns =['scope', 'row', 'column', 'time_step', 'agent_id', 'direction', 'position'])
-full_df.sort_values(['agent_id', 'time_step','scope',],
-              ascending = [True, True, True])
-
-df_background = pd.DataFrame(resources, columns =['row', 'column'])
-```
-
-```{python}
-color_discrete_map = dict(enumerate(PLOTLY_COLORLIST))
-color_discrete_map[-1] = 'grey'
-symbol_map=dict(enumerate(['triangle-up', 'triangle-right', 'triangle-down', 'triangle-left']))
-symbol_map[-1] = 'square'
-```
-
-```{python}
-print("-------------------------------------------------|-------|---------------------|-----------------------------------")
-print("scope                                            | costs | costs_from_lateness | costs_from_route_section_penalties")
-print("-------------------------------------------------|-------|---------------------|-----------------------------------")
-for scope in rescheduling_scopes:
-    costs = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_{scope}"]
-    costs_from_lateness = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_from_lateness_{scope}"]
-    costs_from_route_section_penalties = exp_results_analysis_of_experiment_of_interest._asdict()[f"costs_from_route_section_penalties_{scope}"]
-    print(f"{scope:49}| {costs:4.0f}  | {costs_from_lateness:19.0f} | {costs_from_route_section_penalties:34.0f}")
-```
-
-```{python}
-TODO: instead lateness and route section penalties distribution per agent
-
-print(num_agents)
 change_range_dict = {}
 left_scope = "online_unrestricted"
-right_scope = "offline_delta_weak"
+right_scope = "online_route_restricted"
 for agent_id in range(num_agents):
     left_scope_ros = set(sorted_resource_occupations_per_scope_and_agent[left_scope][agent_id])
     right_scope_ros = set(sorted_resource_occupations_per_scope_and_agent[right_scope][agent_id])
@@ -244,106 +306,86 @@ for agent_id in range(num_agents):
     lateness_left = exp_results_analysis_of_experiment_of_interest._asdict()[f"lateness_per_agent_{left_scope}"][agent_id]
     lateness_right = exp_results_analysis_of_experiment_of_interest._asdict()[f"lateness_per_agent_{right_scope}"][agent_id]
 
-    if (costs_from_route_section_penalties_left != costs_from_route_section_penalties_right) or (lateness_left != lateness_left):
-        print(f"agent {agent_id} ")
-        print(f"                                     {left_scope}-{right_scope}")
+    if (costs_from_route_section_penalties_left != costs_from_route_section_penalties_right) or (lateness_left != lateness_right):
+        print(f"agent {agent_id} has costs differences       {left_scope}-{right_scope}")
         print(f"  lateness                           {lateness_left} - {lateness_right}")
         print(f"  costs_from_route_section_penalties {costs_from_route_section_penalties_left} - {costs_from_route_section_penalties_right}")
 
     if sym_diff:
         change_range_dict[agent_id]=(np.min([ro.interval.from_incl for ro in sym_diff]), np.max([ro.interval.to_excl for ro in sym_diff]))
-        print(f"{agent_id}: {change_range_dict[agent_id]}")
+        print(f"agent {agent_id} has changes in range between {left_scope} and {right_scope} in range {change_range_dict[agent_id]}")
 print(change_range_dict)
 change_range_lbs, change_range_ubs = list(zip(*change_range_dict.values()))
 
 change_interval = (np.min(change_range_lbs), np.max(change_range_ubs))
 print(change_interval)
-```
 
-```{python}
-agent_range = [6,48]
-agent_range = list(range(0, num_agents))
-#change_interval = (900, 980)
-time_step_range = range(*change_interval)
+df = [
+    dict(Task=str(agent_id), Start=str(lb), Finish=str(ub))
+    for agent_id, (lb,ub) in change_range_dict.items()
+]
 
-
-df = full_df[full_df["scope"].isin(["online_unrestricted", "offline_delta_weak"])]
-if agent_range is not None:
-    df = df[df["agent_id"].isin(agent_range)]
-if time_step_range is not None:
-    df = df[df["time_step"].isin(time_step_range)]
-
-
-# TODO moving number in colorbar ?!
-# TODO remove hard-codd in
-# TODO better hovertext
-# TODO start step at lower bound, get rid of ste-*
-
-
-scatter_with_slider(df, x_dim="column", y_dim="row", slider_dim="time_step", range_x=[0,width], range_y=[height,0],range_slider=change_interval, agents_list=agent_range,
-                   df_background = df_background
-                   )
-raise
-fig = px.scatter(df, x="column", y="row",
-                 animation_frame="time_step",
-                 hover_name="scope",
-                 range_x=[0,width], range_y=[height,0],
-                 color="agent_id", color_discrete_map = color_discrete_map,
-                 symbol="agent_id", symbol_map={agent_id: "square" for agent_id in agent_range},
-             title="online_unrestricted - offline_delta_weak")
-fig.show()
-fig = px.scatter_3d(df, x="column", y="row", z="time_step",
-                 hover_name="scope",
-                 range_x=[0,width], range_y=[height,0],
-                 color="agent_id", color_discrete_map = dict(enumerate(PLOTLY_COLORLIST)),
-                 title="online_unrestricted - offline_delta_weak")
+fig = ff.create_gantt(df, title=f"Intervals of changes between {left_scope} and {right_scope}")
+fig.add_trace(
+    go.Scatter(
+        x = [malfunction.time_step, malfunction.time_step],
+        y = [0, num_agents],
+        mode = "lines",
+        line = go.scatter.Line(color = "gray", width = 1),
+        showlegend = False
+    )
+)
+fig.add_trace(
+    go.Scatter(
+        x = [malfunction.time_step + malfunction.malfunction_duration, malfunction.time_step + malfunction.malfunction_duration],
+        y = [0, num_agents],
+        mode = "lines",
+        line = go.scatter.Line(color = "gray", width = 1, dash="dot"),
+        showlegend = False
+    )
+)
+fig.update_xaxes(type='linear')
 fig.show()
 ```
 
-```{python}
-for scope in all_scopes:
-    df = full_df[full_df["scope"] == scope]
-    if agent_range is not None:
-        df = df[df["agent_id"].isin(agent_range)]
-    if time_step_range is not None:
-        df = df[df["time_step"].isin(time_step_range)]
+## Problems Visualization Subset of Agents and Time Range
 
-    fig = px.scatter(df, x="position", y="time_step",
-                     hover_name="agent_id",
-                     range_y=list(reversed(change_interval)),
-                     color="agent_id", color_discrete_map = dict(enumerate(PLOTLY_COLORLIST)),
-                     symbol="agent_id", symbol_map={agent_id: "square" for agent_id in agent_range},
-                     title=scope)
-    fig.show()
+```{python}
+agents_of_interest = [20, 40, 31,18]
+time_steps_interval_of_interest = [900,1720]
+scopes_of_interest = ["online_unrestricted", "online_route_restricted"]
 ```
 
 ```{python}
-for scope in all_scopes:
-    df = full_df[full_df["scope"] == scope]
-    if agent_range is not None:
-        print(agent_range)
-        df = df[df["agent_id"].isin(agent_range)]
-    if time_step_range is not None:
-        df = df[df["time_step"].isin(time_step_range)]
-
-    df = df.sort_values(['time_step','agent_id',],
-              ascending = [True, True])
-    fig = px.scatter(df, x="column", y="row",
-                 animation_frame="time_step",
-                 hover_name="scope",
-                 range_x=[-1,width], range_y=[height,-1],
-                 color="agent_id", color_discrete_map = dict(enumerate(PLOTLY_COLORLIST)),
-                 symbol="agent_id", symbol_map={agent_id: "square" for agent_id in agent_range},
-             title=scope)
-
-
-    fig.show()
-    fig = px.scatter_3d(df, x="column", y="row", z='time_step',
-                    color='agent_id',
+scopes_of_interest = ["online_route_restricted"]
+scatter_with_slider(full_df=full_df,
+                    scopes=scopes_of_interest,
+                    agents_of_interest=agents_of_interest,
+                    time_step_interval=time_steps_interval_of_interest,
+                    num_agents=num_agents,
+                    x_dim="column", y_dim="row",
+                    slider_dim="time_step",
                     range_x=[0,width], range_y=[height,0],
-                       )
-    fig.show()
+                    range_slider=change_interval,
+                    df_background = df_background
+                   )
 ```
+
+```{python}
+scopes_of_interest = ["online_unrestricted"]
+time_resource_graph_from_df(full_df=full_df, scopes=scopes_of_interest, time_step_interval=time_steps_interval_of_interest, num_agents=num_agents, agents_of_interest=agents_of_interest, malfunction=malfunction, symbol="triangle-down")
+```
+
+```{python}
+scopes_of_interest = ["online_route_restricted"]
+time_resource_graph_from_df(full_df=full_df, scopes=scopes_of_interest, time_step_interval=time_steps_interval_of_interest, num_agents=num_agents, agents_of_interest=agents_of_interest, malfunction=malfunction, symbol="triangle-down")
+```
+
+```{python}
+time_resource_graph_3d_from_df(full_df=full_df, scopes=scopes_of_interest, time_step_interval=time_steps_interval_of_interest, num_agents = num_agents, grid_width = width, grid_height = height, agents_of_interest=agents_of_interest)
+```
+
+## Problems Route DAGs
 
 ```{python}
 # %matplotlib inline
@@ -360,7 +402,7 @@ plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, Schedule
 plot_route_dag(exp_results_of_experiment_of_interest,agent_of_interest, ScheduleProblemEnum.PROBLEM_RSP_DELTA_PERFECT_AFTER_MALFUNCTION)
 ```
 
-### solver statistics
+## Problems Solver Statistics
 
 ```{python}
 for scope in all_scopes:

@@ -147,28 +147,6 @@ def print_situation_overview(malfunction: ExperimentMalfunction, resource_occupa
     )
 
 
-def plot_histogram_from_delay_data(experiment_results_analysis: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
-    """Plot a histogram of the delay of agents in the full and delta perfect
-    reschedule compared to the schedule."""
-
-    fig = go.Figure()
-    for scope in rescheduling_scopes:
-        fig.add_trace(go.Histogram(x=[v for v in experiment_results_analysis._asdict()[f"lateness_per_agent_{scope}"].values()], name=f"results_{scope}"))
-    fig.update_layout(barmode="group", legend=dict(yanchor="bottom", y=1.02, xanchor="right", x=1))
-
-    fig.update_traces(opacity=0.75)
-    fig.update_layout(title_text="Delay distributions")
-    fig.update_xaxes(title="Delay [s]")
-
-    if output_folder is None:
-        fig.show()
-    else:
-        check_create_folder(output_folder)
-        pdf_file = os.path.join(output_folder, f"delay_histogram.pdf")
-        # https://plotly.com/python/static-image-export/
-        fig.write_image(pdf_file, width=PDF_WIDTH, height=PDF_HEIGHT)
-
-
 def plot_lateness(experiment_results_analysis: ExperimentResultsAnalysis, output_folder: Optional[str] = None):
     """
     Plot a histogram of the delay of agents in the full and delta perfect reschedule compared to the schedule
