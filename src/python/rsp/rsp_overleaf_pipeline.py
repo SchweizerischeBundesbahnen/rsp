@@ -41,7 +41,7 @@ if __name__ == "__main__":
         infra_parameters_range=INFRA_PARAMETERS_RANGE,
         schedule_parameters_range=SCHEDULE_PARAMETERS_RANGE,
         reschedule_parameters_range=RESCHEDULE_PARAMETERS_RANGE,
-        base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        # base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         # create new folder, add BASELINE_DATA_FOLDER for incremental
         experiment_output_base_directory=NEW_OUTPUT_FOLDER,
         experiment_filter=experiment_filter_first_ten_of_each_schedule,
