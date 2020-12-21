@@ -245,7 +245,7 @@ For a full example, see `test_rerun_single_experiment_after_csv_only()`.
 ### Use case 4: you want to re-rerun the same agenda
 1. Make a new run directory:  `mkdir -p ../rsp-data/my-agenda/my-new-run`
 2. Copy the old agenda from the old to the new run directory: `cp ../rsp-data/my-agenda/my-old-run/experiment_agenda.pkl ../rsp-data/my-agenda/my-new-run`
-3. Run the agenda
+3. Run the agenda from a new `main` or from `detailed_experiment_analysis.Rmd` with `run_experiment = True` with the following call:
 
         run_experiment_agenda(
             experiment_base_directory="../rsp-data/my-agenda",
@@ -253,6 +253,11 @@ For a full example, see `test_rerun_single_experiment_after_csv_only()`.
             csv_only=False,
             filter_experiment_agenda=filter_experiment_agenda,
         )
+
+Caveats:
+* Be sure to have git-lfs data checked out (see `README.md` in `rsp-data`)
+* Experiments that already have run (`.pkl` present, not only `.csv`) will be skipped. Re-running such an experiment is not supported (just remove the `.pkl` as a workaround).
+* The `ERROR SUMMARY` at the end lists all errors, not only those from the re-run. Check the dates!
 
 ## Coding Guidelines
 See [CODING.md](CODING.md).

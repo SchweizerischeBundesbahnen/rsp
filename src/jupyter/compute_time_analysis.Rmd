@@ -24,12 +24,12 @@ sys.path.append("../../src/asp")
 import pandas as pd
 from IPython.display import Video
 
-from rsp.step_03_run.experiments import *
-from rsp.step_03_run.experiment_results_analysis import *
-from rsp.step_04_analysis.plot_utils import *
-from rsp.step_04_analysis.compute_time_analysis.compute_time_analysis import *
-from rsp.step_04_analysis.compute_time_analysis.asp_plausi import *
-from rsp.utils.global_data_configuration import *
+from rsp.step_05_experiment_run.experiment_run import *
+from rsp.step_05_experiment_run.experiment_results_analysis import *
+from rsp.step_06_analysis.plot_utils import *
+from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import *
+from rsp.step_06_analysis.compute_time_analysis.asp_plausi import *
+from rsp.global_data_configuration import *
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 
 
@@ -77,6 +77,8 @@ speed_up_vs_performance(experiment_data=experiment_data_filtered)
 axis_of_interest = 'n_agents'
 columns_of_interest = [f'solver_statistics_times_total_{suffix}' for suffix in ['full', 'online_unrestricted', 'offline_delta']]
 ```
+
+#### Find interesting experiments for cost equivalence use case: same costs as for online_unrestricted, but different lateness/route section penalties
 
 ```{python}
 for scope in rescheduling_scopes:

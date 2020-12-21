@@ -2,21 +2,29 @@ from functools import partial
 
 from pandas import DataFrame
 
-from rsp.step_03_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
-from rsp.step_03_run.experiment_results_analysis import filter_experiment_results_analysis_data_frame
-from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes_visualization
-from rsp.step_03_run.experiment_results_analysis import speed_up_scopes_visualization
-from rsp.step_03_run.experiments import EXPERIMENT_DATA_SUBDIRECTORY_NAME
-from rsp.step_03_run.experiments import load_and_expand_experiment_results_from_data_folder
-from rsp.step_03_run.experiments import load_data_from_individual_csv_in_data_folder
-from rsp.step_04_analysis.compute_time_analysis.compute_time_analysis import hypothesis_one_analysis_visualize_agenda
-from rsp.step_04_analysis.plot_utils import ColumnSpec
-from rsp.step_04_analysis.plot_utils import marker_color_scope
-from rsp.step_04_analysis.plot_utils import plot_binned_box_plot
-from rsp.utils.global_data_configuration import BASELINE_DATA_FOLDER
+from rsp.global_data_configuration import BASELINE_DATA_FOLDER
+from rsp.global_data_configuration import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.step_05_experiment_run.experiment_malfunction import gen_malfunction
+from rsp.step_05_experiment_run.experiment_results_analysis import convert_list_of_experiment_results_analysis_to_data_frame
+from rsp.step_05_experiment_run.experiment_results_analysis import filter_experiment_results_analysis_data_frame
+from rsp.step_05_experiment_run.experiment_results_analysis import rescheduling_scopes_visualization
+from rsp.step_05_experiment_run.experiment_results_analysis import speed_up_scopes_visualization
+from rsp.step_05_experiment_run.experiment_run import load_and_expand_experiment_results_from_data_folder
+from rsp.step_05_experiment_run.experiment_run import load_data_from_individual_csv_in_data_folder
+from rsp.step_05_experiment_run.experiment_run import load_experiment_agenda_from_file
+from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import hypothesis_one_analysis_visualize_agenda
+from rsp.step_06_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_costs
+from rsp.step_06_analysis.detailed_experiment_analysis.time_resource_plots_from_data_frames import extract_full_df_from_experiment_results
+from rsp.step_06_analysis.detailed_experiment_analysis.time_resource_plots_from_data_frames import time_resource_graph_from_df
+from rsp.step_06_analysis.plot_utils import ColumnSpec
+from rsp.step_06_analysis.plot_utils import marker_color_scope
+from rsp.step_06_analysis.plot_utils import plot_binned_box_plot
 
 
 def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_csv: bool = True, experiments_of_interest=None):
+    # ==============================================================================================================
+    # chapter 4: computational results
+    # ==============================================================================================================
     if from_individual_csv:
         experiment_data: DataFrame = load_data_from_individual_csv_in_data_folder(
             experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=experiments_of_interest
@@ -194,6 +202,66 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             title_text="Total solver time per solver_statistics_times_total_online_unrestricted (2)",
             marker_color=marker_color_scope,
         )
+
+    # ==============================================================================================================
+    # chapter 5: case studies
+    # ==============================================================================================================
+    output_folder = "doc/overleaf/Figures/05_use_cases"
+
+    # ==============================================================================================================
+    # chapter 5.1: cost equivalence
+    # ==============================================================================================================
+    experiment_results_list, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
+        experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=[342],
+    )
+    exp_results_analysis_of_experiment_of_interest = experiment_results_analysis_list[0]
+
+    plot_costs(
+        experiment_results_analysis=exp_results_analysis_of_experiment_of_interest,
+        output_folder=output_folder,
+        scopes=["online_unrestricted", "online_route_restricted"],
+    )
+
+    exp_results_of_experiment_of_interest = experiment_results_list[0]
+    experiment_agenda = load_experiment_agenda_from_file(experiment_base_directory)
+
+    full_df, df_background, sorted_resource_occupations_per_scope_and_agent = extract_full_df_from_experiment_results(
+        exp_results_of_experiment_of_interest=exp_results_of_experiment_of_interest, global_constants=experiment_agenda.global_constants
+    )
+
+    agents_of_interest = [20, 40, 31, 18]
+    time_steps_interval_of_interest = [900, 1720]
+    scopes_of_interest = ["online_unrestricted"]
+    num_agents = exp_results_of_experiment_of_interest.experiment_parameters.infra_parameters.number_of_agents
+
+    malfunction = gen_malfunction(
+        earliest_malfunction=exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.earliest_malfunction,
+        malfunction_duration=exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.malfunction_duration,
+        malfunction_agent_id=exp_results_of_experiment_of_interest.experiment_parameters.re_schedule_parameters.malfunction_agent_id,
+        schedule_trainruns=exp_results_of_experiment_of_interest.results_schedule.trainruns_dict,
+    )
+
+    time_resource_graph_from_df(
+        full_df=full_df,
+        scopes=scopes_of_interest,
+        time_step_interval=time_steps_interval_of_interest,
+        num_agents=num_agents,
+        agents_of_interest=agents_of_interest,
+        malfunction=malfunction,
+        output_folder=output_folder,
+        file_name=f"time_resource_{scopes_of_interest[0]}.pdf",
+    )
+    scopes_of_interest = ["online_route_restricted"]
+    time_resource_graph_from_df(
+        full_df=full_df,
+        scopes=scopes_of_interest,
+        time_step_interval=time_steps_interval_of_interest,
+        num_agents=num_agents,
+        agents_of_interest=agents_of_interest,
+        malfunction=malfunction,
+        output_folder=output_folder,
+        file_name=f"time_resource_{scopes_of_interest[0]}.pdf",
+    )
 
 
 if __name__ == "__main__":

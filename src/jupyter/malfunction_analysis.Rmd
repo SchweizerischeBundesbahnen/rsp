@@ -21,18 +21,18 @@ jupyter:
 import sys
 sys.path.append("../../src/python")
 sys.path.append("../../src/asp")
-from rsp.utils.global_data_configuration import *
-from rsp.step_03_run.experiments import *
-from rsp.step_04_analysis.malfunction_analysis.malfunction_analysis import *
-from rsp.step_04_analysis.malfunction_analysis.disturbance_propagation import *
+from rsp.global_data_configuration import *
+from rsp.step_05_experiment_run.experiment_run import *
+from rsp.step_06_analysis.malfunction_analysis.malfunction_analysis import *
+from rsp.step_06_analysis.malfunction_analysis.disturbance_propagation import *
 
-from rsp.step_04_analysis.detailed_experiment_analysis.detailed_experiment_analysis import *
-from rsp.step_04_analysis.detailed_experiment_analysis.trajectories import *
+from rsp.step_06_analysis.detailed_experiment_analysis.detailed_experiment_analysis import *
+from rsp.step_06_analysis.detailed_experiment_analysis.trajectories import *
 from rsp.transmission_chains.transmission_chains import *
 
 
-from rsp.step_04_analysis.detailed_experiment_analysis.resources_plotting_information import *
-from rsp.utils.resource_occupation import *
+from rsp.step_06_analysis.detailed_experiment_analysis.resources_plotting_information import *
+from rsp.resource_occupation.resource_occupation import *
 
 
 BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
@@ -43,7 +43,7 @@ BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
 ```{python}
 experiment_base_directory = BASELINE_DATA_FOLDER
 
-experiment_of_interest = 1
+experiment_of_interest = 342
 agent_of_interest = 0
 ```
 
