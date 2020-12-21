@@ -6,6 +6,9 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 
+import sys
+sys.version
+
 from flatland.envs.rail_trainrun_data_structures import TrainrunDict
 
 from rsp.global_data_configuration import EXPERIMENT_INFRA_SUBDIRECTORY_NAME
