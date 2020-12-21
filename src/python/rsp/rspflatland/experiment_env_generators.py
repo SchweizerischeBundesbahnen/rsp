@@ -1,4 +1,4 @@
-"""Create rsp-flatland environment for specific experiments.
+"""Create rspflatland environment for specific experiments.
 
 Methods
 -------
