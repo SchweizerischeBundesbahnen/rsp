@@ -34,7 +34,7 @@ def experiment_filter_first_ten_of_each_schedule(experiment: ExperimentParameter
     return experiment.re_schedule_parameters.malfunction_agent_id < 100
 
 
-NEW_OUTPUT_FOLDER = "../rsp-data/PUBLICATION_DATA/NEW_RUN_LARGE"
+NEW_OUTPUT_FOLDER = "../rsp-data/PUBLICATION_DATA/"
 
 if __name__ == "__main__":
     rsp_pipeline_baseline_and_calibrations(

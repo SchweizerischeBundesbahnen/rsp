@@ -6,7 +6,6 @@ from typing import Optional
 
 import numpy as np
 import plotly.express as px
-import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from _plotly_utils.colors.qualitative import Plotly
 from pandas import DataFrame
@@ -349,9 +348,6 @@ def density_hist_plot_2d(
 
     """
 
-    colorscale = ["#7A4579", "#D56073", "rgb(236,158,105)", (1, 1, 0.2), (0.98, 0.98, 0.98)]
-
-    # fig = ff.create_2d_density(x, y, colorscale=colorscale, hist_color="rgb(255, 237, 222)", point_size=5)
     fig = px.density_heatmap(
         data_frame=data_frame,
         x="speed_up_" + title,

@@ -4,23 +4,13 @@ from typing import Optional
 
 from pandas import DataFrame
 
-<<<<<<< HEAD:src/python/rsp/step_04_analysis/compute_time_analysis/compute_time_analysis.py
-from rsp.step_03_run.experiment_results_analysis import all_scopes_visualization
-from rsp.step_03_run.experiment_results_analysis import prediction_scopes_visualization
-from rsp.step_03_run.experiment_results_analysis import rescheduling_scopes
-from rsp.step_03_run.experiment_results_analysis import speed_up_scopes_visualization
-from rsp.step_04_analysis.plot_utils import ColumnSpec
-from rsp.step_04_analysis.plot_utils import density_hist_plot_2d
-from rsp.step_04_analysis.plot_utils import marker_color_scope
-from rsp.step_04_analysis.plot_utils import plot_binned_box_plot
-=======
 from rsp.step_05_experiment_run.experiment_results_analysis import all_scopes_visualization
 from rsp.step_05_experiment_run.experiment_results_analysis import prediction_scopes_visualization
 from rsp.step_05_experiment_run.experiment_results_analysis import speed_up_scopes_visualization
 from rsp.step_06_analysis.plot_utils import ColumnSpec
+from rsp.step_06_analysis.plot_utils import density_hist_plot_2d
 from rsp.step_06_analysis.plot_utils import marker_color_scope
 from rsp.step_06_analysis.plot_utils import plot_binned_box_plot
->>>>>>> 0e47e0aa8810dc1dab33df988e241860e19ecc2f:src/python/rsp/step_06_analysis/compute_time_analysis/compute_time_analysis.py
 
 
 def hypothesis_one_analysis_visualize_agenda(experiment_data: DataFrame, output_folder: Optional[str] = None, file_name: Optional[str] = None):
@@ -186,6 +176,4 @@ def hypothesis_one_analysis_visualize_changed_agents(experiment_data: DataFrame,
 
 def speed_up_vs_performance(experiment_data: DataFrame, output_folder: str = None):
     for scoper in prediction_scopes_visualization:
-        x = experiment_data["speed_up_" + scoper]
-        y = experiment_data["additional_costs_" + scoper]
-        density_hist_plot_2d(title=scoper, data_frame=experiment_data)
+        density_hist_plot_2d(title=scoper, data_frame=experiment_data, output_folder=output_folder)
