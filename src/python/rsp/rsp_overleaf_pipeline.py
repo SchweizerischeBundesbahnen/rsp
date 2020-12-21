@@ -15,7 +15,7 @@ INFRA_PARAMETERS_RANGE = InfrastructureParametersRange(
     max_rail_between_cities=[2, 2, 1],  # up from 1
     number_of_shortest_paths_per_agent=[10, 10, 1],
 )
-SCHEDULE_PARAMETERS_RANGE = ScheduleParametersRange(asp_seed_value=[814, 814, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1], )
+SCHEDULE_PARAMETERS_RANGE = ScheduleParametersRange(asp_seed_value=[814, 814, 1], number_of_shortest_paths_per_agent_schedule=[1, 1, 1],)
 RESCHEDULE_PARAMETERS_RANGE = ReScheduleParametersRange(
     earliest_malfunction=[10, 10, 1],
     malfunction_duration=[50, 50, 1],
@@ -25,7 +25,7 @@ RESCHEDULE_PARAMETERS_RANGE = ReScheduleParametersRange(
     max_window_size_from_earliest=[60, 60, 1],
     asp_seed_value=[99, 99, 1],
     # route change is penalized the same as 30 seconds delay
-    weight_route_change=[1, 1, 1], # down from 30
+    weight_route_change=[1, 1, 1],  # down from 30
     weight_lateness_seconds=[1, 1, 1],
 )
 
