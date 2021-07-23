@@ -30,7 +30,7 @@ from rsp.step_06_analysis.plot_utils import *
 from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import *
 from rsp.step_06_analysis.compute_time_analysis.asp_plausi import *
 from rsp.global_data_configuration import *
-BASELINE_DATA_FOLDER = f"../../../rsp-data/PUBLICATION_DATA/NEW_RUN_LARGE"
+BASELINE_DATA_FOLDER = f"../../../rsp-data/PUBLICATION_DATA/CHRISTMAS DATA"
 
 
 from IPython.core.display import display, HTML

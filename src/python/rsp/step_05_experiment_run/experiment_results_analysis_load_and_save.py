@@ -148,7 +148,7 @@ def load_data_from_individual_csv_in_data_folder(
     newline_and_flush_stdout_and_stderr()
     rsp_logger.info(f" -> done loading individual csv results from {experiment_data_folder_name} done")
 
-    experiment_data = pd.concat(list_of_frames)
+    experiment_data = pd.concat(list_of_frames, sort=True)
 
     return experiment_data
 

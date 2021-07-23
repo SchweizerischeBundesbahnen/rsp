@@ -105,12 +105,28 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
         axis_of_interest="experiment_id",
         axis_of_interest_dimension="",
         output_folder=output_folder,
-        file_name="prediction_quality.pdf",
-        cols=[ColumnSpec(prefix="changed_agents_percentage", scope="online_unrestricted")]
-        + [
+        file_name="prediction_quality_false_positive.pdf",
+        cols=[
             ColumnSpec(prefix=prediction_col, scope=scope)
             for scope in ["online_transmission_chains_route_restricted", "online_random_average"]
-            for prediction_col in ["predicted_changed_agents_false_positives_percentage", "predicted_changed_agents_false_negatives_percentage"]
+            for prediction_col in ["predicted_changed_agents_false_positives_percentage"]
+        ],
+        title_text="Prediction Quality Percentage",
+        marker_color=marker_color_scope,
+        marker_symbol=marker_symbol_positive_negative,
+        one_field_many_scopes=False,
+    )
+
+    plot_binned_box_plot(
+        experiment_data=experiment_data_filtered,
+        axis_of_interest="experiment_id",
+        axis_of_interest_dimension="",
+        output_folder=output_folder,
+        file_name="prediction_quality_false_negative.pdf",
+        cols=[
+            ColumnSpec(prefix=prediction_col, scope=scope)
+            for scope in ["online_transmission_chains_route_restricted", "online_random_average"]
+            for prediction_col in [ "predicted_changed_agents_false_negatives_percentage"]
         ],
         title_text="Prediction Quality Percentage",
         marker_color=marker_color_scope,
@@ -171,6 +187,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             title_text="Computational times bin histogram",
             file_name="times_total_histogram.pdf",
             show_bin_counts=True,
+            data_instead_of_box=True,
         )
 
         plot_binned_box_plot(

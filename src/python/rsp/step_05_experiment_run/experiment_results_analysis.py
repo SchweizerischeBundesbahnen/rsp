@@ -33,14 +33,12 @@ speed_up_scopes = [
     "offline_fully_restricted",
     "offline_delta",
     "offline_delta_weak",
-    "online_route_restricted",
-    "online_transmission_chains_fully_restricted",
+    # "online_route_restricted",
+    # "online_transmission_chains_fully_restricted",
     "online_transmission_chains_route_restricted",
 ] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
-prediction_scopes = ["online_transmission_chains_route_restricted", "online_transmission_chains_fully_restricted"] + [
-    f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)
-]
 
+prediction_scopes = ["online_transmission_chains_route_restricted"] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
 rescheduling_scopes = ["online_unrestricted"] + speed_up_scopes
 all_scopes = ["schedule"] + rescheduling_scopes
 

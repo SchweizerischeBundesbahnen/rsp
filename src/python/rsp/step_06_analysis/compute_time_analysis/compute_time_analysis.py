@@ -32,16 +32,17 @@ def hypothesis_one_analysis_visualize_agenda(experiment_data: DataFrame, output_
         one_field_many_scopes=False,
         binned=False,
         height=800,
+        data_instead_of_box=True
     )
 
 
 def hypothesis_one_analysis_visualize_computational_time_comparison(
-    experiment_data: DataFrame,
-    output_folder: str = None,
-    columns_of_interest: List[ColumnSpec] = None,
-    experiment_data_comparison: DataFrame = None,
-    experiment_data_suffix: str = None,
-    experiment_data_comparison_suffix: str = None,
+        experiment_data: DataFrame,
+        output_folder: str = None,
+        columns_of_interest: List[ColumnSpec] = None,
+        experiment_data_comparison: DataFrame = None,
+        experiment_data_suffix: str = None,
+        experiment_data_comparison_suffix: str = None,
 ):
     if columns_of_interest is None:
         columns_of_interest = [ColumnSpec(prefix="solver_statistics_times_total", scope=scope) for scope in all_scopes_visualization]
@@ -100,16 +101,16 @@ def hypothesis_one_analysis_prediction_quality(experiment_data: DataFrame, outpu
             axis_of_interest_dimension=axis_of_interest_suffix,
             output_folder=output_folder,
             cols=[ColumnSpec(prefix="n_agents"), ColumnSpec(prefix="changed_agents", scope="online_unrestricted")]
-            + [
-                ColumnSpec(prefix=prediction_col, scope=scope)
-                for scope in prediction_scopes_visualization
-                for prediction_col in [
+                 + [
+                     ColumnSpec(prefix=prediction_col, scope=scope)
+                     for scope in prediction_scopes_visualization
+                     for prediction_col in [
                     "changed_agents",
                     "predicted_changed_agents_number",
                     "predicted_changed_agents_false_positives",
                     "predicted_changed_agents_false_negatives",
                 ]
-            ],
+                 ],
             title_text="Prediction Quality Counts",
         )
         plot_binned_box_plot(
@@ -118,22 +119,22 @@ def hypothesis_one_analysis_prediction_quality(experiment_data: DataFrame, outpu
             axis_of_interest_dimension=axis_of_interest_suffix,
             output_folder=output_folder,
             cols=[ColumnSpec(prefix="changed_agents_percentage", scope="online_unrestricted")]
-            + [
-                ColumnSpec(prefix=prediction_col, scope=scope)
-                for scope in prediction_scopes_visualization
-                for prediction_col in [
+                 + [
+                     ColumnSpec(prefix=prediction_col, scope=scope)
+                     for scope in prediction_scopes_visualization
+                     for prediction_col in [
                     "changed_agents_percentage",
                     "predicted_changed_agents_percentage",
                     "predicted_changed_agents_false_positives_percentage",
                     "predicted_changed_agents_false_negatives_percentage",
                 ]
-            ],
+                 ],
             title_text="Prediction Quality Percentage",
         )
 
 
 def hypothesis_one_analysis_visualize_speed_up(
-    experiment_data: DataFrame, output_folder: str = None, nb_bins: Optional[int] = 10, show_bin_counts: bool = False
+        experiment_data: DataFrame, output_folder: str = None, nb_bins: Optional[int] = 10, show_bin_counts: bool = False
 ):
     for axis_of_interest, axis_of_interest_suffix in {"experiment_id": None, "solver_statistics_times_total_online_unrestricted": "s"}.items():
         for speed_up_col_pattern, title_text in [

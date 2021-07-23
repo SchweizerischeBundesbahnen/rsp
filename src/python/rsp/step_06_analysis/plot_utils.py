@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from _plotly_utils.colors.qualitative import Plotly
 from pandas import DataFrame
+from plotly.subplots import make_subplots
 
 from rsp.utils.file_utils import check_create_folder
 from rsp.utils.rsp_logger import rsp_logger
@@ -194,24 +195,25 @@ class ColumnSpec(NamedTuple):
 
 
 def plot_binned_box_plot(  # noqa: C901
-    experiment_data: DataFrame,
-    axis_of_interest: str,
-    cols: List[ColumnSpec],
-    title_text: str,
-    experiment_data_comparison: DataFrame = None,
-    axis_of_interest_dimension: Optional[str] = None,
-    output_folder: Optional[str] = None,
-    file_name: Optional[str] = None,
-    nb_bins: Optional[int] = 10,
-    show_bin_counts: Optional[bool] = False,
-    marker_color: Callable[[int, str], str] = None,
-    marker_symbol: Callable[[int, str], str] = None,
-    one_field_many_scopes: bool = False,
-    width: int = PDF_WIDTH,
-    height: int = PDF_HEIGHT,
-    binned: bool = True,
-    experiment_data_suffix: str = None,
-    experiment_data_comparison_suffix: str = None,
+        experiment_data: DataFrame,
+        axis_of_interest: str,
+        cols: List[ColumnSpec],
+        title_text: str,
+        experiment_data_comparison: DataFrame = None,
+        axis_of_interest_dimension: Optional[str] = None,
+        output_folder: Optional[str] = None,
+        file_name: Optional[str] = None,
+        nb_bins: Optional[int] = 10,
+        show_bin_counts: Optional[bool] = False,
+        marker_color: Callable[[int, str], str] = None,
+        marker_symbol: Callable[[int, str], str] = None,
+        one_field_many_scopes: bool = False,
+        width: int = PDF_WIDTH,
+        height: int = PDF_HEIGHT,
+        binned: bool = True,
+        data_instead_of_box=False,
+        experiment_data_suffix: str = None,
+        experiment_data_comparison_suffix: str = None,
 ):
     """
 
@@ -234,7 +236,8 @@ def plot_binned_box_plot(  # noqa: C901
     -------
 
     """
-    fig = go.Figure()
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
     # epsilon ensures that first/last bin not only contains min_value/max_value
     epsilon = 0.00001
     min_value = experiment_data[axis_of_interest].min() - epsilon
@@ -242,16 +245,16 @@ def plot_binned_box_plot(  # noqa: C901
     inc = (max_value - min_value) / nb_bins
     axis_of_interest_binned = axis_of_interest + "_binned"
     experiment_data = experiment_data.sort_values(by=axis_of_interest)
-
+    max_quantile = 0
     if binned:
         experiment_data[axis_of_interest_binned] = (
             experiment_data[axis_of_interest]
-            .astype(float)
-            .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
+                .astype(float)
+                .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
         )
-
     for col_index, col_spec in enumerate(cols):
         col = f"{col_spec.prefix}" + (f"_{col_spec.scope}" if col_spec.scope is not None else "")
+
         if one_field_many_scopes:
             col_name = col_spec.scope
         else:
@@ -262,65 +265,124 @@ def plot_binned_box_plot(  # noqa: C901
         if experiment_data_comparison is not None:
             data[
                 col_name + (experiment_data_comparison_suffix if experiment_data_comparison_suffix is not None else "_comparison")
-            ] = experiment_data_comparison
+                ] = experiment_data_comparison
         for col_name, d in data.items():
-            fig.add_trace(
-                go.Box(
-                    x=d[axis_of_interest_binned if binned else axis_of_interest],
-                    y=d[col],
-                    pointpos=-1,
-                    boxpoints="all",
-                    name=col_name,
-                    # TODO is this correct if we bin?
-                    customdata=np.dstack(
-                        (
-                            d["n_agents"],
-                            d["size"],
-                            d["solver_statistics_times_total_schedule"] if "solver_statistics_times_total_schedule" in d.columns else None,
-                            d["solver_statistics_times_total_online_unrestricted"]
-                            if "solver_statistics_times_total_online_unrestricted" in d.columns
-                            else None,
-                            d["solver_statistics_times_total_offline_delta"] if "solver_statistics_times_total_offline_delta" in d.columns else None,
-                            d["solver_statistics_times_total_online_route_restricted"]
-                            if "solver_statistics_times_total_online_route_restricted" in d.columns
-                            else None,
-                        )
-                    )[0],
-                    hovertext=d["experiment_id"],
-                    hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
-                    + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
-                    + "<b>Grid Size:</b> %{customdata[1]}<br>"
-                    + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
-                    + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
-                    + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
-                    + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
-                    + "<b>Experiment id:</b>%{hovertext}",
-                    marker=dict(
-                        color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
-                        symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
+            quantile = d[col].quantile(0.99)
+            if quantile > max_quantile:
+                max_quantile = quantile
+            if not data_instead_of_box:
+                fig.add_trace(
+                    go.Box(
+                        x=d[axis_of_interest_binned if binned else axis_of_interest],
+                        y=d[col],
+                        pointpos=-1,
+                        boxpoints=False,
+                        name=name_to_axis_title(col_name),
+                        # TODO is this correct if we bin?
+                        customdata=np.dstack(
+                            (
+                                d["n_agents"],
+                                d["size"],
+                                d["solver_statistics_times_total_schedule"] if "solver_statistics_times_total_schedule" in d.columns else None,
+                                d["solver_statistics_times_total_online_unrestricted"]
+                                if "solver_statistics_times_total_online_unrestricted" in d.columns
+                                else None,
+                                d["solver_statistics_times_total_offline_delta"] if "solver_statistics_times_total_offline_delta" in d.columns else None,
+                                d["solver_statistics_times_total_online_route_restricted"]
+                                if "solver_statistics_times_total_online_route_restricted" in d.columns
+                                else None,
+                            )
+                        )[0],
+                        hovertext=d["experiment_id"],
+                        hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
+                                      + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
+                                      + "<b>Grid Size:</b> %{customdata[1]}<br>"
+                                      + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
+                                      + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
+                                      + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
+                                      + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
+                                      + "<b>Experiment id:</b>%{hovertext}",
+                        marker=dict(
+                            color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
+                            symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
+                        ),
                     ),
-                ),
-            )
+                    secondary_y=False,
+                )
+            else:
+                fig.add_trace(
+                    go.Scatter(
+                        x=d[axis_of_interest_binned if binned else axis_of_interest],
+                        y=d[col],
+                        mode="markers",
+                        name=name_to_axis_title(col_name),
+                        # TODO is this correct if we bin?
+                        customdata=np.dstack(
+                            (
+                                d["n_agents"],
+                                d["size"],
+                                d["solver_statistics_times_total_schedule"] if "solver_statistics_times_total_schedule" in d.columns else None,
+                                d["solver_statistics_times_total_online_unrestricted"]
+                                if "solver_statistics_times_total_online_unrestricted" in d.columns
+                                else None,
+                                d["solver_statistics_times_total_offline_delta"] if "solver_statistics_times_total_offline_delta" in d.columns else None,
+                                d["solver_statistics_times_total_online_route_restricted"]
+                                if "solver_statistics_times_total_online_route_restricted" in d.columns
+                                else None,
+                            )
+                        )[0],
+                        hovertext=d["experiment_id"],
+                        hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
+                                      + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
+                                      + "<b>Grid Size:</b> %{customdata[1]}<br>"
+                                      + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
+                                      + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
+                                      + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
+                                      + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
+                                      + "<b>Experiment id:</b>%{hovertext}",
+                        marker=dict(
+                            color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
+                            symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
+                            size=10
+                        ),
+                    ),
+                    secondary_y=False,
+                )
+
+    first_col = cols[0]
+    y_axis_title = f"{first_col.prefix} [{first_col.dimension if first_col.dimension is not None else '-'}]"
+
     if binned and show_bin_counts:
         fig.add_trace(
             go.Histogram(
                 x=experiment_data[axis_of_interest_binned if binned else axis_of_interest].values,
                 name=f"counts({axis_of_interest_binned if binned else axis_of_interest})",
-            )
+            ),
+            secondary_y=True,
         )
+        fig.update_yaxes(title_text="Counts", titlefont=dict(size=20), tickfont=dict(size=20), showgrid=True, secondary_y=True)
 
-    if one_field_many_scopes:
-        first_col = cols[0]
-        y_axis_title = f"{first_col.prefix} [{first_col.dimension if first_col.dimension is not None else '-'}]"
-    else:
-        y_axis_title = ""
-
-    fig.update_layout(title_text=title_text)
     fig.update_layout(boxmode="group")
-    fig.update_xaxes(title=f"{axis_of_interest} [{axis_of_interest_dimension if axis_of_interest_dimension is not None else '-'}]")
-    fig.update_yaxes(title=y_axis_title)
+
+    fig.update_xaxes(
+        title_text=f"{name_to_axis_title(axis_of_interest)} [{axis_of_interest_dimension if axis_of_interest_dimension is not None else '-'}]",
+        titlefont=dict(size=20),
+        tickfont=dict(size=20),
+        showgrid=True,
+    )
+    fig.update_yaxes(
+        title_text=name_to_axis_title(y_axis_title),
+        titlefont=dict(size=20),
+        tickfont=dict(size=20),
+        range=[0, 1.1 * max_quantile],
+        showgrid=True,
+        secondary_y=False,
+    )
+
     fig.update_layout(width=width, height=height)
-    fig.update_layout(legend=dict(yanchor="top", y=-0.2, x=0.01))
+    fig.update_layout(template="plotly_white")
+    # fig.update_layout(legend=dict(yanchor="top", y=-0.2, x=0.01))
+    fig.update_layout(legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
 
     if binned:
         del experiment_data[axis_of_interest_binned]
@@ -338,8 +400,27 @@ def plot_binned_box_plot(  # noqa: C901
         rsp_logger.info(msg=f"wrote {pdf_file}")
 
 
+code_to_paper_dict = {
+    "online_unrestricted": "full rescheduling baseline",
+    "offline_fully_restricted": "upper bound scoper",
+    "offline_delta_weak": "baseline",
+    "offline_delta": "max speedup",
+    # "online_route_restricted",
+    # "online_transmission_chains_fully_restricted",
+    "online_transmission_chains_route_restricted": "heuristic"}
+
+
+def name_to_axis_title(name: str):
+    axis_title = name
+    for paper_name in code_to_paper_dict.keys():
+        axis_title = axis_title.replace(paper_name, code_to_paper_dict[paper_name])
+    axis_title = axis_title.replace("_", " ")
+
+    return axis_title
+
+
 def density_hist_plot_2d(
-    title: str, data_frame, width: int = PDF_WIDTH, height: int = PDF_HEIGHT, output_folder: Optional[str] = None, file_name: Optional[str] = None
+        title: str, data_frame, width: int = PDF_WIDTH, height: int = PDF_HEIGHT, output_folder: Optional[str] = None, file_name: Optional[str] = None
 ):
     """
 
