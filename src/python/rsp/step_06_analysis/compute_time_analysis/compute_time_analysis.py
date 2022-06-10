@@ -132,6 +132,41 @@ def hypothesis_one_analysis_prediction_quality(experiment_data: DataFrame, outpu
             title_text="Prediction Quality Percentage",
         )
 
+def hypothesis_one_analysis_scope_quality(experiment_data: DataFrame, output_folder: str = None):
+    for axis_of_interest, axis_of_interest_suffix in {"experiment_id": "", "infra_id_schedule_id": ""}.items():
+        plot_binned_box_plot(
+            experiment_data=experiment_data,
+            axis_of_interest=axis_of_interest,
+            axis_of_interest_dimension=axis_of_interest_suffix,
+            output_folder=output_folder,
+            cols=[ColumnSpec(prefix="n_agents"), ColumnSpec(prefix="changed_agents", scope="online_unrestricted")]
+                 + [
+                     ColumnSpec(prefix=prediction_col, scope=scope)
+                     for scope in prediction_scopes_visualization
+                     for prediction_col in [
+                    "prediction_quality"
+                ]
+                 ],
+            title_text="Scope Quality",
+        )
+        plot_binned_box_plot(
+            experiment_data=experiment_data,
+            axis_of_interest=axis_of_interest,
+            axis_of_interest_dimension=axis_of_interest_suffix,
+            output_folder=output_folder,
+            cols=[ColumnSpec(prefix="changed_agents_percentage", scope="online_unrestricted")]
+                 + [
+                     ColumnSpec(prefix=prediction_col, scope=scope)
+                     for scope in prediction_scopes_visualization
+                     for prediction_col in [
+                    "changed_agents_percentage",
+                    "predicted_changed_agents_percentage",
+                    "predicted_changed_agents_false_positives_percentage",
+                    "predicted_changed_agents_false_negatives_percentage",
+                ]
+                 ],
+            title_text="Scope Quality",
+        )
 
 def hypothesis_one_analysis_visualize_speed_up(
         experiment_data: DataFrame, output_folder: str = None, nb_bins: Optional[int] = 10, show_bin_counts: bool = False

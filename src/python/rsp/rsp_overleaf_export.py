@@ -35,11 +35,11 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=experiments_of_interest,
         )
         experiment_data: DataFrame = convert_list_of_experiment_results_analysis_to_data_frame(experiment_results_analysis_list)
+
     local_filter_experiment_results_analysis_data_frame = partial(
         filter_experiment_results_analysis_data_frame, min_time_online_unrestricted=20, max_time_online_unrestricted=200, max_time_online_unrestricted_q=1.0
     )
     experiment_data_filtered = local_filter_experiment_results_analysis_data_frame(experiment_data)
-
     output_folder = "doc/overleaf/Figures/04_computational_results"
 
     hypothesis_one_analysis_visualize_agenda(experiment_data=experiment_data_filtered, output_folder=output_folder, file_name="agenda.pdf")
@@ -133,7 +133,29 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
         marker_symbol=marker_symbol_positive_negative,
         one_field_many_scopes=False,
     )
+    "plot F1 Score"
+    "Compute F1 Score"
+    for scope in ["online_random_average", "online_transmission_chains_route_restricted"]:
+        print(scope)
 
+        f_n = experiment_data_filtered["predicted_changed_agents_false_negatives_" + scope]
+        f_p = experiment_data_filtered["predicted_changed_agents_false_positives_" + scope]
+        t_p = experiment_data_filtered["predicted_changed_agents_number_" + scope] - experiment_data_filtered[
+            "predicted_changed_agents_false_positives_" + scope]
+        experiment_data_filtered["f1_" + scope] = t_p / (t_p + 0.5 * (f_p + f_n))
+    "plot Score"
+    plot_binned_box_plot(
+        experiment_data=experiment_data_filtered,
+        axis_of_interest="experiment_id",
+        axis_of_interest_dimension="",
+        output_folder=output_folder,
+        file_name="prediction_quality_f1_score.pdf",
+        cols=[ColumnSpec("f1", "online_random_average"), ColumnSpec("f1", "online_transmission_chains_route_restricted")],
+        title_text="F_1 Score Scoper",
+        marker_color=marker_color_scope,
+        marker_symbol=marker_symbol_positive_negative,
+        one_field_many_scopes=False,
+    )
     for speed_up_scope in rescheduling_scopes_visualization:
         plot_binned_box_plot(
             experiment_data=experiment_data_filtered,
@@ -219,7 +241,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
             title_text="Total solver time per solver_statistics_times_total_online_unrestricted (2)",
             marker_color=marker_color_scope,
         )
-
+    print("Plotted results")
     # ==============================================================================================================
     # chapter 5: case studies
     # ==============================================================================================================
@@ -231,6 +253,7 @@ def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_
     experiment_results_list, experiment_results_analysis_list = load_and_expand_experiment_results_from_data_folder(
         experiment_data_folder_name=f"{experiment_base_directory}/{EXPERIMENT_DATA_SUBDIRECTORY_NAME}", experiment_ids=[342],
     )
+    print(experiment_results_analysis_list)
     exp_results_analysis_of_experiment_of_interest = experiment_results_analysis_list[0]
 
     plot_costs(

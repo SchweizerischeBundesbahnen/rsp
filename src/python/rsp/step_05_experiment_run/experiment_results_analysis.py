@@ -30,13 +30,13 @@ from rsp.utils.catch_zero_division import catch_zero_division_error_as_minus_one
 from rsp.utils.rsp_logger import rsp_logger
 
 speed_up_scopes = [
-    "offline_fully_restricted",
-    "offline_delta",
-    "offline_delta_weak",
-    # "online_route_restricted",
-    # "online_transmission_chains_fully_restricted",
-    "online_transmission_chains_route_restricted",
-] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
+                      "offline_fully_restricted",
+                      "offline_delta",
+                      "offline_delta_weak",
+                      # "online_route_restricted",
+                      # "online_transmission_chains_fully_restricted",
+                      "online_transmission_chains_route_restricted",
+                  ] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
 
 prediction_scopes = ["online_transmission_chains_route_restricted"] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
 rescheduling_scopes = ["online_unrestricted"] + speed_up_scopes
@@ -83,7 +83,7 @@ def trainrun_dict_from_results(results: SchedulingExperimentResult, p: ScheduleP
 
 # TODO duplicate with solver_statistics_costs
 def costs_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> float:
     return results_reschedule.solver_statistics["summary"]["costs"][0]
 
@@ -128,7 +128,7 @@ def summed_user_step_propagations_from_results(r: SchedulingExperimentResult, p:
 
 
 def lateness_per_agent_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ):
     return {
         agent_id: results_reschedule.trainruns_dict[agent_id][-1].scheduled_at - results_schedule.trainruns_dict[agent_id][-1].scheduled_at
@@ -137,7 +137,7 @@ def lateness_per_agent_from_results(
 
 
 def costs_from_lateness_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ):
     # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     lateness_dict = lateness_per_agent_from_results(
@@ -147,14 +147,14 @@ def costs_from_lateness_from_results(
 
 
 def lateness_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> float:
     # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     return sum(lateness_per_agent_from_results(results_schedule, results_reschedule, problem_reschedule).values())
 
 
 def changed_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ):
     return len(
         [
@@ -166,7 +166,7 @@ def changed_from_results(
 
 
 def changed_percentage_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ):
     return sum(
         [
@@ -177,7 +177,7 @@ def changed_percentage_from_results(
 
 
 def vertex_lateness_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> Dict[int, Dict[Waypoint, float]]:
     schedule = {
         agent_id: {trainrun_waypoint.waypoint: trainrun_waypoint.scheduled_at for trainrun_waypoint in trainrun}
@@ -193,7 +193,7 @@ def vertex_lateness_from_results(
 
 
 def costs_from_route_section_penalties_per_agent_and_edge_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> Dict[int, Dict[Tuple[Waypoint, Waypoint], int]]:
     edges_rescheduling = {
         agent_id: {(wp1.waypoint, wp2.waypoint) for wp1, wp2 in zip(reschedule_trainrun, reschedule_trainrun[1:])}
@@ -207,7 +207,7 @@ def costs_from_route_section_penalties_per_agent_and_edge_from_results(
 
 
 def costs_from_route_section_penalties_per_agent_from_results(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> Dict[int, float]:
     # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     edge_penalties = costs_from_route_section_penalties_per_agent_and_edge_from_results(
@@ -217,7 +217,7 @@ def costs_from_route_section_penalties_per_agent_from_results(
 
 
 def costs_from_route_section_penalties(
-    results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
+        results_schedule: SchedulingExperimentResult, results_reschedule: SchedulingExperimentResult, problem_reschedule: ScheduleProblemDescription
 ) -> float:
     # TODO SIM-672 runs twice, optimize (extractors returning multiple fields?)
     edge_penalties = costs_from_route_section_penalties_per_agent_and_edge_from_results(
@@ -308,16 +308,17 @@ prediction_scopes_fields = {
     "predicted_changed_agents_false_negatives_percentage": float,
     "predicted_changed_agents_false_positives": int,
     "predicted_changed_agents_false_negatives": int,
+    "prediction_quality": int
 }
 
 online_random_average_fields = [
     prefix
     for prefix in (
-        list(speedup_scopes_ratio_fields.keys())
-        + [f"additional_{f}" for f in speedup_scopes_additional_fields]
-        + list(experiment_results_analysis_all_scopes_fields.keys())
-        + list(experiment_results_analysis_rescheduling_scopes_fields.keys())
-        + list(prediction_scopes_fields.keys())
+            list(speedup_scopes_ratio_fields.keys())
+            + [f"additional_{f}" for f in speedup_scopes_additional_fields]
+            + list(experiment_results_analysis_all_scopes_fields.keys())
+            + list(experiment_results_analysis_rescheduling_scopes_fields.keys())
+            + list(prediction_scopes_fields.keys())
     )
     if prefix != "solution" and "_per_" not in prefix and not prefix.startswith("vertex_")
 ]
@@ -396,17 +397,17 @@ def convert_list_of_experiment_results_analysis_to_data_frame(l: List[Experiment
 
 
 def filter_experiment_results_analysis_data_frame(
-    experiment_data: pd.DataFrame,
-    min_time_online_unrestricted: int = 60,
-    max_time_online_unrestricted_q: float = 0.97,
-    max_time_online_unrestricted: int = 2000,
+        experiment_data: pd.DataFrame,
+        min_time_online_unrestricted: int = 60,
+        max_time_online_unrestricted_q: float = 0.97,
+        max_time_online_unrestricted: int = 2000,
 ) -> pd.DataFrame:
     time_online_unrestricted = experiment_data["solver_statistics_times_total_online_unrestricted"]
     return experiment_data[
         (time_online_unrestricted >= min_time_online_unrestricted)
         & (time_online_unrestricted <= max_time_online_unrestricted)
         & (time_online_unrestricted <= time_online_unrestricted.quantile(max_time_online_unrestricted_q))
-    ]
+        ]
 
 
 def expand_experiment_results_for_analysis(experiment_results: ExperimentResults) -> ExperimentResultsAnalysis:  # noqa: C901
@@ -420,6 +421,7 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
     -------
 
     """
+
     if not isinstance(experiment_results, ExperimentResults):
         experiment_results_as_dict = dict(experiment_results[0])
         experiment_results = ExperimentResults(**experiment_results_as_dict)
@@ -462,6 +464,7 @@ def expand_experiment_results_for_analysis(experiment_results: ExperimentResults
             f"predicted_changed_agents_false_negatives_percentage_{scope}": catch_zero_division_error_as_minus_one(
                 lambda: len(predicted_changed_agents_false_negatives) / len(ground_truth_positive_changed_agents)
             ),
+            f"prediction_quality_{scope}": len(predicted_changed_agents_false_positives) + len(predicted_changed_agents_false_negatives),
         }
 
     # retain no fields from experiment results!
@@ -549,12 +552,12 @@ def extract_all_scopes_fields(experiment_results: ExperimentResults, all_scopes:
 
 
 def _to_experiment_results_analysis(
-    d: dict,
-    experiment_parameters: ExperimentParameters,
-    results_schedule: ExperimentResults,
-    malfunction: ExperimentMalfunction,
-    problem_online_unrestricted: ScheduleProblemDescription,
-    factor_resource_conflicts: int,
+        d: dict,
+        experiment_parameters: ExperimentParameters,
+        results_schedule: ExperimentResults,
+        malfunction: ExperimentMalfunction,
+        problem_online_unrestricted: ScheduleProblemDescription,
+        factor_resource_conflicts: int,
 ):
     return ExperimentResultsAnalysis(
         **extract_base_fields(
@@ -569,10 +572,10 @@ def _to_experiment_results_analysis(
 
 
 def extract_base_fields(
-    experiment_parameters: ExperimentParameters,
-    results_schedule: ExperimentResults,
-    malfunction: ExperimentMalfunction,
-    problem_online_unrestricted: ScheduleProblemDescription,
+        experiment_parameters: ExperimentParameters,
+        results_schedule: ExperimentResults,
+        malfunction: ExperimentMalfunction,
+        problem_online_unrestricted: ScheduleProblemDescription,
 ):
     return dict(
         experiment_id=experiment_parameters.experiment_id,
