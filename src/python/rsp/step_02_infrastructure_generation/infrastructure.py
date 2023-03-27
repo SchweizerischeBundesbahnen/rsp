@@ -8,8 +8,8 @@ import numpy as np
 from flatland.envs.rail_env import RailEnv
 from flatland.envs.rail_env_shortest_paths import get_k_shortest_paths
 
-from rsp.flatland.experiment_env_generators import create_flatland_environment
 from rsp.global_data_configuration import EXPERIMENT_INFRA_SUBDIRECTORY_NAME
+from rsp.rspflatland.experiment_env_generators import create_flatland_environment
 from rsp.scheduling.scheduling_problem import _get_topology_from_agents_path_dict
 from rsp.step_01_agenda_expansion.experiment_parameters_and_ranges import InfrastructureParameters
 from rsp.utils.pickle_helper import _pickle_dump

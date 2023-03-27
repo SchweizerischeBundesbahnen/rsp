@@ -30,7 +30,7 @@ from rsp.step_06_analysis.plot_utils import *
 from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import *
 from rsp.step_06_analysis.compute_time_analysis.asp_plausi import *
 from rsp.global_data_configuration import *
-BASELINE_DATA_FOLDER = f"../../{BASELINE_DATA_FOLDER}"
+BASELINE_DATA_FOLDER = f"../../../rsp-data/PUBLICATION_DATA/CHRISTMAS DATA"
 
 
 from IPython.core.display import display, HTML
@@ -55,8 +55,8 @@ if reprocess_from_pkl:
 # Filter data depending on full rescheduling time (>=20s and <= 200s)
 local_filter_experiment_results_analysis_data_frame = partial(
     filter_experiment_results_analysis_data_frame,
-    min_time_online_unrestricted=0,
-    max_time_online_unrestricted=200,
+    min_time_online_unrestricted=60,
+    max_time_online_unrestricted=180,
     max_time_online_unrestricted_q=1.0
 )
 experiment_data_filtered = load_and_filter_experiment_results_analysis(
@@ -67,6 +67,10 @@ experiment_data_filtered = load_and_filter_experiment_results_analysis(
     local_filter_experiment_results_analysis_data_frame=local_filter_experiment_results_analysis_data_frame
 )
 display(experiment_data_filtered)
+```
+
+```{python}
+speed_up_vs_performance(experiment_data=experiment_data_filtered)
 ```
 
 ```{python}
@@ -158,4 +162,16 @@ visualize_asp_solver_stats(experiment_data=experiment_data_filtered)
 
 ```{python}
 visualize_asp_problem_reduction(experiment_data=experiment_data_filtered)
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
 ```

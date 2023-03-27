@@ -28,6 +28,7 @@ from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import hyp
 from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import hypothesis_one_analysis_visualize_computational_time_comparison
 from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import hypothesis_one_analysis_visualize_lateness
 from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import hypothesis_one_analysis_visualize_speed_up
+from rsp.step_06_analysis.compute_time_analysis.compute_time_analysis import speed_up_vs_performance
 from rsp.step_06_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_agent_specific_delay
 from rsp.step_06_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_agent_speeds
 from rsp.step_06_analysis.detailed_experiment_analysis.detailed_experiment_analysis import plot_changed_agents
@@ -130,6 +131,7 @@ def _compute_time_analysis(experiment_data: DataFrame, results_folder: str):
     visualize_asp_solver_stats(experiment_data=experiment_data, output_folder=results_folder)
     hypothesis_one_analysis_visualize_changed_agents(experiment_data=experiment_data, output_folder=results_folder)
     hypothesis_one_analysis_prediction_quality(experiment_data=experiment_data, output_folder=results_folder)
+    speed_up_vs_performance(experiment_data=experiment_data, output_folder=results_folder)
 
 
 def _detailed_experiment_results(experiment_results: ExperimentResults, experiment_results_analysis: ExperimentResultsAnalysis, output_folder_of_interest: str):
