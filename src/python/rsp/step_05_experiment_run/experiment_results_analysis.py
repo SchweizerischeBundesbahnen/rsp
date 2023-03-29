@@ -34,11 +34,13 @@ speed_up_scopes = [
     "offline_delta",
     "offline_delta_weak",
     # "online_route_restricted",
-    # "online_transmission_chains_fully_restricted",
+    "online_transmission_chains_fully_restricted",
     "online_transmission_chains_route_restricted",
 ] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
 
-prediction_scopes = ["online_transmission_chains_route_restricted"] + [f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)]
+prediction_scopes = ["online_transmission_chains_fully_restricted", "online_transmission_chains_route_restricted"] + [
+    f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)
+]
 rescheduling_scopes = ["online_unrestricted"] + speed_up_scopes
 all_scopes = ["schedule"] + rescheduling_scopes
 
@@ -379,9 +381,7 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
     for scope in ["offline_fully_restricted", "offline_delta"]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
         assert costs == experiment_results_analysis.costs_online_unrestricted
-    for scope in ["online_route_restricted", "online_transmission_chains_fully_restricted", "online_transmission_chains_fully_restricted"] + [
-        f"online_random_{i}" for i in range(GLOBAL_CONSTANTS.NB_RANDOM)
-    ]:
+    for scope in speed_up_scopes:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
 
     assert experiment_results_analysis.costs_online_unrestricted >= experiment_results_analysis.malfunction_duration, (

@@ -214,6 +214,7 @@ def plot_binned_box_plot(  # noqa: C901
     data_instead_of_box=False,
     experiment_data_suffix: str = None,
     experiment_data_comparison_suffix: str = None,
+    customdata: bool = False,
 ):
     """
 
@@ -292,7 +293,9 @@ def plot_binned_box_plot(  # noqa: C901
                                 if "solver_statistics_times_total_online_route_restricted" in d.columns
                                 else None,
                             )
-                        )[0],
+                        )[0]
+                        if customdata
+                        else None,
                         hovertext=d["experiment_id"],
                         hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
                         + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
