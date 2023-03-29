@@ -10,15 +10,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Add conda to system path
-        run: |
-          # $CONDA is an environment variable pointing to the root of the miniconda directory
-          echo $CONDA/bin >> $GITHUB_PATH
-      - name: Install dependencies
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: rsp
+          environment-file: rsp_environment.yml
+          python-version: 3.8.1
+      - name: Check conda env
         run: |
           $CONDA/bin/python --version
           conda env list
-          conda env update --file rsp_environment.yaml --name base
           $CONDA/bin/python -m pip list
           $CONDA/bin/python --version
       - name: Lint
