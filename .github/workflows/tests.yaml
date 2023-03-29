@@ -14,7 +14,7 @@ jobs:
         run: |
           # https://stackoverflow.com/questions/61875869/ubuntu-20-04-upgrade-python-missing-libffi-so-6
           find /usr/lib -name "libffi.so*"
-          ln -s /usr/lib/x86_64-linux-gnu/libffi.so.8 /usr/lib/x86_64-linux-gnu/libffi.so.6
+          sudo ln -s /usr/lib/x86_64-linux-gnu/libffi.so.8 /usr/lib/x86_64-linux-gnu/libffi.so.6
 
       - uses: conda-incubator/setup-miniconda@v2
         with:

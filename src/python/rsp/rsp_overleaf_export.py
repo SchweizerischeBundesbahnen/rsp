@@ -1,4 +1,6 @@
+import pprint
 from functools import partial
+from pathlib import Path
 
 from pandas import DataFrame
 
@@ -19,9 +21,17 @@ from rsp.step_06_analysis.detailed_experiment_analysis.time_resource_plots_from_
 from rsp.step_06_analysis.plot_utils import ColumnSpec
 from rsp.step_06_analysis.plot_utils import marker_color_scope
 from rsp.step_06_analysis.plot_utils import plot_binned_box_plot
+from rsp.utils.pickle_helper import _pickle_load
 
 
 def main(experiment_base_directory: str = BASELINE_DATA_FOLDER, from_individual_csv: bool = True, experiments_of_interest=None):
+    agenda = _pickle_load(file_name="experiment_agenda.pkl", folder=BASELINE_DATA_FOLDER)
+    with (Path(BASELINE_DATA_FOLDER) / "experiment_agenda.txt").open("w") as fp:
+        _pp = pprint.PrettyPrinter(indent=4)
+        print(_pp.pformat(agenda))
+        # todo apply asdict recursively
+        fp.write(_pp.pformat(agenda._asdict()))
+
     # ==============================================================================================================
     # chapter 4: computational results
     # ==============================================================================================================
