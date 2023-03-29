@@ -17,6 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           $CONDA/bin/python --version
+          conda env list
           conda env update --file rsp_environment.yaml --name base
           $CONDA/bin/python -m pip list
           $CONDA/bin/python --version
