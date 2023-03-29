@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.7
+  python: python3.8
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.3.0
@@ -23,16 +23,18 @@ repos:
       - id: black
         exclude: 'Jenkinsfile'
         args: [--line-length, '160']
+        # https://stackoverflow.com/questions/71673404/importerror-cannot-import-name-unicodefun-from-click
+        additional_dependencies: ["click==8.0.2"]
 
 
-  - repo: https://gitlab.com/pycqa/flake8
+  - repo: https://github.com/PyCQA/flake8
     rev: 3.7.9
     hooks:
       - id: flake8
         # https://dev.to/mmphego/why-you-need-to-stop-using-git-hooks-41
         additional_dependencies: [
           # TODO SIM-675 enable flake8-docstrings
-          flake8-2020, # flake8 plugin which checks for misuse of `sys.version` or `sys.version_info`
+#          flake8-2020, # flake8 plugin which checks for misuse of `sys.version` or `sys.version_info`
           flake8-absolute-import, # uses a simple check of the AST for each from x import y statement to flag relative imports.
           flake8-blind-except, # A flake8 extension that checks for blind except: statements
           flake8-builtins, # checks that there is no name collision between your code and the Python builtin variables.

@@ -2205,14 +2205,14 @@ def test_bugfix_sim_175_no_path_splitting_forward():
 
 def test_bugfix_sim_175_no_path_splitting_backward():
     """No path splitting backward.
-       When the vertices marked by F are freezed, those marked by X must be removed
-        (1,0)
-          |
-        (2,0) -  (2,1)
-          |       |
-       X(3,0)   F(3,1)
-          |       |
-       X(4,0) - F(4,1)
+    When the vertices marked by F are freezed, those marked by X must be removed
+     (1,0)
+       |
+     (2,0) -  (2,1)
+       |       |
+    X(3,0)   F(3,1)
+       |       |
+    X(4,0) - F(4,1)
     """
 
     # N.B. the directions do not matter for this test!
@@ -2257,16 +2257,16 @@ def test_bugfix_sim_175_no_path_splitting_backward():
 
 def test_bugfix_sim_175_no_path_splitting_notorious():
     """No path splitting backward.
-       When the vertices marked by F are freezed, those marked by X must be removed!
-        (1,0)
-          |
-        (2,0) -  (2,1)
-          |       |
-       X(3,0)   F (3,1)
-          |       |
-       X(4,0) -  (4,1)
+     When the vertices marked by F are freezed, those marked by X must be removed!
+      (1,0)
+        |
+      (2,0) -  (2,1)
+        |       |
+     X(3,0)   F (3,1)
+        |       |
+     X(4,0) -  (4,1)
 
-      Here we cannot use any more banning neighbors of freezed vertices!
+    Here we cannot use any more banning neighbors of freezed vertices!
     """
 
     # N.B. the directions do not matter for this test!
