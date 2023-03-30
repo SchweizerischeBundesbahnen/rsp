@@ -85,6 +85,7 @@ MODULE_RENAME_MAPPING = {
     # -> rsp.step_05_experiment_run
     ("rsp.step_03_run.experiment_results", "ExperimentResults"): ("rsp.step_05_experiment_run.experiment_results", "ExperimentResults"),
     ("rsp.step_02_setup.data_types", "ExperimentMalfunction"): ("rsp.step_05_experiment_run.experiment_malfunction", "ExperimentMalfunction"),
+    ("rsp.step_02_setup.data_types", "Infrastructure"): ("rsp.step_02_infrastructure_generation.infrastructure", "Infrastructure"),
 }
 
 

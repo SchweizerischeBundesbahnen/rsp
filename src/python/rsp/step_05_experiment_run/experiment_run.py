@@ -43,6 +43,7 @@ from pandas import DataFrame
 
 from rsp.global_data_configuration import BASELINE_DATA_FOLDER
 from rsp.global_data_configuration import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 from rsp.scheduling.asp_wrapper import asp_reschedule_wrapper
 from rsp.scheduling.schedule import exists_schedule
 from rsp.scheduling.schedule import load_schedule
@@ -1009,3 +1010,14 @@ def delete_experiment_folder(experiment_folder_name: str):
     -------
     """
     shutil.rmtree(experiment_folder_name)
+
+
+if __name__ == "__main__":
+    experiment_id_to_rerun = 3254
+    run_experiment_agenda(
+        experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        experiment_agenda=_pickle_load(f"{BASELINE_DATA_FOLDER}/experiment_agenda.pkl"),
+        # experiment_output_directory: str = None,
+        run_experiments_parallel=0,
+        filter_experiment_agenda=lambda params: params.experiment_id == experiment_id_to_rerun,
+    )
