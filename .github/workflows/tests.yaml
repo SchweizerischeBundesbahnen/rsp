@@ -35,21 +35,9 @@ jobs:
       - name: Test with pytest
         shell: bash -el {0}
         run: |
-          pytest --junitxml=report.xml -v -s --no-cov-on-fail --cov=.
-          flake8 . --exit-zero --output-file=flake8.txt
-          coverage xml
+          python -m pytest --junitxml=report.xml -v -s
       - name: Archive junit test results
         uses: actions/upload-artifact@v3
         with:
           name: junit
           path: report.xml
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v3
-        with:
-          name: cobertura
-          path: coverage.xml
-      - name: Archive flake8 code style results
-        uses: actions/upload-artifact@v3
-        with:
-          name: flake8
-          path: flake8.txt
