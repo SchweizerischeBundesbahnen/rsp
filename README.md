@@ -1,5 +1,9 @@
 # Real Time Large Network Re-Scheduling
 
+[![Tests](https://github.com/SchweizerischeBundesbahnen/rsp/actions/workflows/tests.yaml/badge.svg)](https://github.com/iarai/MeTS-10/actions/workflows/tests.yaml)
+[![Code style: flake8](https://img.shields.io/badge/Code%20style-flake8-yellow.svg)](https://github.com/pycqa/flake8/)
+[![Code formatter: black](https://img.shields.io/badge/Code%20formatter-black-000000.svg)](https://github.com/psf/black)
+
 ## Quick Start Installation
 You need to have installed `conda` and `git` (temporarily for FLATland). Then,
 
