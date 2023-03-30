@@ -1017,7 +1017,6 @@ if __name__ == "__main__":
     run_experiment_agenda(
         experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER,
         experiment_agenda=_pickle_load(f"{BASELINE_DATA_FOLDER}/experiment_agenda.pkl"),
-        # experiment_output_directory: str = None,
         run_experiments_parallel=0,
         filter_experiment_agenda=lambda params: params.experiment_id == experiment_id_to_rerun,
     )
