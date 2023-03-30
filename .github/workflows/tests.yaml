@@ -21,6 +21,7 @@ jobs:
           environment-file: rsp_environment.yml
           python-version: 3.8.1
       - name: Check conda env
+        shell: bash -el {0}
         run: |
           python --version
           conda env list
@@ -28,9 +29,11 @@ jobs:
           python -m pip list
           python --version
       - name: Lint
+        shell: bash -el {0}
         run: |
           pre-commit run --all
       - name: Test with pytest
+        shell: bash -el {0}
         run: |
           pytest --junitxml=report.xml -v -s --no-cov-on-fail --cov=.
           flake8 . --exit-zero --output-file=flake8.txt
