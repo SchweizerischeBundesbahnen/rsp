@@ -35,6 +35,7 @@ jobs:
       - name: Test with pytest
         shell: bash -el {0}
         run: |
+          export PYTHONPATH=$PWD/src/python:$PWD/src/asp:$PYTHONPATH
           python -m pytest --junitxml=report.xml -v -s
       - name: Archive junit test results
         uses: actions/upload-artifact@v3
