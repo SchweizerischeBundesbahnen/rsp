@@ -365,24 +365,24 @@ def plausibility_check_experiment_results_analysis(experiment_results_analysis: 
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
         costs_from_route_section_penalties = experiment_results_analysis._asdict()[f"costs_from_route_section_penalties_{scope}"]
         costs_from_lateness = experiment_results_analysis._asdict()[f"costs_from_lateness_{scope}"]
-        # TODO make hard assert again
+        # TODO make soft assert again to not make the experiments fail.
+        # TODO do the experiments fail in the case of infeasibility (e.g. random scoper)
         try:
-            assert costs == (costs_from_lateness + costs_from_route_section_penalties), (
+            msg = (
                 f"experiment {experiment_id}: "
                 f"costs_{scope}={costs}, "
                 f"costs_from_lateness_{scope}={costs_from_lateness}, "
                 f"costs_from_route_section_penalties_{scope}={costs_from_route_section_penalties} "
             )
+            assert costs == (costs_from_lateness + costs_from_route_section_penalties), msg
         except AssertionError as e:
             rsp_logger.warn(str(e))
-        assert costs >= experiment_results_analysis.costs_online_unrestricted
-        assert costs >= experiment_results_analysis.malfunction_duration
+        assert costs >= experiment_results_analysis.costs_online_unrestricted, msg
+        assert costs >= experiment_results_analysis.malfunction_duration, msg
 
     for scope in ["offline_fully_restricted", "offline_delta"]:
         costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
-        assert costs == experiment_results_analysis.costs_online_unrestricted
-    for scope in speed_up_scopes:
-        costs = experiment_results_analysis._asdict()[f"costs_{scope}"]
+        assert costs == experiment_results_analysis.costs_online_unrestricted, msg
 
     assert experiment_results_analysis.costs_online_unrestricted >= experiment_results_analysis.malfunction_duration, (
         f"costs_online_unrestricted {experiment_results_analysis.costs_online_unrestricted} should be greater than malfunction duration, "

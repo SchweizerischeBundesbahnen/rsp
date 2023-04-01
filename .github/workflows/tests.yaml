@@ -23,6 +23,8 @@ jobs:
       - name: Check conda env
         shell: bash -el {0}
         run: |
+          # https://github.com/marketplace/actions/setup-miniconda
+          # TODO Caching environments?
           python --version
           conda env list
           conda info
