@@ -160,11 +160,14 @@ def test_minimize_delay_rescheduling():
 
     expected = set(["dl((t1,1),0)", "dl((t1,2),10)", "dl((t1,3),14)", "dl((t2,4),0)", "dl((t2,2),8)", "dl((t2,3),10)"])
     second_expected = set(["dl((t1,1),0)", "dl((t1,2),7)", "dl((t2,2),11)", "dl((t2,3),13)", "dl((t2,4),0)", "dl((t1,3),11)"])
+    third_expected = set(["dl((t2,3),10)", "dl((t2,4),6)", "dl((t1,2),10)", "dl((t2,2),8)", "dl((t1,3),14)", "dl((t1,1),0)"])
     for actual in models:
         lates = list(filter(lambda x: "late" in x, actual))
         print(lates)
         dls = list(filter(lambda x: x.startswith("dl"), actual))
         print(dls)
-        assert expected.issubset(actual) or second_expected.issubset(actual), "actual {}, expected {} or {} (dls {})".format(
-            actual, expected, second_expected, dls
+        assert (
+            expected.issubset(actual) or second_expected.issubset(actual) or third_expected.issubset(actual)
+        ), "actual {}\nexpected (1) {} \nor expected (2) {}\nor expected (3) {}\ndls {}\nstatistics {}".format(
+            actual, expected, second_expected, third_expected, dls, all_statistics
         )

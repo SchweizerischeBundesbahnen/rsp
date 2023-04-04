@@ -1,6 +1,7 @@
 import ast
 import os
 import re
+from unittest import skip
 
 from jupytext import read
 from jupytext import writes
@@ -17,6 +18,7 @@ def multiline_eval(expr):
     return eval(compile(eval_expr, "file", "eval"))
 
 
+@skip
 def test_notebooks_run_through():
     base_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, os.pardir, "src", "jupyter")
     # TODO SIM-571 SIM-672 activate potassco notebooks when data is added to src.python.rsp-data

@@ -135,7 +135,7 @@ def render_trainruns(  # noqa:C901
         cleanup_renderer_for_env(renderer)
     except AttributeError as e:
         # TODO why does this happen?
-        warnings.warn(str(e))
+        warnings.warn(str(e), stacklevel=2)
     if convert_to_mpeg:
         import ffmpeg
 
@@ -204,7 +204,7 @@ def cleanup_renderer_for_env(renderer):
         renderer.close_window()
     except AttributeError as e:
         # TODO why does this happen?
-        warnings.warn(str(e))
+        warnings.warn(str(e), stacklevel=2)
 
 
 def render_flatland_env(data_folder: str, experiment_data: ExperimentResults, render_schedule: bool = True, render_reschedule: bool = True):  # noqa

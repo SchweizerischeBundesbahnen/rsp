@@ -43,6 +43,7 @@ from pandas import DataFrame
 
 from rsp.global_data_configuration import BASELINE_DATA_FOLDER
 from rsp.global_data_configuration import EXPERIMENT_DATA_SUBDIRECTORY_NAME
+from rsp.global_data_configuration import INFRAS_AND_SCHEDULES_FOLDER
 from rsp.scheduling.asp_wrapper import asp_reschedule_wrapper
 from rsp.scheduling.schedule import exists_schedule
 from rsp.scheduling.schedule import load_schedule
@@ -184,7 +185,7 @@ def run_experiment_in_memory(
     online_unrestricted_trainruns = results_online_unrestricted.trainruns_dict
 
     costs_ = results_online_unrestricted.solver_statistics["summary"]["costs"][0]
-    rsp_logger.info(f" full re-schedule has costs {costs_}")
+    rsp_logger.info(f" results_online_unrestricted has costs {costs_}, took {results_online_unrestricted.solver_statistics['summary']['times']['total']}")
 
     if online_unrestricted_only:
         return ExperimentResults(
@@ -237,6 +238,10 @@ def run_experiment_in_memory(
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
     )
+    rsp_logger.info(
+        f" results_offline_delta has costs {results_offline_delta.solver_statistics['summary']['costs'][0]}, "
+        f"took {results_offline_delta.solver_statistics['summary']['times']['total']}"
+    )
 
     # --------------------------------------------------------------------------------------
     # B.2.a Above Lower bound: Re-Schedule Delta Weak
@@ -264,6 +269,7 @@ def run_experiment_in_memory(
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
     )
+    rsp_logger.info(f" results_offline_delta_weak has costs {results_offline_delta_weak.solver_statistics['summary']['costs'][0]}")
 
     # --------------------------------------------------------------------------------------
     # B.2.b Lower bound: Re-Schedule Delta trivially_perfect
@@ -288,6 +294,11 @@ def run_experiment_in_memory(
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
+    )
+    rsp_logger.info(
+        f" results_offline_fully_restricted has costs "
+        f"{results_offline_fully_restricted.solver_statistics['summary']['costs'][0]}, "
+        f"took {results_offline_fully_restricted.solver_statistics['summary']['times']['total']}"
     )
 
     # --------------------------------------------------------------------------------------
@@ -316,6 +327,11 @@ def run_experiment_in_memory(
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
     )
+    rsp_logger.info(
+        f" results_online_route_restricted has costs {results_online_route_restricted.solver_statistics['summary']['costs'][0]}, "
+        f"took {results_online_route_restricted.solver_statistics['summary']['times']['total']}"
+    )
+
     # --------------------------------------------------------------------------------------
     # B.2.d Upper bound: online predictor
     # --------------------------------------------------------------------------------------
@@ -344,6 +360,11 @@ def run_experiment_in_memory(
         schedule=schedule_trainruns,
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
+    )
+    rsp_logger.info(
+        f" results_online_transmission_chains_fully_restricted has costs "
+        f"{results_online_transmission_chains_fully_restricted.solver_statistics['summary']['costs'][0]}, "
+        f"took {results_online_transmission_chains_fully_restricted.solver_statistics['summary']['times']['total']}"
     )
 
     # --------------------------------------------------------------------------------------
@@ -375,6 +396,11 @@ def run_experiment_in_memory(
         debug=debug,
         asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
     )
+    rsp_logger.info(
+        f" results_online_transmission_chains_route_restricted has costs "
+        f"{results_online_transmission_chains_route_restricted.solver_statistics['summary']['costs'][0]}, "
+        f"took {results_online_transmission_chains_route_restricted.solver_statistics['summary']['times']['total']}"
+    )
 
     # --------------------------------------------------------------------------------------
     # B.2.e Sanity check: random predictor
@@ -382,7 +408,7 @@ def run_experiment_in_memory(
     # --------------------------------------------------------------------------------------
     rsp_logger.info("6. reschedule delta random naive: upper bound")
     randoms = []
-    for _ in range(GLOBAL_CONSTANTS.NB_RANDOM):
+    for random_i in range(GLOBAL_CONSTANTS.NB_RANDOM):
         # clone topos since propagation will modify them
         online_random_topo_dict = {agent_id: topo.copy() for agent_id, topo in rescheduling_topo_dict.items()}
         problem_online_random, predicted_changed_agents_online_random = scoper_online_random_for_all_agents(
@@ -405,6 +431,10 @@ def run_experiment_in_memory(
             schedule=schedule_trainruns,
             debug=debug,
             asp_seed_value=experiment_parameters.schedule_parameters.asp_seed_value,
+        )
+        rsp_logger.info(
+            f" results_online_random[{random_i}] has costs {results_online_random.solver_statistics['summary']['costs'][0]}, "
+            f"took {results_online_random.solver_statistics['summary']['times']['total']}"
         )
         randoms.append((problem_online_random, results_online_random, predicted_changed_agents_online_random))
 
@@ -1009,3 +1039,12 @@ def delete_experiment_folder(experiment_folder_name: str):
     -------
     """
     shutil.rmtree(experiment_folder_name)
+
+
+if __name__ == "__main__":
+    experiment_id_to_rerun = 3254
+    run_experiment_agenda(
+        experiment_base_directory=INFRAS_AND_SCHEDULES_FOLDER,
+        experiment_agenda=_pickle_load(f"{BASELINE_DATA_FOLDER}/experiment_agenda.pkl"),
+        filter_experiment_agenda=lambda params: params.experiment_id == experiment_id_to_rerun,
+    )

@@ -1,0 +1,46 @@
+name: Linting and Tests
+
+on: [ push ]
+
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Fix libffi on Ubuntu
+        run: |
+          # https://stackoverflow.com/questions/61875869/ubuntu-20-04-upgrade-python-missing-libffi-so-6
+          find /usr/lib -name "libffi.so*"
+          sudo ln -s /usr/lib/x86_64-linux-gnu/libffi.so.8 /usr/lib/x86_64-linux-gnu/libffi.so.6
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: rsp
+          environment-file: rsp_environment.yml
+          python-version: 3.8.1
+      - name: Check conda env
+        shell: bash -el {0}
+        run: |
+          # https://github.com/marketplace/actions/setup-miniconda
+          # TODO Caching environments?
+          python --version
+          conda env list
+          conda info
+          python -m pip list
+          python --version
+      - name: Lint
+        shell: bash -el {0}
+        run: |
+          pre-commit run --all
+      - name: Test with pytest
+        shell: bash -el {0}
+        run: |
+          export PYTHONPATH=$PWD/src/python:$PWD/src/asp:$PYTHONPATH
+          python -m pytest --junitxml=report.xml -v -s
+      - name: Archive junit test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: junit
+          path: report.xml

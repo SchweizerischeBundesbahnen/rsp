@@ -30,8 +30,8 @@ def extract_full_df_from_experiment_results(exp_results_of_experiment_of_interes
     resources = set()
     for scope in all_scopes:
         sorted_resource_occupations_per_agent = sorted_resource_occupations_per_scope_and_agent[scope]
-        for agent_id, sorted_resource_occupations_per_agent in sorted_resource_occupations_per_agent.items():
-            for ro in sorted_resource_occupations_per_agent:
+        for agent_id, sorted_resource_occupations_per_agent_ in sorted_resource_occupations_per_agent.items():
+            for ro in sorted_resource_occupations_per_agent_:
                 for time_step in range(ro.interval.from_incl, ro.interval.to_excl):
                     occupations.append((scope, ro.resource.row, ro.resource.column, time_step, agent_id, ro.direction, str(tuple(ro.resource))))
                     resources.add(tuple(ro.resource))
@@ -58,8 +58,8 @@ def extract_full_df_time_windows_from_experiment_results(exp_results_of_experime
             release_time=global_constants.RELEASE_TIME,
         ).time_windows_per_agent_sorted_by_lower_bound
         sorted_resource_occupations_per_scope_and_agent[scope] = sorted_time_windows_per_agent
-        for agent_id, sorted_time_windows_per_agent in sorted_time_windows_per_agent.items():
-            for ro in sorted_time_windows_per_agent:
+        for agent_id, sorted_time_windows_per_agent_ in sorted_time_windows_per_agent.items():
+            for ro in sorted_time_windows_per_agent_:
                 for time_step in range(ro.interval.from_incl, ro.interval.to_excl):
                     occupations.append((scope, ro.resource.row, ro.resource.column, time_step, agent_id, ro.direction, str(tuple(ro.resource))))
                     resources.add(tuple(ro.resource))

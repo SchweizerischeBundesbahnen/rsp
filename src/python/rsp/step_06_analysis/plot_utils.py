@@ -195,25 +195,26 @@ class ColumnSpec(NamedTuple):
 
 
 def plot_binned_box_plot(  # noqa: C901
-        experiment_data: DataFrame,
-        axis_of_interest: str,
-        cols: List[ColumnSpec],
-        title_text: str,
-        experiment_data_comparison: DataFrame = None,
-        axis_of_interest_dimension: Optional[str] = None,
-        output_folder: Optional[str] = None,
-        file_name: Optional[str] = None,
-        nb_bins: Optional[int] = 10,
-        show_bin_counts: Optional[bool] = False,
-        marker_color: Callable[[int, str], str] = None,
-        marker_symbol: Callable[[int, str], str] = None,
-        one_field_many_scopes: bool = False,
-        width: int = PDF_WIDTH,
-        height: int = PDF_HEIGHT,
-        binned: bool = True,
-        data_instead_of_box=False,
-        experiment_data_suffix: str = None,
-        experiment_data_comparison_suffix: str = None,
+    experiment_data: DataFrame,
+    axis_of_interest: str,
+    cols: List[ColumnSpec],
+    title_text: str,
+    experiment_data_comparison: DataFrame = None,
+    axis_of_interest_dimension: Optional[str] = None,
+    output_folder: Optional[str] = None,
+    file_name: Optional[str] = None,
+    nb_bins: Optional[int] = 10,
+    show_bin_counts: Optional[bool] = False,
+    marker_color: Callable[[int, str], str] = None,
+    marker_symbol: Callable[[int, str], str] = None,
+    one_field_many_scopes: bool = False,
+    width: int = PDF_WIDTH,
+    height: int = PDF_HEIGHT,
+    binned: bool = True,
+    data_instead_of_box=False,
+    experiment_data_suffix: str = None,
+    experiment_data_comparison_suffix: str = None,
+    customdata: bool = False,
 ):
     """
 
@@ -249,8 +250,8 @@ def plot_binned_box_plot(  # noqa: C901
     if binned:
         experiment_data[axis_of_interest_binned] = (
             experiment_data[axis_of_interest]
-                .astype(float)
-                .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
+            .astype(float)
+            .map(lambda fl: f"[{((fl - min_value) // inc) * inc + min_value:.2f},{(max_value - ((max_value - fl) // inc) * inc)  :.2f}]")
         )
     for col_index, col_spec in enumerate(cols):
         col = f"{col_spec.prefix}" + (f"_{col_spec.scope}" if col_spec.scope is not None else "")
@@ -265,7 +266,7 @@ def plot_binned_box_plot(  # noqa: C901
         if experiment_data_comparison is not None:
             data[
                 col_name + (experiment_data_comparison_suffix if experiment_data_comparison_suffix is not None else "_comparison")
-                ] = experiment_data_comparison
+            ] = experiment_data_comparison
         for col_name, d in data.items():
             quantile = d[col].quantile(0.99)
             if quantile > max_quantile:
@@ -292,16 +293,18 @@ def plot_binned_box_plot(  # noqa: C901
                                 if "solver_statistics_times_total_online_route_restricted" in d.columns
                                 else None,
                             )
-                        )[0],
+                        )[0]
+                        if customdata
+                        else None,
                         hovertext=d["experiment_id"],
                         hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
-                                      + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
-                                      + "<b>Grid Size:</b> %{customdata[1]}<br>"
-                                      + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
-                                      + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
-                                      + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
-                                      + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
-                                      + "<b>Experiment id:</b>%{hovertext}",
+                        + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
+                        + "<b>Grid Size:</b> %{customdata[1]}<br>"
+                        + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
+                        + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
+                        + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
+                        + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
+                        + "<b>Experiment id:</b>%{hovertext}",
                         marker=dict(
                             color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
                             symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
@@ -333,17 +336,17 @@ def plot_binned_box_plot(  # noqa: C901
                         )[0],
                         hovertext=d["experiment_id"],
                         hovertemplate="<b>Speed Up</b>: %{y:.2f}<br>"
-                                      + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
-                                      + "<b>Grid Size:</b> %{customdata[1]}<br>"
-                                      + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
-                                      + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
-                                      + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
-                                      + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
-                                      + "<b>Experiment id:</b>%{hovertext}",
+                        + "<b>Nr. Agents</b>: %{customdata[0]}<br>"
+                        + "<b>Grid Size:</b> %{customdata[1]}<br>"
+                        + "<b>Schedule Time:</b> %{customdata[2]:.2f}s<br>"
+                        + "<b>Re-Schedule Full Time:</b> %{customdata[3]:.2f}s<br>"
+                        + "<b>Delta perfect:</b> %{customdata[4]:.2f}s<br>"
+                        + "<b>Delta naive:</b> %{customdata[5]:.2f}s<br>"
+                        + "<b>Experiment id:</b>%{hovertext}",
                         marker=dict(
                             color=marker_color(col_index, col) if marker_color is not None else Plotly[col_index % len(Plotly)],
                             symbol=marker_symbol(col_index, col_spec.prefix) if marker_symbol is not None else "circle",
-                            size=10
+                            size=10,
                         ),
                     ),
                     secondary_y=False,
@@ -381,7 +384,6 @@ def plot_binned_box_plot(  # noqa: C901
 
     fig.update_layout(width=width, height=height)
     fig.update_layout(template="plotly_white")
-    # fig.update_layout(legend=dict(yanchor="top", y=-0.2, x=0.01))
     fig.update_layout(legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
 
     if binned:
@@ -407,7 +409,8 @@ code_to_paper_dict = {
     "offline_delta": "max speedup",
     # "online_route_restricted",
     # "online_transmission_chains_fully_restricted",
-    "online_transmission_chains_route_restricted": "heuristic"}
+    "online_transmission_chains_route_restricted": "heuristic",
+}
 
 
 def name_to_axis_title(name: str):
@@ -420,7 +423,7 @@ def name_to_axis_title(name: str):
 
 
 def density_hist_plot_2d(
-        title: str, data_frame, width: int = PDF_WIDTH, height: int = PDF_HEIGHT, output_folder: Optional[str] = None, file_name: Optional[str] = None
+    title: str, data_frame, width: int = PDF_WIDTH, height: int = PDF_HEIGHT, output_folder: Optional[str] = None, file_name: Optional[str] = None
 ):
     """
 
