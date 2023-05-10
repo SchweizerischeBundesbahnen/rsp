@@ -266,6 +266,20 @@ Caveats:
 ## Coding Guidelines
 See [CODING.md](CODING.md).
 
+## Cite
+Please cite this repo along with the [pre-print](https://arxiv.org/abs/2305.03574):
+```
+@misc{nygren2023scope,
+      title={Scope Restriction for Scalable Real-Time Railway Rescheduling: An Exploratory Study}, 
+      author={Erik Nygren and Christian Eichenberger and Emma Frejinger},
+      year={2023},
+      eprint={2305.03574},
+      archivePrefix={arXiv},
+      primaryClass={math.OC}
+}
+```
+[Paper with an extended technical appendix (revision 2023-05-05)](SBB_Real_Time_Rescheduling.pdf)
+
 ## Disclaimer
 ### Authors:
 - Christian Eichenberger
