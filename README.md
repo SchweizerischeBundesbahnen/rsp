@@ -270,7 +270,7 @@ See [CODING.md](CODING.md).
 Please cite this repo along with the [pre-print](https://arxiv.org/abs/2305.03574):
 ```
 @misc{nygren2023scope,
-      title={Scope Restriction for Scalable Real-Time Railway Rescheduling: An Exploratory Study}, 
+      title={Scope Restriction for Scalable Real-Time Railway Rescheduling: An Exploratory Study},
       author={Erik Nygren and Christian Eichenberger and Emma Frejinger},
       year={2023},
       eprint={2305.03574},
